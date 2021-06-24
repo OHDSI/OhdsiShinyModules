@@ -23,7 +23,7 @@ Screenshots
 <tr>
 <td> webApi Module </td>
 <td>
-<img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/webApiExample.png" alt="webApiExample" width = 300px height = 300px />
+<img src="https://github.com/OHDSI/OhdsiShinyModules/blob/master/vignettes/screenshots/webApiExample.png" alt="webApiExample" width = 300px height = 300px />
 </td>
 </tr>
 
