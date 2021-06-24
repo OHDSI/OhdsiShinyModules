@@ -37,14 +37,14 @@ Screenshots
 <tr>
 <td> cohort Module </td>
 <td>
-<img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/cohortExample.png" alt="extractCohortExample" width = 500px height = 500px />
+<img src="vignettes/screenshots/cohortExample.png" alt="cohortExample" width = 500px height = 500px />
 </td>
 </tr>
 
 <tr>
 <td> model Module </td>
 <td>
-<img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/modelExample.png" alt="extractCohortExample" width = 500px height = 500px />
+<img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/modelExample.png" alt="modelExample" width = 500px height = 500px />
 </td>
 </tr>
 
