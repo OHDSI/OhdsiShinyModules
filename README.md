@@ -19,38 +19,38 @@ Screenshots
 ===========
 
 <table>
-<tr valign="bottom">
+<tr>
 
 <td> webApi Module </td>
 
-<td width = 50%>
+<td width = 80%>
 <img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/webApiExample.png" alt="webApiExample" title="webApi Module Example" />
 </td>
 
 </tr>
 
-<tr valign="bottom">
+<tr>
 
 <td> extractCohort Module </td>
 
-<td width = 50%>
+<td width = 80%>
 <img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/extractCohortExample.png" alt="extractCohortExample" title="extractCohort Module Example" />
 </td>
 
 </tr>
 
-<tr valign="bottom">
+<tr>
 <td> cohort Module </td>
 
-<td width = 50%>
+<td width = 80%>
 <img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/cohortExample.png" alt="extractCohortExample" title="Cohort Module Example" />
 </td>
 
 </tr>
 
-<tr valign="bottom">
+<tr>
 <td> model Module </td>
-<td width = 50%>
+<td width = 80%>
 <img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/modelExample.png" alt="extractCohortExample" title="Model Module Example" />
 </td>
 
