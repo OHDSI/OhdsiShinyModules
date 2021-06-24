@@ -23,28 +23,28 @@ Screenshots
 <tr>
 <td> webApi Module </td>
 <td>
-<img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/webApiExample.png" alt="webApiExample" width = 500px title="webApi Module Example" />
+<img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/webApiExample.png" alt="webApiExample" width = 100px height = 100px title="webApi Module Example" />
 </td>
 </tr>
 
 <tr>
 <td> extractCohort Module </td>
 <td>
-<img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/extractCohortExample.png" alt="extractCohortExample" width = 500px title="extractCohort Module Example" />
+<img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/extractCohortExample.png" alt="extractCohortExample" width = 100px height = 30px title="extractCohort Module Example" />
 </td>
 </tr>
 
 <tr>
 <td> cohort Module </td>
 <td>
-<img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/cohortExample.png" alt="extractCohortExample" width = 500px title="Cohort Module Example" />
+<img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/cohortExample.png" alt="extractCohortExample" width = 500px height = 500px title="Cohort Module Example" />
 </td>
 </tr>
 
 <tr>
 <td> model Module </td>
 <td>
-<img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/modelExample.png" alt="extractCohortExample" width = 500px title="Model Module Example" />
+<img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/modelExample.png" alt="extractCohortExample" width = 500px height = 500px title="Model Module Example" />
 </td>
 </tr>
 
