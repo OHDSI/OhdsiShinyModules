@@ -30,7 +30,7 @@ Screenshots
 <tr>
 <td> extractCohort Module </td>
 <td>
-<img src="https://github.com/OHDSI/OhdsiShinyModules/raw/master/vignettes/screenshots/extractCohortExample.png" alt="extractCohortExample" width = 200px height = 100px  />
+<img src="https://raw.githubusercontent.com/OHDSI/OhdsiShinyModules/master/vignettes/screenshots/extractCohortExample.png" alt="extractCohortExample" width = 200px height = 100px  />
 </td>
 </tr>
 
