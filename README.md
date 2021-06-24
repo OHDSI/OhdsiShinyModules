@@ -37,7 +37,7 @@ Screenshots
 <tr>
 <td> cohort Module </td>
 <td>
-<img src="vignettes/screenshots/cohortExample.png" alt="cohortExample" width = 500px height = 500px />
+<img src="https://github.com/OHDSI/OhdsiShinyModules/blob/4b85f6e50249c39d953eea3605e3180781326eab/vignettes/screenshots/cohortExample.png" alt="cohortExample" width = 500px height = 500px />
 </td>
 </tr>
 
