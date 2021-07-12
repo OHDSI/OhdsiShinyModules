@@ -4,7 +4,7 @@
 \alias{covariateServer}
 \title{The server for creating FeatureExtraction covariate settings}
 \usage{
-covariateServer(input, output, session, cohortReactive)
+covariateServer(input, output, session, cohortReactive, validation = F)
 }
 \arguments{
 \item{input}{Standard for shiny modules}
@@ -14,6 +14,8 @@ covariateServer(input, output, session, cohortReactive)
 \item{session}{Standard for shiny modules}
 
 \item{cohortReactive}{The list of cohort in an ATLAS webApi}
+
+\item{validation}{Whether the covariates are for development or validation}
 }
 \description{
 The server for creating FeatureExtraction covariate settings

@@ -193,7 +193,7 @@ populationModal <- function(ns, settings = list()) {
 
 
     footer = shiny::tagList(
-      shiny::actionButton(ns('addPops'), 'Update covariate')
+      shiny::actionButton(ns('addPops'), 'Update Population')
     )
   )
 }
