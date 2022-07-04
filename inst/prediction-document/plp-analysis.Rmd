@@ -1,0 +1,72 @@
+---
+output: html_document
+---
+  
+### Analysis
+
+The model that will be trained is a ``r attr(modelSettings$param,'settings')$name `` that uses the `PatientLevelPrediction` function ``r modelSettings$fitFunction `` to fit the model.
+
+```{r, echo=FALSE}
+if(modelSettings$fitFunction == "fitCyclopsModel"){
+ parameters <- data.frame(
+   name = names(modelSettings$param),
+   value = unlist(
+     lapply(modelSettings$param, function(x) paste(names(x), x, collapse = '-', sep=':'))
+   )
+ )
+ 
+ settings <- data.frame(
+   name = names(attr(modelSettings$param,"settings")),
+   value = unlist(
+     lapply(
+       attr(modelSettings$param,"settings"), 
+       function(x) paste0(names(x), x, collapse = ':', sep=' ')
+            )
+     )
+ )
+ row.names(settings) <- NULL
+} else{
+   parameters <- 
+       do.call('rbind', lapply(
+       modelSettings$param, 
+       function(x){
+         unlist(lapply(x, function(x) paste0(x, sep=' ', collapse=':')))
+       })
+     )
+ 
+ settings <- data.frame(
+   name = names(attr(modelSettings$param,"settings")),
+   value = unlist(
+     lapply(
+       attr(modelSettings$param,"settings"), 
+       function(x) paste0(names(x), x, collapse = '-', sep='')
+            )
+     )
+ )
+ row.names(settings) <- NULL
+}
+```
+
+**Cross-validation settings**
+
+The cross validation settings are to use ``r splitSettings$nfold `` folds in the training data that are partitioned using the ``r attr(splitSettings,"fun") `` function and consist of ``r splitSettings$train*100 `` \% of the complete data.  The seed used for splitting the data is ``r splitSettings$seed ``.
+
+**Hyper-parameter search**
+
+The hyper-parameters investigated while fitting the model are listed below.  The combination of hyper-parameters that obtains the highest AUROC value in the training data via cross validation will be uses in the final model.
+
+```{r, echo=FALSE, results='asis'}
+print(knitr::kable(x = parameters, caption = paste('Hyper-parameters combinations searched to fit the model')))
+```
+
+**Other settings**
+
+The other settings used to fit the model, such as seeds used for reproducibility, are:
+
+```{r, echo=FALSE, results='asis'}
+print(knitr::kable(x = settings, caption = paste('Other model fitting settings')))
+```
+
+**Internal validation**
+
+The model will be assessed internally using a test set that consists of ``r splitSettings$test*100`` \% of the complete data.

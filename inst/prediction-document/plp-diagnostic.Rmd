@@ -1,0 +1,20 @@
+---
+output: html_document
+---
+  
+### Diagnostic
+
+Using the PROBAST risk of bias we:
+
+**Participants Risk of Bias**
+
+1.1 Were appropriate data sources used, e.g. cohort, RCT or nested case-control study data?
+
+1.2 Were all inclusions and exclusions of participants appropriate?
+
+**Predictor Risk of Bias**
+
+**Outcome Risk of Bias**
+
+
+

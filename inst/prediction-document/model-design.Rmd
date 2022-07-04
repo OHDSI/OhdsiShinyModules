@@ -1,0 +1,128 @@
+---
+output: html_document
+---
+
+```{r, echo=FALSE, results='asis'}
+
+getModelDesign <- function(
+  connection,
+  resultSchema,
+  targetDialect,
+  myTableAppend,
+  modelDesignId,
+  tempEmulationSchema = NULL
+){
+  
+  ref <- data.frame(
+    name = c(
+      'targetCohort', 'outcomeCohort','populationSettings',
+      'covariateSettings', 'featureEngineeringSettings', 'preprocessSettings',
+      'modelSettings', 'sampleSettings', 'restrictPlpDataSettings',
+      'splitSettings'
+      ),
+    tableName = c(
+      'cohorts', 'cohorts', 'population_settings', 
+      'covariate_settings', 'feature_engineering_settings', 'tidy_covariates_settings',
+      'model_settings', 'sample_settings', 'plp_data_settings',
+      'split_settings'
+      ),
+   tableIdRef = c(
+      'target_id', 'outcome_id', 'population_setting_id', 
+      'covariate_setting_id', 'feature_engineering_setting_id', 'tidy_covariates_setting_id',
+      'model_setting_id', 'sample_setting_id', 'plp_data_setting_id',
+      'split_setting_id'
+    ),
+   modelDesignIdRef = c(
+      'cohort_id', 'cohort_id', 'population_setting_id', 
+      'covariate_setting_id', 'feature_engineering_setting_id', 'tidy_covariates_setting_id',
+      'model_setting_id', 'sample_setting_id', 'plp_data_setting_id',
+      'split_setting_id'
+    ),
+   extractName = c('cohort_json','cohort_json', 'population_settings_json',
+  'covariate_settings_json', 'feature_engineering_settings_json',
+  'tidy_covariates_settings_json', 
+  'model_settings_json',
+  'sample_settings_json',
+  'plp_data_settings_json',
+  'split_settings_json'
+  )
+  )
+  
+  sqlStart <- "select a.@extract_name as value from @result_schema.@my_table_append@table_name a
+   inner join @result_schema.@my_table_appendmodel_designs b
+  on b.@table_id_ref = a.@model_design_id_ref
+  where b.model_design_id = @model_design_id"
+  
+  result <- lapply(
+    X = 1:nrow(ref), FUN = function(j){
+  sql <- SqlRender::render(
+    sql = sqlStart, 
+    result_schema = resultSchema,
+    my_table_append = myTableAppend,
+    table_name = ref$tableName[j],
+    table_id_ref = ref$tableIdRef[j],
+    model_design_id_ref = ref$modelDesignIdRef[j],
+    model_design_id = modelDesignId,
+    extract_name = ref$extractName[j]
+  )
+  
+  sql <- SqlRender::translate(
+    sql = sql, 
+    targetDialect = targetDialect, 
+    tempEmulationSchema = tempEmulationSchema
+    )
+  
+  res <- DatabaseConnector::querySql(
+    connection = connection, 
+    sql = sql, 
+    snakeCaseToCamelCase = T
+    )
+res <- ParallelLogger::convertJsonToSettings(res$value)
+  return(res)
+  
+    })
+  
+  names(result) <- ref$name
+  return(result)
+}
+
+
+modelDesign <- getModelDesign( # need to create this
+  connection = params$connection,
+  resultSchema = params$resultSchema,
+  targetDialect = params$targetDialect,
+  myTableAppend = params$myTableAppend,
+  modelDesignId = params$modelDesignIds[i]
+  )
+
+target <- modelDesign$targetCohort
+outcome <- modelDesign$outcomeCohort
+populationSettings <- modelDesign$populationSettings
+covariateSettings <- modelDesign$covariateSettings
+featureEngineeringSettings <-modelDesign$featureEngineeringSettings
+preprocessSettings <- modelDesign$preprocessSettings
+modelSettings <- modelDesign$modelSettings
+sampleSettings <- modelDesign$sampleSettings
+restrictPlpDataSettings <- modelDesign$restrictPlpDataSettings
+splitSettings <- modelDesign$splitSettings
+ 
+```
+
+
+
+```{r echo=FALSE, results='asis'}
+cat('\n## Model Design ', params$modelDesignIds[i], '\n')
+```
+
+```{r, child = "plp-participants.Rmd"}
+```
+
+```{r, child = "plp-predictors.Rmd"}
+```
+
+```{r, child = "plp-outcome.Rmd"}
+```
+
+```{r, child = "plp-analysis.Rmd"}
+```
+

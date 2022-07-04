@@ -1,0 +1,17 @@
+---
+output: html_document
+---
+  
+### Outcome
+
+The outcome ``r outcome$name`` occurring between target ``r populationSettings$startAnchor `` + ``r populationSettings$riskWindowStart`` days and target ``r populationSettings$endAnchor`` + ``r populationSettings$riskWindowEnd `` days is defined as:
+
+```{r results='asis', echo=FALSE}
+markdown <- tryCatch(
+  {CirceR::cohortPrintFriendly(outcome$expression)}, 
+  error = function(e) return('')
+)
+markdown <- gsub('###', '####',markdown)
+cat(markdown)
+```
+

@@ -1,7 +1,7 @@
 Package: OhdsiShinyModules
 Type: Package
 Title: A repository of shiny modules that are useful for OHDSI result viewers
-Version: 0.1.0
+Version: 0.2.0
 Author: Jenna Reps
 Maintainer: Jenna Reps <reps@ohdsi.org>
 Description: Install this package to access useful shiny modules for building shiny apps to explore results using the OHDSI tools .
@@ -10,10 +10,31 @@ Encoding: UTF-8
 LazyData: true
 Depends:
     R (>= 3.3.0)
-Suggests:
-    httr, 
+Imports:
+    CirceR,
+    DatabaseConnector,
+    DBI,
+    dplyr,
+    DT,
+    ggplot2,
+    gridExtra,
+    htmltools,
+    knitr,
+    ParallelLogger,
+    plotly,
+    pool,
+    reactable,
+    rlang,
+    rmarkdown,
     shiny, 
+    shinycssloaders,
     shinydashboard, 
-    shinyWidgets, 
-    ROhdsiWebApi
-RoxygenNote: 7.1.1
+    SqlRender,
+    tidyr
+Suggests:
+    testthat,
+    withr
+Remotes:
+    ohdsi/CirceR,
+    ohdsi/ParallelLogger
+RoxygenNote: 7.2.0
