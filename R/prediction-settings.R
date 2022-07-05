@@ -73,7 +73,7 @@ predictionSettingsViewer <- function(id) {
 #' The server to the settings module
 #'
 #' @export
-predictionSetingsServer <- function(
+predictionSettingsServer <- function(
   id,
   modelDesignId, 
   developmentDatabaseId, 
