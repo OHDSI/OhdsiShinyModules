@@ -25,10 +25,13 @@ devtools::spell_check()
 unlink("extras/OhdsiShinyModules.pdf")
 system("R CMD Rd2pdf ./ --output=extras/OhdsiShinyModules.pdf")
 
-rmarkdown::render("vignettes/UsingOhdsiShinyModules.Rmd",
-                  output_file = "../inst/doc/UsingOhdsiShinyModules.pdf",
+rmarkdown::render("vignettes/AddingShinyModules.Rmd",
+                  output_file = "../inst/doc/AddingShinyModules.pdf",
                   rmarkdown::pdf_document(latex_engine = "pdflatex",
                                           toc = TRUE,
                                           toc_depth = 3,
                                           number_sections = TRUE))
 
+
+pkgdown::build_site()
+OhdsiRTools::fixHadesLogo()

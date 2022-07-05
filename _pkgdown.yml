@@ -1,0 +1,80 @@
+template:
+  params:
+    bootswatch: cosmo
+    
+home:
+  links:
+  - text: Ask a question
+    href: http://forums.ohdsi.org
+    
+navbar:
+  structure:
+    left:
+    - home
+    - reference
+    - contribute
+    - articles
+    - news
+    right: [hades, github]
+  components:
+    home:
+      icon: fa-home fa-lg
+      href: index.html
+    reference:
+      text: Reference
+      href: reference/index.html
+    contribute:
+      text: Contribute
+      href: articles/AddingShinyModules.html
+    news:
+      text: Changelog
+      href: news/index.html
+    github:
+      icon: fa-github fa-lg
+      href: https://github.com/OHDSI/PatientLevelPrediction
+    hades:
+      text: hadesLogo
+      href: https://ohdsi.github.io/Hades
+
+reference:
+  - title: "OHDSI Shiny Modules"
+    desc: >
+      Modules for OHDSI shiny apps.
+    contents:
+      - OhdsiShinyModules
+      - getLogoImage
+  - title: "Prediction module"
+    desc: >
+      Modules for prediction results.
+    contents:
+      - predictionHelperFile
+      - predictionViewer
+      - predictionServer
+      - predictionDiagnosticsServer
+      - predictionDiagnosticsViewer
+      - predictionDesignSummaryViewer
+      - predictionDesignSummaryServer
+      - predictionModelSummaryViewer
+      - predictionModelSummaryServer
+      - predictionSettingsViewer
+      - predictionSettingsServer
+      - predictionCovariateSummaryViewer
+      - predictionCovariateSummaryServer
+      - predictionCutoffViewer
+      - predictionCutoffServer
+      - predictionDiscriminationViewer
+      - predictionDiscriminationServer
+      - predictionCalibrationViewer
+      - predictionCalibrationServer
+      - predictionNbViewer
+      - predictionNbServer
+      - predictionValidationViewer
+      - predictionValidationServer
+  - title: "About module"
+    desc: >
+      Modules for the information page.
+    contents:
+      - aboutHelperFile
+      - aboutViewer
+      - aboutServer
+      

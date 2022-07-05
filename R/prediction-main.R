@@ -344,7 +344,7 @@ predictionServer <- function(
         targetDialect = resultDatabaseSettings$targetDialect
       ) 
       
-      predictionSetingsServer(
+      predictionSettingsServer(
         id = 'settings', 
         modelDesignId = modelDesignId, # reactive
         developmentDatabaseId = developmentDatabaseId, # reactive
