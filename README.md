@@ -31,7 +31,7 @@ remotes::install_github('ohdsi/OhdsiShinyModules')
 
 Please read the main vignette for the package:
 
-Package manual: [AddingShinyModules.pdf](https://github.com/OHDSI/OhdsiShinyModules/blob/main/extras/AddingShinyModules.pdf)
+Package manual: [AddingShinyModules.pdf](https://github.com/OHDSI/OhdsiShinyModules/blob/main/inst/doc/AddingShinyModules.pdf)
 
 
 Support
