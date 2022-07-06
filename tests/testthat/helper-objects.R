@@ -3,7 +3,7 @@ if (jarFolder == "") {
   tempJarFolder <- tempfile("jdbcDrivers")
   dir.create(tempJarFolder)
   Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = tempJarFolder)
-  downloadJdbcDrivers("postgresql")
+  DatabaseConnector::downloadJdbcDrivers("postgresql")
   
   withr::defer({
     unlink(tempJarFolder, recursive = TRUE, force = TRUE)
