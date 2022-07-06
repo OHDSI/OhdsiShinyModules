@@ -26,6 +26,7 @@ Imports:
     reactable,
     rlang,
     rmarkdown,
+    RSQLite,
     shiny, 
     shinycssloaders,
     shinydashboard, 
