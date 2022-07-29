@@ -111,8 +111,10 @@ splitSettings <- modelDesign$splitSettings
 
 
 ```{r echo=FALSE, results='asis'}
-cat('\n## Model Design ', params$modelDesignIds[i], '\n')
+cat('\n# Model ', params$modelDesignIds[i], '\n')
 ```
+
+## Model Design
 
 ```{r, child = "plp-participants.Rmd"}
 ```

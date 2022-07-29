@@ -298,7 +298,7 @@ predictionServer <- function(
             title = "Report",
             shiny::div(
               shiny::textInput(
-                inputId = session$ns('downloadLoc'), 
+                inputId = session$ns('plpProtocolDownload'), 
                 label = 'Download Protocol Location:', 
                 placeholder = '/Users/jreps/Documents'
               ),
@@ -312,18 +312,30 @@ predictionServer <- function(
             easyClose = T
           ))
         }
+        
       })
       
       # add code to save protocol to file based on input$downloadButton
       shiny::observeEvent(input$downloadButton, {
-        # add code here
-        createPredictionProtocol(
-          con = con, 
-          mySchema = resultDatabaseSettings$mySchema, 
-          targetDialect = resultDatabaseSettings$targetDialect,
-          myTableAppend = resultDatabaseSettings$myTableAppend,
-          modelDesignId = designSummary$reportId(),
-          output = input$downloadLoc
+        
+        if(!dir.exists(input$plpProtocolDownload)){
+          dir.create(input$plpProtocolDownload, recursive = T)
+        }
+        
+        rmarkdown::render(
+          input = system.file(
+            'prediction-document', 
+            "export-main.Rmd", 
+            package = "OhdsiShinyModules"
+          ), 
+          output_dir = file.path(input$plpProtocolDownload, paste0('plp_report',designSummary$reportId())), 
+          params = list(
+            connection = con, 
+            resultSchema = resultDatabaseSettings$mySchema, 
+            targetDialect = resultDatabaseSettings$targetDialect,
+            myTableAppend = resultDatabaseSettings$myTableAppend,
+            modelDesignIds = designSummary$reportId()
+          )
         )
       }
       )

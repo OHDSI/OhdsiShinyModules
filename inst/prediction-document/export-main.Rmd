@@ -1,0 +1,127 @@
+---
+title: "PatientLevelPrediction Protocol "
+date: "`r Sys.Date() `"
+params:
+  include_diagnostic: TRUE
+  include_results: TRUE
+  plpCitation: "Reps JM, Schuemie MJ, Suchard MA, Ryan PB, Rijnbeek P (2018). 'Design and implementation of a standardized framework to generate and evaluate patient level prediction models using observational healthcare data'. Journal of the American Medical Informatics Association, 25(8), 969-975."
+  tripodCitation: "Collins, G., et al. (2017). 'Transparent reporting of a multivariable prediction model for individual prognosis or diagnosis (TRIPOD): the TRIPOD statement.' Journal of British Surgery 102.3 (2015): 148-158."
+  progressCitation: "Steyerberg EW, Moons KG, van der Windt DA, Hayden JA, Perel P, Schroter S, Riley RD, Hemingway H, Altman DG; PROGRESS Group. Prognosis Research Strategy (PROGRESS) 3: prognostic model research. PLoS Med. 2013;10(2):e1001381."
+  rCitation: "R Core Team (2013). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria. URL http://www.R-project.org/."
+  connection: ""
+  resultSchema: "plp_results"
+  targetDialect: "redshift"
+  myTableAppend: ""
+  modelDesignIds: 1
+output: 
+  html_document:
+    toc: TRUE
+    toc_depth: 5
+    toc_float: true
+---
+  
+# Project Details
+  
+Study Title: PatientLevelPrediction Report
+Prepared on: ``r Sys.Date()``
+Created by: shinyApp
+
+# Abbreviations
+
+```{r echo=FALSE}
+
+abb <- data.frame(rbind(
+  c("AUROC", "Area Under the Receiver Operating Characteristic Curve"),
+  c("CDM","Common Data Model"),
+  c("O","Outcome Cohort"),
+  c("OHDSI","Observational Health Data Sciences & Informatics"),
+  c("OMOP","Observational Medical Outcomes Partnership"),
+  c("T", "Target Cohort"),
+  c("TAR", "Time at Risk")
+))
+names(abb) <- c("Abbreviation","Phrase")
+abb <- abb[order(abb$Abbreviation),]
+
+knitr::kable(x = abb, caption = 'List of Abbreviations')
+
+```
+
+# Responsible Parties
+
+```{r echo=FALSE}
+
+data <- data.frame(rbind(
+  c("Author", "<add>"),
+  c("Investigator/s","<add>"),
+  c("Reviewer/s","<add>"),
+  c("Sponsor","<add>")
+))
+names(data) <- c("Role","Name")
+
+knitr::kable(x = data, caption = 'Table of responsible parties')
+
+```
+
+# Executive Summary
+
+<< A few statements about the rational and background for this study. >>
+
+
+# Rational & Background
+
+<< Provide a short description of the reason that led to the initiation of or need for the study and add a short critical review of available published and unpublished data to explain gaps in knowledge that the study is intended to fill. >>
+
+# Methods
+
+Model development follows the framework presented in ``r  params$plpCitation `` 
+
+```{r, child = "plp-evaluation.Rmd"}
+```
+
+
+```{r results='asis', echo=FALSE}
+    for (i in 1:length(params$modelDesignIds)) {
+      modelDesign <- knitr::knit_child("model-design.Rmd", quiet = TRUE, envir = environment())
+      cat(modelDesign, sep = '\n')
+      
+      diagnostic <- knitr::knit_child("plp-diagnostic.Rmd", quiet = TRUE, envir = environment())
+      cat(diagnostic , sep = '\n')
+      
+      results <- knitr::knit_child("plp-results.Rmd", quiet = TRUE, envir = environment())
+      cat(results , sep = '\n')
+    }
+
+```
+
+# Quality Control
+
+The `PatientLevelPrediction` package itself, as well as other OHDSI packages on which `PatientLevelPrediction` depends, use unit tests for validation.
+
+# Tools
+
+This study will be designed using OHDSI tools and run with R
+
+``r params$rCitation ``
+
+More information about the tools can be found in the Appendix 'Study Generation Version Information'
+
+# Strengths & Limitations 
+
+<< To be completed outside of ATLAS >>
+
+Some limitations to consider:
+  
+  - It may not be possible to develop prediction models for rare outcomes.
+- Not all medical events are recorded into the observational datasets and some recordings can be incorrect.  This could potentially lead to outcome misclassification.
+- The prediction models are only applicable to the population of patients represented by the data used to train the model and may not be generalizable to the wider population
+
+
+# Protection of Human Subjects
+
+Confidentiality of patient records will be maintained always. All study reports will contain aggregate data only and will not identify individual patients or physicians. At no time during the study will the sponsor receive patient identifying information except when it is required by regulations in case of reporting adverse events.
+
+# Plans for Disseminating & Communicating Study Results
+
+<< List any plans for submission of progress reports, final reports, and publications >>
+
+We recommend following the TRIPOD guidelines for publishing prediction models ``r params$tripodCitation ``
