@@ -50,53 +50,63 @@ estimationViewer <- function(id) {
             conditionalPanel(id = ns("loadmessage"),
                              condition = "$('html').hasClass('shiny-busy')",
                              tags$div("Processing...")),
-            fluidRow(
-              column(width = 3,
-                     uiOutput(outputId = ns("targetWidget")),
-                     uiOutput(outputId = ns("comparatorWidget")),
-                     uiOutput(outputId = ns("outcomeWidget")),
-                     uiOutput(outputId = ns("databaseWidget")),
-                     uiOutput(outputId = ns("analysisWidget"))
+            tabsetPanel(
+              id = ns("mainTabsetPanel"),
+              tabPanel(
+                title = "Diagnostics",
+                estimationDiagnosticsSummaryViewer(ns("estimationDiganostics"))
               ),
-              column(width = 9,
-                     estimationResultsTableViewer(ns("resultsTable")),
-                     conditionalPanel("output.rowIsSelected == true", ns = ns,
-                                      tabsetPanel(id = ns("detailsTabsetPanel"),
-                                                  tabPanel(title = "Power",
-                                                           estimationPowerViewer(ns("power"))
-                                                  ),
-                                                  tabPanel(title = "Attrition",
-                                                           estimationAttritionViewer(ns("attrition"))
-                                                  ),
-                                                  tabPanel(title = "Population characteristics",
-                                                           estimationPopulationCharacteristicsViewer(ns("popCharacteristics"))
-                                                  ),
-                                                  tabPanel(title = "Propensity model",
-                                                           estimationPropensityModelViewer(ns("propensityModel"))
-                                                  ),
-                                                  tabPanel(title = "Propensity scores",
-                                                           estimationPropensityScoreDistViewer(ns("propensityScoreDist"))
-                                                  ),
-                                                  tabPanel(title = "Covariate balance",
-                                                           estimationCovariateBalanceViewer(ns("covariateBalance"))
-                                                  ),
-                                                  tabPanel(title = "Systematic error",
-                                                           estimationSystematicErrorViewer(ns("systematicError"))
-                                                  ),
-                                                  tabPanel(title = "Forest plot",
-                                                           estimationForestPlotViewer(ns("forestPlot"))
-                                                  ),
-                                                  tabPanel(title = "Kaplan-Meier",
-                                                           estimationKaplanMeierViewer(ns("kaplanMeier"))
-                                                  ),
-                                                  tabPanel(title = "Subgroups",
-                                                           estimationSubgroupsViewer(ns("subgroups"))
-                                                  )
-                                                  
-                                      ) # end tabsetPanel
-                     ) # end conditionalPanel
+              tabPanel(
+                title = "Results",
+                fluidRow(
+                  column(width = 3,
+                         uiOutput(outputId = ns("targetWidget")),
+                         uiOutput(outputId = ns("comparatorWidget")),
+                         uiOutput(outputId = ns("outcomeWidget")),
+                         uiOutput(outputId = ns("databaseWidget")),
+                         uiOutput(outputId = ns("analysisWidget"))
+                  ),
+                  column(width = 9,
+                         estimationResultsTableViewer(ns("resultsTable")),
+                         conditionalPanel("output.rowIsSelected == true", ns = ns,
+                                          tabsetPanel(id = ns("detailsTabsetPanel"),
+                                                      tabPanel(title = "Power",
+                                                               estimationPowerViewer(ns("power"))
+                                                      ),
+                                                      tabPanel(title = "Attrition",
+                                                               estimationAttritionViewer(ns("attrition"))
+                                                      ),
+                                                      tabPanel(title = "Population characteristics",
+                                                               estimationPopulationCharacteristicsViewer(ns("popCharacteristics"))
+                                                      ),
+                                                      tabPanel(title = "Propensity model",
+                                                               estimationPropensityModelViewer(ns("propensityModel"))
+                                                      ),
+                                                      tabPanel(title = "Propensity scores",
+                                                               estimationPropensityScoreDistViewer(ns("propensityScoreDist"))
+                                                      ),
+                                                      tabPanel(title = "Covariate balance",
+                                                               estimationCovariateBalanceViewer(ns("covariateBalance"))
+                                                      ),
+                                                      tabPanel(title = "Systematic error",
+                                                               estimationSystematicErrorViewer(ns("systematicError"))
+                                                      ),
+                                                      tabPanel(title = "Forest plot",
+                                                               estimationForestPlotViewer(ns("forestPlot"))
+                                                      ),
+                                                      tabPanel(title = "Kaplan-Meier",
+                                                               estimationKaplanMeierViewer(ns("kaplanMeier"))
+                                                      ),
+                                                      tabPanel(title = "Subgroups",
+                                                               estimationSubgroupsViewer(ns("subgroups"))
+                                                      )
+                                                      
+                                          ) # end tabsetPanel
+                         ) # end conditionalPanel
+                  )
+                  
+                ) 
               )
-              
             )
   )
   
@@ -199,6 +209,9 @@ estimationServer <- function(id,
         t$database <- input$database
         return(t)
       })
+      
+      
+      estimationDiagnosticsSummaryServer("estimationDiganostics", connection, resultsSchema)
       
       
       selectedRow <- estimationResultsTableServer("resultsTable", connection, inputParams, resultsSchema)

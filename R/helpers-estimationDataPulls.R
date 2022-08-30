@@ -711,3 +711,42 @@ getEstimationNegativeControlEstimates <- function(cohortMethodResult, connection
     return(NULL)
   return(subset)
 }
+
+
+
+getDiagnosticsData <- function(connection, resultsSchema) {
+  sql <- "
+    SELECT
+      dmd.cdm_source_abbreviation database_name,
+      cma.description analysis_desc,
+      cgcd1.cohort_name target,
+      cgcd2.cohort_name comparator,
+      cgcd3.cohort_name outcome,
+      cmds.max_sdm,
+      cmds.shared_max_sdm,
+      cmds.equipoise,
+      cmds.mdrr,
+      cmds.attrition_fraction,
+      cmds.ease,
+      cmds.balance_diagnostic,
+      cmds.shared_balance_diagnostic,
+      cmds.equipoise_diagnostic,
+      cmds.mdrr_diagnostic,
+      cmds.attrition_diagnostic,
+      cmds.ease_diagnostic,
+      cmds.unblind
+    FROM
+      poc.cm_diagnostics_summary cmds
+      JOIN @results_schema.cm_analysis cma ON cmds.analysis_id = cma.analysis_id
+      JOIN @results_schema.database_meta_data dmd ON dmd.database_id = cmds.database_id
+      JOIN @results_schema.cg_cohort_definition cgcd1 ON cmds.target_id = cgcd1.cohort_definition_id
+      JOIN @results_schema.cg_cohort_definition cgcd2 ON cmds.comparator_id = cgcd2.cohort_definition_id
+      JOIN @results_schema.cg_cohort_definition cgcd3 ON cmds.outcome_id = cgcd3.cohort_definition_id
+  "
+  
+  return(
+    DatabaseConnector::renderTranslateQuerySql(connection, sql,
+                                               snakeCaseToCamelCase = TRUE,
+                                               results_schema = resultsSchema)
+  )
+}
