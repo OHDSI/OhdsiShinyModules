@@ -14,13 +14,12 @@ params:
   myTableAppend: ""
   modelDesignIds: 1
 output: 
-  html_fragment:
-    toc: FALSE
+  html_document:
+    toc: TRUE
     toc_depth: 5
     toc_float: true
-runtime: shiny
 ---
-
+  
 # Project Details
   
 Study Title: PatientLevelPrediction Report

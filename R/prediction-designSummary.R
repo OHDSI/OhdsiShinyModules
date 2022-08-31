@@ -82,6 +82,10 @@ predictionDesignSummaryServer <- function(
             # Render a "show details" button in the last column of the table.
             # This button won't do anything by itself, but will trigger the custom
             # click action on the column.
+            diagDatabases = reactable::colDef(
+              name = "Num. Diagnostic Databases",
+              sortable = TRUE
+            ),
             devDatabases = reactable::colDef(
               name = "Num. Development Databases",
               sortable = TRUE
@@ -144,8 +148,12 @@ predictionDesignSummaryServer <- function(
       
       shiny::observeEvent(input$show_details, {
         #print(designSummaryTable$modelDesignId[input$show_details$index])
-        modelDesignId(NULL)
-        modelDesignId(designSummaryTable$modelDesignId[input$show_details$index])
+        if(designSummaryTable$devDatabases[input$show_diagnostic$index] > 0){
+          modelDesignId(NULL)
+          modelDesignId(designSummaryTable$modelDesignId[input$show_details$index])
+        } else{
+          shiny::showNotification("No models available for this model design.")
+        }
       })
       
       reportId <- shiny::reactiveVal(NULL)
@@ -159,8 +167,13 @@ predictionDesignSummaryServer <- function(
       
       diagnosticId <- shiny::reactiveVal(value = NULL)
       shiny::observeEvent(input$show_diagnostic, {
-        diagnosticId(NULL)
-        diagnosticId(designSummaryTable$modelDesignId[input$show_diagnostic$index])
+        
+        if(designSummaryTable$diagDatabases[input$show_diagnostic$index] > 0){
+          diagnosticId(NULL)
+          diagnosticId(designSummaryTable$modelDesignId[input$show_diagnostic$index])
+        } else{
+          shiny::showNotification("No diagnostic results available for this model design.")
+        }
       })
       
       return(
@@ -189,8 +202,9 @@ getDesignSummary <- function(con, mySchema, targetDialect, myTableAppend = '' ){
           tars.tar_start_anchor, 
           tars.tar_end_day, 
           tars.tar_end_anchor,
-          SUM(distinct d.database_id) dev_databases,
-          SUM(distinct v.database_id) val_databases
+          COUNT(distinct diag.database_id) as diag_databases,
+          COUNT(distinct d.database_id) dev_databases,
+          COUNT(distinct v.database_id) val_databases
 
        FROM 
           @my_schema.@my_table_appendmodel_designs as model_designs LEFT JOIN
@@ -204,6 +218,8 @@ getDesignSummary <- function(con, mySchema, targetDialect, myTableAppend = '' ){
          
         LEFT JOIN @my_schema.@my_table_appenddatabase_details AS d ON results.development_database_id = d.database_id 
         LEFT JOIN @my_schema.@my_table_appenddatabase_details AS v ON results.validation_database_id = v.database_id 
+        
+        LEFT JOIN @my_schema.@my_table_appenddiagnostics AS diag ON results.development_database_id = diag.database_id 
         
         GROUP BY model_designs.model_design_id, targets.cohort_name, 
           outcomes.cohort_name, tars.tar_start_day, tars.tar_start_anchor, 

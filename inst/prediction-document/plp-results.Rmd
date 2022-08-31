@@ -1,0 +1,9 @@
+---
+output: html_document
+---
+
+```{r, child = "plp-results-internal.Rmd"}
+```
+
+```{r, child = "plp-results-external.Rmd"}
+```

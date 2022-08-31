@@ -19,6 +19,7 @@ Imports:
     ggplot2,
     gridExtra,
     htmltools,
+    kableExtra,
     knitr,
     ParallelLogger,
     plotly,
@@ -26,6 +27,7 @@ Imports:
     reactable,
     rlang,
     rmarkdown,
+    RSQLite,
     shiny, 
     shinycssloaders,
     shinydashboard, 
@@ -37,4 +39,4 @@ Suggests:
 Remotes:
     ohdsi/CirceR,
     ohdsi/ParallelLogger
-RoxygenNote: 7.2.0
+RoxygenNote: 7.2.1

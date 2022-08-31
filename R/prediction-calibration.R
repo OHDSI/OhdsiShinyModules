@@ -519,14 +519,14 @@ plotSparseCalibration2 <- function(
     ggplot2::geom_bar(
       data = subset(
         popData, 
-        .data$label == "Outcome"
+        label == "Outcome"
       ), 
       stat = "identity"
     ) + 
     ggplot2::geom_bar(
       data = subset(
         popData, 
-        .data$label == "No Outcome"
+        label == "No Outcome"
       ), 
       stat = "identity") + 
     ggplot2::geom_bar(stat = "identity") + 

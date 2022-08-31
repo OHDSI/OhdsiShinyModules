@@ -1,6 +1,6 @@
-# Evaluation
+## Visualizations
 
-The following evaluations will be performed on each model design:
+The following visualizations will can be viewed per model:
 
 ```{r, echo=FALSE, result = 'asis'}
 modelEvaluation <- data.frame(rbind(
@@ -14,10 +14,10 @@ modelEvaluation <- data.frame(rbind(
     c("Precision Recall Plot", "The precision-recall curve is valuable for dataset with a high imbalance between the size of the positive and negative class. It shows the tradeoff between precision and recall for different threshold. High precision relates to a low false positive rate, and high recall relates to a low false negative rate. High scores for both show that the classifier is returning accurate results (high precision), as well as returning a majority of all positive results (high recall). A high area under the curve represents both high recall and high precision."),
     c("Demographic Summary Plot", "This plot shows for females and males the expected and observed risk in different age groups together with a confidence area.")
   ))
-  names(modelEvaluation) <- c("Evaluation","Description")
+  names(modelEvaluation) <- c("Plot","Description")
   row.names(modelEvaluation) <- NULL
-  data <- modelEvaluation[order(modelEvaluation$Evaluation),]
-  knitr::kable(x = data, caption = 'Standard Evaluation Metrics/Plots')
+  data <- modelEvaluation[order(modelEvaluation$Plot),]
+  knitr::kable(x = data, caption = 'Standard Plots')
   
 ```
   

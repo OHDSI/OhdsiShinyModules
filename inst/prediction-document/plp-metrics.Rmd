@@ -1,0 +1,23 @@
+## Preformance Metrics
+
+The following are the standardized metrics used to evaluate patient-level prediction models.
+
+```{r, echo=FALSE, result = 'asis'}
+modelEvaluation <- data.frame(rbind(
+    c("AUROC", "Discrimination", "The Area Under the Receiver Operating Characteristic curve is a common discrimination metric.  It corresponds to the probability that a randomly selected patient with the outcome is assigned a higher risk by the model than a randomly selected patients without the outcome."),
+    
+    c("AUPRC", "Discrimination", "The Area Under the Precision Recall curve is a common discrimination metric that provides a useful insight when the outcome is rare."), 
+    
+    c("Calibration-in-the-large", "Calibration" , "A measure of how well the predicted risk matches the observed risk on average.  It compares the mean predicted risk for the whole popualtion (the model's predicted risk) with the observed risk (the true risk)"),
+    
+  c("E-statistic", "Calibration" , "A measure corresponding to the average difference between the true risk and the predicted risk.")
+    
+    )
+  )
+  names(modelEvaluation) <- c("Name", "Type","Description")
+  row.names(modelEvaluation) <- NULL
+  data <- modelEvaluation[order(modelEvaluation$Type),]
+  knitr::kable(x = data, caption = 'Prediction Metrics')
+  
+```
+  
