@@ -28,6 +28,10 @@ result$evaluation_statistics %>%
   kableExtra::kbl() %>%
   kableExtra::kable_material_dark()
 ```
+
+#### Plots
+
+add roc and smooth cal plots here
   
 #### Covariates
 

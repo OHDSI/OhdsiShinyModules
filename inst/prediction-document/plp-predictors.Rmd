@@ -42,26 +42,29 @@ if(class(featureEngineeringSettings) == 'featureEngineeringSettings'){
   featureEngineeringSettings <- list(featureEngineeringSettings)
 }
 
-if(attr(featureEngineeringSettings[[1]],"fun") != 'sameData'){
+if(!is.null(attr(featureEngineeringSettings[[1]],"fun"))){
+  if(attr(featureEngineeringSettings[[1]],"fun") != 'sameData'){
   
-cat('\n There are ', length(featureEngineeringSettings), ' feature engineering settings. \n')
+    cat('\n There are ', length(featureEngineeringSettings), ' feature engineering settings. \n')
 
-for(i in 1:length(featureEngineeringSettings)){
+    for(i in 1:length(featureEngineeringSettings)){
   
-  cat('\n The function ', attr(featureEngineeringSettings[[i]],"fun"), ' with inputs: \n')
+      cat('\n The function ', attr(featureEngineeringSettings[[i]],"fun"), ' with inputs: \n')
 
-  feData <- data.frame(
-    name = names(featureEngineeringSettings), 
-    value = unlist(lapply(featureEngineeringSettings, function(x) paste(x, sep = '', collapse='-')))
-  )
+      feData <- data.frame(
+        name = names(featureEngineeringSettings), 
+        value = unlist(lapply(featureEngineeringSettings, function(x) paste(x, sep = '', collapse='-')))
+        )
   
-  print(knitr::kable(x = feData , caption = paste('feature engineering setting ', i)))
-  cat('\n \n')
+      print(knitr::kable(x = feData , caption = paste('feature engineering setting ', i)))
+      cat('\n \n')
   
-}
+    }
 
+  } else{
+  cat('\n None \n')  
+  }
 } else{
-  
   cat('\n None \n')  
 }
 

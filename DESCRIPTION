@@ -39,4 +39,4 @@ Suggests:
 Remotes:
     ohdsi/CirceR,
     ohdsi/ParallelLogger
-RoxygenNote: 7.2.0
+RoxygenNote: 7.2.1
