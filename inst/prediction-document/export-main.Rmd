@@ -46,56 +46,42 @@ knitr::kable(x = abb, caption = 'List of Abbreviations')
 
 ```
 
-# Responsible Parties
 
-```{r echo=FALSE}
+# Framework
 
-data <- data.frame(rbind(
-  c("Author", "<add>"),
-  c("Investigator/s","<add>"),
-  c("Reviewer/s","<add>"),
-  c("Sponsor","<add>")
-))
-names(data) <- c("Role","Name")
+In this study the model development follows the framework presented in ``r  params$plpCitation ``
 
-knitr::kable(x = data, caption = 'Table of responsible parties')
+# Evaluation Metrics and Plots
 
+```{r, child = "plp-metrics.Rmd"}
 ```
 
-# Executive Summary
+```{r, child = "plp-output.Rmd"}
+```
 
-<< A few statements about the rational and background for this study. >>
-
-
-# Rational & Background
-
-<< Provide a short description of the reason that led to the initiation of or need for the study and add a short critical review of available published and unpublished data to explain gaps in knowledge that the study is intended to fill. >>
-
-# Methods
-
-Model development follows the framework presented in ``r  params$plpCitation `` 
-
-```{r, child = "plp-evaluation.Rmd"}
+```{r, child = "plp-plots.Rmd"}
 ```
 
 
 ```{r results='asis', echo=FALSE}
     for (i in 1:length(params$modelDesignIds)) {
+      modelDesignId <- params$modelDesignIds[i]
       modelDesign <- knitr::knit_child("model-design.Rmd", quiet = TRUE, envir = environment())
       cat(modelDesign, sep = '\n')
       
+      if(params$include_diagnostic){
       diagnostic <- knitr::knit_child("plp-diagnostic.Rmd", quiet = TRUE, envir = environment())
       cat(diagnostic , sep = '\n')
+      }
       
+      if(params$include_results){
       results <- knitr::knit_child("plp-results.Rmd", quiet = TRUE, envir = environment())
       cat(results , sep = '\n')
+      }
     }
 
 ```
 
-# Quality Control
-
-The `PatientLevelPrediction` package itself, as well as other OHDSI packages on which `PatientLevelPrediction` depends, use unit tests for validation.
 
 # Tools
 
@@ -103,25 +89,3 @@ This study will be designed using OHDSI tools and run with R
 
 ``r params$rCitation ``
 
-More information about the tools can be found in the Appendix 'Study Generation Version Information'
-
-# Strengths & Limitations 
-
-<< To be completed outside of ATLAS >>
-
-Some limitations to consider:
-  
-  - It may not be possible to develop prediction models for rare outcomes.
-- Not all medical events are recorded into the observational datasets and some recordings can be incorrect.  This could potentially lead to outcome misclassification.
-- The prediction models are only applicable to the population of patients represented by the data used to train the model and may not be generalizable to the wider population
-
-
-# Protection of Human Subjects
-
-Confidentiality of patient records will be maintained always. All study reports will contain aggregate data only and will not identify individual patients or physicians. At no time during the study will the sponsor receive patient identifying information except when it is required by regulations in case of reporting adverse events.
-
-# Plans for Disseminating & Communicating Study Results
-
-<< List any plans for submission of progress reports, final reports, and publications >>
-
-We recommend following the TRIPOD guidelines for publishing prediction models ``r params$tripodCitation ``

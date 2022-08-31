@@ -1,0 +1,21 @@
+## PatientLevelPrediction outputs
+
+The following will be output per model design and database combination via an interactive shiny app:
+
+```{r, echo=FALSE, result = 'asis'}
+modelEvaluation <- data.frame(rbind(
+    c("Prediction Model", "A model that can predict the risk of the outcome for any new patient in the target population using their features."),
+    
+    c("Performance Evaluation", "Summary statistics for the model's discrimination [AUROC (95% CI), AUPRC (95% CI)], calibration [calibration-in-the-large, calibration intercept, calibration slope, e-statistic] and dataset details (number of patients in the target population and number of outcome).  This is calculated for the test set, the train set and the cross-validation set."), 
+    
+    c("Covariate Summary","A table summarizing how common each feature was in the target population, the test set and the train set for patients with and without the outcome.  The standardized mean difference comparing the frequency of the features for patients who experienced the outcome during the time-at-risk vs those who did not.")
+    
+    )
+  )
+  names(modelEvaluation) <- c("Item","Description")
+  row.names(modelEvaluation) <- NULL
+  data <- modelEvaluation[order(modelEvaluation$Item),]
+  knitr::kable(x = data, caption = 'Standard Output of Prediction')
+  
+```
+  
