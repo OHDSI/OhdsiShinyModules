@@ -985,6 +985,12 @@ judgeEffectiveness <- function(hrLower, hrUpper) {
 }
 
 prettyEstimationHr <- function(x) {
+  if (is.na(x) || x == "" || x > 100) {
+    return("NA")
+  }
+  if (!is.numeric(x)) {
+    x <- as.numeric(x)
+  }
   result <- sprintf("%.2f", x)
   result[is.na(x) | x > 100] <- "NA"
   return(result)

@@ -736,7 +736,7 @@ getDiagnosticsData <- function(connection, resultsSchema) {
       cmds.ease_diagnostic,
       cmds.unblind
     FROM
-      poc.cm_diagnostics_summary cmds
+      @results_schema.cm_diagnostics_summary cmds
       JOIN @results_schema.cm_analysis cma ON cmds.analysis_id = cma.analysis_id
       JOIN @results_schema.database_meta_data dmd ON dmd.database_id = cmds.database_id
       JOIN @results_schema.cg_cohort_definition cgcd1 ON cmds.target_id = cgcd1.cohort_definition_id

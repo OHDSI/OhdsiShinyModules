@@ -4,7 +4,7 @@
 \alias{estimationServer}
 \title{The module server for the main estimation module}
 \usage{
-estimationServer(id, resultDatabaseSettings, resultsSchema = "poc")
+estimationServer(id, resultDatabaseSettings)
 }
 \arguments{
 \item{id}{the unique reference id for the module}
