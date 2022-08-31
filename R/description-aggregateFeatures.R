@@ -97,6 +97,8 @@ descriptionAggregateFeaturesViewer <- function(id) {
 #' @param dbms the database management system for the model results
 #' @param tablePrefix a string that appends the tables in the result schema
 #' @param tempEmulationSchema  The temp schema (optional)
+#' @param cohortTablePrefix a string that appends the COHORT_DEFINITION table in the result schema
+#' @param databaseTable The database table name
 #' 
 #' @return
 #' The server to the description aggregate features module
@@ -109,7 +111,9 @@ descriptionAggregateFeaturesServer <- function(
   schema, 
   dbms,
   tablePrefix,
-  tempEmulationSchema
+  tempEmulationSchema,
+  cohortTablePrefix = 'cg_',
+  databaseTable = 'DATABASE_META_DATA'
 ) {
   shiny::moduleServer(
     id,
@@ -147,7 +151,8 @@ descriptionAggregateFeaturesServer <- function(
         schema = schema, 
         dbms = dbms,
         tablePrefix = tablePrefix,
-        tempEmulationSchema = tempEmulationSchema
+        tempEmulationSchema = tempEmulationSchema,
+        cohortTablePrefix = cohortTablePrefix
       )
       
       
@@ -155,8 +160,8 @@ descriptionAggregateFeaturesServer <- function(
       output$optionsTable <- reactable::renderReactable({
         reactable::reactable(
           data = cbind(
-            options,
-            view = rep("",nrow(options))
+            view = rep("",nrow(options)),
+            options
           ),
           columns = list(  
             view = reactable::colDef(
@@ -204,8 +209,12 @@ descriptionAggregateFeaturesServer <- function(
             riskWindowStart = riskWindowStart(),
             riskWindowEnd = riskWindowEnd(),
             startAnchor = startAnchor(),
-            endAnchor = endAnchor()
+            endAnchor = endAnchor(),
+            databaseTable = databaseTable
           )
+          
+          dbVal <- databases$databaseId
+          names(dbVal) <- databases$databaseName
           
           output$inputsDesc <- shiny::renderUI({
             
@@ -215,13 +224,13 @@ descriptionAggregateFeaturesServer <- function(
                      shiny::selectInput(
                        inputId = session$ns('database1'), 
                        label = 'Database 1: ', 
-                       choices = databases, 
+                       choices = dbVal, 
                        selected = 1
                      ),
                      shiny::selectInput(
                        inputId = session$ns('database2'), 
                        label = 'Database 2: ', 
-                       choices = databases, 
+                       choices = dbVal, 
                        selected = 1
                      )
               ),
@@ -305,19 +314,28 @@ getAggregateFeatureOptions <- function(
   schema, 
   dbms,
   tablePrefix,
-  tempEmulationSchema
+  tempEmulationSchema,
+  cohortTablePrefix
 ){
   
  
   shiny::withProgress(message = 'Getting feature comparison options', value = 0, {
   
-  sql <- "SELECT DISTINCT TARGET_COHORT_ID, OUTCOME_COHORT_ID, RISK_WINDOW_START,	START_ANCHOR,	RISK_WINDOW_END,	END_ANCHOR  
-          FROM @result_database_schema.@table_prefixSETTINGS
-          WHERE TARGET_COHORT_ID != 0 AND OUTCOME_COHORT_ID != 0;"
+  sql <- "SELECT DISTINCT t.COHORT_NAME as TARGET, s.TARGET_COHORT_ID, 
+            o.COHORT_NAME as outcome, s.OUTCOME_COHORT_ID, 
+            s.RISK_WINDOW_START,	s.START_ANCHOR,	s.RISK_WINDOW_END,	s.END_ANCHOR  
+          FROM @result_database_schema.@table_prefixSETTINGS s
+          inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION t
+          on s.TARGET_COHORT_ID = t.COHORT_DEFINITION_ID
+          inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION o
+          on s.OUTCOME_COHORT_ID = o.COHORT_DEFINITION_ID
+          WHERE s.TARGET_COHORT_ID != 0 AND s.OUTCOME_COHORT_ID != 0;"
+  
   sql <- SqlRender::render(
     sql = sql, 
     result_database_schema = schema,
-    table_prefix = tablePrefix
+    table_prefix = tablePrefix,
+    cohort_table_prefix = cohortTablePrefix
   )
   
   shiny::incProgress(1/3, detail = paste("Rendering and translating sql"))
@@ -357,15 +375,18 @@ getAggregateFeatureDatabases <- function(
   riskWindowStart,
   riskWindowEnd,
   startAnchor,
-  endAnchor
+  endAnchor,
+  databaseTable
 ){
   
   shiny::withProgress(message = 'Finding databases with data', value = 0, {
-  sql <- "SELECT DISTINCT DATABASE_ID  
-          FROM @result_database_schema.@table_prefixSETTINGS
-          WHERE TARGET_COHORT_ID = @target_id and OUTCOME_COHORT_ID = @outcome_id
-          and RISK_WINDOW_START = @risk_window_start and START_ANCHOR = '@start_anchor'
-          and RISK_WINDOW_END = @risk_window_end and	END_ANCHOR = '@end_anchor';"
+  sql <- "SELECT DISTINCT s.DATABASE_ID, d.CDM_SOURCE_ABBREVIATION as database_name  
+          FROM @result_database_schema.@table_prefixSETTINGS s
+          inner join @result_database_schema.@database_table d
+          on s.database_id = d.database_id
+          WHERE s.TARGET_COHORT_ID = @target_id and s.OUTCOME_COHORT_ID = @outcome_id
+          and s.RISK_WINDOW_START = @risk_window_start and s.START_ANCHOR = '@start_anchor'
+          and s.RISK_WINDOW_END = @risk_window_end and	s.END_ANCHOR = '@end_anchor';"
   
   sql <- SqlRender::render(
     sql = sql, 
@@ -376,7 +397,8 @@ getAggregateFeatureDatabases <- function(
     risk_window_start = riskWindowStart,
     start_anchor = startAnchor,
     risk_window_end = riskWindowEnd,
-    end_anchor = endAnchor
+    end_anchor = endAnchor,
+    database_table = databaseTable
   )
   shiny::incProgress(1/3, detail = paste("Rendering and translating sql"))
   
@@ -392,7 +414,7 @@ getAggregateFeatureDatabases <- function(
     connection = con, 
     sql = sql, 
     snakeCaseToCamelCase = T
-  )$databaseId
+  )
   
   shiny::incProgress(3/3, detail = paste("Finished"))
   
@@ -506,7 +528,7 @@ descriptiveGetAggregateData <- function(
   shiny::incProgress(2/5, detail = paste("Got second runIds"))
   
   sql <- "SELECT cov.*, cov_ref.COVARIATE_NAME, cov_ref.ANALYSIS_ID,
-  case when (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1)) then 'comp1' else 'comp2' end label
+  case when (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1)) then 'comp1' else 'comp2' end as label
           FROM @result_database_schema.@table_prefixCOVARIATES cov 
           INNER JOIN
           @result_database_schema.@table_prefixCOVARIATE_REF cov_ref
@@ -547,7 +569,7 @@ descriptiveGetAggregateData <- function(
   shiny::incProgress(4/5, detail = paste("Getting continuous data"))
   
   sql <- "SELECT cov.*, cov_ref.COVARIATE_NAME, cov_ref.ANALYSIS_ID,
-  case when (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1)) then 'comp1' else 'comp2' end label
+  case when (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1)) then 'comp1' else 'comp2' end as label
           FROM @result_database_schema.@table_prefixCOVARIATES_CONTINUOUS cov 
           INNER JOIN
           @result_database_schema.@table_prefixCOVARIATE_REF cov_ref
@@ -638,7 +660,11 @@ descriptiveFeaturePlot <- function(
     plotly::add_markers(y = allData$comp2,
                         color=factor(allData$analysisId),
                         hoverinfo = 'text',
-                        text = ~paste(allData$covariateName),
+                        text = ~paste(
+                          '\n',descGetType(allData$covariateName),
+                          '\n',descGetName(allData$covariateName),
+                          '\n',descGetTime(allData$covariateName)
+                          ),
                         showlegend = T
     ) %>%
     plotly::add_trace(x= c(0,maxval), y = c(0,maxval),mode = 'lines',
@@ -655,4 +681,17 @@ descriptiveFeaturePlot <- function(
   })
   
     return(plot)
+}
+
+descGetType <- function(x){
+  return(unlist(lapply(strsplit(x = x, split = ' during'), function(y){y[1]})))
+}
+
+descGetName <- function(x){
+  return(unlist(lapply(strsplit(x = x, split = ': '), function(y){y[length(y)]})))
+}
+
+descGetTime <- function(x){
+  part1 <- unlist(lapply(strsplit(x = x, split = ' during '), function(y){y[2]}))
+  return(unlist(lapply(strsplit(x = part1, split = ': '), function(y){y[1]})))
 }

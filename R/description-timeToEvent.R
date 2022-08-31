@@ -71,6 +71,8 @@ descriptionTimeToEventViewer <- function(id) {
 #' @param dbms the database management system for the model results
 #' @param tablePrefix a string that appends the tables in the result schema
 #' @param tempEmulationSchema  The temp schema (optional)
+#' @param cohortTablePrefix a string that appends the cohort table in the result schema
+#' @param databaseTable  name of the database table
 #' 
 #' @return
 #' The server to the prediction time to event module
@@ -83,7 +85,9 @@ descriptionTimeToEventServer <- function(
   schema, 
   dbms,
   tablePrefix,
-  tempEmulationSchema
+  tempEmulationSchema,
+  cohortTablePrefix = 'cg_',
+  databaseTable = 'DATABASE_META_DATA'
 ) {
   shiny::moduleServer(
     id,
@@ -99,7 +103,8 @@ descriptionTimeToEventServer <- function(
         schema, 
         dbms,
         tablePrefix,
-        tempEmulationSchema
+        tempEmulationSchema,
+        cohortTablePrefix
       )
 
       shiny::observeEvent(
@@ -187,16 +192,26 @@ timeToEventGetIds <- function(
   schema, 
   dbms,
   tablePrefix,
-  tempEmulationSchema
+  tempEmulationSchema,
+  cohortTablePrefix
 ){
   
   shiny::withProgress(message = 'Getting time to event T and O ids', value = 0, {
   
-  sql <- "SELECT DISTINCT TARGET_COHORT_DEFINITION_ID, OUTCOME_COHORT_DEFINITION_ID FROM @result_database_schema.@table_prefixTIME_TO_EVENT;"
+  sql <- "SELECT DISTINCT 
+     t.COHORT_NAME as target, TARGET_COHORT_DEFINITION_ID, 
+     o.COHORT_NAME as outcome, OUTCOME_COHORT_DEFINITION_ID 
+  FROM @result_database_schema.@table_prefixTIME_TO_EVENT tte
+ inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION t
+          on tte.TARGET_COHORT_DEFINITION_ID = t.COHORT_DEFINITION_ID
+   inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION o
+          on tte.OUTCOME_COHORT_DEFINITION_ID = o.COHORT_DEFINITION_ID
+  ;"
   sql <- SqlRender::render(
     sql = sql, 
     result_database_schema = schema,
-    table_prefix = tablePrefix
+    table_prefix = tablePrefix,
+    cohort_table_prefix = cohortTablePrefix
   )
   
   shiny::incProgress(1/4, detail = paste("Rendering and translating sql"))
@@ -217,9 +232,27 @@ timeToEventGetIds <- function(
   
   shiny::incProgress(3/4, detail = paste("Processing ids"))
   
-  targetIds <- unique(bothIds$targetCohortDefinitionId)
+  targetUnique <- bothIds %>% 
+    dplyr::select(.data$targetCohortDefinitionId, .data$target) %>%
+    dplyr::distinct()
   
-  outcomeIds <- lapply(targetIds, function(x){unique(bothIds$outcomeCohortDefinitionId[bothIds$targetCohortDefinitionId == x])})
+  targetIds <- targetUnique$targetCohortDefinitionId
+  names(targetIds) <- targetUnique$target
+  
+  outcomeIds <- lapply(targetIds, function(x){
+    
+    outcomeUnique <- bothIds %>% 
+      dplyr::filter(.data$targetCohortDefinitionId == x) %>%
+      dplyr::select(.data$outcomeCohortDefinitionId, .data$outcome) %>%
+      dplyr::distinct()
+    
+    outcomeIds <- outcomeUnique$outcomeCohortDefinitionId
+    names(outcomeIds) <- outcomeUnique$outcome
+    
+    return(outcomeIds)
+    
+    })
+  
   names(outcomeIds) <- targetIds
   
   shiny::incProgress(4/4, detail = paste("Finished"))
@@ -242,15 +275,19 @@ getTimeToEventData <- function(
   schema, 
   dbms,
   tablePrefix,
-  tempEmulationSchema
+  tempEmulationSchema,
+  databaseTable
 ){
   
   
   shiny::withProgress(message = 'Extracting time to event data', value = 0, {
   
-  sql <- "SELECT * FROM @result_database_schema.@table_prefixTIME_TO_EVENT 
-          where TARGET_COHORT_DEFINITION_ID = @target_id
-          and OUTCOME_COHORT_DEFINITION_ID = @outcome_id;"
+  sql <- "SELECT tte.*, d.CDM_SOURCE_ABBREVIATION as database_name 
+          FROM @result_database_schema.@table_prefixTIME_TO_EVENT tte
+          inner join @result_database_schema.@database_table d
+          on tte.database_id = d.database_id
+          where tte.TARGET_COHORT_DEFINITION_ID = @target_id
+          and tte.OUTCOME_COHORT_DEFINITION_ID = @outcome_id;"
   sql <- SqlRender::render(
     sql = sql, 
     result_database_schema = schema,
@@ -318,7 +355,7 @@ plotTimeToEvent <- function(
     #  size = 3.5
     #  ) +
     ggplot2::facet_wrap(ncol = nDatabases ,
-      .data$timeScale ~ .data$databaseId , scales = 'free'
+      .data$timeScale ~ .data$databaseName , scales = 'free'
         ) +
     ggplot2::theme_minimal()
   

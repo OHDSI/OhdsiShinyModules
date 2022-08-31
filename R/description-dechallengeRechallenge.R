@@ -75,6 +75,8 @@ descriptionDechallengeRechallengeViewer <- function(id) {
 #' @param dbms the database management system for the model results
 #' @param tablePrefix a string that appends the tables in the result schema
 #' @param tempEmulationSchema  The temp schema (optional)
+#' @param cohortTablePrefix a string that appends the cohort table in the result schema
+#' @param databaseTable  name of the database table
 #' 
 #' @return
 #' The server to the Dechallenge Rechallenge module
@@ -87,7 +89,9 @@ descriptionDechallengeRechallengeServer <- function(
   schema, 
   dbms,
   tablePrefix,
-  tempEmulationSchema
+  tempEmulationSchema,
+  cohortTablePrefix = 'cg_',
+  databaseTable = 'DATABASE_META_DATA'
 ) {
   shiny::moduleServer(
     id,
@@ -103,7 +107,8 @@ descriptionDechallengeRechallengeServer <- function(
         schema, 
         dbms,
         tablePrefix,
-        tempEmulationSchema
+        tempEmulationSchema,
+        cohortTablePrefix
       )
 
       shiny::observeEvent(
@@ -165,7 +170,8 @@ descriptionDechallengeRechallengeServer <- function(
             schema = schema, 
             dbms = dbms,
             tablePrefix = tablePrefix,
-            tempEmulationSchema = tempEmulationSchema
+            tempEmulationSchema = tempEmulationSchema,
+            databaseTable = databaseTable
           )
           
           databases(allData$databaseId)
@@ -250,16 +256,28 @@ dechalRechalGetIds <- function(
   schema, 
   dbms,
   tablePrefix,
-  tempEmulationSchema
+  tempEmulationSchema,
+  cohortTablePrefix
 ){
   
   shiny::withProgress(message = 'Getting dechal Rechal T and O ids', value = 0, {
   
-  sql <- "SELECT DISTINCT TARGET_COHORT_DEFINITION_ID, OUTCOME_COHORT_DEFINITION_ID FROM @result_database_schema.@table_prefixDECHALLENGE_RECHALLENGE;"
+    
+    sql <- "SELECT DISTINCT 
+     t.COHORT_NAME as target, dr.TARGET_COHORT_DEFINITION_ID, 
+     o.COHORT_NAME as outcome, dr.OUTCOME_COHORT_DEFINITION_ID 
+  FROM @result_database_schema.@table_prefixDECHALLENGE_RECHALLENGE dr
+ inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION t
+          on dr.TARGET_COHORT_DEFINITION_ID = t.COHORT_DEFINITION_ID
+   inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION o
+          on dr.OUTCOME_COHORT_DEFINITION_ID = o.COHORT_DEFINITION_ID
+  ;"
+    
   sql <- SqlRender::render(
     sql = sql, 
     result_database_schema = schema,
-    table_prefix = tablePrefix
+    table_prefix = tablePrefix,
+    cohort_table_prefix = cohortTablePrefix
   )
   
   shiny::incProgress(1/4, detail = paste("Rendering and translating sql"))
@@ -280,9 +298,27 @@ dechalRechalGetIds <- function(
   
   shiny::incProgress(3/4, detail = paste("Processing ids"))
   
-  targetIds <- unique(bothIds$targetCohortDefinitionId)
+  targetUnique <- bothIds %>% 
+    dplyr::select(.data$targetCohortDefinitionId, .data$target) %>%
+    dplyr::distinct()
   
-  outcomeIds <- lapply(targetIds, function(x){unique(bothIds$outcomeCohortDefinitionId[bothIds$targetCohortDefinitionId == x])})
+  targetIds <- targetUnique$targetCohortDefinitionId
+  names(targetIds) <- targetUnique$target
+  
+  outcomeIds <- lapply(targetIds, function(x){
+    
+    outcomeUnique <- bothIds %>% 
+      dplyr::filter(.data$targetCohortDefinitionId == x) %>%
+      dplyr::select(.data$outcomeCohortDefinitionId, .data$outcome) %>%
+      dplyr::distinct()
+    
+    outcomeIds <- outcomeUnique$outcomeCohortDefinitionId
+    names(outcomeIds) <- outcomeUnique$outcome
+    
+    return(outcomeIds)
+    
+  })
+  
   names(outcomeIds) <- targetIds
   
   shiny::incProgress(4/4, detail = paste("Finished"))
@@ -305,21 +341,26 @@ getDechalRechalInputsData <- function(
   schema, 
   dbms,
   tablePrefix,
-  tempEmulationSchema
+  tempEmulationSchema,
+  databaseTable
 ){
   
   
   shiny::withProgress(message = 'Extracting DECHALLENGE_RECHALLENGE data', value = 0, {
   
-  sql <- "SELECT * FROM @result_database_schema.@table_prefixDECHALLENGE_RECHALLENGE 
-          where TARGET_COHORT_DEFINITION_ID = @target_id
-          and OUTCOME_COHORT_DEFINITION_ID = @outcome_id;"
+  sql <- "SELECT dr.*, d.CDM_SOURCE_ABBREVIATION as database_name 
+          FROM @result_database_schema.@table_prefixDECHALLENGE_RECHALLENGE dr 
+          inner join @result_database_schema.@database_table d
+          on dr.database_id = d.database_id
+          where dr.TARGET_COHORT_DEFINITION_ID = @target_id
+          and dr.OUTCOME_COHORT_DEFINITION_ID = @outcome_id;"
   sql <- SqlRender::render(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
     target_id = targetId,
-    outcome_id = outcomeId
+    outcome_id = outcomeId,
+    database_table = databaseTable
   )
   
   shiny::incProgress(1/3, detail = paste("Rendering and translating sql"))

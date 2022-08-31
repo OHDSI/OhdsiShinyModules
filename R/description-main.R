@@ -153,7 +153,9 @@ descriptionServer <- function(
         schema = resultDatabaseSettings$schema, 
         dbms = resultDatabaseSettings$dbms,
         tablePrefix = resultDatabaseSettings$tablePrefix,
-        tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema
+        tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema, 
+        cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
+        databaseTable = resultDatabaseSettings$databaseTable
       )
 
       
@@ -168,7 +170,9 @@ descriptionServer <- function(
           schema = resultDatabaseSettings$schema, 
           dbms = resultDatabaseSettings$dbms,
           tablePrefix = resultDatabaseSettings$tablePrefix,
-          tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema
+          tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema,
+          cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
+          databaseTable = resultDatabaseSettings$databaseTable
         )
 
       
@@ -183,7 +187,9 @@ descriptionServer <- function(
         schema = resultDatabaseSettings$schema, 
         dbms = resultDatabaseSettings$dbms,
         tablePrefix = resultDatabaseSettings$tablePrefix,
-        tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema
+        tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema,
+        cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
+        databaseTable = resultDatabaseSettings$databaseTable
       )
       
     }
