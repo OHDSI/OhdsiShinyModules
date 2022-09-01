@@ -61,7 +61,7 @@ cohortGeneratorViewer <- function(id) {
 #' 
 #' @export
 cohortGeneratorServer <- function(id, resultDatabaseSettings) {
-  
+
   shiny::moduleServer(
     id,
     function(input, output, session) {

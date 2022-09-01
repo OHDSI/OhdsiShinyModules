@@ -4,7 +4,7 @@
 \alias{predictionServer}
 \title{The module server for exploring PatientLevelPrediction}
 \usage{
-predictionServer(id, resultDatabaseSettings = list(myPort = 1))
+predictionServer(id, resultDatabaseSettings = list(port = 1))
 }
 \arguments{
 \item{id}{the unique reference id for the module}
