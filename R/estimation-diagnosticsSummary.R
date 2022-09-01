@@ -29,6 +29,7 @@ estimationDiagnosticsSummaryViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
+    div(HTML("<em>Enhancements to come...</em>")),
     reactable::reactableOutput(outputId = ns("diagnosticsTable"))
   )
 }

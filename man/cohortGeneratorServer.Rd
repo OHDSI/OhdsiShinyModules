@@ -4,7 +4,7 @@
 \alias{cohortGeneratorServer}
 \title{The module server for the main cohort generator module}
 \usage{
-cohortGeneratorServer(id, resultDatabaseSettings, resultsSchema = "poc")
+cohortGeneratorServer(id, resultDatabaseSettings)
 }
 \arguments{
 \item{id}{the unique reference id for the module}

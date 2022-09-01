@@ -123,30 +123,29 @@ estimationViewer <- function(id) {
 #' the PLE results viewer main module server
 #' 
 #' @export
-estimationServer <- function(id,
-                             resultDatabaseSettings,
-                             resultsSchema = "poc") {
+estimationServer <- function(id, resultDatabaseSettings) {
+  
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      estimationConnectionDetails <- resultDatabaseSettings
+      resultsSchema <- resultDatabaseSettings$schema
       
       estimationTitlePanelServer("titlePanel")
       
       connection <- NULL
       dataFolder <- NULL
-      if (is.null(estimationConnectionDetails$server) ||
-          (is.list(estimationConnectionDetails$server) && length(estimationConnectionDetails$server) == 0)) {
-        assign("dataFolder", estimationConnectionDetails$dataFolder, envir = .GlobalEnv)
+      if (is.null(resultDatabaseSettings$server) ||
+          (is.list(resultDatabaseSettings$server) && length(resultDatabaseSettings$server) == 0)) {
+        assign("dataFolder", resultDatabaseSettings$dataFolder, envir = .GlobalEnv)
         
-        loadEstimationData(estimationConnectionDetails$dataFolder)
+        loadEstimationData(resultDatabaseSettings$dataFolder)
       } else {
-        connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = estimationConnectionDetails$dbms,
-                                                                        user = estimationConnectionDetails$user,
-                                                                        password = estimationConnectionDetails$password,
-                                                                        server = sprintf("%s/%s", estimationConnectionDetails$server,
-                                                                                         estimationConnectionDetails$database))
+        connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = resultDatabaseSettings$dbms,
+                                                                        user = resultDatabaseSettings$user,
+                                                                        password = resultDatabaseSettings$password,
+                                                                        server = sprintf("%s/%s", resultDatabaseSettings$server,
+                                                                                         resultDatabaseSettings$database))
         
         
         connection <- DatabaseConnector::connect(connectionDetails = connectionDetails)

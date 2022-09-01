@@ -111,6 +111,7 @@ estimationResultsTableServer <- function(id, connection, inputParams, resultsSch
       output$mainTable <- DT::renderDataTable({
         table <- resultSubset()
         if (is.null(table) || nrow(table) == 0) {
+          validate(need(nrow(table) > 0, "No CM results for selections."))
           return(NULL)
         }
         table <- table[, mainColumns]
