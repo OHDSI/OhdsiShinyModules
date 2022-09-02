@@ -226,6 +226,16 @@ plotCovariateSummary <- function(covariateSummary){
     )
   }
   
+  if(nrow(covariateSummary()) == 0){
+    shiny::showNotification('No variables in model')
+    return(
+      list(
+        binary = NULL, 
+        meas = NULL
+      )
+    )
+  }
+  
   shiny::withProgress(message = 'Plotting covariates', value = 0, {
     
   covariateSummary <- covariateSummary()

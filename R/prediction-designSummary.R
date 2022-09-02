@@ -90,6 +90,21 @@ predictionDesignSummaryServer <- function(
               name = "Num. Development Databases",
               sortable = TRUE
             ),
+            minAuroc = reactable::colDef(
+              name = "min AUROC",
+              sortable = TRUE,
+              format = reactable::colFormat(digits = 3)
+              ),
+            meanAuroc = reactable::colDef(
+              name = "mean AUROC",
+              sortable = TRUE,
+              format = reactable::colFormat(digits = 3)
+            ),
+            maxAuroc = reactable::colDef(
+              name = "max AUROC",
+              sortable = TRUE,
+              format = reactable::colFormat(digits = 3)
+            ),
             valDatabases = reactable::colDef(
               name = "Num. Validation Databases",
               sortable = TRUE
@@ -148,7 +163,7 @@ predictionDesignSummaryServer <- function(
       
       shiny::observeEvent(input$show_details, {
         #print(designSummaryTable$modelDesignId[input$show_details$index])
-        if(designSummaryTable$devDatabases[input$show_diagnostic$index] > 0){
+        if(designSummaryTable$devDatabases[input$show_details$index] > 0){
           modelDesignId(NULL)
           modelDesignId(designSummaryTable$modelDesignId[input$show_details$index])
         } else{
