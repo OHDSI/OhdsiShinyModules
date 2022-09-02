@@ -152,6 +152,10 @@ getInternalPerformanceSummary <- function(
   
   ParallelLogger::logInfo("gettingDb summary")
   
+  shiny::withProgress(message = 'Plotting distributions', value = 0, {
+    
+    shiny::incProgress(1/3, detail = paste("Extracting data"))
+    
   sql <- "SELECT distinct 
      results.performance_id, 
      results.model_design_id, 
@@ -205,6 +209,9 @@ getInternalPerformanceSummary <- function(
   sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
   
   summaryTable <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
+  
+  shiny::incProgress(2/3, detail = paste("Data extracted"))
+  
   colnames(summaryTable) <- SqlRender::snakeCaseToCamelCase(colnames(summaryTable))
   
   summaryTable$t <- trimws(summaryTable$t)
@@ -224,7 +231,12 @@ getInternalPerformanceSummary <- function(
   summaryTable$T <- as.factor(summaryTable$T)
   summaryTable$O <- as.factor(summaryTable$O)
   
+  shiny::incProgress(3/3, detail = paste("Finished"))
+  
   ParallelLogger::logInfo("Got db summary")
+  
+  })
+  
   return(summaryTable[,c('Dev', 'Val', 'T','O', 'Model','modelDesignId',
                          'TAR', 'AUC', 'AUPRC', 
                          'T Size', 'O Count','Val (%)', 'O Incidence (%)', 'timeStamp', 'performanceId', 'developmentDatabaseId')])

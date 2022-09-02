@@ -226,6 +226,18 @@ plotCovariateSummary <- function(covariateSummary){
     )
   }
   
+  if(nrow(covariateSummary()) == 0){
+    shiny::showNotification('No variables in model')
+    return(
+      list(
+        binary = NULL, 
+        meas = NULL
+      )
+    )
+  }
+  
+  shiny::withProgress(message = 'Plotting covariates', value = 0, {
+    
   covariateSummary <- covariateSummary()
 
   colnames(covariateSummary) <- gsub('_','', colnames(covariateSummary) )
@@ -239,6 +251,8 @@ plotCovariateSummary <- function(covariateSummary){
   if(sum(is.na(covariateSummary$covariateValue))>0){
     covariateSummary$covariateValue[is.na(covariateSummary$covariateValue)] <- 0
   }
+  
+  shiny::incProgress(1/4, detail = paste("formatting data"))
   
   # SPEED EDIT remove the none model variables
   covariateSummary <- covariateSummary[covariateSummary$covariateValue!=0,]
@@ -265,6 +279,9 @@ plotCovariateSummary <- function(covariateSummary){
             borderwidth = 1)
   
   ind <- covariateSummary$withNoOutcomeCovariateMean <=1 & covariateSummary$withOutcomeCovariateMean <= 1
+  
+  shiny::incProgress(2/4, detail = paste("Generating binary plotly"))
+  
   # create two plots -1 or less or g1
   binary <- plotly::plot_ly(x = covariateSummary$withNoOutcomeCovariateMean[ind],
                             #size = covariateSummary$size[ind],
@@ -288,6 +305,8 @@ plotCovariateSummary <- function(covariateSummary){
       #legend = l, showlegend = T,
       legend = list(orientation = 'h', y = -0.3), showlegend = T)
   
+  shiny::incProgress(3/4, detail = paste("Generating measurement plotly"))
+  
   if(sum(!ind)>0){
     maxValue <- max(c(covariateSummary$withNoOutcomeCovariateMean[!ind],
                       covariateSummary$withOutcomeCovariateMean[!ind]), na.rm = T)
@@ -308,6 +327,10 @@ plotCovariateSummary <- function(covariateSummary){
     meas <- NULL
   }
   
+  shiny::incProgress(4/4, detail = paste("Finished"))
+  
+  })
+  
   return(
     list(
       binary=binary,
@@ -322,6 +345,11 @@ plotCovariateSummary <- function(covariateSummary){
 # code for database covariate extract
 loadCovSumFromDb <- function(performanceId, mySchema, con, myTableAppend = '', targetDialect = 'redshift'){
   ParallelLogger::logInfo("starting covsum")
+  
+  shiny::withProgress(message = 'Extracting covariate data', value = 0, {
+    
+  shiny::incProgress(2/3, detail = paste("Extracting data"))
+  
   sql <- "SELECT * FROM @my_schema.@my_table_appendcovariate_summary WHERE performance_id = @performance_id;" 
   
   sql <- SqlRender::render(
@@ -331,6 +359,8 @@ loadCovSumFromDb <- function(performanceId, mySchema, con, myTableAppend = '', t
     my_table_append = myTableAppend
   )
   sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
+  
+  shiny::incProgress(2/3, detail = paste("Data extracted"))
   
   covariateSummary <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
   colnames(covariateSummary) <- SqlRender::snakeCaseToCamelCase(colnames(covariateSummary))
@@ -342,6 +372,10 @@ loadCovSumFromDb <- function(performanceId, mySchema, con, myTableAppend = '', t
       class(covariateSummary[,coln]) <- "numeric"
     }
   }
+  
+  shiny::incProgress(3/3, detail = paste("Finished"))
+  
+  })
   
   ParallelLogger::logInfo("finishing covsum")
   return(covariateSummary)
