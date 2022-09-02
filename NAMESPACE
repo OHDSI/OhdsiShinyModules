@@ -3,6 +3,8 @@
 export(aboutHelperFile)
 export(aboutServer)
 export(aboutViewer)
+export(cohortGeneratorServer)
+export(cohortGeneratorViewer)
 export(descriptionAggregateFeaturesServer)
 export(descriptionAggregateFeaturesViewer)
 export(descriptionDechallengeRechallengeServer)
