@@ -285,33 +285,45 @@ predictionServer <- function(
         
         if(!is.null(designSummary$reportId())){
           
-              createPredictionProtocol(
-                con = con, 
-                mySchema = resultDatabaseSettings$schema, 
-                targetDialect = resultDatabaseSettings$dbms,
-                myTableAppend = resultDatabaseSettings$tablePrefix,
-                modelDesignId = designSummary$reportId(),
-                output = tempdir()
+          if(file.exists(file.path(tempdir(), 'main.html'))){
+            file.remove(file.path(tempdir(), 'main.html'))
+          }
+          tryCatch(
+            {createPredictionProtocol(
+              con = con, 
+              mySchema = resultDatabaseSettings$schema, 
+              targetDialect = resultDatabaseSettings$dbms,
+              myTableAppend = resultDatabaseSettings$tablePrefix,
+              modelDesignId = designSummary$reportId(),
+              output = tempdir()
+            )
+            }, error = function(e){
+              shiny::showNotification(
+                paste('error generating protocol:',e)
               )
+            }
+          )
              
-          # display the generated html report
-          shiny::showModal(shiny::modalDialog(
-            title = "Report",
-            shiny::div(
-              shiny::textInput(
-                inputId = session$ns('plpProtocolDownload'), 
-                label = 'Download Protocol Location:', 
-                placeholder = '/Users/jreps/Documents'
-              ),
-              shiny::actionButton(
-                inputId = session$ns('downloadButton'), 
-                label = 'Download'
+          if(file.exists(file.path(tempdir(), 'main.html'))){
+            # display the generated html report
+            shiny::showModal(shiny::modalDialog(
+              title = "Report",
+              shiny::div(
+                shiny::textInput(
+                  inputId = session$ns('plpProtocolDownload'), 
+                  label = 'Download Protocol Location:', 
+                  placeholder = '/Users/jreps/Documents'
                 ),
-              shiny::includeHTML(file.path(tempdir(), 'main.html'))
-            ), 
-            size = "l",
-            easyClose = T
-          ))
+                shiny::actionButton(
+                  inputId = session$ns('downloadButton'), 
+                  label = 'Download'
+                ),
+                shiny::includeHTML(file.path(tempdir(), 'main.html'))
+              ), 
+              size = "l",
+              easyClose = T
+            ))
+          }
         }
         
       })
