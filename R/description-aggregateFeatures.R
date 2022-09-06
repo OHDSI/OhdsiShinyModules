@@ -70,6 +70,20 @@ descriptionAggregateFeaturesViewer <- function(id) {
       width = 12,
       # Title can include an icon
       title = shiny::tagList(shiny::icon("gear"), "Plots"),
+      shiny::tabPanel("Binary Table", 
+                      shiny::downloadButton(
+                        ns('downloadBinary'), 
+                        label = "Download"
+                        ),
+                      reactable::reactableOutput(ns('binaryTable'))
+      ),
+      shiny::tabPanel("Continuous Table", 
+                      shiny::downloadButton(
+                        ns('downloadContinuous'), 
+                        label = "Download"
+                      ),
+                      reactable::reactableOutput(ns('continuousTable'))
+      ),
       shiny::tabPanel("Binary Features",
                       plotly::plotlyOutput(ns("binaryPlot"))
       ),
@@ -129,6 +143,9 @@ descriptionAggregateFeaturesServer <- function(
       riskWindowEnd <- shiny::reactiveVal(NULL)
       endAnchor <- shiny::reactiveVal(NULL)
       startAnchor <- shiny::reactiveVal(NULL)
+      
+      binaryData <- shiny::reactiveVal(NULL)
+      continuousData <- shiny::reactiveVal(NULL)
       
       types <- c(
         'Target',
@@ -299,6 +316,97 @@ descriptionAggregateFeaturesServer <- function(
             )
           )
           
+          binaryData(descriptiveFeatureTable(data = allData$binary))
+          continuousData(descriptiveFeatureTable(data = allData$continuous))
+          
+          output$binaryTable <- reactable::renderReactable({
+            reactable::reactable(
+              data = binaryData(),
+              columns = list(
+                covariateName = reactable::colDef(
+                  name = "Covariate Name", 
+                  filterable = T
+                ),
+                comp1 = reactable::colDef(
+                  name = "Selection 1 mean", 
+                  format = reactable::colFormat(digits = 4)
+                ),
+                comp1sd = reactable::colDef(
+                  name = "Selection 1 stdev", 
+                  format = reactable::colFormat(digits = 4)
+                ),
+                comp2 = reactable::colDef(
+                  name = "Selection 2 mean",
+                  format = reactable::colFormat(digits = 4)
+                ),
+                comp2sd = reactable::colDef(
+                  name = "Selection 2 stdev",
+                  format = reactable::colFormat(digits = 4)
+                ),
+                analysisId = reactable::colDef(
+                  name = 'Type'
+                ),
+                standardizedMeanDiff = reactable::colDef(
+                  format = reactable::colFormat(digits = 4)
+                )
+              )
+                )
+          })
+          
+          output$continuousTable <- reactable::renderReactable({
+            reactable::reactable(
+              data = continuousData(),
+              
+              columns = list(
+                covariateName = reactable::colDef(
+                  name = "Covariate Name", 
+                  filterable = T
+                  ),
+                comp1 = reactable::colDef(
+                  name = "Selection 1 mean", 
+                  format = reactable::colFormat(digits = 4)
+                  ),
+                comp1sd = reactable::colDef(
+                  name = "Selection 1 stdev", 
+                  format = reactable::colFormat(digits = 4)
+                ),
+                comp2 = reactable::colDef(
+                  name = "Selection 2 mean",
+                  format = reactable::colFormat(digits = 4)
+                  ),
+                comp2sd = reactable::colDef(
+                  name = "Selection 2 stdev",
+                  format = reactable::colFormat(digits = 4)
+                ),
+                analysisId = reactable::colDef(
+                  name = 'Type'
+                  ),
+                standardizedMeanDiff = reactable::colDef(
+                  format = reactable::colFormat(digits = 4)
+                  )
+              )
+            )
+          })
+          
+        }
+      )
+      
+      
+      ## download buttons
+      output$downloadBinary <- shiny::downloadHandler(
+          filename = function() {
+             paste('binarydata-', Sys.Date(), '.csv', sep='')
+           },
+          content = function(con) {
+            write.csv(binaryData(), con)
+          }
+         )
+      output$downloadContinuous <- shiny::downloadHandler(
+        filename = function() {
+          paste('continuousdata-', Sys.Date(), '.csv', sep='')
+        },
+        content = function(con) {
+          write.csv(continuousData(), con)
         }
       )
       
@@ -586,8 +694,10 @@ descriptiveGetAggregateData <- function(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
-    cohortDef1 = ifelse(type1 == 'O', 0, targetId)*100000 +ifelse(type1 == 'T', 0, outcomeId)*10 + addTypeEnd(type1),
-    cohortDef2 = ifelse(type2 == 'O', 0, targetId)*100000 +ifelse(type2 == 'T', 0, outcomeId)*10 + addTypeEnd(type2),
+    #cohortDef1 = ifelse(type1 == 'O', 0, targetId)*100000 +ifelse(type1 == 'T', 0, outcomeId)*10 + addTypeEnd(type1),
+    #cohortDef2 = ifelse(type2 == 'O', 0, targetId)*100000 +ifelse(type2 == 'T', 0, outcomeId)*10 + addTypeEnd(type2),
+    cohortDef1 = ifelse(type1 == 'O', outcomeId, targetId)*100000 +ifelse(type1 %in% c('T','O'), 0, outcomeId)*10 + addTypeEnd(type1),
+    cohortDef2 = ifelse(type2 == 'O', outcomeId, targetId)*100000 +ifelse(type2 %in% c('T','O'), 0, outcomeId)*10 + addTypeEnd(type2),
     database_id1 = database1,
     database_id2 = database2,
     run_id1 = paste(runId1, collapse = ','),
@@ -694,4 +804,81 @@ descGetName <- function(x){
 descGetTime <- function(x){
   part1 <- unlist(lapply(strsplit(x = x, split = ' during '), function(y){y[2]}))
   return(unlist(lapply(strsplit(x = part1, split = ': '), function(y){y[1]})))
+}
+
+
+descriptiveFeatureTable <- function(
+  data
+){
+  
+  if(is.null(data)){
+    return(NULL)
+  }
+  
+  shiny::withProgress(message = 'Generating Table', value = 0, {
+    
+    if(!'standardDeviation' %in% colnames(data)){
+      # adding standard dev for binary features
+      data <- data %>% 
+        dplyr::mutate(
+          standardDeviation = sqrt(data$averageValue * (1-data$averageValue))
+                        )
+    }
+    
+    comp1 <- data %>% 
+      dplyr::filter(.data$label == 'comp1') %>%
+      dplyr::select(
+        .data$covariateId,
+        .data$covariateName, 
+        .data$averageValue, 
+        .data$standardDeviation
+        ) %>%
+      dplyr::rename(
+        comp1 = .data$averageValue,
+        comp1sd = .data$standardDeviation
+        )
+
+    
+    shiny::incProgress(1/4, detail = paste("Filtered comparision 1"))
+    
+    comp2 <- data %>% 
+      dplyr::filter(.data$label == 'comp2') %>%
+      dplyr::select(
+        .data$covariateId,
+        .data$covariateName, 
+        .data$averageValue, 
+        .data$standardDeviation
+        ) %>%
+      dplyr::rename(
+        comp2 = .data$averageValue,
+        comp2sd = .data$standardDeviation
+        )
+    
+    shiny::incProgress(2/4, detail = paste("Filtered comparision 2"))
+    
+    analysisIds <- data %>%
+      dplyr::select(.data$covariateName, .data$analysisId) %>%
+      dplyr::distinct()
+    
+    shiny::incProgress(3/4, detail = paste("Extracting analysisIds"))
+    
+    allData <- merge(
+      comp1, 
+      comp2, 
+      by = c('covariateId', 'covariateName'), 
+      all = T
+      )
+    allData[is.na(allData)] <- 0
+    allData <- merge(allData, analysisIds,  by = 'covariateName', all.x = T)
+    
+    allData <- allData %>%
+      dplyr::mutate(
+        standardizedMeanDiff = (.data$comp1 - .data$comp2)/(sqrt((.data$comp1sd^2 + .data$comp2sd^2)/2))
+        ) 
+    
+    shiny::incProgress(4/4, detail = paste("Finished"))
+    
+  })
+  
+  return(allData)
 }
