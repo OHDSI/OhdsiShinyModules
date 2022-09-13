@@ -177,9 +177,10 @@ getInternalPerformanceSummary <- function(
        ROUND(nTest.test_size*100.0/nResult.population_size, 1) as eval_percent,
        ROUND(oResult.outcome_count*100.0/nResult.population_size,4) as outcome_percent
        
-       FROM (select * from @my_schema.@my_table_appendperformances where model_design_id = @model_design_id) AS results INNER JOIN @my_schema.@my_table_appendmodels AS models 
+       FROM (select * from @my_schema.@my_table_appendperformances where model_design_id = @model_design_id and model_development = 1) AS results INNER JOIN @my_schema.@my_table_appendmodels AS models 
           ON results.model_design_id = models.model_design_id and
-             results.development_database_id = models.database_id
+             results.development_database_id = models.database_id 
+             
              
     inner join @my_schema.@my_table_appendmodel_designs as model_designs
     on model_designs.model_design_id = models.model_design_id and

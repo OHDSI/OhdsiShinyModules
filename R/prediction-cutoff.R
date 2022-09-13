@@ -339,8 +339,6 @@ probThresPlot <- function(thresholdSummary, pointOfInterest){
       yaxis2 = ay,
       #xaxis = list(title="Prediction Threshold"),
       #yaxis = list(title="Metric yaxis")
-      #) %>%
-      #plotly::layout(
       plot_bgcolor='#e5ecf6',
       xaxis = list(
         title = "Prediction Threshold",
@@ -354,7 +352,13 @@ probThresPlot <- function(thresholdSummary, pointOfInterest){
         zerolinewidth = 2,
         gridcolor = 'ffff'
       ),
-      shapes = list(vline(eval$predictionThreshold[pointOfInterest]))
+      shapes = list(vline(eval$predictionThreshold[pointOfInterest])),
+      margin = 1,
+      legend = list(
+        orientation = "h",   # show entries horizontally
+        xanchor = "center",  # use center of legend as anchor
+        x = 0.5
+        )
     )
   
   return(fig)
