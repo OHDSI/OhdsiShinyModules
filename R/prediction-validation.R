@@ -132,63 +132,16 @@ predictionValidationServer <- function(
         rownames= FALSE 
       ) #options = list(filter = 'top'))
       
-      # need to modify this for non-database results!
+      # get validation results
       valResult <- shiny::reactive({
-        
-        if(is.null(validationTable())){
-          return(
-            list(
-              thresholdSummaryList = NULL,
-              calibrationSummaryList = NULL, 
-              databaseName = '', 
-              Ts='', 
-              Os=''
-            )
+        getValidationResults(
+          validationTable = validationTable,
+          validationRowIds = input$validationTable_rows_selected,
+          con = con,
+          myTableAppend = myTableAppend,
+          mySchema = mySchema,
+          targetDialect = targetDialect
           )
-        }
-        
-        valTable <- validationTable()[input$validationTable_rows_selected,,]
-        if(!is.null(input$validationTable_rows_selected)){
-          names <- valTable[, "Val"]
-          Ts <- valTable[, "T"]
-          Os <- valTable[, "O"]
-          thresholdSummaryList <- list()
-          calibrationSummaryList <- list()
-          
-          performanceId <- shiny::reactiveVal()
-          for (i in 1:nrow(valTable)){
-            performanceId(valTable$performanceId[i])
-            thresholdSummaryList[[i]] <- getPredictionResult(
-              performanceId = performanceId, 
-              con = con,
-              tableName = paste0(myTableAppend,'threshold_summary'), 
-              mySchema = mySchema, 
-              targetDialect = targetDialect 
-            )
-            calibrationSummaryList[[i]] <- getPredictionResult(
-              performanceId = performanceId, 
-              con = con,
-              tableName = paste0(myTableAppend,'calibration_summary'), 
-              mySchema = mySchema, 
-              targetDialect = targetDialect 
-            )
-          }
-          list(
-            thresholdSummaryList = thresholdSummaryList, 
-            calibrationSummaryList = calibrationSummaryList,
-            databaseName = names, 
-            Ts=Ts, 
-            Os=Os
-          )
-        }else{
-          list(
-            thresholdSummaryList = NULL,
-            calibrationSummaryList = NULL, 
-            databaseName = '', 
-            Ts='', 
-            Os=''
-          )
-        }
       })
       
       output$valRoc <- shiny::renderPlot({
@@ -198,7 +151,7 @@ predictionValidationServer <- function(
         } else{
           plotRocs(
             thresholdSummaryList = valResult()$thresholdSummaryList, 
-            modelNames = paste0(1:length(valResult()$Ts),':',substr(valResult()$Ts,1,5),'-',substr(valResult()$Os,1,5),'-', substr(valResult()$databaseName,1,5))
+            modelNames = paste0(1:length(valResult()$Ts),':',substr(valResult()$Ts,1,25),'-',substr(valResult()$Os,1,25),'-', substr(valResult()$databaseName,1,20))
           )
         }
       })
@@ -209,7 +162,7 @@ predictionValidationServer <- function(
         } else{
           plotCalsSmooth(
             calibrationSummaryList = valResult()$calibrationSummary, 
-            modelNames =  paste0(1:length(valResult()$Ts),':',substr(valResult()$Ts,1,5),'-',substr(valResult()$Os,1,5),'-', substr(valResult()$databaseName,1,5))
+            modelNames =  paste0(1:length(valResult()$Ts),':',substr(valResult()$Ts,1,25),'-',substr(valResult()$Os,1,25),'-', substr(valResult()$databaseName,1,20))
           )
         }
         
@@ -221,6 +174,56 @@ predictionValidationServer <- function(
   )
 }
 
+getValidationResults <- function(
+  validationTable,
+  validationRowIds,
+  con,
+  myTableAppend,
+  mySchema,
+  targetDialect
+  ){
+  
+  if(!is.null(validationTable()) & !is.null(validationRowIds)){
+    valTable <- validationTable()[validationRowIds,,]
+    thresholdSummaryList <- list()
+    calibrationSummaryList <- list()
+    
+    for (i in 1:nrow(valTable)){
+      thresholdSummaryList[[i]] <- getPredictionResult(
+        performanceId = shiny::reactiveVal(valTable$performanceId[i]), 
+        con = con,
+        tableName = paste0(myTableAppend,'threshold_summary'), 
+        mySchema = mySchema, 
+        targetDialect = targetDialect 
+      )
+      calibrationSummaryList[[i]] <- getPredictionResult(
+        performanceId = shiny::reactiveVal(valTable$performanceId[i]), 
+        con = con,
+        tableName = paste0(myTableAppend,'calibration_summary'), 
+        mySchema = mySchema, 
+        targetDialect = targetDialect 
+      )
+    }
+    return(
+      list(
+        thresholdSummaryList = thresholdSummaryList, 
+        calibrationSummaryList = calibrationSummaryList,
+        databaseName = valTable[, "Val"], 
+        Ts = valTable[, "T"], 
+        Os = valTable[, "O"]
+      )
+    )
+  } else{
+    return(list(
+      thresholdSummaryList = NULL,
+      calibrationSummaryList = NULL, 
+      databaseName = '', 
+      Ts = '', 
+      Os = ''
+    )
+    )
+  }
+}
 
 getValSummary <- function(
   con, 
@@ -402,7 +405,11 @@ plotRocs <- function(
       limits=c(0,1)
     ) +
     ggplot2::scale_color_discrete(name = 'Result') +
-    ggplot2::scale_fill_discrete(guide = FALSE)
+    ggplot2::scale_fill_discrete(guide = FALSE) + 
+    ggplot2::theme(
+      legend.position = "bottom", 
+      legend.direction = "vertical"
+      )
   
   if (!is.null(fileName)){
     ggplot2::ggsave(fileName, plot, width = 5, height = 4.5, dpi = 400)
@@ -522,7 +529,11 @@ plotCalsSmooth <- function(
     ggplot2::labs(
       x = "Average Predicted Probability", 
       y = "Observed Fraction With Outcome"
-    ) 
+    ) +
+    ggplot2::theme(
+      legend.position = "bottom", 
+      legend.direction = "vertical"
+    )
   
   return(plot)
 }
