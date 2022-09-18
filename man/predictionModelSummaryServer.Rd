@@ -10,7 +10,8 @@ predictionModelSummaryServer(
   mySchema,
   targetDialect,
   myTableAppend,
-  modelDesignId
+  modelDesignId,
+  databaseTableAppend
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ predictionModelSummaryServer(
 \item{myTableAppend}{a string that appends the tables in the result schema}
 
 \item{modelDesignId}{a reactable id specifying the prediction model design identifier}
+
+\item{databaseTableAppend}{a string that appends the database_meta_data table}
 }
 \value{
 The server to the summary module

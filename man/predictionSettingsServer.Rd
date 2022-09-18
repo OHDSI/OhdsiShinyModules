@@ -13,7 +13,8 @@ predictionSettingsServer(
   con,
   inputSingleView,
   myTableAppend,
-  targetDialect
+  targetDialect,
+  cohortTableAppend
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ predictionSettingsServer(
 \item{myTableAppend}{a string that appends the tables in the result schema}
 
 \item{targetDialect}{the database management system for the model results}
+
+\item{cohortTableAppend}{a string that appends the cohort_definition table}
 }
 \value{
 The server to the settings module

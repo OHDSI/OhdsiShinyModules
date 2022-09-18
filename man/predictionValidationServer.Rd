@@ -13,7 +13,8 @@ predictionValidationServer(
   inputSingleView,
   mySchema,
   targetDialect = NULL,
-  myTableAppend = NULL
+  myTableAppend = NULL,
+  databaseTableAppend = myTableAppend
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ predictionValidationServer(
 \item{targetDialect}{the database management system for the model results}
 
 \item{myTableAppend}{a string that appends the tables in the result schema}
+
+\item{databaseTableAppend}{a string that appends the database_meta_data table}
 }
 \value{
 The server to the validation module
