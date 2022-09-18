@@ -135,35 +135,43 @@ descriptionTableServer <- function(
       }
       )
       
-
-
       # fetch data when targetId changes
       shiny::observeEvent(
         eventExpr = input$fetchData,
         {
-          if(is.null(input$targetIds) | is.null(input$databaseId)){
+          if(length(input$targetIds) == 0 | is.null(input$databaseId)){
             print('Null ids value')
             return(invisible(NULL))
           }
-          allData <- getDesFEData(
-            targetIds = input$targetIds,
-            databaseId = databaseId,
-            con = con,
-            schema = schema, 
-            dbms = dbms,
-            tablePrefix = tablePrefix,
-            cohortTablePrefix = cohortTablePrefix,
-            tempEmulationSchema = tempEmulationSchema
-          )
           
-          # do the plots reactively
-          output$feTable <- reactable::renderReactable(
-            {
-              reactable::reactable(
-                data = allData
-              )
-            }
-          )
+          allData <- tryCatch({
+            getDesFEData(
+              targetIds = input$targetIds,
+              databaseId = input$databaseId,
+              con = con,
+              schema = schema, 
+              dbms = dbms,
+              tablePrefix = tablePrefix,
+              cohortTablePrefix = cohortTablePrefix,
+              tempEmulationSchema = tempEmulationSchema
+            )}, 
+            error = function(e){
+              shiny::showNotification(paste0('Error: ', e)); return(NULL)
+            })
+          
+          if(!is.null(allData)){
+            # do the plots reactively
+            output$feTable <- reactable::renderReactable(
+              {
+                reactable::reactable(
+                  data = allData,
+                  filterable = TRUE
+                )
+              }
+            )
+          } else{
+            shiny::showNotification('data NULL')
+          }
           
         }
       )
@@ -186,6 +194,9 @@ getDesFEData <- function(
   tempEmulationSchema
 ){
   
+  
+  shiny::withProgress(message = 'Getting target comparison data', value = 0, {
+    
   
   sql <- "select distinct ref.covariate_id, ref.covariate_name, c.cohort_name, covs.COUNT_VALUE, covs.AVERAGE_VALUE
   from
@@ -214,11 +225,15 @@ getDesFEData <- function(
     result_schema = schema,
     table_prefix = tablePrefix,
     cohort_table_prefix = cohortTablePrefix,
-    cohort_ids = paste(targetIds*100000, collapse = ','),
+    cohort_ids = paste(as.double(targetIds)*100000, collapse = ','),
     database_id = databaseId
   )
   
+  shiny::incProgress(1/3, detail = paste("Created SQL - Extracting..."))
+  
   resultTable <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
+  
+  shiny::incProgress(2/3, detail = paste("Formating"))
   
   #format
   resultTable <- resultTable %>% 
@@ -227,6 +242,10 @@ getDesFEData <- function(
       values_from = c(.data$averageValue, .data$countValue), 
       id_cols = c(.data$covariateId, .data$covariateName)
         )
+  
+  shiny::incProgress(3/3, detail = paste("Done"))
+  
+  })
   
   return(resultTable)
 }
@@ -242,6 +261,10 @@ getDecCohortsInputs <- function(
   tempEmulationSchema
 ){
   
+  
+  shiny::withProgress(message = 'Getting target comparison inputs', value = 0, {
+    
+    
   sql <- ' select distinct c.cohort_definition_id, c.cohort_name from
   @result_schema.@cohort_table_prefixcohort_definition c
   inner join
@@ -257,10 +280,15 @@ getDecCohortsInputs <- function(
     table_prefix = tablePrefix,
     cohort_table_prefix = cohortTablePrefix
   )
+  
+  shiny::incProgress(1/4, detail = paste("Extracting targetIds"))
 
   idVals <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   ids <- idVals$cohortDefinitionId
   names(ids) <- idVals$cohortName
+  
+  shiny::incProgress(2/4, detail = paste("Extracted targetIds"))
+  
   
   sql <- 'select d.database_id, d.cdm_source_abbreviation as database_name
   from @result_schema.@database_table d;'
@@ -271,9 +299,15 @@ getDecCohortsInputs <- function(
     database_table = databaseTable
   )
   
+  shiny::incProgress(3/4, detail = paste("Extracting databaseIds"))
+  
   database <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   databaseIds <- database$databaseId
   names(databaseIds) <- database$databaseName
+  
+  shiny::incProgress(4/4, detail = paste("Done"))
+  
+  })
   
   return(
     list(

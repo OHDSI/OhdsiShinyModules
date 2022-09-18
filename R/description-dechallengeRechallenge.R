@@ -456,17 +456,17 @@ plotDechalRechal <- function(
     
     
     # add the offsets (hack until update results)
-    dechalRechalData <- dechalRechalData %>% 
-      dplyr::mutate(
-        dechallengeExposureNumber = .data$firstExposureNumber,
-        dechallengeOutcomeNumber = .data$firstOutcomeNumber,
-        dechallengeExposureEndDateOffset = difftime(.data$firstExposureStartDate, .data$firstExposureEndDate, units = "days"), 
-        dechallengeExposureStartDateOffset = difftime(.data$firstExposureStartDate, .data$firstExposureStartDate, units = "days"), 
-        dechallengeOutcomeStartDateOffset = difftime(.data$firstExposureStartDate, .data$firstOutcomeStartDate, units = "days"),  
-        rechallengeExposureStartDateOffset = difftime(.data$firstExposureStartDate, .data$rechallengeExposureStartDate, units = "days"),   
-        rechallengeExposureEndDateOffset = difftime(.data$firstExposureStartDate, .data$rechallengeExposureEndDate, units = "days"),   
-        rechallengeOutcomeStartDateOffset = difftime(.data$firstExposureStartDate, .data$rechallengeOutcomeStartDate, units = "days"),  
-      )
+    #dechalRechalData <- dechalRechalData %>% 
+    #  dplyr::mutate(
+    #    dechallengeExposureNumber = .data$firstExposureNumber,
+    #    dechallengeOutcomeNumber = .data$firstOutcomeNumber,
+    #    dechallengeExposureEndDateOffset = difftime(.data$firstExposureStartDate, .data$firstExposureEndDate, units = "days"), 
+    #    dechallengeExposureStartDateOffset = difftime(.data$firstExposureStartDate, .data$firstExposureStartDate, units = "days"), 
+    #    dechallengeOutcomeStartDateOffset = difftime(.data$firstExposureStartDate, .data$firstOutcomeStartDate, units = "days"),  
+    #    rechallengeExposureStartDateOffset = difftime(.data$firstExposureStartDate, .data$rechallengeExposureStartDate, units = "days"),   
+    #    rechallengeExposureEndDateOffset = difftime(.data$firstExposureStartDate, .data$rechallengeExposureEndDate, units = "days"),   
+    #    rechallengeOutcomeStartDateOffset = difftime(.data$firstExposureStartDate, .data$rechallengeOutcomeStartDate, units = "days"),  
+    #  )
     
   
     #order the data so that cases are in order of exposure/outcome offsets

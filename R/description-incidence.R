@@ -116,7 +116,7 @@ descriptionIncidenceServer <- function(
             shiny::selectInput(
               inputId = session$ns('outcomeId'), 
               label = 'Outcome id: ', 
-              choices = cohorts$outcomesIds,
+              choices = cohorts$outcomeIds,
               selected = 1
             ),
             
@@ -180,23 +180,34 @@ getIncidenceData <- function(
   tempEmulationSchema
 ){
   
+  shiny::withProgress(message = 'Getting incidence data', value = 0, {
+    
   sql <- 'select d.cdm_source_abbreviation, i.* 
     from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
-    inner join @result_schema.@database_table d
+    inner join @result_schema.@database_table_name d
     on d.database_id = i.database_id
     where target_cohort_definition_id = @target_id
     and outcome_cohort_definition_id = @outcome_id
     ;'
+  
   sql <- SqlRender::render(
     sql = sql, 
     result_schema = schema,
     incidence_table_prefix = incidenceTablePrefix,
     target_id = targetId,
     outcome_id = outcomeId,
-    database_table = databaseTable
+    database_table_name = databaseTable
   )
+  print(sql)
+  
+  shiny::incProgress(1/2, detail = paste("Created SQL - Extracting..."))
   
   resultTable <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
+  
+  shiny::incProgress(2/2, detail = paste("Done..."))
+  
+  })
+  
   
   return(resultTable)
 }
@@ -210,6 +221,8 @@ getTargetOutcomes <- function(
   tempEmulationSchema
 ){
   
+  shiny::withProgress(message = 'Getting incidence inputs', value = 0, {
+  
   sql <- 'select distinct target_cohort_definition_id, target_name 
   from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
   sql <- SqlRender::render(
@@ -217,6 +230,8 @@ getTargetOutcomes <- function(
     result_schema = schema,
     incidence_table_prefix = incidenceTablePrefix
   )
+  
+  shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
 
   targets <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   targetIds <- targets$targetCohortDefinitionId
@@ -230,10 +245,15 @@ getTargetOutcomes <- function(
     incidence_table_prefix = incidenceTablePrefix
   )
   
+  shiny::incProgress(2/3, detail = paste("Created SQL - Extracting outcomes"))
+  
   outcomes <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   
   outcomeIds <- outcomes$outcomeCohortDefinitionId
   names(outcomeIds) <- outcomes$outcomeName
+  
+  shiny::incProgress(3/3, detail = paste("Done"))
+  })
   
   return(
     list(
