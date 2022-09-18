@@ -4,11 +4,15 @@ output: html_document
 
 ```{r, echo=FALSE, results='asis'}
   
-sql <- "select c.DATABASE_NAME, a.PROBAST_ID, a.result_value from @result_schema.@my_table_appenddiagnostic_summary a 
+sql <- "select dm.cdm_source_abbreviation as DATABASE_NAME, 
+a.PROBAST_ID, a.result_value 
+from @result_schema.@my_table_appenddiagnostic_summary a 
 inner join @result_schema.@my_table_appenddiagnostics b
 on a.DIAGNOSTIC_ID = b.DIAGNOSTIC_ID
 inner join @result_schema.@my_table_appenddatabase_details c
 on c.database_id = b.database_id
+inner join @database_table_appenddatabase_meta_data dm
+on c.database_meta_data_id = dm.database_id
 where b.model_design_id = @model_design_id
 ;"  
 
@@ -16,6 +20,7 @@ sql <- SqlRender::render(
     sql = sql, 
     result_schema = params$resultSchema,
     my_table_append = params$myTableAppend,
+    database_table_append = params$databaswTableAppend,
     model_design_id = modelDesignId
   )
 

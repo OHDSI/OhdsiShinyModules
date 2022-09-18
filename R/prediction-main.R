@@ -239,7 +239,12 @@ predictionServer <- function(
           mySchema = resultDatabaseSettings$schema, 
           targetDialect = resultDatabaseSettings$dbms,
           myTableAppend = resultDatabaseSettings$tablePrefix,
-          modelDesignId = modelDesignId
+          modelDesignId = modelDesignId,
+          databaseTableAppend = ifelse(
+            !is.null(resultDatabaseSettings$databaseTablePrefix), 
+            resultDatabaseSettings$databaseTablePrefix,
+            resultDatabaseSettings$tablePrefix
+          )
         )
 
       
@@ -274,7 +279,12 @@ predictionServer <- function(
         mySchema = resultDatabaseSettings$schema, 
         con = con,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        targetDialect = resultDatabaseSettings$dbms,
+        databaseTableAppend = ifelse(
+          !is.null(resultDatabaseSettings$databaseTablePrefix), 
+          resultDatabaseSettings$databaseTablePrefix,
+          resultDatabaseSettings$tablePrefix
+        )
       )
       
       # =============================
@@ -289,11 +299,21 @@ predictionServer <- function(
             file.remove(file.path(tempdir(), 'main.html'))
           }
           tryCatch(
-            {createPredictionProtocol(
+            {createPredictionProtocol( # add database_table_append and cohort_table_append
               con = con, 
               mySchema = resultDatabaseSettings$schema, 
               targetDialect = resultDatabaseSettings$dbms,
               myTableAppend = resultDatabaseSettings$tablePrefix,
+              databaseTableAppend = ifelse(
+                !is.null(resultDatabaseSettings$databaseTablePrefix), 
+                resultDatabaseSettings$databaseTablePrefix,
+                resultDatabaseSettings$tablePrefix
+              ),
+              cohortTableAppend = ifelse(
+                !is.null(resultDatabaseSettings$cohortTablePrefix), 
+                resultDatabaseSettings$cohortTablePrefix,
+                resultDatabaseSettings$tablePrefix
+              ),
               modelDesignId = designSummary$reportId(),
               output = tempdir()
             )
@@ -347,6 +367,16 @@ predictionServer <- function(
             resultSchema = resultDatabaseSettings$schema, 
             targetDialect = resultDatabaseSettings$dbms,
             myTableAppend = resultDatabaseSettings$tablePrefix,
+            databaseTableAppend = ifelse(
+              !is.null(resultDatabaseSettings$databaseTablePrefix), 
+              resultDatabaseSettings$databaseTablePrefix,
+              resultDatabaseSettings$tablePrefix
+            ),
+            cohortTableAppend = ifelse(
+              !is.null(resultDatabaseSettings$cohortTablePrefix), 
+              resultDatabaseSettings$cohortTablePrefix,
+              resultDatabaseSettings$tablePrefix
+            ),
             modelDesignIds = designSummary$reportId()
           )
         )
@@ -378,7 +408,12 @@ predictionServer <- function(
         con = con,
         inputSingleView = singleViewValue,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        targetDialect = resultDatabaseSettings$dbms,
+        cohortTableAppend = ifelse(
+          !is.null(resultDatabaseSettings$cohortTablePrefix), 
+          resultDatabaseSettings$cohortTablePrefix,
+          resultDatabaseSettings$tablePrefix
+        )
       )
       
       predictionCutoffServer(
@@ -430,7 +465,12 @@ predictionServer <- function(
         inputSingleView = singleViewValue,
         mySchema = resultDatabaseSettings$schema,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        targetDialect = resultDatabaseSettings$dbms,
+        databaseTableAppend = ifelse(
+          !is.null(resultDatabaseSettings$databaseTablePrefix), 
+          resultDatabaseSettings$databaseTablePrefix,
+          resultDatabaseSettings$tablePrefix
+        )
       ) 
       
     }

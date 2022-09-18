@@ -3,6 +3,8 @@ createPredictionProtocol <- function(
   mySchema, 
   targetDialect,
   myTableAppend,
+  databaseTableAppend,
+  cohortTableAppend,
   modelDesignId,
   output
 ){
@@ -20,7 +22,9 @@ createPredictionProtocol <- function(
       resultSchema = mySchema, 
       targetDialect = targetDialect,
       myTableAppend = myTableAppend,
-      modelDesignIds = modelDesignId
+      modelDesignIds = modelDesignId,
+      databaseTableAppend = databaseTableAppend,
+      cohortTableAppend = cohortTableAppend
     )
   )
   

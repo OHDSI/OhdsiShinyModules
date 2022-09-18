@@ -68,6 +68,7 @@ predictionValidationViewer <- function(id) {
 #' @param mySchema the database schema for the model results
 #' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
+#' @param databaseTableAppend a string that appends the database_meta_data table
 #' 
 #' @return
 #' The server to the validation module
@@ -82,7 +83,8 @@ predictionValidationServer <- function(
   inputSingleView,
   mySchema,
   targetDialect = NULL,
-  myTableAppend = NULL
+  myTableAppend = NULL,
+  databaseTableAppend = myTableAppend
 ) {
   shiny::moduleServer(
     
@@ -103,7 +105,8 @@ predictionValidationServer <- function(
               modelDesignId = modelDesignId,
               developmentDatabaseId = developmentDatabaseId,
               targetDialect = targetDialect, 
-              myTableAppend = myTableAppend
+              myTableAppend = myTableAppend,
+              databaseTableAppend = databaseTableAppend
             ) 
           )
         } else{
@@ -231,7 +234,8 @@ getValSummary <- function(
   modelDesignId, 
   developmentDatabaseId,
   targetDialect, 
-  myTableAppend = '' 
+  myTableAppend = '',
+  databaseTableAppend = myTableAppend
 ){
   ParallelLogger::logInfo("getting Val summary")
   
@@ -265,7 +269,10 @@ getValSummary <- function(
          
     LEFT JOIN (SELECT cohort_id, cohort_name FROM @my_schema.@my_table_appendcohorts) AS targets ON results.target_id = targets.cohort_id
     LEFT JOIN (SELECT cohort_id, cohort_name FROM @my_schema.@my_table_appendcohorts) AS outcomes ON results.outcome_id = outcomes.cohort_id
-    LEFT JOIN @my_schema.@my_table_appenddatabase_details AS d ON results.validation_database_id = d.database_id 
+    LEFT JOIN (select dd.database_id, md.cdm_source_abbreviation database_acronym 
+                   from @my_schema.@database_table_appenddatabase_meta_data md inner join 
+                   @my_schema.@my_table_appenddatabase_details dd 
+                   on md.database_id = dd.database_meta_data_id) AS d ON results.validation_database_id = d.database_id 
     LEFT JOIN @my_schema.@my_table_appendtars AS tars ON results.tar_id = tars.tar_id
     LEFT JOIN (SELECT performance_id, value AS auc FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'AUROC' and evaluation in ('Test','Validation') ) AS aucResult ON results.performance_id = aucResult.performance_id
     LEFT JOIN (SELECT performance_id, value AS auclb FROM @my_schema.@my_table_appendevaluation_statistics where metric = '95% lower AUROC' and evaluation in ('Test','Validation') ) AS auclbResult ON results.performance_id = auclbResult.performance_id
@@ -282,7 +289,8 @@ getValSummary <- function(
                            my_schema = mySchema, 
                            model_design_id = modelDesignId(),
                            development_database_id = developmentDatabaseId(),
-                           my_table_append = myTableAppend)
+                           my_table_append = myTableAppend,
+                           database_table_append = databaseTableAppend)
   
   sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
   

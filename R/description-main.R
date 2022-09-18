@@ -49,8 +49,18 @@ descriptionViewer <- function(id=1) {
     id = ns('mainPanel'),
     
     shiny::tabPanel(
-      "Feature Comparison",  
+      "Target Viewer",  
+      descriptionTableViewer(ns('descriptiveTableTab'))
+    ),
+    
+    shiny::tabPanel(
+      "Outcome Stratified",  
       descriptionAggregateFeaturesViewer(ns('aggregateFeaturesTab'))
+    ),
+    
+    shiny::tabPanel(
+      "Incidence Rate",  
+      descriptionIncidenceViewer(ns('incidenceTab'))
     ),
     
     shiny::tabPanel(
@@ -140,7 +150,22 @@ descriptionServer <- function(
           mainPanelTab(input$mainPanel)
         })
       
-      print('Gets here 4')
+      
+      # =============================
+      #   Table of cohorts
+      # =============================
+      descriptionTableServer(
+        id = 'descriptiveTableTab',
+        con = con, 
+        mainPanelTab = mainPanelTab,
+        schema = resultDatabaseSettings$schema, 
+        dbms = resultDatabaseSettings$dbms,
+        tablePrefix = resultDatabaseSettings$tablePrefix,
+        tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema, 
+        cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
+        databaseTable = resultDatabaseSettings$databaseTable
+        )
+
       
       # =============================
       #   Aggregrate Features
@@ -157,6 +182,20 @@ descriptionServer <- function(
         cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
         databaseTable = resultDatabaseSettings$databaseTable
       )
+      
+      # =============================
+      #   Incidence
+      # =============================
+      descriptionIncidenceServer(
+        id = 'incidenceTab',
+        con = con, 
+        mainPanelTab = mainPanelTab,
+        schema = resultDatabaseSettings$schema, 
+        dbms = resultDatabaseSettings$dbms,
+        incidenceTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
+        tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema,
+        databaseTable = resultDatabaseSettings$databaseTable
+        )
 
       
       # =============================

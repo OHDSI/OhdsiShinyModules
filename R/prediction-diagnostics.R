@@ -49,6 +49,7 @@ predictionDiagnosticsViewer <- function(id) {
 #' @param con the connection to the prediction result database
 #' @param myTableAppend a string that appends the tables in the result schema
 #' @param targetDialect the database management system for the model results
+#' @param databaseTableAppend a string that appends the database_meta_data table
 #' 
 #' @return
 #' The server to the predcition diagnostic module
@@ -60,7 +61,8 @@ predictionDiagnosticsServer <- function(
   mySchema, 
   con,
   myTableAppend, 
-  targetDialect                     
+  targetDialect,
+  databaseTableAppend
 ) {
   shiny::moduleServer(
     id,
@@ -74,7 +76,8 @@ predictionDiagnosticsServer <- function(
             mySchema, 
             con,
             myTableAppend, 
-            targetDialect   
+            targetDialect,
+            databaseTableAppend = databaseTableAppend
           )
           # input tables
           output$diagnosticSummaryTable <- reactable::renderReactable({
@@ -394,6 +397,7 @@ getDiagnostics <- function(
   con,
   myTableAppend, 
   targetDialect,
+  databaseTableAppend,
   threshold1_2 = 0.9
 ){
   if(!is.null(modelDesignId)){
@@ -413,7 +417,11 @@ getDiagnostics <- function(
           @my_schema.@my_table_appendMODEL_DESIGNS design inner join
           @my_schema.@my_table_appendDIAGNOSTIC_SUMMARY summary inner join
           
-          @my_schema.@my_table_appendDATABASE_DETAILS database inner join
+          (select dd.database_id, md.cdm_source_abbreviation as database_name
+                   from @my_schema.@database_table_appenddatabase_meta_data md inner join 
+                   @my_schema.@my_table_appenddatabase_details dd 
+                   on md.database_id = dd.database_meta_data_id) 
+          as database inner join
           
           @my_schema.@my_table_appendCOHORTS cohortT inner join
           @my_schema.@my_table_appendCOHORTS cohortO 
@@ -431,7 +439,8 @@ getDiagnostics <- function(
     sql = sql, 
     my_schema = mySchema,
     my_table_append = myTableAppend,
-    model_design_id = modelDesignId
+    model_design_id = modelDesignId,
+    database_table_append = databaseTableAppend
   )
   
   sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
