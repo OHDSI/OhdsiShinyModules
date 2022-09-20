@@ -11,6 +11,7 @@ estimationKaplanMeierServer(
   connection,
   resultsSchema,
   tablePrefix,
+  cohortTablePrefix,
   databaseTable
 )
 }

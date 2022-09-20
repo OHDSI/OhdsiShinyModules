@@ -17,7 +17,19 @@
 # limitations under the License.
 
 
-
+#' The location of the cohort-generator module helper file
+#'
+#' @details
+#' Returns the location of the cohort-generator helper file
+#' 
+#' @return
+#' string location of the cohort-generator helper file
+#'
+#' @export
+cohortGeneratorHelperFile <- function(){
+  fileLoc <- system.file('cohort-generator-www', "cohort-generator.html", package = "OhdsiShinyModules")
+  return(fileLoc)
+}
 
 #' The viewer of the main cohort generator module
 #'

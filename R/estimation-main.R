@@ -17,7 +17,19 @@
 # limitations under the License.
 
 
-
+#' The location of the estimation module helper file
+#'
+#' @details
+#' Returns the location of the estimation helper file
+#' 
+#' @return
+#' string location of the estimation helper file
+#'
+#' @export
+estimationHelperFile <- function(){
+  fileLoc <- system.file('estimation-www', "estimation.html", package = "OhdsiShinyModules")
+  return(fileLoc)
+}
 
 #' The viewer of the main estimation module
 #'
