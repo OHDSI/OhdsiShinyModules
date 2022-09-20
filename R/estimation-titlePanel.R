@@ -47,7 +47,7 @@ estimationTitlePanelServer <- function(id) {
     function(input, output, session) {
       
       output$titleText <- renderUI({
-        titlePanel("Evidence Explorer")
+        titlePanel("Cohort Method Evidence Explorer")
       })
       
     }

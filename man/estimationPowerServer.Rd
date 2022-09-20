@@ -4,7 +4,14 @@
 \alias{estimationPowerServer}
 \title{The module server for rendering the PLE power analysis results}
 \usage{
-estimationPowerServer(id, selectedRow, inputParams, connection, resultsSchema)
+estimationPowerServer(
+  id,
+  selectedRow,
+  inputParams,
+  connection,
+  resultsSchema,
+  tablePrefix
+)
 }
 \arguments{
 \item{id}{the unique reference id for the module}

@@ -54,7 +54,7 @@ estimationPropensityScoreDistViewer <- function(id) {
 #' the PLE propensity score distribution content server
 #' 
 #' @export
-estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, connection, resultsSchema) {
+estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, cohortTablePrefix) {
   
   shiny::moduleServer(
     id,
@@ -68,12 +68,15 @@ estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, co
           if (FALSE && row$databaseId %in% metaAnalysisDbIds) {
             #TODO: update once MA implemented
             ps <- getEstimationPs(connection = connection,
+                                  resultsSchema = resultsSchema,
+                                  tablePrefix = tablePrefix,
                                   targetIds = row$targetId,
                                   comparatorIds = row$comparatorId,
                                   analysisId = row$analysisId)
           } else {
             ps <- getEstimationPs(connection = connection,
                                   resultsSchema = resultsSchema,
+                                  tablePrefix = tablePrefix,
                                   targetId = inputParams()$target,
                                   comparatorId = inputParams()$comparator,
                                   analysisId = row$analysisId,
@@ -82,7 +85,16 @@ estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, co
           if (nrow(ps) == 0) {
             return(NULL) #TODO: handle more gracefully
           }
-          plot <- plotEstimationPs(ps, inputParams()$target, inputParams()$comparator)
+          
+          targetName <- getCohortNameFromId(connection = connection,
+                                            resultsSchema = resultsSchema,
+                                            cohortTablePrefix = cohortTablePrefix,
+                                            cohortId = inputParams()$target)
+          comparatorName <- getCohortNameFromId(connection = connection,
+                                            resultsSchema = resultsSchema,
+                                            cohortTablePrefix = cohortTablePrefix,
+                                            cohortId = inputParams()$comparator)
+          plot <- plotEstimationPs(ps, targetName$cohortName, comparatorName$cohortName)
           return(plot)
         }
       })

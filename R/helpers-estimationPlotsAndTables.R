@@ -126,8 +126,8 @@ prepareEstimationMainResultsTable <- function(mainResults, analyses) {
 }
 
 
-prepareEstimationPowerTable <- function(mainResults, connection, resultsSchema) {
-  analyses <- getCohortMethodAnalyses(connection, resultsSchema)
+prepareEstimationPowerTable <- function(mainResults, connection, resultsSchema, tablePrefix) {
+  analyses <- getCohortMethodAnalyses(connection, resultsSchema, tablePrefix)
   table <- merge(mainResults, analyses)
   alpha <- 0.05
   power <- 0.8
@@ -277,15 +277,19 @@ prepareEstimationTable1 <- function(balance,
                                     percentDigits = 1,
                                     stdDiffDigits = 2,
                                     output = "latex",
-                                    pathToCsv = "modules/estimation/Table1Specs.csv") {
+                                    pathToCsv = NULL) {
   
-  print(getwd())
+  
+  
+  if(is.null(pathToCsv)) {
+    pathToCsv <- system.file("estimation-ref", "Table1Specs.csv", package = "OhdsiShinyModules")
+  }
   if (output == "latex") {
     space <- " "
   } else {
     space <- "&nbsp;"
   }
-  print(getwd())
+  
   specifications <- read.csv(pathToCsv, stringsAsFactors = FALSE)
   
   fixCase <- function(label) {

@@ -9,7 +9,8 @@ estimationSystematicErrorServer(
   selectedRow,
   inputParams,
   connection,
-  resultsSchema
+  resultsSchema,
+  tablePrefix
 )
 }
 \arguments{

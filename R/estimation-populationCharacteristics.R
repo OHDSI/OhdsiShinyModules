@@ -47,7 +47,7 @@ estimationPopulationCharacteristicsViewer <- function(id) {
 #' the PLE population characteristics content server
 #' 
 #' @export
-estimationPopulationCharacteristicsServer <- function(id, selectedRow, inputParams, connection, resultsSchema) {
+estimationPopulationCharacteristicsServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix) {
   
   shiny::moduleServer(
     id,
@@ -67,13 +67,13 @@ estimationPopulationCharacteristicsServer <- function(id, selectedRow, inputPara
       })
       
       output$table1Table <- DT::renderDataTable({
-        return(NULL) #TODO: waiting fix for cm_analysis_id
         row <- selectedRow()
         if (is.null(row)) {
           return(NULL)
         } else {
           balance <- getEstimationCovariateBalance(connection = connection,
                                                    resultsSchema = resultsSchema,
+                                                   tablePrefix = tablePrefix,
                                                    targetId = inputParams()$target,
                                                    comparatorId = inputParams()$comparator,
                                                    outcomeId = inputParams()$outcome,

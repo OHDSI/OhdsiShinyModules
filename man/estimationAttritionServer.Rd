@@ -9,7 +9,9 @@ estimationAttritionServer(
   selectedRow,
   inputParams,
   connection,
-  resultsSchema
+  resultsSchema,
+  tablePrefix,
+  databaseTable
 )
 }
 \arguments{

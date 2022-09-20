@@ -9,7 +9,9 @@ estimationPropensityScoreDistServer(
   selectedRow,
   inputParams,
   connection,
-  resultsSchema
+  resultsSchema,
+  tablePrefix,
+  cohortTablePrefix
 )
 }
 \arguments{

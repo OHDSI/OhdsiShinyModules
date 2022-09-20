@@ -66,7 +66,7 @@ estimationSystematicErrorViewer <- function(id) {
 #' the PLE systematic error content server
 #' 
 #' @export
-estimationSystematicErrorServer <- function(id, selectedRow, inputParams, connection, resultsSchema) {
+estimationSystematicErrorServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix) {
   
   shiny::moduleServer(
     id,
@@ -91,6 +91,7 @@ estimationSystematicErrorServer <- function(id, selectedRow, inputParams, connec
         } else {
           controlResults <- getEstimationControlResults(connection = connection,
                                                         resultsSchema = resultsSchema,
+                                                        tablePrefix = tablePrefix,
                                                         targetId = inputParams()$target,
                                                         comparatorId = inputParams()$comparator,
                                                         analysisId = row$analysisId,

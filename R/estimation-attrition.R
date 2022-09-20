@@ -50,7 +50,7 @@ estimationAttritionViewer <- function(id) {
 #' the PLE attrition results content server
 #' 
 #' @export
-estimationAttritionServer <- function(id, selectedRow, inputParams, connection, resultsSchema) {
+estimationAttritionServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, databaseTable) {
   
   shiny::moduleServer(
     id,
@@ -64,6 +64,8 @@ estimationAttritionServer <- function(id, selectedRow, inputParams, connection, 
         } else {
           attrition <- getEstimationAttrition(connection = connection,
                                               resultsSchema = resultsSchema,
+                                              tablePrefix = tablePrefix,
+                                              databaseTable = databaseTable,
                                               targetId = inputParams()$target,
                                               comparatorId = inputParams()$comparator,
                                               outcomeId = inputParams()$outcome,

@@ -11,7 +11,7 @@ estimationServer(id, resultDatabaseSettings)
 
 \item{resultDatabaseSettings}{a named list containing the PLE results database connection details}
 
-\item{resultsSchema}{the schema with the PLE results}
+\item{resultDatabaseSettings$schema}{the schema with the PLE results}
 }
 \value{
 the PLE results viewer main module server

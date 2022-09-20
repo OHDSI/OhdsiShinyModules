@@ -68,7 +68,7 @@ estimationCovariateBalanceViewer <- function(id) {
 #' the PLE covariate balance content server
 #' 
 #' @export
-estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, connection, resultsSchema) {
+estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix) {
   
   shiny::moduleServer(
     id,
@@ -79,6 +79,7 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
         row <- selectedRow()
         balance <- getEstimationCovariateBalance(connection = connection,
                                                  resultsSchema = resultsSchema,
+                                                 tablePrefix = tablePrefix,
                                                  targetId = inputParams()$target,
                                                  comparatorId = inputParams()$comparator,
                                                  databaseId = row$databaseId,
