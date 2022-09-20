@@ -72,22 +72,13 @@ cohortGeneratorViewer <- function(id) {
 #' the cohort generator results viewer main module server
 #' 
 #' @export
-cohortGeneratorServer <- function(id, resultDatabaseSettings) {
+cohortGeneratorServer <- function(id, connection, resultDatabaseSettings) {
 
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
       resultsSchema <- resultDatabaseSettings$schema
-      
-      connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = resultDatabaseSettings$dbms,
-                                                                      user = resultDatabaseSettings$user,
-                                                                      password = resultDatabaseSettings$password,
-                                                                      server = sprintf("%s/%s", resultDatabaseSettings$server,
-                                                                                       resultDatabaseSettings$database))
-      
-      
-      connection <- DatabaseConnector::connect(connectionDetails = connectionDetails)
       
       output$cohortCounts <- DT::renderDataTable({
         data <- getCohortGeneratorCohortCounts(connection, resultsSchema)

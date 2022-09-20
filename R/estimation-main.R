@@ -135,7 +135,7 @@ estimationViewer <- function(id) {
 #' the PLE results viewer main module server
 #' 
 #' @export
-estimationServer <- function(id, resultDatabaseSettings) {
+estimationServer <- function(id, connection, resultDatabaseSettings) {
   
   shiny::moduleServer(
     id,
@@ -144,9 +144,7 @@ estimationServer <- function(id, resultDatabaseSettings) {
       
       estimationTitlePanelServer(id = "titlePanel")
       
-      connection <- NULL
       dataFolder <- NULL
-      
       
       # =============================
       #   CONNECTION
@@ -156,24 +154,7 @@ estimationServer <- function(id, resultDatabaseSettings) {
         assign("dataFolder", resultDatabaseSettings$dataFolder, envir = .GlobalEnv)
         
         loadEstimationData(resultDatabaseSettings$dataFolder)
-      } else {
-        
-        connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = resultDatabaseSettings$dbms,
-                                                                        user = resultDatabaseSettings$user,
-                                                                        password = resultDatabaseSettings$password,
-                                                                        server = sprintf("%s/%s", resultDatabaseSettings$server,
-                                                                                         resultDatabaseSettings$database))
-        
-        connection <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
-                                   dbms = resultDatabaseSettings$dbms,
-                                   server = resultDatabaseSettings$server,
-                                   user = resultDatabaseSettings$user,
-                                   password = resultDatabaseSettings$password)
-        
-        
-        
-        connection <- DatabaseConnector::connect(connectionDetails = connectionDetails)
-      }
+      } 
       
       
       shiny::onStop(function() {

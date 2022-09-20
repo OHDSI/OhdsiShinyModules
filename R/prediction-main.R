@@ -119,56 +119,12 @@ predictionViewer <- function(id=1) {
 #' @export
 predictionServer <- function(
   id, 
+  connection,
   resultDatabaseSettings = list(port = 1)
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      # =============================
-      #   CONNECTION
-      # =============================
-      if(F){
-        if(resultDatabaseSettings$port != ""){
-          ParallelLogger::logInfo('Port')
-          ParallelLogger::logInfo(paste(resultDatabaseSettings$port))
-          con <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
-                              dbms = resultDatabaseSettings$dbms,
-                              server = resultDatabaseSettings$server,
-                              user = resultDatabaseSettings$user,
-                              password = resultDatabaseSettings$password,
-                              port = resultDatabaseSettings$port)
-          
-        } else{
-          ParallelLogger::logInfo('No Port')
-          con <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
-                              dbms = resultDatabaseSettings$dbms,
-                              server = resultDatabaseSettings$server,
-                              user = resultDatabaseSettings$user,
-                              password = resultDatabaseSettings$password
-          )
-          
-        }
-      }
-      
-      # old connection 
-      connectionDetails <- DatabaseConnector::createConnectionDetails(
-        dbms = resultDatabaseSettings$dbms,
-        server = resultDatabaseSettings$server,
-        user = resultDatabaseSettings$user,
-        password = resultDatabaseSettings$password,
-        port = resultDatabaseSettings$port
-        #pathToDriver =  '/Users/jreps/Documents/drivers'
-      )
-      
-      con <- DatabaseConnector::connect(connectionDetails)
-      
-      shiny::onStop(function() {
-        if (DBI::dbIsValid(con)) {
-          ParallelLogger::logInfo("Closing connection pool")
-          DatabaseConnector::disconnect(con)
-        }
-      })
       
       # =============================
       #   VIEW SETTINGS
@@ -203,7 +159,7 @@ predictionServer <- function(
       modelDesignId <- shiny::reactiveVal()
       designSummary <- predictionDesignSummaryServer(
         id = 'designSummaryTab',
-        con = con, 
+        con = connection, 
         mySchema = resultDatabaseSettings$schema, 
         targetDialect = resultDatabaseSettings$dbms,
         myTableAppend = resultDatabaseSettings$tablePrefix
@@ -235,7 +191,7 @@ predictionServer <- function(
       developmentDatabaseId <- shiny::reactiveVal()
       performance <- predictionModelSummaryServer(
           id = 'modelSummaryTab', 
-          con = con, 
+          con = connection, 
           mySchema = resultDatabaseSettings$schema, 
           targetDialect = resultDatabaseSettings$dbms,
           myTableAppend = resultDatabaseSettings$tablePrefix,
@@ -277,7 +233,7 @@ predictionServer <- function(
         id = 'diagnostics', 
         modelDesignId = designSummary$diagnosticId, 
         mySchema = resultDatabaseSettings$schema, 
-        con = con,
+        con = connection,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
         targetDialect = resultDatabaseSettings$dbms,
         databaseTableAppend = ifelse(
@@ -300,7 +256,7 @@ predictionServer <- function(
           }
           tryCatch(
             {createPredictionProtocol( # add database_table_append and cohort_table_append
-              con = con, 
+              con = connection, 
               mySchema = resultDatabaseSettings$schema, 
               targetDialect = resultDatabaseSettings$dbms,
               myTableAppend = resultDatabaseSettings$tablePrefix,
@@ -363,7 +319,7 @@ predictionServer <- function(
           ), 
           output_dir = file.path(input$plpProtocolDownload, paste0('plp_report',designSummary$reportId())), 
           params = list(
-            connection = con, 
+            connection = connection, 
             resultSchema = resultDatabaseSettings$schema, 
             targetDialect = resultDatabaseSettings$dbms,
             myTableAppend = resultDatabaseSettings$tablePrefix,
@@ -393,7 +349,7 @@ predictionServer <- function(
         developmentDatabaseId = developmentDatabaseId, # reactive
         performanceId = performanceId, # reactive
         mySchema = resultDatabaseSettings$schema, 
-        con = con,
+        con = connection,
         inputSingleView = singleViewValue,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
         targetDialect = resultDatabaseSettings$dbms
@@ -405,7 +361,7 @@ predictionServer <- function(
         developmentDatabaseId = developmentDatabaseId, # reactive
         performanceId = performanceId, # reactive
         mySchema = resultDatabaseSettings$schema, 
-        con = con,
+        con = connection,
         inputSingleView = singleViewValue,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
         targetDialect = resultDatabaseSettings$dbms,
@@ -420,7 +376,7 @@ predictionServer <- function(
         id = 'cutoff', 
         performanceId = performanceId, 
         mySchema = resultDatabaseSettings$schema, 
-        con = con,
+        con = connection,
         inputSingleView = singleViewValue,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
         targetDialect = resultDatabaseSettings$dbms
@@ -430,7 +386,7 @@ predictionServer <- function(
         id = 'discrimination', 
         performanceId = performanceId, 
         mySchema = resultDatabaseSettings$schema, 
-        con = con,
+        con = connection,
         inputSingleView = singleViewValue,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
         targetDialect = resultDatabaseSettings$dbms
@@ -440,7 +396,7 @@ predictionServer <- function(
         id = 'calibration', 
         performanceId = performanceId, 
         mySchema = resultDatabaseSettings$schema, 
-        con = con,
+        con = connection,
         inputSingleView = singleViewValue,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
         targetDialect = resultDatabaseSettings$dbms
@@ -450,7 +406,7 @@ predictionServer <- function(
         id = 'netBenefit', 
         performanceId = performanceId, 
         mySchema = resultDatabaseSettings$schema, 
-        con = con,
+        con = connection,
         inputSingleView = singleViewValue,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
         targetDialect = resultDatabaseSettings$dbms
@@ -461,7 +417,7 @@ predictionServer <- function(
         modelDesignId = modelDesignId, # reactive
         developmentDatabaseId = developmentDatabaseId, # reactive
         performanceId = performanceId, # reactive
-        con = con, 
+        con = connection, 
         inputSingleView = singleViewValue,
         mySchema = resultDatabaseSettings$schema,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
