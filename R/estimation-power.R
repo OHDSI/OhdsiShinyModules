@@ -50,7 +50,7 @@ estimationPowerViewer <- function(id) {
 #' the PLE systematic error power server
 #' 
 #' @export
-estimationPowerServer <- function(id, selectedRow, inputParams, connection, resultsSchema) {
+estimationPowerServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix) {
   
   shiny::moduleServer(
     id,
@@ -102,7 +102,7 @@ estimationPowerServer <- function(id, selectedRow, inputParams, connection, resu
                                  "Comparator IR (per 1,000 PY)",
                                  "MDRR")
           } else {
-            table <- prepareEstimationPowerTable(row, connection, resultsSchema)
+            table <- prepareEstimationPowerTable(row, connection, resultsSchema, tablePrefix)
             table$description <- NULL
             table$databaseId <- NULL
             if (!row$unblind) {
@@ -152,7 +152,8 @@ estimationPowerServer <- function(id, selectedRow, inputParams, connection, resu
                                               analysisId = row$analysisId)
           } else {
             followUpDist <- getCmFollowUpDist(connection = connection,
-                                              resultsSchema,
+                                              resultsSchema = resultsSchema,
+                                              tablePrefix = tablePrefix,
                                               targetId = inputParams()$target,
                                               comparatorId = inputParams()$comparator,
                                               outcomeId = inputParams()$outcome,

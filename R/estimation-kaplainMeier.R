@@ -51,7 +51,7 @@ estimationKaplanMeierViewer <- function(id) {
 #' the PLE Kaplain Meier content server
 #' 
 #' @export
-estimationKaplanMeierServer <- function(id, selectedRow, inputParams, connection, resultsSchema) {
+estimationKaplanMeierServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, cohortTablePrefix, databaseTable) {
   
   shiny::moduleServer(
     id,
@@ -74,14 +74,26 @@ estimationKaplanMeierServer <- function(id, selectedRow, inputParams, connection
         } else {
           km <- getEstimationKaplanMeier(connection = connection,
                                          resultsSchema = resultsSchema,
+                                         tablePrefix = tablePrefix,
+                                         databaseTable = databaseTable,
                                          targetId = inputParams()$target,
                                          comparatorId = inputParams()$comparator,
                                          outcomeId = inputParams()$outcome,
                                          databaseId = row$databaseId,
                                          analysisId = row$analysisId)
+          
+          targetName <- getCohortNameFromId(connection = connection,
+                                            resultsSchema = resultsSchema,
+                                            cohortTablePrefix = cohortTablePrefix,
+                                            cohortId = inputParams()$target)
+          comparatorName <- getCohortNameFromId(connection = connection,
+                                                resultsSchema = resultsSchema,
+                                                cohortTablePrefix = cohortTablePrefix,
+                                                cohortId = inputParams()$comparator)
+          
           plot <- plotEstimationKaplanMeier(kaplanMeier = km,
-                                            targetName = inputParams()$target,
-                                            comparatorName = inputParams()$comparator)
+                                            targetName = targetName$cohortName,
+                                            comparatorName = comparatorName$cohortName)
           return(plot)
         }
       })

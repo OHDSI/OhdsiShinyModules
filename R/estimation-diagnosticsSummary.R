@@ -29,7 +29,7 @@ estimationDiagnosticsSummaryViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    div(HTML("<em>Enhancements to come...</em>")),
+    # div(HTML("<em>Enhancements to come...</em>")),
     reactable::reactableOutput(outputId = ns("diagnosticsTable"))
   )
 }
@@ -45,14 +45,23 @@ estimationDiagnosticsSummaryViewer <- function(id) {
 #' the PLE diagnostics summary results
 #' 
 #' @export
-estimationDiagnosticsSummaryServer <- function(id, connection, resultsSchema) {
+estimationDiagnosticsSummaryServer <- function(id,
+                                               connection,
+                                               resultsSchema,
+                                               tablePrefix,
+                                               cohortTablePrefix,
+                                               databaseTable) {
   
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
       output$diagnosticsTable <- reactable::renderReactable({
-        data <- getDiagnosticsData(connection, resultsSchema)
+        data <- getDiagnosticsData(connection,
+                                   resultsSchema,
+                                   tablePrefix,
+                                   cohortTablePrefix,
+                                   databaseTable)
         
         reactable::reactable(data,
                              striped = TRUE,

@@ -4,7 +4,14 @@
 \alias{estimationDiagnosticsSummaryServer}
 \title{The module server for rendering the PLE diagnostics summary}
 \usage{
-estimationDiagnosticsSummaryServer(id, connection, resultsSchema)
+estimationDiagnosticsSummaryServer(
+  id,
+  connection,
+  resultsSchema,
+  tablePrefix,
+  cohortTablePrefix,
+  databaseTable
+)
 }
 \arguments{
 \item{id}{the unique reference id for the module}

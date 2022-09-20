@@ -47,7 +47,7 @@ estimationPropensityModelViewer <- function(id) {
 #' the PLE propensity score model
 #' 
 #' @export
-estimationPropensityModelServer <- function(id, selectedRow, inputParams, connection, resultsSchema) {
+estimationPropensityModelServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix) {
   
   shiny::moduleServer(
     id,
@@ -60,6 +60,7 @@ estimationPropensityModelServer <- function(id, selectedRow, inputParams, connec
         } else {
           model <- getEstimationPropensityModel(connection = connection,
                                                 resultsSchema = resultsSchema,
+                                                tablePrefix = tablePrefix,
                                                 targetId = inputParams()$target,
                                                 comparatorId = inputParams()$comparator,
                                                 databaseId = row$databaseId,

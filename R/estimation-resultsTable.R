@@ -69,7 +69,7 @@ estimationResultsTableViewer <- function(id) {
 #' the PLE main results table server server
 #' 
 #' @export
-estimationResultsTableServer <- function(id, connection, inputParams, resultsSchema) {
+estimationResultsTableServer <- function(id, connection, inputParams, resultsSchema, tablePrefix, databaseTable) {
   
   shiny::moduleServer(
     id,
@@ -80,6 +80,8 @@ estimationResultsTableServer <- function(id, connection, inputParams, resultsSch
         
         results <- getEstimationMainResults(connection = connection,
                                             resultsSchema = resultsSchema,
+                                            tablePrefix = tablePrefix,
+                                            databaseTable = databaseTable,
                                             targetIds = filterEstimationEmptyNullValues(inputParams()$target),
                                             comparatorIds = filterEstimationEmptyNullValues(inputParams()$comparator),
                                             outcomeIds = filterEstimationEmptyNullValues(inputParams()$outcome),
