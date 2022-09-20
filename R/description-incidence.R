@@ -154,7 +154,77 @@ descriptionIncidenceServer <- function(
           output$incTable <- reactable::renderReactable(
             {
               reactable::reactable(
-                data = allData
+                data = allData %>% 
+                  dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation) %>%
+                  dplyr::relocate(.data$personsAtRisk, .after = .data$tarEndOffset) %>% 
+                  dplyr::relocate(.data$personDays, .after = .data$personsAtRisk) %>% 
+                  dplyr::relocate(.data$personOutcomes, .after = .data$personDays) %>% 
+                  dplyr::relocate(.data$incidenceProportionP100p, .after = .data$personOutcomes) %>% 
+                  dplyr::relocate(.data$incidenceRateP100py, .after = .data$incidenceProportionP100p) 
+                  #dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation) %>% 
+                  #dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation) %>% 
+                  #dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation) %>% 
+                  #dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation)
+                  ,
+                filterable = TRUE,
+                showPageSizeOptions = TRUE,
+                pageSizeOptions = c(10, 50, 100,1000),
+                defaultPageSize = 50,
+                striped = TRUE,
+                highlight = TRUE,
+                elementId = "desc-incidence-select",
+                
+                columns = list(
+                  cdmSourceAbbreviation = reactable::colDef( 
+                    name = 'Database',
+                    filterInput = function(values, name) {
+                      shiny::tags$select(
+                        # Set to undefined to clear the filter
+                        onchange = sprintf("Reactable.setFilter('desc-incidence-select', '%s', event.target.value || undefined)", name),
+                        # "All" has an empty value to clear the filter, and is the default option
+                        shiny::tags$option(value = "", "All"),
+                        lapply(unique(values), shiny::tags$option),
+                        "aria-label" = sprintf("Filter %s", name),
+                        style = "width: 100%; height: 28px;"
+                      )
+                    }
+                  ),
+                  tarId = reactable::colDef( 
+                    filterInput = function(values, name) {
+                      shiny::tags$select(
+                        # Set to undefined to clear the filter
+                        onchange = sprintf("Reactable.setFilter('desc-incidence-select', '%s', event.target.value || undefined)", name),
+                        # "All" has an empty value to clear the filter, and is the default option
+                        shiny::tags$option(value = "", "All"),
+                        lapply(unique(values), shiny::tags$option),
+                        "aria-label" = sprintf("Filter %s", name),
+                        style = "width: 100%; height: 28px;"
+                      )
+                    }
+                  ),
+                  refId = reactable::colDef(show = F),
+                  databaseId = reactable::colDef(show = F),
+                  sourceName = reactable::colDef(show = F),
+                  targetCohortDefinitionId = reactable::colDef(show = F),
+                  targetName = reactable::colDef(show = F),
+                  outcomeId = reactable::colDef(show = F),
+                  outcomeCohortDefinitionId = reactable::colDef(show = F),
+                  outcomeName = reactable::colDef(show = F),
+                  outcomeId = reactable::colDef(show = F),
+                  ageId = reactable::colDef(show = F),
+                  genderId = reactable::colDef(show = F),
+                  subgroupId = reactable::colDef(show = F),
+                  incidenceProportionP100p = reactable::colDef(
+                    format = reactable::colFormat(digits = 4)
+                  ),
+                  incidenceRateP100py = reactable::colDef(
+                    format = reactable::colFormat(digits = 4)
+                  )
+                )
+                
+                
+                
+                
               )
             }
           )

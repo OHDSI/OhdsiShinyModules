@@ -180,12 +180,50 @@ descriptionAggregateFeaturesServer <- function(
             view = rep("",nrow(options)),
             options
           ),
+          showPageSizeOptions = TRUE,
+          pageSizeOptions = c(10, 50, 100,1000),
+          defaultPageSize = 10,
+          striped = TRUE,
+          highlight = TRUE,
+          elementId = "desc-af-select",
+          
           columns = list(  
             view = reactable::colDef(
               name = "",
               sortable = FALSE,
               cell = function() htmltools::tags$button("Select")
+            ),
+            
+            targetCohortId = reactable::colDef(show = F),
+            outcomeCohortId = reactable::colDef(show = F),
+            
+            target = reactable::colDef(
+              filterInput = function(values, name) {
+                shiny::tags$select(
+                  # Set to undefined to clear the filter
+                  onchange = sprintf("Reactable.setFilter('desc-af-select', '%s', event.target.value || undefined)", name),
+                  # "All" has an empty value to clear the filter, and is the default option
+                  shiny::tags$option(value = "", "All"),
+                  lapply(unique(values), shiny::tags$option),
+                  "aria-label" = sprintf("Filter %s", name),
+                  style = "width: 100%; height: 28px;"
+                )
+              }
+            ),
+            outcome = reactable::colDef(
+              filterInput = function(values, name) {
+                shiny::tags$select(
+                  # Set to undefined to clear the filter
+                  onchange = sprintf("Reactable.setFilter('desc-af-select', '%s', event.target.value || undefined)", name),
+                  # "All" has an empty value to clear the filter, and is the default option
+                  shiny::tags$option(value = "", "All"),
+                  lapply(unique(values), shiny::tags$option),
+                  "aria-label" = sprintf("Filter %s", name),
+                  style = "width: 100%; height: 28px;"
+                )
+              }
             )
+            
           ),
           onClick = reactable::JS(paste0("function(rowInfo, column) {
     // Only handle click events on the 'details' column
@@ -322,6 +360,15 @@ descriptionAggregateFeaturesServer <- function(
           output$binaryTable <- reactable::renderReactable({
             reactable::reactable(
               data = binaryData(),
+              
+              showPageSizeOptions = TRUE,
+              pageSizeOptions = c(10, 50, 100,1000),
+              defaultPageSize = 50,
+              striped = TRUE,
+              highlight = TRUE,
+              
+              filterable = TRUE,
+              
               columns = list(
                 covariateName = reactable::colDef(
                   name = "Covariate Name", 
@@ -329,33 +376,52 @@ descriptionAggregateFeaturesServer <- function(
                 ),
                 comp1 = reactable::colDef(
                   name = "Selection 1 mean", 
-                  format = reactable::colFormat(digits = 4)
+                  format = reactable::colFormat(digits = 2, percent = T)
                 ),
                 comp1sd = reactable::colDef(
                   name = "Selection 1 stdev", 
-                  format = reactable::colFormat(digits = 4)
+                  format = reactable::colFormat(digits = 2)
                 ),
                 comp2 = reactable::colDef(
                   name = "Selection 2 mean",
-                  format = reactable::colFormat(digits = 4)
+                  format = reactable::colFormat(digits = 2, percent = T)
                 ),
                 comp2sd = reactable::colDef(
                   name = "Selection 2 stdev",
-                  format = reactable::colFormat(digits = 4)
+                  format = reactable::colFormat(digits = 2)
                 ),
-                analysisId = reactable::colDef(
-                  name = 'Type'
+                analysisName = reactable::colDef(
+                  filterInput = function(values, name) {
+                    shiny::tags$select(
+                      # Set to undefined to clear the filter
+                      onchange = sprintf("Reactable.setFilter('desc-bin-select', '%s', event.target.value || undefined)", name),
+                      # "All" has an empty value to clear the filter, and is the default option
+                      shiny::tags$option(value = "", "All"),
+                      lapply(unique(values), shiny::tags$option),
+                      "aria-label" = sprintf("Filter %s", name),
+                      style = "width: 100%; height: 28px;"
+                    )
+                  }
                 ),
                 standardizedMeanDiff = reactable::colDef(
-                  format = reactable::colFormat(digits = 4)
+                  format = reactable::colFormat(digits = 2)
                 )
-              )
+              ),
+              elementId = "desc-bin-select"
                 )
           })
           
           output$continuousTable <- reactable::renderReactable({
             reactable::reactable(
               data = continuousData(),
+              
+              showPageSizeOptions = TRUE,
+              pageSizeOptions = c(10, 50, 100,1000),
+              defaultPageSize = 50,
+              striped = TRUE,
+              highlight = TRUE,
+              
+              filterable = TRUE,
               
               columns = list(
                 covariateName = reactable::colDef(
@@ -364,27 +430,39 @@ descriptionAggregateFeaturesServer <- function(
                   ),
                 comp1 = reactable::colDef(
                   name = "Selection 1 mean", 
-                  format = reactable::colFormat(digits = 4)
+                  format = reactable::colFormat(digits = 2)
                   ),
                 comp1sd = reactable::colDef(
                   name = "Selection 1 stdev", 
-                  format = reactable::colFormat(digits = 4)
+                  format = reactable::colFormat(digits = 2)
                 ),
                 comp2 = reactable::colDef(
                   name = "Selection 2 mean",
-                  format = reactable::colFormat(digits = 4)
+                  format = reactable::colFormat(digits = 2)
                   ),
                 comp2sd = reactable::colDef(
                   name = "Selection 2 stdev",
-                  format = reactable::colFormat(digits = 4)
+                  format = reactable::colFormat(digits = 2)
                 ),
-                analysisId = reactable::colDef(
-                  name = 'Type'
-                  ),
+                analysisName = reactable::colDef(
+                  filterInput = function(values, name) {
+                    shiny::tags$select(
+                      # Set to undefined to clear the filter
+                      onchange = sprintf("Reactable.setFilter('desc-cont-select', '%s', event.target.value || undefined)", name),
+                      # "All" has an empty value to clear the filter, and is the default option
+                      shiny::tags$option(value = "", "All"),
+                      lapply(unique(values), shiny::tags$option),
+                      "aria-label" = sprintf("Filter %s", name),
+                      style = "width: 100%; height: 28px;"
+                    )
+                  }
+                ),
                 standardizedMeanDiff = reactable::colDef(
-                  format = reactable::colFormat(digits = 4)
+                  format = reactable::colFormat(digits = 2)
                   )
-              )
+              ),
+              
+              elementId = "desc-cont-select"
             )
           })
           
@@ -635,7 +713,7 @@ descriptiveGetAggregateData <- function(
   
   shiny::incProgress(2/5, detail = paste("Got second runIds"))
   
-  sql <- "SELECT cov.*, cov_ref.COVARIATE_NAME, cov_ref.ANALYSIS_ID,
+  sql <- "SELECT cov.*, cov_ref.COVARIATE_NAME, an_ref.ANALYSIS_NAME,
   case when (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1)) then 'comp1' else 'comp2' end as label
           FROM @result_database_schema.@table_prefixCOVARIATES cov 
           INNER JOIN
@@ -643,6 +721,11 @@ descriptiveGetAggregateData <- function(
           ON cov.covariate_id = cov_ref.covariate_id 
           and cov.run_id = cov_ref.run_id
           and cov.database_id = cov_ref.database_id
+          INNER JOIN
+          @result_database_schema.@table_prefixANALYSIS_REF an_ref
+          ON an_ref.analysis_id = cov_ref.analysis_id 
+          and an_ref.run_id = cov_ref.run_id
+          and an_ref.database_id = cov_ref.database_id
           WHERE 
           (
           (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1))
@@ -676,7 +759,7 @@ descriptiveGetAggregateData <- function(
   
   shiny::incProgress(4/5, detail = paste("Getting continuous data"))
   
-  sql <- "SELECT cov.*, cov_ref.COVARIATE_NAME, cov_ref.ANALYSIS_ID,
+  sql <- "SELECT cov.*, cov_ref.COVARIATE_NAME, an_ref.ANALYSIS_NAME,
   case when (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1)) then 'comp1' else 'comp2' end as label
           FROM @result_database_schema.@table_prefixCOVARIATES_CONTINUOUS cov 
           INNER JOIN
@@ -684,6 +767,11 @@ descriptiveGetAggregateData <- function(
           ON cov.covariate_id = cov_ref.covariate_id 
           and cov.run_id = cov_ref.run_id
           and cov.database_id = cov_ref.database_id
+          INNER JOIN
+          @result_database_schema.@table_prefixANALYSIS_REF an_ref
+          ON an_ref.analysis_id = cov_ref.analysis_id 
+          and an_ref.run_id = cov_ref.run_id
+          and an_ref.database_id = cov_ref.database_id
           WHERE 
           (
           (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1))
@@ -739,36 +827,36 @@ descriptiveFeaturePlot <- function(
   
   comp1 <- data %>% 
     dplyr::filter(.data$label == 'comp1') %>%
-    dplyr::select(.data$covariateName, .data[[valueColumn]]) %>%
+    dplyr::select(.data$covariateName, .data$covariateId, .data[[valueColumn]]) %>%
     dplyr::rename(comp1 = .data[[valueColumn]])
   
   shiny::incProgress(1/5, detail = paste("Filtered comparision 1"))
     
   comp2 <- data %>% 
     dplyr::filter(.data$label == 'comp2') %>%
-    dplyr::select(.data$covariateName, .data[[valueColumn]]) %>%
+    dplyr::select(.data$covariateName, .data$covariateId, .data[[valueColumn]]) %>%
     dplyr::rename(comp2 = .data[[valueColumn]])
   
   shiny::incProgress(2/5, detail = paste("Filtered comparision 2"))
   
   analysisIds <- data %>%
-    dplyr::select(.data$covariateName, .data$analysisId) %>%
+    dplyr::select(.data$covariateName, .data$covariateId, .data$analysisName) %>%
     dplyr::distinct()
   
-  shiny::incProgress(3/5, detail = paste("Extracting analysisIds"))
+  shiny::incProgress(3/5, detail = paste("Extracting analysisNames"))
   
   maxval <- max(max(comp1$comp1, na.rm = T),  max(comp2$comp2, na.rm = T))
   
-  allData <- merge(comp1, comp2, by = 'covariateName', all = T)
+  allData <- merge(comp1, comp2, by = c('covariateName','covariateId'), all = T)
   allData[is.na(allData)] <- 0
-  allData <- merge(allData, analysisIds,  by = 'covariateName', all.x = T)
+  allData <- merge(allData, analysisIds,  by = c('covariateName','covariateId') , all.x = T)
   
   shiny::incProgress(4/5, detail = paste("Merged data"))
   
   plot <- plotly::plot_ly(x = allData$comp1,
                   showlegend = F) %>%
     plotly::add_markers(y = allData$comp2,
-                        color=factor(allData$analysisId),
+                        color=factor(allData$analysisName),
                         hoverinfo = 'text',
                         text = ~paste(
                           '\n',descGetType(allData$covariateName),
@@ -857,7 +945,7 @@ descriptiveFeatureTable <- function(
     shiny::incProgress(2/4, detail = paste("Filtered comparision 2"))
     
     analysisIds <- data %>%
-      dplyr::select(.data$covariateName, .data$analysisId) %>%
+      dplyr::select(.data$covariateName, .data$covariateId, .data$analysisName) %>%
       dplyr::distinct()
     
     shiny::incProgress(3/4, detail = paste("Extracting analysisIds"))
@@ -869,12 +957,14 @@ descriptiveFeatureTable <- function(
       all = T
       )
     allData[is.na(allData)] <- 0
-    allData <- merge(allData, analysisIds,  by = 'covariateName', all.x = T)
+    allData <- merge(allData, analysisIds,  by = c('covariateId', 'covariateName'), all.x = T)
     
     allData <- allData %>%
       dplyr::mutate(
         standardizedMeanDiff = (.data$comp1 - .data$comp2)/(sqrt((.data$comp1sd^2 + .data$comp2sd^2)/2))
         ) 
+    
+    # multiple binary by 100 and make to 2dp?
     
     shiny::incProgress(4/4, detail = paste("Finished"))
     

@@ -183,15 +183,48 @@ descriptionDechallengeRechallengeServer <- function(
               reactable::reactable(
                 data = cbind(
                   view = rep("",nrow(allData)),
-                  allData
+                  allData %>% dplyr::relocate(.data$databaseName)
                   )
                 ,
+                filterable = TRUE,
+                showPageSizeOptions = TRUE,
+                pageSizeOptions = c(10, 50, 100,1000),
+                defaultPageSize = 50,
+                striped = TRUE,
+                highlight = TRUE,
+                elementId = "desc-dechal-select",
+                
                 columns = list(  
                   view = reactable::colDef(
                     name = "",
                     sortable = FALSE,
                     cell = function() htmltools::tags$button("Plot Fails")
+                  ),
+                  targetCohortDefinitionId = reactable::colDef(show = F),
+                  databaseId = reactable::colDef(show = F),
+                  outcomeCohortDefinitionId = reactable::colDef(show = F),
+                  
+                  databaseName = reactable::colDef(name = 'Database'),
+                  
+                  pctDechallengeAttempt = reactable::colDef(
+                    format = reactable::colFormat(digits = 2, percent = T)
+                  ),
+                  pctDechallengeSuccess = reactable::colDef(
+                    format = reactable::colFormat(digits = 2, percent = T)
+                  ),
+                  pctDechallengeFail = reactable::colDef(
+                    format = reactable::colFormat(digits = 2, percent = T)
+                  ),
+                  pctRechallengeAttempt = reactable::colDef(
+                    format = reactable::colFormat(digits = 2, percent = T)
+                  ),
+                  pctRechallengeSuccess = reactable::colDef(
+                    format = reactable::colFormat(digits = 2, percent = T)
+                  ),
+                  pctRechallengeFail = reactable::colDef(
+                    format = reactable::colFormat(digits = 2, percent = T)
                   )
+                  
                 ),
                 onClick = reactable::JS(paste0("function(rowInfo, column) {
     // Only handle click events on the 'details' column
@@ -205,8 +238,7 @@ descriptionDechallengeRechallengeServer <- function(
     }
     }
   }")
-                ),
-                filterable = TRUE
+                )
               )
                 
                 
@@ -479,18 +511,19 @@ plotDechalRechal <- function(
         )
     
     #give temp ID for purposes of allowing plotting in order of sort
-    cases <- data.frame(subjectId = unique(dechalRechalData$subjectId))
+    ##cases <- data.frame(subjectId = unique(dechalRechalData$subjectId))
+    cases <- data.frame(personKey = unique(dechalRechalData$personKey))
     cases <- tibble::rowid_to_column(cases, "PID")
     dechalRechalData <- dechalRechalData %>% dplyr::inner_join(cases)
     
     
-      i50 <- min(i + 49,length(cases$subject_id))
+      i50 <- min(i + 49,length(cases$personKey))
       caseSubset <- cases[i:i50,2]
       
       #grab the cases to plot      
       rdcsSubset <- dechalRechalData %>% 
         dplyr::filter(
-          .data$subjectId %in% caseSubset
+          .data$personKey %in% caseSubset
           )
       
       #small datasets to fit ggplot
@@ -499,13 +532,13 @@ plotDechalRechal <- function(
           .data$PID, 
           .data$targetCohortDefinitionId, 
           .data$outcomeCohortDefinitionId, 
-          .data$subjectId, 
+          .data$personKey, 
           .data$dechallengeExposureNumber,
           .data$dechallengeExposureStartDateOffset, 
           .data$dechallengeExposureEndDateOffset
           ) %>%
         dplyr::mutate(
-          eventId = .data$subjectId*1000 + .data$dechallengeExposureNumber
+          eventId = .data$personKey*1000 + .data$dechallengeExposureNumber
           ) %>%
         dplyr::rename(
           eventNumber = .data$dechallengeExposureNumber, 
@@ -526,12 +559,12 @@ plotDechalRechal <- function(
           .data$PID, 
           .data$targetCohortDefinitionId, 
           .data$outcomeCohortDefinitionId, 
-          .data$subjectId, 
+          .data$personKey, 
           .data$dechallengeOutcomeNumber, 
           .data$dechallengeOutcomeStartDateOffset
           ) %>%
         dplyr::mutate(
-          eventId = .data$subjectId*1000 + .data$dechallengeOutcomeNumber
+          eventId = .data$personKey*1000 + .data$dechallengeOutcomeNumber
           ) %>%
         dplyr::rename(
           eventNumber = .data$dechallengeOutcomeNumber, 
@@ -545,13 +578,13 @@ plotDechalRechal <- function(
           .data$PID, 
           .data$targetCohortDefinitionId, 
           .data$outcomeCohortDefinitionId, 
-          .data$subjectId, 
+          .data$personKey, 
           .data$rechallengeExposureNumber, 
           .data$rechallengeExposureStartDateOffset, 
           .data$rechallengeExposureEndDateOffset
           ) %>%
         dplyr::mutate(
-          eventId = .data$subjectId*1000 + .data$rechallengeExposureNumber
+          eventId = .data$personKey*1000 + .data$rechallengeExposureNumber
           ) %>%
         dplyr::rename(
           eventNumber = .data$rechallengeExposureNumber, 
@@ -576,12 +609,12 @@ plotDechalRechal <- function(
           .data$PID, 
           .data$targetCohortDefinitionId, 
           .data$outcomeCohortDefinitionId, 
-          .data$subjectId, 
+          .data$personKey, 
           .data$rechallengeOutcomeNumber, 
           .data$rechallengeOutcomeStartDateOffset
           ) %>%
         dplyr::mutate(
-          eventId = .data$subjectId*1000 + .data$rechallengeOutcomeNumber
+          eventId = .data$personKey*1000 + .data$rechallengeOutcomeNumber
           ) %>%
         dplyr::rename(
           eventNumber = .data$rechallengeOutcomeNumber, 
