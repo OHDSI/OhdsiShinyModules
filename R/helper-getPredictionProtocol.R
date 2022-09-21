@@ -14,8 +14,13 @@ createPredictionProtocol <- function(
   #protocolLoc <- 'modules/prediction/documents/main.Rmd'
   protocolLoc <- system.file('prediction-document', "main.Rmd", package = "OhdsiShinyModules")
   
+  if(!dir.exists(file.path(tempdir(), 'plp-prot'))){
+    dir.create(file.path(tempdir(), 'plp-prot'))
+  }
+  
   rmarkdown::render(
     input = protocolLoc, 
+    intermediates_dir = file.path(tempdir(), 'plp-prot'),
     output_dir = output, 
     params = list(
       connection = con,

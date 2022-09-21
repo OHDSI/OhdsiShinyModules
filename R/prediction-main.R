@@ -360,7 +360,8 @@ predictionServer <- function(
             'prediction-document', 
             "export-main.Rmd", 
             package = "OhdsiShinyModules"
-          ), 
+          ),  
+          intermediates_dir = tempdir(),
           output_dir = file.path(input$plpProtocolDownload, paste0('plp_report',designSummary$reportId())), 
           params = list(
             connection = con, 

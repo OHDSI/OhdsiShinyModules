@@ -11,6 +11,7 @@ getExternalVal <- function(
   myTableAppend,
   databaseTableAppend,
   modelDesignId,
+  devDatabase,
   tempEmulationSchema = NULL
 ){
   
@@ -24,6 +25,7 @@ getExternalVal <- function(
       on d.database_id = per.validation_database_id
       inner join @result_schema.@database_table_appenddatabase_meta_data dm
       on d.database_meta_data_id = dm.database_id
+      where d.database_id = @dev_database
       
       ;
     "
@@ -32,7 +34,8 @@ getExternalVal <- function(
     result_schema = resultSchema,
     my_table_append = myTableAppend,
     database_table_append = databaseTableAppend,
-    model_design_id = modelDesignId
+    model_design_id = modelDesignId,
+    dev_database = devDatabase
   )
     
     sql <- SqlRender::translate(
@@ -106,11 +109,12 @@ resultList <- getExternalVal(
   targetDialect = params$targetDialect,
   myTableAppend = params$myTableAppend,
   databaseTableAppend = params$databaseTableAppend,
-  modelDesignId = params$modelDesignIds[i]
+  modelDesignId = params$modelDesignIds[i],
+  devDatabase = devDatabase
   )
 ```
 
-## External Validation
+### External Validation
 
 The external validation is the performance of the models when validated using a new database.
 
