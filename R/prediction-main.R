@@ -355,7 +355,7 @@ predictionServer <- function(
         developmentDatabaseId = developmentDatabaseId, # reactive
         performanceId = performanceId, # reactive
         mySchema = resultDatabaseSettings$schema, 
-        con = con,
+        connnectionHandler = connectionHandler,
         inputSingleView = singleViewValue,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
         targetDialect = resultDatabaseSettings$dbms

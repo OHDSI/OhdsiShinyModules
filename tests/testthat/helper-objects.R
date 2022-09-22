@@ -27,6 +27,8 @@ connection <- DatabaseConnector::connect(
   #pathToDriver = 
 )
 
+connnectionHandler <- ResultModelManager::ConnectionHander$new(connectionDetails)
+
 mySchemaTest <- 'main'
 targetDialectTest <- 'sqlite'
 myTableAppendTest <- ''
