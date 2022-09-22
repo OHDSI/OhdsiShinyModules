@@ -160,14 +160,18 @@ predictionServer <- function(
         port = resultDatabaseSettings$port
         #pathToDriver =  '/Users/jreps/Documents/drivers'
       )
-      
-      con <- DatabaseConnector::connect(connectionDetails)
+
+      # Get connection handler
+      if (getOption("useNonPooledConnection", default = FALSE)) {
+        connectionHandler <- ResultModelManager::ConnectionHandler$new(connectionDetails)
+      } else {
+        connectionHandler <- ResultModelManager::PooledConnectionHandler$new(connectionDetails)
+      }
+
+      con <- connectionHandler$con
       
       shiny::onStop(function() {
-        if (DBI::dbIsValid(con)) {
-          ParallelLogger::logInfo("Closing connection pool")
-          DatabaseConnector::disconnect(con)
-        }
+        connectionHandler$finalize()
       })
       
       # =============================

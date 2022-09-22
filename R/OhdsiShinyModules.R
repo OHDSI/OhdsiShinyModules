@@ -24,4 +24,5 @@
 #' @name OhdsiShinyModules
 #' @importFrom dplyr %>%
 #' @importFrom rlang .data
+#' @importFrom ResultModelManager ConnectionHandler PooledConnectionHandler
 NULL

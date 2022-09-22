@@ -102,7 +102,7 @@ predictionCovariateSummaryServer <- function(
   modelDesignId,
   developmentDatabaseId,
   performanceId,
-  con,
+  connnectionHandler,
   inputSingleView,
   mySchema, 
   targetDialect = NULL,
@@ -138,7 +138,7 @@ predictionCovariateSummaryServer <- function(
           getIntercept(
             modelDesignId = modelDesignId,
             databaseId = developmentDatabaseId,
-            con = con,
+            connectionHandler = connnectionHandler,
             mySchema = mySchema,
             myTableAppend = myTableAppend,
             targetDialect = targetDialect
@@ -320,7 +320,7 @@ plotCovariateSummary <- function(covariateSummary){
 
 
 # code for database covariate extract
-loadCovSumFromDb <- function(performanceId, mySchema, con, myTableAppend = '', targetDialect = 'redshift'){
+loadCovSumFromDb <- function(performanceId, mySchema, connectionHandler, myTableAppend = '', targetDialect = 'redshift'){
   ParallelLogger::logInfo("starting covsum")
   sql <- "SELECT * FROM @my_schema.@my_table_appendcovariate_summary WHERE performance_id = @performance_id;" 
   
@@ -332,7 +332,7 @@ loadCovSumFromDb <- function(performanceId, mySchema, con, myTableAppend = '', t
   )
   sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
   
-  covariateSummary <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
+  covariateSummary <- DatabaseConnector::dbGetQuery(conn =  connectionHandler$con, statement = sql)
   colnames(covariateSummary) <- SqlRender::snakeCaseToCamelCase(colnames(covariateSummary))
   
   # format
@@ -350,20 +350,19 @@ loadCovSumFromDb <- function(performanceId, mySchema, con, myTableAppend = '', t
 getIntercept <- function(
   modelDesignId,
   databaseId,
-  con,
+  connectionHandler,
   mySchema,
   myTableAppend,
   targetDialect
 ){
   sql <- "SELECT intercept FROM @my_schema.@my_table_appendmodels WHERE database_id = @database_id
        and model_design_id = @model_design_id"
-  sql <- SqlRender::render(sql = sql, 
-                           my_schema = mySchema,
-                           database_id = databaseId(),
-                           model_design_id = modelDesignId(),
-                           my_table_append = myTableAppend)
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  models <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
+
+  models <- connectionHandler$queryDb(sql = sql,
+                                      my_schema = mySchema,
+                                      database_id = databaseId(),
+                                      model_design_id = modelDesignId(),
+                                      my_table_append = myTableAppend)
   
   intercept <- models$intercept
   
