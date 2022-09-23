@@ -36,6 +36,7 @@ Suggests:
     CirceR,
     kableExtra,
     knitr,
+    markdown,
     testthat,
     withr
 Remotes:
