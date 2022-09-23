@@ -7,8 +7,8 @@ library(DescriptiveStudies)
 connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 Eunomia::createCohorts(connectionDetails)
 
-targetIds <- 1
-outcomeIds <- 2
+targetIds <- c(1,2,4)
+outcomeIds <- 3
 
 covSet <- FeatureExtraction::createCovariateSettings(useDemographicsGender = T, 
                                                      useDemographicsAge = T, 
@@ -73,13 +73,13 @@ DatabaseConnector::insertTable(
   databaseSchema = 'main', 
   tableName = 'cg_cohort_definition', 
   data = data.frame(
-    cohortDefinitionId = c(1,2),
-    cohortName = c('target example','outcome example'),
-    description = c('',''),
-    json = c('{}', '{}'),
-    sqlCommand = c('','')
+    cohortDefinitionId = c(1,2,3,4),
+    cohortName = c('target 1 example','target 2 example','outcome example','target 4 example'),
+    description = rep('',4),
+    json = rep('{}', 4),
+    sqlCommand = rep('',4)
     ), 
-  createTable = T, 
+  createTable = T, dropTableIfExists = T,
   camelCaseToSnakeCase = T
   )
 
@@ -95,5 +95,81 @@ DatabaseConnector::insertTable(
   createTable = T, 
   camelCaseToSnakeCase = T
 )
+
+
+# add results to c_DECHALLENGE_RECHALLENGE as no repeats so can't test
+DatabaseConnector::insertTable(
+  connection = connectionDesc, 
+  databaseSchema = 'main', 
+  tableName = 'c_DECHALLENGE_RECHALLENGE', 
+data.frame(
+  DATABASE_ID = 'eunomia',
+  DECHALLENGE_STOP_INTERVAL = 30,
+  DECHALLENGE_EVALUATION_WINDOW = 30,
+  TARGET_COHORT_DEFINITION_ID = 1,
+  OUTCOME_COHORT_DEFINITION_ID = 3,
+  NUM_EXPOSURE_ERAS = 10,
+  NUM_PERSONS_EXPOSED = 10,
+  NUM_CASES = 4,
+  DECHALLENGE_ATTEMPT = 3,
+  DECHALLENGE_FAIL = 2,
+  DECHALLENGE_SUCCESS = 1,
+  RECHALLENGE_ATTEMPT = 1,
+  RECHALLENGE_FAIL = 0,
+  RECHALLENGE_SUCCESS = 1,
+  PCT_DECHALLENGE_ATTEMPT = 0.4,
+  PCT_DECHALLENGE_SUCCESS  = 0.4,
+  PCT_DECHALLENGE_FAIL = 0.4,
+  PCT_RECHALLENGE_ATTEMPT = 0.4,
+  PCT_RECHALLENGE_SUCCESS = 0.4,
+  PCT_RECHALLENGE_FAIL = 0.4
+),
+createTable = T, 
+camelCaseToSnakeCase = F
+)
+
+
+# add results to i_INCIDENCE_SUMMARY
+DatabaseConnector::insertTable(
+  connection = connectionDesc, 
+  databaseSchema = 'main', 
+  tableName = 'i_INCIDENCE_SUMMARY', 
+  data.frame(
+    ref_id = 1,
+    DATABASE_ID = 'eunomia',
+    source_name = '',
+    target_cohort_definition_id = 1,
+    target_name = 'target 1',
+    tar_id = 1,
+    tar_start_with = 'start',
+    tar_start_offset = 0,
+    tar_end_with = 'end',
+    tar_end_offset = 0,
+    subgroup_id = 1,
+    subgroup_name = '',
+    outcome_id = 3,
+    outcome_cohort_definition_id = 3,
+    outcome_name = 'outcome 3',
+    clean_window = 0,
+    age_id = 1,
+    age_group_name = '',
+    gender_id = 1,
+    gender_name = '',
+    start_year = 1,
+    persons_at_risk_pe = 1,
+    persons_at_risk = 1,
+    person_days_pe = 1,
+    person_days = 1,
+    person_outcomes_pe = 1,
+    person_outcomes = 1,
+    outcomes_pe = 1,
+    outcomes = 1,
+    incidence_proportion_p100p = 0.1,
+    incidence_rate_p100py = 0.1
+  ),
+  createTable = T, 
+  camelCaseToSnakeCase = F
+)
+
 
 }

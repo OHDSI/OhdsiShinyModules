@@ -32,9 +32,6 @@ dbmsTest <- 'sqlite'
 tablePrefixTest <- ''
 
 
-
-
-
 serverDesc <- "../resources/descDatabase/databaseFile.sqlite"
 connectionDetailsDesc <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite',
@@ -52,3 +49,4 @@ connectionDesc <- DatabaseConnector::connect(
 descTablePrefix <- 'c_'
 cohortTablePrefix <- 'cg_'
 databaseTable <- 'DATABASE_META_DATA'
+incidenceTablePrefix <- 'i_'

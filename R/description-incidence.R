@@ -81,7 +81,7 @@ descriptionIncidenceServer <- function(
   schema, 
   dbms,
   incidenceTablePrefix,
-  tempEmulationSchema,
+  tempEmulationSchema = NULL,
   databaseTable = 'DATABASE_META_DATA'
 ) {
   shiny::moduleServer(
