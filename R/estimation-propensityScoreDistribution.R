@@ -29,14 +29,14 @@ estimationPropensityScoreDistViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    plotOutput(outputId = ns("psDistPlot")),
-    div(strong("Figure 2."),"Preference score distribution. The preference score is a transformation of the propensity score
+    shiny::plotOutput(outputId = ns("psDistPlot")),
+    shiny::div(shiny::strong("Figure 2."),"Preference score distribution. The preference score is a transformation of the propensity score
                                                                                                          that adjusts for differences in the sizes of the two treatment groups. A higher overlap indicates subjects in the
                                                                                                          two groups were more similar in terms of their predicted probability of receiving one treatment over the other."),
-    div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
-        downloadButton(outputId = ns("downloadPsDistPlotPng"),
+    shiny::div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
+               shiny::downloadButton(outputId = ns("downloadPsDistPlotPng"),
                        label = "Download plot as PNG"),
-        downloadButton(outputId = ns("downloadPsDistPlotPdf"),
+               shiny::downloadButton(outputId = ns("downloadPsDistPlotPdf"),
                        label = "Download plot as PDF"))
   )
 }
@@ -49,12 +49,15 @@ estimationPropensityScoreDistViewer <- function(id) {
 #' @param inputParams  the selected study parameters of interest
 #' @param connection the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
+#' @param tablePrefix tablePrefix
+#' @param cohortTablePrefix cohortTablePrefix
+#' @param metaAnalysisDbIds metaAnalysisDbIds
 #'
 #' @return
 #' the PLE propensity score distribution content server
 #' 
 #' @export
-estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, cohortTablePrefix) {
+estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, cohortTablePrefix, metaAnalysisDbIds = F) {
   
   shiny::moduleServer(
     id,
@@ -70,8 +73,10 @@ estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, co
             ps <- getEstimationPs(connection = connection,
                                   resultsSchema = resultsSchema,
                                   tablePrefix = tablePrefix,
-                                  targetIds = row$targetId,
-                                  comparatorIds = row$comparatorId,
+                                  #targetIds = row$targetId,
+                                  #comparatorIds = row$comparatorId,
+                                  targetId = inputParams()$target,
+                                  comparatorId = inputParams()$comparator,
                                   analysisId = row$analysisId)
           } else {
             ps <- getEstimationPs(connection = connection,

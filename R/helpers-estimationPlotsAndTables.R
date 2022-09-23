@@ -131,8 +131,8 @@ prepareEstimationPowerTable <- function(mainResults, connection, resultsSchema, 
   table <- merge(mainResults, analyses)
   alpha <- 0.05
   power <- 0.8
-  z1MinAlpha <- qnorm(1 - alpha/2)
-  zBeta <- -qnorm(1 - power)
+  z1MinAlpha <- stats::qnorm(1 - alpha/2)
+  zBeta <- -stats::qnorm(1 - power)
   pA <- table$targetSubjects/(table$targetSubjects + table$comparatorSubjects)
   pB <- 1 - pA
   totalEvents <- abs(table$targetOutcomes) + abs(table$comparatorOutcomes)
@@ -177,8 +177,8 @@ preparePowerTableLegacy <- function(mainResults, analyses, includeDatabaseId = F
   table <- merge(mainResults, analyses)
   alpha <- 0.05
   power <- 0.8
-  z1MinAlpha <- qnorm(1 - alpha/2)
-  zBeta <- -qnorm(1 - power)
+  z1MinAlpha <- stats::qnorm(1 - alpha/2)
+  zBeta <- -stats::qnorm(1 - power)
   pA <- table$targetSubjects/(table$targetSubjects + table$comparatorSubjects)
   pB <- 1 - pA
   totalEvents <- abs(table$targetOutcomes) + abs(table$comparatorOutcomes)
@@ -290,7 +290,7 @@ prepareEstimationTable1 <- function(balance,
     space <- "&nbsp;"
   }
   
-  specifications <- read.csv(pathToCsv, stringsAsFactors = FALSE)
+  specifications <- utils::read.csv(pathToCsv, stringsAsFactors = FALSE)
   
   fixCase <- function(label) {
     idx <- (toupper(label) == label)
@@ -419,12 +419,12 @@ plotEstimationPs <- function(ps, targetName, comparatorName) {
   ps$group <- factor(ps$group, levels = c(as.character(targetName), as.character(comparatorName)))
   theme <- ggplot2::element_text(colour = "#000000", size = 12, margin = ggplot2::margin(0, 0.5, 0, 0.1, "cm"))
   plot <- ggplot2::ggplot(ps,
-                          ggplot2::aes(x = x, y = y, color = group, group = group, fill = group)) +
+                          ggplot2::aes(x = .data$x, y = .data$y, color = .data$group, group = .data$group, fill = .data$group)) +
     ggplot2::geom_density(stat = "identity") +
-    ggplot2::scale_fill_manual(values = c(rgb(0.8, 0, 0, alpha = 0.5),
-                                          rgb(0, 0, 0.8, alpha = 0.5))) +
-    ggplot2::scale_color_manual(values = c(rgb(0.8, 0, 0, alpha = 0.5),
-                                           rgb(0, 0, 0.8, alpha = 0.5))) +
+    ggplot2::scale_fill_manual(values = c(grDevices::rgb(0.8, 0, 0, alpha = 0.5),
+                                          grDevices::rgb(0, 0, 0.8, alpha = 0.5))) +
+    ggplot2::scale_color_manual(values = c(grDevices::rgb(0.8, 0, 0, alpha = 0.5),
+                                           grDevices::rgb(0, 0, 0.8, alpha = 0.5))) +
     ggplot2::scale_x_continuous("Preference score", limits = c(0, 1)) +
     ggplot2::scale_y_continuous("Density") +
     ggplot2::theme(legend.title = ggplot2::element_blank(),
@@ -453,10 +453,10 @@ plotEstimationAllPs <- function(ps) {
                          y = ps$comparatorDensity, 
                          group = "Comparator"))
   ps$group <- factor(ps$group, levels = c("Target", "Comparator"))
-  plot <- ggplot2::ggplot(ps, ggplot2::aes(x = x, y = y, color = group, group = group, fill = group)) +
+  plot <- ggplot2::ggplot(ps, ggplot2::aes(x = .data$x, y = .data$y, color = .data$group, group = .data$group, fill = .data$group)) +
     ggplot2::geom_density(stat = "identity") +
-    ggplot2::scale_fill_manual(values = c(rgb(0.8, 0, 0, alpha = 0.5), rgb(0, 0, 0.8, alpha = 0.5))) +
-    ggplot2::scale_color_manual(values = c(rgb(0.8, 0, 0, alpha = 0.5), rgb(0, 0, 0.8, alpha = 0.5))) +
+    ggplot2::scale_fill_manual(values = c(grDevices::rgb(0.8, 0, 0, alpha = 0.5), grDevices::rgb(0, 0, 0.8, alpha = 0.5))) +
+    ggplot2::scale_color_manual(values = c(grDevices::rgb(0.8, 0, 0, alpha = 0.5), grDevices::rgb(0, 0, 0.8, alpha = 0.5))) +
     ggplot2::scale_x_continuous("Preference score", limits = c(0, 1)) +
     ggplot2::scale_y_continuous("Density") +
     ggplot2::facet_grid(targetName ~ comparatorName) +
@@ -483,8 +483,8 @@ plotEstimationCovariateBalanceScatterPlot <- function(balance, beforeLabel = "Be
               max(c(balance$absBeforeMatchingStdDiff, balance$absAfterMatchingStdDiff),
                   na.rm = TRUE))
   theme <- ggplot2::element_text(colour = "#000000", size = 12)
-  plot <- ggplot2::ggplot(balance, ggplot2::aes(x = absBeforeMatchingStdDiff, y = absAfterMatchingStdDiff)) +
-    ggplot2::geom_point(color = rgb(0, 0, 0.8, alpha = 0.3), shape = 16, size = 2) +
+  plot <- ggplot2::ggplot(balance, ggplot2::aes(x = .data$absBeforeMatchingStdDiff, y = .data$absAfterMatchingStdDiff)) +
+    ggplot2::geom_point(color = grDevices::rgb(0, 0, 0.8, alpha = 0.3), shape = 16, size = 2) +
     ggplot2::geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
     ggplot2::geom_hline(yintercept = 0) +
     ggplot2::geom_vline(xintercept = 0) +
@@ -512,18 +512,18 @@ plotEstimationKaplanMeier <- function(kaplanMeier, targetName, comparatorName) {
   xLabel <- "Time in days"
   yLabel <- "Survival probability"
   xBreaks <- kaplanMeier$time[!is.na(kaplanMeier$targetAtRisk)]
-  plot <- ggplot2::ggplot(data, ggplot2::aes(x = time,
-                                             y = s,
-                                             color = strata,
-                                             fill = strata,
-                                             ymin = lower,
-                                             ymax = upper)) +
-    ggplot2::geom_ribbon(color = rgb(0, 0, 0, alpha = 0)) +
+  plot <- ggplot2::ggplot(data, ggplot2::aes(x = .data$time,
+                                             y = .data$s,
+                                             color = .data$strata,
+                                             fill = .data$strata,
+                                             ymin = .data$lower,
+                                             ymax = .data$upper)) +
+    ggplot2::geom_ribbon(color = grDevices::rgb(0, 0, 0, alpha = 0)) +
     ggplot2::geom_step(size = 1) +
-    ggplot2::scale_color_manual(values = c(rgb(0.8, 0, 0, alpha = 0.8),
-                                           rgb(0, 0, 0.8, alpha = 0.8))) +
-    ggplot2::scale_fill_manual(values = c(rgb(0.8, 0, 0, alpha = 0.3),
-                                          rgb(0, 0, 0.8, alpha = 0.3))) +
+    ggplot2::scale_color_manual(values = c(grDevices::rgb(0.8, 0, 0, alpha = 0.8),
+                                           grDevices::rgb(0, 0, 0.8, alpha = 0.8))) +
+    ggplot2::scale_fill_manual(values = c(grDevices::rgb(0.8, 0, 0, alpha = 0.3),
+                                          grDevices::rgb(0, 0, 0.8, alpha = 0.3))) +
     ggplot2::scale_x_continuous(xLabel, limits = xlims, breaks = xBreaks) +
     ggplot2::scale_y_continuous(yLabel, limits = ylims) +
     ggplot2::theme(legend.title = ggplot2::element_blank(),
@@ -542,7 +542,7 @@ plotEstimationKaplanMeier <- function(kaplanMeier, targetName, comparatorName) {
                                  formatC(targetAtRisk, big.mark = ",", mode = "integer"),
                                  formatC(comparatorAtRisk, big.mark = ",", mode = "integer")))
   labels$y <- factor(labels$y, levels = c(comparatorName, targetName, "Number at risk"))
-  dataTable <- ggplot2::ggplot(labels, ggplot2::aes(x = x, y = y, label = label)) + ggplot2::geom_text(size = 3.5, vjust = 0.5) + ggplot2::scale_x_continuous(xLabel,
+  dataTable <- ggplot2::ggplot(labels, ggplot2::aes(x = .data$x, y = .data$y, label = .data$label)) + ggplot2::geom_text(size = 3.5, vjust = 0.5) + ggplot2::scale_x_continuous(xLabel,
                                                                                                                                                               limits = xlims,
                                                                                                                                                               breaks = xBreaks) + ggplot2::theme(panel.grid.major = ggplot2::element_blank(),
                                                                                                                                                                                                  panel.grid.minor = ggplot2::element_blank(),
@@ -578,16 +578,16 @@ plotEstimationCovariateBalanceSummary <- function(balanceSummary,
   
   vizData$type <- factor(vizData$type, levels = c(beforeLabel, afterLabel))
   
-  plot <- ggplot2::ggplot(vizData, ggplot2::aes(x = x,
-                                                ymin = ymin,
-                                                lower = lower,
-                                                middle = median,
-                                                upper = upper,
-                                                ymax = ymax,
-                                                group = databaseId)) +
-    ggplot2::geom_errorbar(ggplot2::aes(ymin = ymin, ymax = ymin), size = 1) +
-    ggplot2::geom_errorbar(ggplot2::aes(ymin = ymax, ymax = ymax), size = 1) +
-    ggplot2::geom_boxplot(stat = "identity", fill = rgb(0, 0, 0.8, alpha = 0.25), size = 1) +
+  plot <- ggplot2::ggplot(vizData, ggplot2::aes(x = .data$x,
+                                                ymin = .data$ymin,
+                                                lower = .data$lower,
+                                                middle = .data$median,
+                                                upper = .data$upper,
+                                                ymax = .data$ymax,
+                                                group = .data$databaseId)) +
+    ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$ymin, ymax = .data$ymin), size = 1) +
+    ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$ymax, ymax = .data$ymax), size = 1) +
+    ggplot2::geom_boxplot(stat = "identity", fill = grDevices::rgb(0, 0, 0.8, alpha = 0.25), size = 1) +
     ggplot2::geom_hline(yintercept = 0) +
     ggplot2::scale_x_continuous(limits = c(0.5, max(vizData$x) + 1.75)) +
     ggplot2::scale_y_continuous("Standardized difference of mean") +
@@ -622,7 +622,7 @@ plotEstimationCovariateBalanceSummary <- function(balanceSummary,
                                  paste(afterLabel, "max(absolute)", sep = "\n"))),
                      dummy = "")
   
-  data_table <- ggplot2::ggplot(text, ggplot2::aes(x = x, y = y, label = label)) +
+  data_table <- ggplot2::ggplot(text, ggplot2::aes(x = .data$x, y = .data$y, label = .data$label)) +
     ggplot2::geom_text(size = 4, hjust=0, vjust=0.5) +
     ggplot2::geom_hline(ggplot2::aes(yintercept=nrow(after) + 0.5)) +
     ggplot2::theme(panel.grid.major = ggplot2::element_blank(),
@@ -670,7 +670,7 @@ getCmCoverage <- function(controlResults) {
   d$Group <- as.factor(d$trueRr)
   d$Significant <- d$ci95Lb > d$trueRr | d$ci95Ub < d$trueRr
   
-  temp2 <- aggregate(Significant ~ Group + yGroup, data = d, mean)
+  temp2 <- stats::aggregate(Significant ~ Group + yGroup, data = d, mean)
   temp2$coverage <- (1 - temp2$Significant)
   
   data.frame(true = temp2$Group, group = temp2$yGroup, coverage = temp2$coverage)
@@ -699,8 +699,8 @@ plotEstimationScatter <- function(controlResults) {
   }
   d$Group <- as.factor(d$trueRr)
   d$Significant <- d$ci95Lb > d$trueRr | d$ci95Ub < d$trueRr
-  temp1 <- aggregate(Significant ~ Group + yGroup, data = d, length)
-  temp2 <- aggregate(Significant ~ Group + yGroup, data = d, mean)
+  temp1 <- stats::aggregate(Significant ~ Group + yGroup, data = d, length)
+  temp2 <- stats::aggregate(Significant ~ Group + yGroup, data = d, mean)
   temp1$nLabel <- paste0(formatC(temp1$Significant, big.mark = ","), " estimates")
   temp1$Significant <- NULL
   
@@ -719,22 +719,22 @@ plotEstimationScatter <- function(controlResults) {
   d$Group <- paste("True hazard ratio =", d$Group)
   dd$Group <- paste("True hazard ratio =", dd$Group)
   alpha <- 1 - min(0.95 * (nrow(d)/nrow(dd)/50000)^0.1, 0.95)
-  plot <- ggplot2::ggplot(d, ggplot2::aes(x = logRr, y = seLogRr), environment = environment()) +
+  plot <- ggplot2::ggplot(d, ggplot2::aes(x = .data$logRr, y = .data$seLogRr), environment = environment()) +
     ggplot2::geom_vline(xintercept = log(breaks), colour = "#AAAAAA", lty = 1, size = 0.5) +
-    ggplot2::geom_abline(ggplot2::aes(intercept = (-log(tes))/qnorm(0.025), slope = 1/qnorm(0.025)),
-                         colour = rgb(0.8, 0, 0),
+    ggplot2::geom_abline(ggplot2::aes(intercept = (-log(.data$tes))/stats::qnorm(0.025), slope = 1/stats::qnorm(0.025)),
+                         colour = grDevices::rgb(0.8, 0, 0),
                          linetype = "dashed",
                          size = 1,
                          alpha = 0.5,
                          data = dd) +
-    ggplot2::geom_abline(ggplot2::aes(intercept = (-log(tes))/qnorm(0.975), slope = 1/qnorm(0.975)),
-                         colour = rgb(0.8, 0, 0),
+    ggplot2::geom_abline(ggplot2::aes(intercept = (-log(.data$tes))/stats::qnorm(0.975), slope = 1/stats::qnorm(0.975)),
+                         colour = grDevices::rgb(0.8, 0, 0),
                          linetype = "dashed",
                          size = 1,
                          alpha = 0.5,
                          data = dd) +
     ggplot2::geom_point(size = size,
-                        color = rgb(0, 0, 0, alpha = 0.05),
+                        color = grDevices::rgb(0, 0, 0, alpha = 0.05),
                         alpha = alpha,
                         shape = 16) +
     ggplot2::geom_hline(yintercept = 0) +
@@ -742,14 +742,14 @@ plotEstimationScatter <- function(controlResults) {
                         y = 0.9,
                         alpha = 1,
                         hjust = "left",
-                        ggplot2::aes(label = nLabel),
+                        ggplot2::aes(label = .data$nLabel),
                         size = 5,
                         data = dd) +
     ggplot2::geom_label(x = log(0.15),
                         y = labelY,
                         alpha = 1,
                         hjust = "left",
-                        ggplot2::aes(label = meanLabel),
+                        ggplot2::aes(label = .data$meanLabel),
                         size = 5,
                         data = dd) +
     ggplot2::scale_x_continuous("Hazard ratio",
@@ -787,19 +787,19 @@ plotEstimationLargeScatter <- function(d, xLabel) {
   themeLA <- ggplot2::element_text(colour = "#000000", size = 12, hjust = 0)
   
   alpha <- 1 - min(0.95 * (nrow(d)/50000)^0.1, 0.95)
-  plot <- ggplot2::ggplot(d, ggplot2::aes(x = logRr, y = seLogRr)) +
+  plot <- ggplot2::ggplot(d, ggplot2::aes(x = .data$logRr, y = .data$seLogRr)) +
     ggplot2::geom_vline(xintercept = log(breaks), colour = "#AAAAAA", lty = 1, size = 0.5) +
-    ggplot2::geom_abline(ggplot2::aes(intercept = 0, slope = 1/qnorm(0.025)),
-                         colour = rgb(0.8, 0, 0),
+    ggplot2::geom_abline(ggplot2::aes(intercept = 0, slope = 1/stats::qnorm(0.025)),
+                         colour = grDevices::rgb(0.8, 0, 0),
                          linetype = "dashed",
                          size = 1,
                          alpha = 0.5) +
-    ggplot2::geom_abline(ggplot2::aes(intercept = 0, slope = 1/qnorm(0.975)),
-                         colour = rgb(0.8, 0, 0),
+    ggplot2::geom_abline(ggplot2::aes(intercept = 0, slope = 1/stats::qnorm(0.975)),
+                         colour = grDevices::rgb(0.8, 0, 0),
                          linetype = "dashed",
                          size = 1,
                          alpha = 0.5) +
-    ggplot2::geom_point(size = 2, color = rgb(0, 0, 0, alpha = 0.05), alpha = alpha, shape = 16) +
+    ggplot2::geom_point(size = 2, color = grDevices::rgb(0, 0, 0, alpha = 0.05), alpha = alpha, shape = 16) +
     ggplot2::geom_hline(yintercept = 0) +
     ggplot2::geom_label(x = log(0.11),
                         y = 1,
@@ -916,14 +916,14 @@ drawEstimationAttritionDiagram <- function(attrition,
     p <- p + ggplot2::geom_rect(ggplot2::aes_string(xmin = x - (boxWidth/2) + shadowOffset,
                                                     ymin = y - (boxHeight/2) - shadowOffset,
                                                     xmax = x + (boxWidth/2) + shadowOffset,
-                                                    ymax = y + (boxHeight/2) - shadowOffset), fill = rgb(0,
+                                                    ymax = y + (boxHeight/2) - shadowOffset), fill = grDevices::rgb(0,
                                                                                                          0,
                                                                                                          0,
                                                                                                          alpha = 0.2))
     p <- p + ggplot2::geom_rect(ggplot2::aes_string(xmin = x - (boxWidth/2),
                                                     ymin = y - (boxHeight/2),
                                                     xmax = x + (boxWidth/2),
-                                                    ymax = y + (boxHeight/2)), fill = rgb(0.94,
+                                                    ymax = y + (boxHeight/2)), fill = grDevices::rgb(0.94,
                                                                                           0.94,
                                                                                           0.94), color = "black")
     return(p)
@@ -1087,7 +1087,7 @@ createDocumentCm <- function(targetId,
   close(input)
   close(output)
   
-  Sweave(texName)
+  utils::Sweave(texName)
   system(paste0("pdflatex ", name))
   system(paste0("pdflatex ", name))
   
@@ -1118,7 +1118,10 @@ prepareEstimationPropensityModelTable <- function(model) {
   return(table)
 }
 
-plotEstimationEmpiricalNulls <- function(negativeControls, limits = c(0.1, 10)) {
+plotEstimationEmpiricalNulls <- function(negativeControls, limits = c(0.1, 10), metaAnalysisDbIds = NULL) {
+  
+  # check install EmpiricalCalibration
+  
   labels <- unique(negativeControls$databaseId)
   labels <- labels[!(labels %in% metaAnalysisDbIds)]
   labels <- labels[order(labels)]
@@ -1148,7 +1151,7 @@ plotEstimationEmpiricalNulls <- function(negativeControls, limits = c(0.1, 10)) 
     d$meanLabel[i] <- sprintf("% 1.2f", d$mean[i])
     d$sdLabel[i] <- sprintf("%1.2f", d$sd[i])
     idx <- dist$label == d$label[i]
-    y <- dnorm(dist$x[idx], mean = null[1], sd = null[2])
+    y <- stats::dnorm(dist$x[idx], mean = null[1], sd = null[2])
     y <- y/max(y)
     y <- y * 0.7
     dist$yMax[idx] <- d$y[i] - 0.35 + y
@@ -1156,14 +1159,14 @@ plotEstimationEmpiricalNulls <- function(negativeControls, limits = c(0.1, 10)) 
   }
   
   breaks <- c(0.1, 0.25, 0.5, 1, 2, 4, 6, 8, 10)
-  plot <- ggplot2::ggplot(d, ggplot2::aes(group = label)) +
+  plot <- ggplot2::ggplot(d, ggplot2::aes(group = .data$label)) +
     ggplot2::geom_vline(xintercept = log(breaks), colour = "#AAAAAA", lty = 1, size = 0.2) +
     ggplot2::geom_vline(xintercept = 0) +
-    ggplot2::geom_ribbon(ggplot2::aes(x = x, ymax = yMax, ymin = yMin), fill = rgb(1, 0, 0), alpha = 0.6, data = dist)
+    ggplot2::geom_ribbon(ggplot2::aes(x = .data$x, ymax = .data$yMax, ymin = .data$yMin), fill = grDevices::rgb(1, 0, 0), alpha = 0.6, data = dist)
   
   
-  plot <- plot + ggplot2::geom_errorbarh(ggplot2::aes(xmax = xMax, xmin = xMin, y = y), height = 0.5, color = rgb(0, 0, 0), size = 0.5) +
-    ggplot2::geom_point(ggplot2::aes(x = mean, y = y), shape = 16, size = 2) +
+  plot <- plot + ggplot2::geom_errorbarh(ggplot2::aes(xmax = .data$xMax, xmin = .data$xMin, y = .data$y), height = 0.5, color = grDevices::rgb(0, 0, 0), size = 0.5) +
+    ggplot2::geom_point(ggplot2::aes(x = .data$mean, y = .data$y), shape = 16, size = 2) +
     ggplot2::coord_cartesian(xlim = log(limits), ylim = c(0.5, (nrow(d) + 1))) +
     ggplot2::scale_x_continuous("Hazard ratio", breaks = log(breaks), labels = breaks) +
     ggplot2::theme(panel.grid.major.y = ggplot2::element_blank(),
@@ -1190,7 +1193,7 @@ plotEstimationEmpiricalNulls <- function(negativeControls, limits = c(0.1, 10)) 
                                  "SD")),
                      dummy = "")
   
-  data_table <- ggplot2::ggplot(text, ggplot2::aes(x = x, y = y, label = label)) +
+  data_table <- ggplot2::ggplot(text, ggplot2::aes(x = .data$x, y = .data$y, label = .data$label)) +
     ggplot2::geom_text(size = 4, hjust = 0, vjust = 0.5) +
     ggplot2::geom_hline(ggplot2::aes(yintercept = nrow(d) + 0.5)) +
     ggplot2::theme(panel.grid.major = ggplot2::element_blank(),
@@ -1210,7 +1213,7 @@ plotEstimationEmpiricalNulls <- function(negativeControls, limits = c(0.1, 10)) 
   return(plot)
 }
 
-plotEstimationForest <- function(results, limits = c(0.1, 10)) {
+plotEstimationForest <- function(results, limits = c(0.1, 10), metaAnalysisDbIds = NULL) {
   
   dbResults <- results[!(results$databaseId %in% metaAnalysisDbIds), ]
   dbResults <- dbResults[!is.na(dbResults$seLogRr), ]
@@ -1265,11 +1268,11 @@ plotEstimationForest <- function(results, limits = c(0.1, 10)) {
   d$x <- factor(d$x, levels = c("Uncalibrated", "Calibrated"))
   
   breaks <- c(0.1, 0.25, 0.5, 1, 2, 4, 6, 8, 10)
-  plot <- ggplot2::ggplot(d,ggplot2::aes(x = exp(logRr), y = name, xmin = exp(logLb95Ci), xmax = exp(logUb95Ci))) +
+  plot <- ggplot2::ggplot(d,ggplot2::aes(x = exp(.data$logRr), y = .data$name, xmin = exp(.data$logLb95Ci), xmax = exp(.data$logUb95Ci))) +
     ggplot2::geom_vline(xintercept = breaks, colour = "#AAAAAA", lty = 1, size = 0.2) +
     ggplot2::geom_vline(xintercept = 1, size = 0.5) +
     ggplot2::geom_errorbarh(height = 0.15) +
-    ggplot2::geom_point(size=3, shape = 23, ggplot2::aes(fill=type)) +
+    ggplot2::geom_point(size=3, shape = 23, ggplot2::aes(fill=.data$type)) +
     ggplot2::scale_fill_manual(values = c("#000000", "#000000", "#FFFFFF")) +
     ggplot2::scale_x_continuous("Hazard ratio", trans = "log10", breaks = breaks, labels = breaks) +
     ggplot2::coord_cartesian(xlim = limits) +
@@ -1301,7 +1304,7 @@ plotEstimationForest <- function(results, limits = c(0.1, 10)) {
                        stringsAsFactors = FALSE)
   labels$label[nrow(d)/2 + 1] <-  paste("HR (95% CI)")
   labels$label[nrow(d) + 1] <-  paste("Calibrated HR (95% CI)")
-  dataTable <- ggplot2::ggplot(labels, ggplot2::aes(x = x, y = y, label = label)) +
+  dataTable <- ggplot2::ggplot(labels, ggplot2::aes(x = .data$x, y = .data$y, label = .data$label)) +
     ggplot2::geom_text(size = 5, hjust = 0, vjust = 0.5) +
     ggplot2::geom_hline(ggplot2::aes(yintercept = nrow(d) - 0.5)) +
     ggplot2::facet_grid(~dummy) +

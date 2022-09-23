@@ -43,16 +43,16 @@ cohortGeneratorViewer <- function(id) {
   
   ns <- shiny::NS(id)
   
-  fluidPage(
-    tabsetPanel(
+  shiny::fluidPage(
+    shiny::tabsetPanel(
       id = ns("cohortGeneratorTabs"),
-      tabPanel(title = "Cohort Counts",
+      shiny::tabPanel(title = "Cohort Counts",
                DT::dataTableOutput(outputId = ns("cohortCounts"))
       ),
-      tabPanel(title = "Cohort Generation",
+      shiny::tabPanel(title = "Cohort Generation",
                DT::dataTableOutput(outputId = ns("cohortGeneration"))
       ),
-      tabPanel(title = "Cohort Inclusions",
+      shiny::tabPanel(title = "Cohort Inclusions",
                reactable::reactableOutput(outputId = ns("inclusionStats"))
       )
     )
@@ -66,7 +66,6 @@ cohortGeneratorViewer <- function(id) {
 #'
 #' @param id the unique reference id for the module
 #' @param resultDatabaseSettings a named list containing the cohort generator results database connection details
-#' @param resultsSchema the schema with the cohort generator results
 #'
 #' @return
 #' the cohort generator results viewer main module server

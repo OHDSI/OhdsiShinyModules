@@ -11,7 +11,7 @@ predictionModelSummaryServer(
   targetDialect,
   myTableAppend,
   modelDesignId,
-  databaseTableAppend
+  databaseTableAppend = myTableAppend
 )
 }
 \arguments{

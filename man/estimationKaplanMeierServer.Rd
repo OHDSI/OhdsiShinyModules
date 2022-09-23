@@ -12,7 +12,8 @@ estimationKaplanMeierServer(
   resultsSchema,
   tablePrefix,
   cohortTablePrefix,
-  databaseTable
+  databaseTable,
+  metaAnalysisDbIds = NULL
 )
 }
 \arguments{
@@ -25,6 +26,14 @@ estimationKaplanMeierServer(
 \item{connection}{the connection to the PLE results database}
 
 \item{resultsSchema}{the schema with the PLE results}
+
+\item{tablePrefix}{tablePrefix}
+
+\item{cohortTablePrefix}{cohortTablePrefix}
+
+\item{databaseTable}{databaseTable}
+
+\item{metaAnalysisDbIds}{metaAnalysisDbIds}
 }
 \value{
 the PLE Kaplain Meier content server

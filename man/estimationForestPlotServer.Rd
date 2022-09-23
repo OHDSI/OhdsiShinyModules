@@ -4,14 +4,24 @@
 \alias{estimationForestPlotServer}
 \title{The module server for rendering the PLE multiple results forest plot}
 \usage{
-estimationForestPlotServer(id, selectedRow, inputParams)
+estimationForestPlotServer(
+  id,
+  connection,
+  selectedRow,
+  inputParams,
+  metaAnalysisDbIds = NULL
+)
 }
 \arguments{
 \item{id}{the unique reference id for the module}
 
+\item{connection}{connection}
+
 \item{selectedRow}{the selected row from the main results table}
 
 \item{inputParams}{the selected study parameters of interest}
+
+\item{metaAnalysisDbIds}{metaAnalysisDbIds}
 }
 \value{
 the PLE forest plot content server

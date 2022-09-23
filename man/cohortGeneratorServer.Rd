@@ -10,8 +10,6 @@ cohortGeneratorServer(id, resultDatabaseSettings)
 \item{id}{the unique reference id for the module}
 
 \item{resultDatabaseSettings}{a named list containing the cohort generator results database connection details}
-
-\item{resultsSchema}{the schema with the cohort generator results}
 }
 \value{
 the cohort generator results viewer main module server

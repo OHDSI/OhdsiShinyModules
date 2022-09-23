@@ -10,7 +10,8 @@ estimationCovariateBalanceServer(
   inputParams,
   connection,
   resultsSchema,
-  tablePrefix
+  tablePrefix,
+  metaAnalysisDbIds = NULL
 )
 }
 \arguments{
@@ -23,6 +24,10 @@ estimationCovariateBalanceServer(
 \item{connection}{the connection to the PLE results database}
 
 \item{resultsSchema}{the schema with the PLE results}
+
+\item{tablePrefix}{tablePrefix}
+
+\item{metaAnalysisDbIds}{metaAnalysisDbIds}
 }
 \value{
 the PLE covariate balance content server

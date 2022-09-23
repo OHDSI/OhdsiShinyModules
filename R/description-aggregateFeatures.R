@@ -274,8 +274,8 @@ descriptionAggregateFeaturesServer <- function(
           output$inputsDesc <- shiny::renderUI({
             
             shiny::fluidPage(
-            fluidRow(
-              column(width = 3,
+              shiny::fluidRow(
+                shiny::column(width = 3,
                      shiny::selectInput(
                        inputId = session$ns('database1'), 
                        label = 'Database 1: ', 
@@ -289,7 +289,7 @@ descriptionAggregateFeaturesServer <- function(
                        selected = 1
                      )
               ),
-              column(width = 7, 
+              shiny::column(width = 7, 
                      shiny::selectInput(
                        inputId = session$ns('type1'), 
                        label = 'Type 1: ', 
@@ -304,7 +304,7 @@ descriptionAggregateFeaturesServer <- function(
                      )
               ),
               
-              column(width = 2, 
+              shiny::column(width = 2, 
                      shiny::actionButton(
                        inputId = session$ns('ag_plot'), 
                        label = 'Click'
@@ -476,7 +476,7 @@ descriptionAggregateFeaturesServer <- function(
              paste('binarydata-', Sys.Date(), '.csv', sep='')
            },
           content = function(con) {
-            write.csv(binaryData(), con)
+            utils::write.csv(binaryData(), con)
           }
          )
       output$downloadContinuous <- shiny::downloadHandler(
@@ -484,7 +484,7 @@ descriptionAggregateFeaturesServer <- function(
           paste('continuousdata-', Sys.Date(), '.csv', sep='')
         },
         content = function(con) {
-          write.csv(continuousData(), con)
+          utils::write.csv(continuousData(), con)
         }
       )
       

@@ -64,6 +64,8 @@ estimationResultsTableViewer <- function(id) {
 #' @param connection the connection to the PLE results database
 #' @param inputParams  the selected study parameters of interest
 #' @param resultsSchema the schema with the PLE results
+#' @param tablePrefix tablePrefix
+#' @param databaseTable databaseTable
 #'
 #' @return
 #' the PLE main results table server server
@@ -76,7 +78,7 @@ estimationResultsTableServer <- function(id, connection, inputParams, resultsSch
     function(input, output, session) {
       
       
-      resultSubset <- reactive({
+      resultSubset <- shiny::reactive({
         
         results <- getEstimationMainResults(connection = connection,
                                             resultsSchema = resultsSchema,
@@ -113,7 +115,7 @@ estimationResultsTableServer <- function(id, connection, inputParams, resultsSch
       output$mainTable <- DT::renderDataTable({
         table <- resultSubset()
         if (is.null(table) || nrow(table) == 0) {
-          validate(need(nrow(table) > 0, "No CM results for selections."))
+          shiny::validate(shiny::need(nrow(table) > 0, "No CM results for selections."))
           return(NULL)
         }
         table <- table[, mainColumns]

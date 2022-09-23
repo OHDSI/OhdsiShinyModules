@@ -29,12 +29,12 @@ estimationKaplanMeierViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    plotOutput(outputId = ns("kaplanMeierPlot"), height = 550),
-    uiOutput(outputId = ns("kaplanMeierPlotPlotCaption")),
-    div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
-        downloadButton(outputId = ns("downloadKaplanMeierPlotPng"),
+    shiny::plotOutput(outputId = ns("kaplanMeierPlot"), height = 550),
+    shiny::uiOutput(outputId = ns("kaplanMeierPlotPlotCaption")),
+    shiny::div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
+               shiny::downloadButton(outputId = ns("downloadKaplanMeierPlotPng"),
                        label = "Download plot as PNG"),
-        downloadButton(outputId = ns("downloadKaplanMeierPlotPdf"),
+               shiny::downloadButton(outputId = ns("downloadKaplanMeierPlotPdf"),
                        label = "Download plot as PDF"))
   )
 }
@@ -46,12 +46,16 @@ estimationKaplanMeierViewer <- function(id) {
 #' @param inputParams  the selected study parameters of interest
 #' @param connection the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
+#' @param tablePrefix tablePrefix
+#' @param cohortTablePrefix cohortTablePrefix
+#' @param databaseTable databaseTable
+#' @param metaAnalysisDbIds metaAnalysisDbIds
 #'
 #' @return
 #' the PLE Kaplain Meier content server
 #' 
 #' @export
-estimationKaplanMeierServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, cohortTablePrefix, databaseTable) {
+estimationKaplanMeierServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, cohortTablePrefix, databaseTable, metaAnalysisDbIds = NULL) {
   
   shiny::moduleServer(
     id,

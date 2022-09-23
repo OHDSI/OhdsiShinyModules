@@ -504,10 +504,10 @@ plotDechalRechal <- function(
     #order the data so that cases are in order of exposure/outcome offsets
     dechalRechalData <- dechalRechalData %>% 
       dplyr::arrange(
-        dechallengeExposureStartDateOffset, 
-        dechallengeOutcomeStartDateOffset, 
-        rechallengeExposureStartDateOffset, 
-        rechallengeOutcomeStartDateOffset
+        .data$dechallengeExposureStartDateOffset, 
+        .data$dechallengeOutcomeStartDateOffset, 
+        .data$rechallengeExposureStartDateOffset, 
+        .data$rechallengeOutcomeStartDateOffset
         )
     
     #give temp ID for purposes of allowing plotting in order of sort
@@ -641,7 +641,7 @@ plotDechalRechal <- function(
           ) +
         ggplot2::geom_line(
           data = rechallengeExposure, 
-          ggplot2::aes(group = eventId), 
+          ggplot2::aes(group = .data$eventId), 
           size = 2, 
           color = "navyblue"
           ) +
