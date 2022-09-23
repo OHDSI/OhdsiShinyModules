@@ -692,7 +692,7 @@ formatModSettings <- function(modelSettings){
 # format covariateSettings
 formatCovSettings <- function(covariateSettings){
   
-  if(class(covariateSettings)=='covariateSettings'){
+  if(inherits(covariateSettings, 'covariateSettings')){
     covariateSettings <- list(covariateSettings)
   }
   
