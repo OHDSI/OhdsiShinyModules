@@ -4,11 +4,11 @@ shiny::testServer(
   app = predictionNbServer, 
   args = list(
     performanceId = shiny::reactiveVal(NULL),
-    con = connection,
-    mySchema = mySchemaTest,
+    con = connectionPlp,
     inputSingleView = shiny::reactiveVal("Discrimination"),
-    targetDialect = targetDialectTest,
-    myTableAppend = myTableAppendTest
+    mySchema = schemaTest,
+    targetDialect = dbmsTest,
+    myTableAppend = tablePrefixTest
   ), 
   expr = {
     

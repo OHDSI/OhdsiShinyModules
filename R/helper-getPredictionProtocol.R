@@ -6,7 +6,8 @@ createPredictionProtocol <- function(
   databaseTableAppend,
   cohortTableAppend,
   modelDesignId,
-  output
+  output,
+  intermediatesDir = file.path(tempdir(), 'plp-prot')
 ){
   
   #require('CirceR')
@@ -14,13 +15,13 @@ createPredictionProtocol <- function(
   #protocolLoc <- 'modules/prediction/documents/main.Rmd'
   protocolLoc <- system.file('prediction-document', "main.Rmd", package = "OhdsiShinyModules")
   
-  if(!dir.exists(file.path(tempdir(), 'plp-prot'))){
-    dir.create(file.path(tempdir(), 'plp-prot'))
+  if(!dir.exists(intermediatesDir)){
+    dir.create(intermediatesDir)
   }
   
   rmarkdown::render(
     input = protocolLoc, 
-    intermediates_dir = file.path(tempdir(), 'plp-prot'),
+    intermediates_dir = intermediatesDir,
     output_dir = output, 
     params = list(
       connection = con,

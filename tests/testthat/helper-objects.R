@@ -11,24 +11,44 @@ if (jarFolder == "") {
   }, testthat::teardown_env())
 }
 
-server <- "../resources/databaseFile.sqlite"
-connectionDetails <- DatabaseConnector::createConnectionDetails(
+serverPlp <- "../resources/plpDatabase/databaseFile.sqlite"
+connectionDetailsPlp <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite',
-  server = server
+  server = serverPlp
 )
 
-connection <- DatabaseConnector::connect(
-  connectionDetails = connectionDetails, 
+connectionPlp <- DatabaseConnector::connect(
+  connectionDetails = connectionDetailsPlp, 
   dbms = 'sqlite', 
   user = NULL, 
   password = NULL, 
-  server = server,
+  server = serverPlp,
   port = NULL#, 
   #pathToDriver = 
 )
 
-mySchemaTest <- 'main'
-targetDialectTest <- 'sqlite'
-myTableAppendTest <- ''
+schemaTest <- 'main'
+dbmsTest <- 'sqlite'
+tablePrefixTest <- ''
 
 
+
+
+
+serverDesc <- "../resources/descDatabase/databaseFile.sqlite"
+connectionDetailsDesc <- DatabaseConnector::createConnectionDetails(
+  dbms = 'sqlite',
+  server = serverDesc
+)
+connectionDesc <- DatabaseConnector::connect(
+  connectionDetails = connectionDetailsDesc, 
+  dbms = 'sqlite', 
+  user = NULL, 
+  password = NULL, 
+  server = serverDesc,
+  port = NULL#, 
+  #pathToDriver = 
+)
+descTablePrefix <- 'c_'
+cohortTablePrefix <- 'cg_'
+databaseTable <- 'DATABASE_META_DATA'

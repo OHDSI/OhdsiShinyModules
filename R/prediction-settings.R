@@ -84,7 +84,7 @@ predictionSettingsServer <- function(
   inputSingleView,
   myTableAppend, 
   targetDialect,
-  cohortTableAppend
+  cohortTableAppend = myTableAppend
 ) {
   
   shiny::moduleServer(
@@ -429,7 +429,7 @@ getModelDesign <- function(
   con,
   myTableAppend, 
   targetDialect,
-  cohortTableAppend
+  cohortTableAppend = myTableAppend
 ){
   if(!is.null(modelDesignId())){
     print(paste0('model design: ', modelDesignId()))

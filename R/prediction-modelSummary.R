@@ -57,7 +57,7 @@ predictionModelSummaryServer <- function(
   targetDialect,
   myTableAppend,
   modelDesignId,
-  databaseTableAppend
+  databaseTableAppend = myTableAppend
 ) {
   shiny::moduleServer(
     id,

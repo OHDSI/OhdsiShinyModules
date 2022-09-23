@@ -397,7 +397,7 @@ getDiagnostics <- function(
   con,
   myTableAppend, 
   targetDialect,
-  databaseTableAppend,
+  databaseTableAppend = myTableAppend,
   threshold1_2 = 0.9
 ){
   if(!is.null(modelDesignId)){

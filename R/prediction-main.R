@@ -295,8 +295,11 @@ predictionServer <- function(
         
         if(!is.null(designSummary$reportId())){
           
-          if(file.exists(file.path(tempdir(), 'main.html'))){
-            file.remove(file.path(tempdir(), 'main.html'))
+          #protocolOutputLoc <- tempdir()
+          protocolOutputLoc <- getwd()
+          
+          if(file.exists(file.path(protocolOutputLoc, 'main.html'))){
+            file.remove(file.path(protocolOutputLoc, 'main.html'))
           }
           tryCatch(
             {createPredictionProtocol( # add database_table_append and cohort_table_append
@@ -315,7 +318,8 @@ predictionServer <- function(
                 resultDatabaseSettings$tablePrefix
               ),
               modelDesignId = designSummary$reportId(),
-              output = tempdir()
+              output = protocolOutputLoc,
+              intermediatesDir = file.path(protocolOutputLoc, 'plp-prot')
             )
             }, error = function(e){
               shiny::showNotification(
@@ -324,7 +328,7 @@ predictionServer <- function(
             }
           )
              
-          if(file.exists(file.path(tempdir(), 'main.html'))){
+          if(file.exists(file.path(protocolOutputLoc, 'main.html'))){
             # display the generated html report
             shiny::showModal(shiny::modalDialog(
               title = "Report",
@@ -338,7 +342,7 @@ predictionServer <- function(
                   inputId = session$ns('downloadButton'), 
                   label = 'Download'
                 ),
-                shiny::includeHTML(file.path(tempdir(), 'main.html'))
+                shiny::includeHTML(file.path(protocolOutputLoc, 'main.html'))
               ), 
               size = "l",
               easyClose = T
@@ -361,7 +365,7 @@ predictionServer <- function(
             "export-main.Rmd", 
             package = "OhdsiShinyModules"
           ),  
-          intermediates_dir = tempdir(),
+          intermediates_dir = file.path(tempdir(), 'plp-prot'),
           output_dir = file.path(input$plpProtocolDownload, paste0('plp_report',designSummary$reportId())), 
           params = list(
             connection = con, 
