@@ -16,7 +16,6 @@ Imports:
     DBI,
     dplyr,
     DT,
-    EmpiricalCalibration,
     ggplot2,
     gridExtra,
     htmltools,
