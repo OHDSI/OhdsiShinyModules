@@ -150,18 +150,18 @@ estimationServer <- function(id, resultDatabaseSettings) {
       # =============================
       #   CONNECTION
       # =============================
-        connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = resultDatabaseSettings$dbms,
-                                                                        user = resultDatabaseSettings$user,
-                                                                        password = resultDatabaseSettings$password,
-                                                                        server = sprintf("%s/%s", resultDatabaseSettings$server,
-                                                                                         resultDatabaseSettings$database))
-        
-        connection <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
-                                   dbms = resultDatabaseSettings$dbms,
-                                   server = resultDatabaseSettings$server,
-                                   user = resultDatabaseSettings$user,
-                                   password = resultDatabaseSettings$password)
-        
+      connectionDetails <- DatabaseConnector::createConnectionDetails(
+        dbms = resultDatabaseSettings$dbms,
+        user = resultDatabaseSettings$user,
+        password = resultDatabaseSettings$password,
+        server = resultDatabaseSettings$server
+      )
+      
+        #connection <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
+        #                           dbms = resultDatabaseSettings$dbms,
+        #                           server = resultDatabaseSettings$server,
+        #                           user = resultDatabaseSettings$user,
+        #                           password = resultDatabaseSettings$password)
         
         
         connection <- DatabaseConnector::connect(connectionDetails = connectionDetails)
@@ -259,7 +259,7 @@ estimationServer <- function(id, resultDatabaseSettings) {
       })
       
       
-      if (!exists("cmInteractionResult")) {
+      if (!exists("cmInteractionResult")) { # ISSUE: this should be an input resultDatabaseSettings$cmInteractionResult and not null check
         #TODO: update for testing once subgroup analysis completed
         shiny::hideTab(inputId = "detailsTabsetPanel", target = "Subgroups",
                        session = session)

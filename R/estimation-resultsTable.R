@@ -17,27 +17,6 @@
 # limitations under the License.
 
 
-mainColumns <- c("description",
-                 "cdmSourceAbbreviation",
-                 "rr",
-                 "ci95Lb",
-                 "ci95Ub",
-                 "p",
-                 "calibratedRr",
-                 "calibratedCi95Lb",
-                 "calibratedCi95Ub",
-                 "calibratedP")
-
-mainColumnNames <- c("<span title=\"Analysis\">Analysis</span>",
-                     "<span title=\"Data source\">Data source</span>",
-                     "<span title=\"Hazard ratio (uncalibrated)\">HR</span>",
-                     "<span title=\"Lower bound of the 95 percent confidence interval (uncalibrated)\">LB</span>",
-                     "<span title=\"Upper bound of the 95 percent confidence interval (uncalibrated)\">UB</span>",
-                     "<span title=\"Two-sided p-value (uncalibrated)\">P</span>",
-                     "<span title=\"Hazard ratio (calibrated)\">Cal.HR</span>",
-                     "<span title=\"Lower bound of the 95 percent confidence interval (calibrated)\">Cal.LB</span>",
-                     "<span title=\"Upper bound of the 95 percent confidence interval (calibrated)\">Cal.UB</span>",
-                     "<span title=\"Two-sided p-value (calibrated)\">Cal.P</span>")
 
 
 
@@ -71,11 +50,42 @@ estimationResultsTableViewer <- function(id) {
 #' the PLE main results table server server
 #' 
 #' @export
-estimationResultsTableServer <- function(id, connection, inputParams, resultsSchema, tablePrefix, databaseTable) {
+estimationResultsTableServer <- function(
+  id, 
+  connection, 
+  inputParams, 
+  resultsSchema, 
+  tablePrefix, 
+  databaseTable
+  ) {
   
   shiny::moduleServer(
     id,
     function(input, output, session) {
+      
+      
+      mainColumns <- c("description",
+                       "cdmSourceAbbreviation",
+                       "rr",
+                       "ci95Lb",
+                       "ci95Ub",
+                       "p",
+                       "calibratedRr",
+                       "calibratedCi95Lb",
+                       "calibratedCi95Ub",
+                       "calibratedP")
+      
+      mainColumnNames <- c("<span title=\"Analysis\">Analysis</span>",
+                           "<span title=\"Data source\">Data source</span>",
+                           "<span title=\"Hazard ratio (uncalibrated)\">HR</span>",
+                           "<span title=\"Lower bound of the 95 percent confidence interval (uncalibrated)\">LB</span>",
+                           "<span title=\"Upper bound of the 95 percent confidence interval (uncalibrated)\">UB</span>",
+                           "<span title=\"Two-sided p-value (uncalibrated)\">P</span>",
+                           "<span title=\"Hazard ratio (calibrated)\">Cal.HR</span>",
+                           "<span title=\"Lower bound of the 95 percent confidence interval (calibrated)\">Cal.LB</span>",
+                           "<span title=\"Upper bound of the 95 percent confidence interval (calibrated)\">Cal.UB</span>",
+                           "<span title=\"Two-sided p-value (calibrated)\">Cal.P</span>")
+      
       
       
       resultSubset <- shiny::reactive({

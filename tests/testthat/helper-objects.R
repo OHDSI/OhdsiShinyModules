@@ -50,3 +50,22 @@ descTablePrefix <- 'c_'
 cohortTablePrefix <- 'cg_'
 databaseTable <- 'DATABASE_META_DATA'
 incidenceTablePrefix <- 'i_'
+
+
+
+
+connectionDetailsEst <- DatabaseConnector::createConnectionDetails(
+  dbms = 'sqlite', 
+  server = "../resources/estDatabase/databaseFile.sqlite"
+)
+connectionEst <- DatabaseConnector::connect(
+  connectionDetails = connectionDetailsEst, 
+  dbms = 'sqlite', 
+  user = NULL, 
+  password = NULL, 
+  server = "../resources/estDatabase/databaseFile.sqlite",
+  port = NULL#, 
+  #pathToDriver = 
+)
+estTablePrefix <- 'cm_'
+

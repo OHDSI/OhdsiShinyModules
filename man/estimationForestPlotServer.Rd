@@ -9,7 +9,10 @@ estimationForestPlotServer(
   connection,
   selectedRow,
   inputParams,
-  metaAnalysisDbIds = NULL
+  metaAnalysisDbIds = NULL,
+  resultsSchema,
+  tablePrefix,
+  databaseTable
 )
 }
 \arguments{
@@ -22,6 +25,12 @@ estimationForestPlotServer(
 \item{inputParams}{the selected study parameters of interest}
 
 \item{metaAnalysisDbIds}{metaAnalysisDbIds}
+
+\item{resultsSchema}{resultsSchema}
+
+\item{tablePrefix}{tablePrefix}
+
+\item{databaseTable}{databaseTable}
 }
 \value{
 the PLE forest plot content server

@@ -49,12 +49,20 @@ estimationForestPlotViewer <- function(id) {
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
 #' @param metaAnalysisDbIds metaAnalysisDbIds
+#' @param resultsSchema resultsSchema
+#' @param tablePrefix tablePrefix
+#' @param databaseTable databaseTable
 #'
 #' @return
 #' the PLE forest plot content server
 #' 
 #' @export
-estimationForestPlotServer <- function(id, connection, selectedRow, inputParams, metaAnalysisDbIds = NULL) {
+estimationForestPlotServer <- function(
+  id, connection, selectedRow, inputParams, metaAnalysisDbIds = NULL,
+  resultsSchema,
+  tablePrefix,
+  databaseTable
+  ) {
   
   shiny::moduleServer(
     id,
@@ -65,6 +73,9 @@ estimationForestPlotServer <- function(id, connection, selectedRow, inputParams,
           return(NULL)
         } else {
           results <- getEstimationMainResults(connection = connection,
+                                              resultsSchema = resultsSchema,
+                                              tablePrefix = tablePrefix,
+                                              databaseTable = databaseTable,
                                               targetIds = row$targetId,
                                               comparatorIds = row$comparatorId,
                                               outcomeIds = row$outcomeId,

@@ -79,13 +79,15 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
       
       balance <- shiny::reactive({
         row <- selectedRow()
-        balance <- getEstimationCovariateBalance(connection = connection,
+        balance <- tryCatch({getEstimationCovariateBalance(connection = connection,
                                                  resultsSchema = resultsSchema,
                                                  tablePrefix = tablePrefix,
                                                  targetId = inputParams()$target,
                                                  comparatorId = inputParams()$comparator,
                                                  databaseId = row$databaseId,
-                                                 analysisId = row$analysisId)
+                                                 analysisId = row$analysisId)},
+                            error = function(e){return(NULL)}
+        )
         return(balance)
       })
       
@@ -178,9 +180,12 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
           return(NULL)
         } else {
           balanceSummary <- getEstimationCovariateBalanceSummary(connection = connection,
-                                                                 targetId = row$targetId,
-                                                                 comparatorId = row$comparatorId,
+                                                                 resultsSchema = resultsSchema,
+                                                                 tablePrefix = tablePrefix,  
+                                                                 targetId = inputParams()$target,
+                                                                 comparatorId = inputParams()$comparator,
                                                                  analysisId = row$analysisId,
+                                                                 databaseId = row$analysisId,
                                                                  beforeLabel = paste("Before", row$psStrategy),
                                                                  afterLabel = paste("After", row$psStrategy))
           plot <- plotEstimationCovariateBalanceSummary(balanceSummary,

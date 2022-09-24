@@ -674,7 +674,11 @@ getEstimationPropensityModel <- function(connection, resultsSchema, tablePrefix,
 }
 
 
-getEstimationCovariateBalanceSummary <- function(connection, targetId, comparatorId, analysisId,
+getEstimationCovariateBalanceSummary <- function(connection, 
+                                                 resultsSchema,
+                                                 tablePrefix,
+                                                 databaseId,
+                                                 targetId, comparatorId, analysisId,
                                                  beforeLabel = "Before matching",
                                                  afterLabel = "After matching") {
   
@@ -682,11 +686,14 @@ getEstimationCovariateBalanceSummary <- function(connection, targetId, comparato
                                            targetId = targetId,
                                            comparatorId = comparatorId,
                                            analysisId = analysisId,
+                                           resultsSchema,
+                                           tablePrefix,
+                                           databaseId = databaseId,
                                            outcomeId = NULL)
   balanceBefore <- balance %>%
     dplyr::group_by(.data$databaseId) %>%
     dplyr::summarise(covariateCount = dplyr::n(),
-                     qs = stats::quantile(.data$beforeMatchingStdDiff, c(0, 0.25, 0.5, 0.75, 1)), prob = c("ymin", "lower", "median", "upper", "ymax")) %>%
+                     qs = stats::quantile(.data$absBeforeMatchingStdDiff, c(0, 0.25, 0.5, 0.75, 1)), prob = c("ymin", "lower", "median", "upper", "ymax")) %>%
     tidyr::spread(key = "prob", value = "qs")
   balanceBefore[, "type"] <- beforeLabel
   balanceAfter <-  balance %>%
