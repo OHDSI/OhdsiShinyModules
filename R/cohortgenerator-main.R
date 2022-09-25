@@ -110,7 +110,8 @@ cohortGeneratorServer <- function(
       output$cohortCounts <- DT::renderDataTable({
         data <- getCohortGeneratorCohortCounts(
           connection = connection, 
-          resultsSchema = resultsSchema
+          resultsSchema = resultsSchema,
+          tablePrefix = resultDatabaseSettings$tablePrefix
           )
         data
       })
@@ -118,14 +119,16 @@ cohortGeneratorServer <- function(
       output$cohortGeneration <- DT::renderDataTable({
         data <- getCohortGeneratorCohortMeta(
           connection = connection, 
-          resultsSchema = resultsSchema
+          resultsSchema = resultsSchema,
+          tablePrefix = resultDatabaseSettings$tablePrefix
           )
         data
       })
       
       inclusionStats <- getCohortGeneratorCohortInclusionStats(
         connection = connection, 
-        resultsSchema = resultsSchema
+        resultsSchema = resultsSchema,
+        tablePrefix = resultDatabaseSettings$tablePrefix
       )
       output$inclusionStats <- reactable::renderReactable({
         reactable::reactable(
