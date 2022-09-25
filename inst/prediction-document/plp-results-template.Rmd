@@ -3,7 +3,7 @@
 ---
 
 ```{r results='asis', echo=FALSE}
-cat('\n### ', result$database, '\n')
+cat('\n ',paste0('Validation on ', result$database), '\n')
 ```
 
 #### Attrition

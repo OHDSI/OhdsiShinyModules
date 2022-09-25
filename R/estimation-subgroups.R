@@ -29,7 +29,7 @@ estimationSubgroupsViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    uiOutput(outputId = ns("subgroupTableCaption")),
+    shiny::uiOutput(outputId = ns("subgroupTableCaption")),
     DT::dataTableOutput(outputId = ns("subgroupTable"))
   )
 }
@@ -40,12 +40,15 @@ estimationSubgroupsViewer <- function(id) {
 #' @param id the unique reference id for the module
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
+#' @param exposureOfInterest exposureOfInterest
+#' @param outcomeOfInterest outcomeOfInterest
+#' @param connection connection
 #'
 #' @return
 #' the PLE subgroup results server
 #' 
 #' @export
-estimationSubgroupsServer <- function(id, selectedRow, inputParams) {
+estimationSubgroupsServer <- function(id, selectedRow, inputParams, exposureOfInterest, outcomeOfInterest, connection) {
   
   shiny::moduleServer(
     id,

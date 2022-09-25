@@ -90,6 +90,21 @@ predictionDesignSummaryServer <- function(
               name = "Num. Development Databases",
               sortable = TRUE
             ),
+            minAuroc = reactable::colDef(
+              name = "min AUROC",
+              sortable = TRUE,
+              format = reactable::colFormat(digits = 3)
+              ),
+            meanAuroc = reactable::colDef(
+              name = "mean AUROC",
+              sortable = TRUE,
+              format = reactable::colFormat(digits = 3)
+            ),
+            maxAuroc = reactable::colDef(
+              name = "max AUROC",
+              sortable = TRUE,
+              format = reactable::colFormat(digits = 3)
+            ),
             valDatabases = reactable::colDef(
               name = "Num. Validation Databases",
               sortable = TRUE
@@ -148,7 +163,7 @@ predictionDesignSummaryServer <- function(
       
       shiny::observeEvent(input$show_details, {
         #print(designSummaryTable$modelDesignId[input$show_details$index])
-        if(designSummaryTable$devDatabases[input$show_diagnostic$index] > 0){
+        if(designSummaryTable$devDatabases[input$show_details$index] > 0){
           modelDesignId(NULL)
           modelDesignId(designSummaryTable$modelDesignId[input$show_details$index])
         } else{
@@ -194,6 +209,8 @@ predictionDesignSummaryServer <- function(
 getDesignSummary <- function(con, mySchema, targetDialect, myTableAppend = '' ){
   ParallelLogger::logInfo("getting model design summary")
   
+  shiny::withProgress(message = 'Generating model design summary', value = 0, {
+    
   sql <- "SELECT 
           model_designs.model_design_id, 
           targets.cohort_name AS target, 
@@ -204,6 +221,9 @@ getDesignSummary <- function(con, mySchema, targetDialect, myTableAppend = '' ){
           tars.tar_end_anchor,
           COUNT(distinct diag.database_id) as diag_databases,
           COUNT(distinct d.database_id) dev_databases,
+          MIN(p.value) min_AUROC,
+          AVG(p.value) mean_AUROC,
+          MAX(p.value) max_AUROC,
           COUNT(distinct v.database_id) val_databases
 
        FROM 
@@ -211,6 +231,9 @@ getDesignSummary <- function(con, mySchema, targetDialect, myTableAppend = '' ){
           @my_schema.@my_table_appendperformances AS results
             
            on model_designs.model_design_id = results.model_design_id
+           
+        LEFT JOIN (select * from @my_schema.@my_table_appendEVALUATION_STATISTICS where EVALUATION = 'Test' and METRIC = 'AUROC') p
+           on p.performance_id = results.performance_id
              
         LEFT JOIN (SELECT cohort_id, cohort_name FROM @my_schema.@my_table_appendcohorts) AS targets ON model_designs.target_id = targets.cohort_id
         LEFT JOIN (SELECT cohort_id, cohort_name FROM @my_schema.@my_table_appendcohorts) AS outcomes ON model_designs.outcome_id = outcomes.cohort_id
@@ -230,14 +253,21 @@ getDesignSummary <- function(con, mySchema, targetDialect, myTableAppend = '' ){
                            my_schema = mySchema,
                            my_table_append = myTableAppend)
   
+  shiny::incProgress(1/3, detail = paste("Extracting data"))
+  
   sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
   
   summaryTable <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
   
+  shiny::incProgress(2/3, detail = paste("Extracted data"))
+  
   colnames(summaryTable) <- SqlRender::snakeCaseToCamelCase(colnames(summaryTable))
-  
-  
+
   summaryTable <- editTar(summaryTable)
+  
+  shiny::incProgress(3/3, detail = paste("Finished"))
+  
+  })
   
   
   return(summaryTable)

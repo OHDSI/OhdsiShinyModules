@@ -30,26 +30,26 @@ estimationCovariateBalanceViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    conditionalPanel(condition = "output.isMetaAnalysis == false",
+    shiny::conditionalPanel(condition = "output.isMetaAnalysis == false",
                      ns = ns,
-                     uiOutput(outputId = ns("hoverInfoBalanceScatter")),
-                     plotOutput(outputId = ns("balancePlot"),
-                                hover = hoverOpts(id = ns("plotHoverBalanceScatter"), delay = 100, delayType = "debounce")),
-                     uiOutput(outputId = ns("balancePlotCaption")),
-                     div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
-                         downloadButton(outputId = ns("downloadBalancePlotPng"),
+                     shiny::uiOutput(outputId = ns("hoverInfoBalanceScatter")),
+                     shiny::plotOutput(outputId = ns("balancePlot"),
+                                hover = shiny::hoverOpts(id = ns("plotHoverBalanceScatter"), delay = 100, delayType = "debounce")),
+                     shiny::uiOutput(outputId = ns("balancePlotCaption")),
+                     shiny::div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
+                                shiny::downloadButton(outputId = ns("downloadBalancePlotPng"),
                                         label = "Download plot as PNG"),
-                         downloadButton(outputId = ns("downloadBalancePlotPdf"),
+                                shiny::downloadButton(outputId = ns("downloadBalancePlotPdf"),
                                         label = "Download plot as PDF"))
     ),
-    conditionalPanel(condition = "output.isMetaAnalysis == true",
+    shiny::conditionalPanel(condition = "output.isMetaAnalysis == true",
                      ns = ns,
-                     plotOutput(outputId = ns("balanceSummaryPlot")),
-                     uiOutput(outputId = ns("balanceSummaryPlotCaption")),
-                     div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
-                         downloadButton(outputId = ns("downloadBalanceSummaryPlotPng"),
+                     shiny::plotOutput(outputId = ns("balanceSummaryPlot")),
+                     shiny::uiOutput(outputId = ns("balanceSummaryPlotCaption")),
+                     shiny::div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
+                                shiny::downloadButton(outputId = ns("downloadBalanceSummaryPlotPng"),
                                         label = "Download plot as PNG"),
-                         downloadButton(outputId = ns("downloadBalanceSummaryPlotPdf"),
+                                shiny::downloadButton(outputId = ns("downloadBalanceSummaryPlotPdf"),
                                         label = "Download plot as PDF")
                      ))
   )
@@ -63,12 +63,14 @@ estimationCovariateBalanceViewer <- function(id) {
 #' @param inputParams  the selected study parameters of interest
 #' @param connection the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
+#' @param tablePrefix tablePrefix
+#' @param metaAnalysisDbIds metaAnalysisDbIds
 #'
 #' @return
 #' the PLE covariate balance content server
 #' 
 #' @export
-estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix) {
+estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, metaAnalysisDbIds = NULL) {
   
   shiny::moduleServer(
     id,
@@ -77,13 +79,15 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
       
       balance <- shiny::reactive({
         row <- selectedRow()
-        balance <- getEstimationCovariateBalance(connection = connection,
+        balance <- tryCatch({getEstimationCovariateBalance(connection = connection,
                                                  resultsSchema = resultsSchema,
                                                  tablePrefix = tablePrefix,
                                                  targetId = inputParams()$target,
                                                  comparatorId = inputParams()$comparator,
                                                  databaseId = row$databaseId,
-                                                 analysisId = row$analysisId)
+                                                 analysisId = row$analysisId)},
+                            error = function(e){return(NULL)}
+        )
         return(balance)
       })
       
@@ -142,7 +146,7 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
         } else {
           row <- selectedRow()
           hover <- input$plotHoverBalanceScatter
-          point <- nearPoints(balance(), hover, threshold = 5, maxpoints = 1, addDist = TRUE)
+          point <- shiny::nearPoints(balance(), hover, threshold = 5, maxpoints = 1, addDist = TRUE)
           if (nrow(point) == 0) {
             return(NULL)
           }
@@ -176,9 +180,12 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
           return(NULL)
         } else {
           balanceSummary <- getEstimationCovariateBalanceSummary(connection = connection,
-                                                                 targetId = row$targetId,
-                                                                 comparatorId = row$comparatorId,
+                                                                 resultsSchema = resultsSchema,
+                                                                 tablePrefix = tablePrefix,  
+                                                                 targetId = inputParams()$target,
+                                                                 comparatorId = inputParams()$comparator,
                                                                  analysisId = row$analysisId,
+                                                                 databaseId = row$analysisId,
                                                                  beforeLabel = paste("Before", row$psStrategy),
                                                                  afterLabel = paste("After", row$psStrategy))
           plot <- plotEstimationCovariateBalanceSummary(balanceSummary,

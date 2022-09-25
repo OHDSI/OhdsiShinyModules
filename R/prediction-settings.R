@@ -68,6 +68,7 @@ predictionSettingsViewer <- function(id) {
 #' @param mySchema the database schema for the model results
 #' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
+#' @param cohortTableAppend a string that appends the cohort_definition table
 #' 
 #' @return
 #' The server to the settings module
@@ -82,7 +83,8 @@ predictionSettingsServer <- function(
   con,
   inputSingleView,
   myTableAppend, 
-  targetDialect                     
+  targetDialect,
+  cohortTableAppend = myTableAppend
 ) {
   
   shiny::moduleServer(
@@ -102,7 +104,8 @@ predictionSettingsServer <- function(
             mySchema, 
             con,
             myTableAppend, 
-            targetDialect   
+            targetDialect,
+            cohortTableAppend
           )
           
           hyperParamSearch <- getHyperParamSearch(
@@ -425,11 +428,17 @@ getModelDesign <- function(
   mySchema, 
   con,
   myTableAppend, 
-  targetDialect   
+  targetDialect,
+  cohortTableAppend = myTableAppend
 ){
   if(!is.null(modelDesignId())){
     print(paste0('model design: ', modelDesignId()))
+    
+    shiny::withProgress(message = 'Extracting model design', value = 0, {
+      
     modelDesign <- list()
+    
+    shiny::incProgress(1/12, detail = paste("Extracting ids"))
     
     sql <- "SELECT * FROM 
     @my_schema.@my_table_appendmodel_designs 
@@ -458,6 +467,8 @@ getModelDesign <- function(
     plpDataSettingId <- ids$plpDataSettingId
     tidyCovariatesSettingId <- ids$tidyCovariatesSettingId
     
+    shiny::incProgress(2/12, detail = paste("Extracting model settings"))
+    
     ParallelLogger::logInfo("start modeSet")
     sql <- "SELECT * FROM @my_schema.@my_table_appendmodel_settings WHERE model_setting_id = @model_setting_id"
     sql <- SqlRender::render(sql = sql, 
@@ -472,6 +483,7 @@ getModelDesign <- function(
     
     modelDesign$modelSettings <- ParallelLogger::convertJsonToSettings(tempModSettings$modelSettingsJson)
     
+    shiny::incProgress(3/12, detail = paste("Extracting  covariate settings"))
     ParallelLogger::logInfo("start covSet")
     sql <- "SELECT * FROM @my_schema.@my_table_appendcovariate_settings WHERE covariate_setting_id = @setting_id"
     sql <- SqlRender::render(sql = sql, 
@@ -484,6 +496,7 @@ getModelDesign <- function(
     modelDesign$covariateSettings <- ParallelLogger::convertJsonToSettings(tempSettings$covariateSettingsJson)
     ParallelLogger::logInfo("end covSet")
     
+    shiny::incProgress(4/12, detail = paste("Extracting population settings"))
     ParallelLogger::logInfo("start popSet")
     sql <- "SELECT * FROM @my_schema.@my_table_appendpopulation_settings WHERE population_setting_id = @setting_id"
     sql <- SqlRender::render(sql = sql, 
@@ -496,6 +509,7 @@ getModelDesign <- function(
     modelDesign$populationSettings <- ParallelLogger::convertJsonToSettings(tempSettings$populationSettingsJson)
     ParallelLogger::logInfo("end popSet")
     
+    shiny::incProgress(5/12, detail = paste("Extracting feature engineering settingd"))
     ParallelLogger::logInfo("start feSet")
     sql <- "SELECT * FROM @my_schema.@my_table_appendfeature_engineering_settings WHERE feature_engineering_setting_id = @setting_id"
     sql <- SqlRender::render(sql = sql, 
@@ -508,6 +522,7 @@ getModelDesign <- function(
     modelDesign$featureEngineeringSettings <- tempSettings$featureEngineeringSettingsJson
     ParallelLogger::logInfo("end feSet")
     
+    shiny::incProgress(6/12, detail = paste("Extracting tidy covariate settings"))
     ParallelLogger::logInfo("start tidySet")
     sql <- "SELECT * FROM @my_schema.@my_table_appendtidy_covariates_settings WHERE tidy_covariates_setting_id = @setting_id"
     sql <- SqlRender::render(sql = sql, 
@@ -520,6 +535,7 @@ getModelDesign <- function(
     modelDesign$preprocessSettings <- tempSettings$tidyCovariatesSettingsJson
     ParallelLogger::logInfo("end tidySet")
     
+    shiny::incProgress(7/12, detail = paste("Extracting restrict plp settings"))
     ParallelLogger::logInfo("start RestrictPlpData")
     sql <- "SELECT * FROM @my_schema.@my_table_appendplp_data_settings WHERE plp_data_setting_id = @setting_id"
     sql <- SqlRender::render(sql = sql, 
@@ -532,7 +548,7 @@ getModelDesign <- function(
     modelDesign$RestrictPlpData <- tempSettings$plpDataSettingsJson
     ParallelLogger::logInfo("end RestrictPlpData")
     
-    
+    shiny::incProgress(8/12, detail = paste("Extracting sample settings"))
     ParallelLogger::logInfo("start sampleSet")
     sql <- "SELECT * FROM @my_schema.@my_table_appendsample_settings WHERE sample_setting_id = @setting_id"
     sql <- SqlRender::render(sql = sql, 
@@ -545,6 +561,7 @@ getModelDesign <- function(
     modelDesign$sampleSettings <- tempSettings$sampleSettingsJson
     ParallelLogger::logInfo("end sampleSet")
     
+    shiny::incProgress(9/12, detail = paste("Extracting split settings"))
     ParallelLogger::logInfo("start splitSet")
     sql <- "SELECT * FROM @my_schema.@my_table_appendsplit_settings WHERE split_setting_id = @setting_id"
     sql <- SqlRender::render(sql = sql, 
@@ -557,29 +574,49 @@ getModelDesign <- function(
     modelDesign$splitSettings <- tempSettings$splitSettingsJson
     ParallelLogger::logInfo("end splitSet")
     
+    shiny::incProgress(10/12, detail = paste("Extracting target cohort"))
     ParallelLogger::logInfo("start cohort")
-    sql <- "SELECT * FROM @my_schema.@my_table_appendcohorts WHERE cohort_id = @setting_id"
-    sql <- SqlRender::render(sql = sql, 
-                             my_schema = mySchema,
-                             setting_id = tId,
-                             my_table_append = myTableAppend)
+    sql <- "SELECT c.*, cd.json as cohort_json
+    FROM @my_schema.@my_table_appendcohorts c inner join
+    @my_schema.@cohort_table_appendcohort_definition cd
+    on c.cohort_definition_id = cd.cohort_definition_id
+    WHERE c.cohort_id = @setting_id"
+    sql <- SqlRender::render(
+      sql = sql, 
+      my_schema = mySchema,
+      setting_id = tId,
+      my_table_append = myTableAppend,
+      cohort_table_append = cohortTableAppend
+    )
     sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
     tempSettings <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
     colnames(tempSettings) <- SqlRender::snakeCaseToCamelCase(colnames(tempSettings))
     modelDesign$cohort <- tempSettings
     ParallelLogger::logInfo("end cohort")
     
+    shiny::incProgress(11/12, detail = paste("Extracting outcome cohort"))
     ParallelLogger::logInfo("start outcome")
-    sql <- "SELECT * FROM @my_schema.@my_table_appendcohorts WHERE cohort_id = @setting_id"
-    sql <- SqlRender::render(sql = sql, 
-                             my_schema = mySchema,
-                             setting_id = oId,
-                             my_table_append = myTableAppend)
+    sql <- "SELECT c.*, cd.json as cohort_json
+    FROM @my_schema.@my_table_appendcohorts c inner join
+    @my_schema.@cohort_table_appendcohort_definition cd
+    on c.cohort_definition_id = cd.cohort_definition_id
+    WHERE c.cohort_id = @setting_id"
+    sql <- SqlRender::render(
+      sql = sql, 
+      my_schema = mySchema,
+      setting_id = oId,
+      my_table_append = myTableAppend,
+      cohort_table_append = cohortTableAppend
+    )
     sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
     tempSettings <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
     colnames(tempSettings) <- SqlRender::snakeCaseToCamelCase(colnames(tempSettings))
     modelDesign$outcome <- tempSettings
     ParallelLogger::logInfo("end outcome")
+    
+    shiny::incProgress(12/12, detail = paste("Finished"))
+    
+    })
     
     return(modelDesign)
   }
@@ -655,7 +692,7 @@ formatModSettings <- function(modelSettings){
 # format covariateSettings
 formatCovSettings <- function(covariateSettings){
   
-  if(class(covariateSettings)=='covariateSettings'){
+  if(inherits(covariateSettings, 'covariateSettings')){
     covariateSettings <- list(covariateSettings)
   }
   

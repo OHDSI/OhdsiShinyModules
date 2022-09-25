@@ -29,25 +29,25 @@ estimationSystematicErrorViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    plotOutput(outputId = ns("systematicErrorPlot")),
-    div(strong("Figure 4."),"Systematic error. Effect size estimates for the negative controls (true hazard ratio = 1)
+    shiny::plotOutput(outputId = ns("systematicErrorPlot")),
+    shiny::div(shiny::strong("Figure 4."),"Systematic error. Effect size estimates for the negative controls (true hazard ratio = 1)
                                                                                     and positive controls (true hazard ratio > 1), before and after calibration. Estimates below the diagonal dashed
                                                                                     lines are statistically significant (alpha = 0.05) different from the true effect size. A well-calibrated
                                                                                     estimator should have the true effect size within the 95 percent confidence interval 95 percent of times."),
-    div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
-        downloadButton(outputId = ns("downloadSystematicErrorPlotPng"),
+    shiny::div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
+               shiny::downloadButton(outputId = ns("downloadSystematicErrorPlotPng"),
                        label = "Download plot as PNG"),
-        downloadButton(outputId = ns("downloadSystematicErrorPlotPdf"),
+               shiny::downloadButton(outputId = ns("downloadSystematicErrorPlotPdf"),
                        label = "Download plot as PDF")
     ),
-    conditionalPanel(condition = "output.isMetaAnalysis == true",
+    shiny::conditionalPanel(condition = "output.isMetaAnalysis == true",
                      ns = ns,
-                     plotOutput(outputId = ns("systematicErrorSummaryPlot")),
-                     div(strong("Figure 8."),"Fitted null distributions per data source."),
-                     div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
-                         downloadButton(outputId = ns("downloadSystematicErrorSummaryPlotPng"),
+                     shiny::plotOutput(outputId = ns("systematicErrorSummaryPlot")),
+                     shiny::div(shiny::strong("Figure 8."),"Fitted null distributions per data source."),
+                     shiny::div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
+                                shiny::downloadButton(outputId = ns("downloadSystematicErrorSummaryPlotPng"),
                                         label = "Download plot as PNG"),
-                         downloadButton(outputId = ns("downloadSystematicErrorSummaryPlotPdf"),
+                                shiny::downloadButton(outputId = ns("downloadSystematicErrorSummaryPlotPdf"),
                                         label = "Download plot as PDF")))
   )
 }
@@ -61,12 +61,14 @@ estimationSystematicErrorViewer <- function(id) {
 #' @param inputParams  the selected study parameters of interest
 #' @param connection the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
+#' @param tablePrefix tablePrefix
+#' @param metaAnalysisDbIds metaAnalysisDbIds
 #'
 #' @return
 #' the PLE systematic error content server
 #' 
 #' @export
-estimationSystematicErrorServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix) {
+estimationSystematicErrorServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, metaAnalysisDbIds = NULL) {
   
   shiny::moduleServer(
     id,
@@ -124,7 +126,7 @@ estimationSystematicErrorServer <- function(id, selectedRow, inputParams, connec
           return(NULL)
         } else {
           negativeControls <- getEstimationNegativeControlEstimates(connection = connection,
-                                                                    resultsSchema = resultsSchema,
+                                                                    #resultsSchema = resultsSchema, unused argument
                                                                     targetId = inputParams()$target,
                                                                     comparatorId = inputParams()$comparator,
                                                                     analysisId =  row$analysisId)
