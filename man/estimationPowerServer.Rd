@@ -4,7 +4,15 @@
 \alias{estimationPowerServer}
 \title{The module server for rendering the PLE power analysis results}
 \usage{
-estimationPowerServer(id, selectedRow, inputParams, connection, resultsSchema)
+estimationPowerServer(
+  id,
+  selectedRow,
+  inputParams,
+  connection,
+  resultsSchema,
+  tablePrefix,
+  metaAnalysisDbIds = NULL
+)
 }
 \arguments{
 \item{id}{the unique reference id for the module}
@@ -16,6 +24,10 @@ estimationPowerServer(id, selectedRow, inputParams, connection, resultsSchema)
 \item{connection}{the connection to the PLE results database}
 
 \item{resultsSchema}{the schema with the PLE results}
+
+\item{tablePrefix}{tablePrefix}
+
+\item{metaAnalysisDbIds}{metaAnalysisDbIds}
 }
 \value{
 the PLE systematic error power server

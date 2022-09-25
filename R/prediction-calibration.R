@@ -276,6 +276,8 @@ plotDemographicSummary <- function(
   type = NULL
 ){
   if (!all(is.na(demographicSummary$averagePredictedProbability))){
+    # remove spaces
+    demographicSummary$evaluation <- gsub(' ', '', demographicSummary$evaluation)
     
     ind <- 1:nrow(demographicSummary)
     if(is.null(type)){
@@ -329,17 +331,17 @@ plotDemographicSummary <- function(
     ci$upper <- ci$averagePredictedProbability+1.96*ci$stDevPredictedProbability
     ci$upper[ci$upper >1] <- max(ci$upper[ci$upper <1])
     
-    x$age <- gsub('Age group:','', x$ageGroup)
+    x$age <- gsub(' ' ,'', gsub('Age group:','', x$ageGroup))
     x$age <- factor(
       x$age,
       levels = c(
-        " 0-4"," 5-9"," 10-14",
-        " 15-19"," 20-24"," 25-29",
-        " 30-34"," 35-39"," 40-44",
-        " 45-49"," 50-54"," 55-59",
-        " 60-64"," 65-69"," 70-74",
-        " 75-79"," 80-84"," 85-89",
-        " 90-94"," 95-99","-1"
+        "0-4","5-9","10-14",
+        "15-19","20-24","25-29",
+        "30-34","35-39","40-44",
+        "45-49","50-54","55-59",
+        "60-64","65-69","70-74",
+        "75-79","80-84","85-89",
+        "90-94","95-99","-1"
       ),
       ordered = TRUE
     )

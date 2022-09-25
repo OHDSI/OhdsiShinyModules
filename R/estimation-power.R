@@ -45,12 +45,14 @@ estimationPowerViewer <- function(id) {
 #' @param inputParams  the selected study parameters of interest
 #' @param connection the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
+#' @param tablePrefix tablePrefix
+#' @param metaAnalysisDbIds metaAnalysisDbIds
 #'
 #' @return
 #' the PLE systematic error power server
 #' 
 #' @export
-estimationPowerServer <- function(id, selectedRow, inputParams, connection, resultsSchema) {
+estimationPowerServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, metaAnalysisDbIds = NULL) {
   
   shiny::moduleServer(
     id,
@@ -102,7 +104,7 @@ estimationPowerServer <- function(id, selectedRow, inputParams, connection, resu
                                  "Comparator IR (per 1,000 PY)",
                                  "MDRR")
           } else {
-            table <- prepareEstimationPowerTable(row, connection, resultsSchema)
+            table <- prepareEstimationPowerTable(row, connection, resultsSchema, tablePrefix)
             table$description <- NULL
             table$databaseId <- NULL
             if (!row$unblind) {
@@ -144,15 +146,16 @@ estimationPowerServer <- function(id, selectedRow, inputParams, connection, resu
         } else {
           if (FALSE && row$databaseId %in% metaAnalysisDbIds) {
             # TODO: update when MA implemented
-            followUpDist <- getCmFollowUpDist(cmFollowUpDist = cmFollowUpDist,
+            followUpDist <- getCmFollowUpDist(#cmFollowUpDist = cmFollowUpDist,
                                               connection = connection,
-                                              targetId = targetId,
-                                              comparatorId = comparatorId,
-                                              outcomeId = outcomeId,
+                                              targetId = inputParams()$target,
+                                              comparatorId = inputParams()$comparator,
+                                              outcomeId = inputParams()$outcome,
                                               analysisId = row$analysisId)
           } else {
             followUpDist <- getCmFollowUpDist(connection = connection,
-                                              resultsSchema,
+                                              resultsSchema = resultsSchema,
+                                              tablePrefix = tablePrefix,
                                               targetId = inputParams()$target,
                                               comparatorId = inputParams()$comparator,
                                               outcomeId = inputParams()$outcome,

@@ -4,13 +4,15 @@ shiny::testServer(
   app = predictionServer, 
   args = list(
     resultDatabaseSettings = list(
-      targetDialect = targetDialectTest,
-      myServer = server,
-      myUser = NULL,
-      myPassword = NULL,
-      myPort = NULL,
-      myTableAppend = myTableAppendTest,
-      mySchema = mySchemaTest
+      dbms = dbmsTest,
+      server = serverPlp,
+      user = NULL,
+      password = NULL,
+      port = NULL,
+      tablePrefix = tablePrefixTest,
+      cohortTablePrefix = tablePrefixTest,
+      databaseTablePrefix = tablePrefixTest,
+      schema = schemaTest
     )
   ), 
   expr = {

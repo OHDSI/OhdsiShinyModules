@@ -9,7 +9,8 @@ estimationPopulationCharacteristicsServer(
   selectedRow,
   inputParams,
   connection,
-  resultsSchema
+  resultsSchema,
+  tablePrefix
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ estimationPopulationCharacteristicsServer(
 \item{connection}{the connection to the PLE results database}
 
 \item{resultsSchema}{the schema with the PLE results}
+
+\item{tablePrefix}{tablePrefix}
 }
 \value{
 the PLE population characteristics content server

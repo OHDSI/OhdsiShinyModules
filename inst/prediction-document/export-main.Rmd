@@ -12,6 +12,8 @@ params:
   resultSchema: "plp_results"
   targetDialect: "redshift"
   myTableAppend: ""
+  databaseTableAppend: ""
+  cohortTableAppend: ""
   modelDesignIds: 1
 output: 
   html_document:

@@ -68,6 +68,7 @@ predictionSettingsViewer <- function(id) {
 #' @param mySchema the database schema for the model results
 #' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
+#' @param cohortTableAppend a string that appends the cohort_definition table
 #' 
 #' @return
 #' The server to the settings module
@@ -82,7 +83,8 @@ predictionSettingsServer <- function(
   con,
   inputSingleView,
   myTableAppend, 
-  targetDialect                     
+  targetDialect,
+  cohortTableAppend = myTableAppend
 ) {
   
   shiny::moduleServer(
@@ -102,7 +104,8 @@ predictionSettingsServer <- function(
             mySchema, 
             con,
             myTableAppend, 
-            targetDialect   
+            targetDialect,
+            cohortTableAppend
           )
           
           hyperParamSearch <- getHyperParamSearch(
@@ -425,7 +428,8 @@ getModelDesign <- function(
   mySchema, 
   con,
   myTableAppend, 
-  targetDialect   
+  targetDialect,
+  cohortTableAppend = myTableAppend
 ){
   if(!is.null(modelDesignId())){
     print(paste0('model design: ', modelDesignId()))
@@ -572,11 +576,18 @@ getModelDesign <- function(
     
     shiny::incProgress(10/12, detail = paste("Extracting target cohort"))
     ParallelLogger::logInfo("start cohort")
-    sql <- "SELECT * FROM @my_schema.@my_table_appendcohorts WHERE cohort_id = @setting_id"
-    sql <- SqlRender::render(sql = sql, 
-                             my_schema = mySchema,
-                             setting_id = tId,
-                             my_table_append = myTableAppend)
+    sql <- "SELECT c.*, cd.json as cohort_json
+    FROM @my_schema.@my_table_appendcohorts c inner join
+    @my_schema.@cohort_table_appendcohort_definition cd
+    on c.cohort_definition_id = cd.cohort_definition_id
+    WHERE c.cohort_id = @setting_id"
+    sql <- SqlRender::render(
+      sql = sql, 
+      my_schema = mySchema,
+      setting_id = tId,
+      my_table_append = myTableAppend,
+      cohort_table_append = cohortTableAppend
+    )
     sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
     tempSettings <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
     colnames(tempSettings) <- SqlRender::snakeCaseToCamelCase(colnames(tempSettings))
@@ -585,11 +596,18 @@ getModelDesign <- function(
     
     shiny::incProgress(11/12, detail = paste("Extracting outcome cohort"))
     ParallelLogger::logInfo("start outcome")
-    sql <- "SELECT * FROM @my_schema.@my_table_appendcohorts WHERE cohort_id = @setting_id"
-    sql <- SqlRender::render(sql = sql, 
-                             my_schema = mySchema,
-                             setting_id = oId,
-                             my_table_append = myTableAppend)
+    sql <- "SELECT c.*, cd.json as cohort_json
+    FROM @my_schema.@my_table_appendcohorts c inner join
+    @my_schema.@cohort_table_appendcohort_definition cd
+    on c.cohort_definition_id = cd.cohort_definition_id
+    WHERE c.cohort_id = @setting_id"
+    sql <- SqlRender::render(
+      sql = sql, 
+      my_schema = mySchema,
+      setting_id = oId,
+      my_table_append = myTableAppend,
+      cohort_table_append = cohortTableAppend
+    )
     sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
     tempSettings <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
     colnames(tempSettings) <- SqlRender::snakeCaseToCamelCase(colnames(tempSettings))
@@ -674,7 +692,7 @@ formatModSettings <- function(modelSettings){
 # format covariateSettings
 formatCovSettings <- function(covariateSettings){
   
-  if(class(covariateSettings)=='covariateSettings'){
+  if(inherits(covariateSettings, 'covariateSettings')){
     covariateSettings <- list(covariateSettings)
   }
   

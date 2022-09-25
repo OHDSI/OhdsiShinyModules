@@ -1,145 +1,118 @@
 
-loadEstimationData <- function(dataFolder) {
-  positiveControlOutcome <- NULL
-  
-  splittableTables <- c("covariate_balance", "preference_score_dist", "kaplan_meier_dist")
-  
-  files <- list.files(dataFolder, pattern = ".rds")
-  
-  # Find part to remove from all file names (usually databaseId):
-  databaseFileName <- files[grepl("^database", files)]
-  removeParts <- paste0(gsub("database", "", databaseFileName), "$")
-  
-  # Remove data already in global environment:
-  for (removePart in removeParts) {
-    tableNames <- gsub("_t[0-9]+_c[0-9]+$", "", gsub(removePart, "", files[grepl(removePart, files)]))
-    camelCaseNames <- SqlRender::snakeCaseToCamelCase(tableNames)
-    camelCaseNames <- unique(camelCaseNames)
-    camelCaseNames <- camelCaseNames[!(camelCaseNames %in% SqlRender::snakeCaseToCamelCase(splittableTables))]
-    suppressWarnings(
-      rm(list = camelCaseNames)
-    )
-  }
-  
-  # Load data from data folder. R data objects will get names derived from the filename:
-  loadFile <- function(file, removePart) {
-    tableName <- gsub("_t[0-9]+_c[0-9]+$", "", gsub(removePart, "", file))
-    camelCaseName <- SqlRender::snakeCaseToCamelCase(tableName)
-    if (!(tableName %in% splittableTables)) {
-      newData <- readRDS(file.path(dataFolder, file))
-      colnames(newData) <- SqlRender::snakeCaseToCamelCase(colnames(newData))
-      if (exists(camelCaseName, envir = .GlobalEnv)) {
-        existingData <- get(camelCaseName, envir = .GlobalEnv)
-        newData$tau <- NULL
-        newData$traditionalLogRr <- NULL
-        newData$traditionalSeLogRr <- NULL
-        if (!all(colnames(newData) %in% colnames(existingData))) {
-          stop(sprintf("Columns names do not match in %s. \nObserved:\n %s, \nExpecting:\n %s",
-                       file,
-                       paste(colnames(newData), collapse = ", "),
-                       paste(colnames(existingData), collapse = ", ")))
-          
-        }
-        newData <- dplyr::bind_rows(existingData, newData)
-        newData <- unique(newData)
-      }
-      assign(camelCaseName, newData, envir = .GlobalEnv)
-    }
-    invisible(NULL)
-  }
-  # removePart <- removeParts[3]
-  file <- files[grepl(removePart, files)][1]
-  for (removePart in removeParts) {
-    invisible(lapply(files[grepl(removePart, files)], loadFile, removePart))
-  }
-  
-  # tcos <- unique(cohortMethodResult[, c("targetId", "comparatorId", "outcomeId")])
-  # tcos <- tcos[tcos$outcomeId %in% outcomeOfInterest$outcomeId, ]
-  # assign("tcos", tcos, envir = .GlobalEnv)
-  metaAnalysisDbIds <- database$databaseId[database$isMetaAnalysis == 1]
-  assign("metaAnalysisDbIds", metaAnalysisDbIds, envir = .GlobalEnv)
-  
-  
-  
+getCohortNameFromId <- function(connection, resultsSchema, cohortTablePrefix, cohortId) {
+  sql <- "
+  SELECT
+  cohort_name
+  FROM
+   @results_schema.@cohort_table_prefixcohort_definition cd
+  WHERE
+  cd.cohort_definition_id = @cohort_id
+  "
+  return(
+    DatabaseConnector::renderTranslateQuerySql(connection, sql,
+                                               snakeCaseToCamelCase = TRUE,
+                                               results_schema = resultsSchema,
+                                               cohort_table_prefix = cohortTablePrefix,
+                                               cohort_id = cohortId)
+  )
 }
 
 
-getEstimationTcoChoice <- function(connection, resultsSchema, tcoVar) {
+getEstimationTcoChoice <- function(connection, resultsSchema, tablePrefix, cohortTablePrefix, tcoVar, sorted = TRUE) {
   sql <- "
   SELECT
   DISTINCT
   cmtco.@tco_var,
   cd.cohort_name
 FROM
-  @results_schema.cm_target_comparator_outcome cmtco
-  join @results_schema.cg_cohort_definition cd on cmtco.@tco_var = cd.cohort_definition_id;
+  @results_schema.@table_prefixtarget_comparator_outcome cmtco
+  join @results_schema.@cohort_table_prefixcohort_definition cd on cmtco.@tco_var = cd.cohort_definition_id
   "
+  
+  if (sorted) {
+    sql <- paste(sql, "ORDER BY\n cd.cohort_name desc", collapse = "\n")
+  }
+  
   return(
     DatabaseConnector::renderTranslateQuerySql(connection, sql,
                                                snakeCaseToCamelCase = TRUE,
                                                results_schema = resultsSchema,
+                                               table_prefix = tablePrefix,
+                                               cohort_table_prefix = cohortTablePrefix,
                                                tco_var = tcoVar)
   )
 }
 
 
-getEstimationTargetChoices <- function(connection, resultsSchema) {
+getEstimationTargetChoices <- function(connection, resultsSchema, tablePrefix, cohortTablePrefix) {
   return(
-    getEstimationTcoChoice(connection, resultsSchema, "target_id")
+    getEstimationTcoChoice(connection, resultsSchema, tablePrefix, cohortTablePrefix, "target_id")
   )
 }
 
 
-getEstimationComparatorChoices <- function(connection, resultsSchema) {
+getEstimationComparatorChoices <- function(connection, resultsSchema, tablePrefix, cohortTablePrefix) {
   return(
-    getEstimationTcoChoice(connection, resultsSchema, "comparator_id")
+    getEstimationTcoChoice(connection, resultsSchema, tablePrefix, cohortTablePrefix, "comparator_id")
   )
 }
 
 
-getEstimationOutcomeChoices <- function(connection, resultsSchema) {
+getEstimationOutcomeChoices <- function(connection, resultsSchema, tablePrefix, cohortTablePrefix) {
   return(
-    getEstimationTcoChoice(connection, resultsSchema, "outcome_id")
+    getEstimationTcoChoice(connection, resultsSchema, tablePrefix, cohortTablePrefix, "outcome_id")
   )
 }
 
 
-getEstimationDatabaseChoices <- function(connection, resultsSchema) {
+getEstimationDatabaseChoices <- function(connection, resultsSchema, tablePrefix, databaseTable, sorted = TRUE) {
   sql <- "
 SELECT
 DISTINCT
 dmd.database_id,
 dmd.cdm_source_abbreviation
 FROM
-  @results_schema.cm_result cmr
-  join @results_schema.database_meta_data dmd on dmd.database_id = cmr.database_id;
+  @results_schema.@table_prefixresult cmr
+  join @results_schema.@database_table dmd on dmd.database_id = cmr.database_id
 
   "
+  
+  if (sorted) {
+    sql <- paste(sql, "ORDER BY\n dmd.cdm_source_abbreviation desc", collapse = "\n")
+  }
   return(
     DatabaseConnector::renderTranslateQuerySql(connection, sql,
                                                snakeCaseToCamelCase = TRUE,
-                                               results_schema = resultsSchema)
+                                               results_schema = resultsSchema,
+                                               table_prefix = tablePrefix,
+                                               database_table = databaseTable)
   )
 }
 
 
-getCmAnalysisOptions <- function(connection, resultsSchema) {
+getCmAnalysisOptions <- function(connection, resultsSchema, tablePrefix, sorted = TRUE) {
   sql <- "
 SELECT
 DISTINCT
 cma.analysis_id,
 cma.description
 FROM
-  @results_schema.cm_analysis cma;
+  @results_schema.@table_prefixanalysis cma
   "
+  
+  if (sorted) {
+    sql <- paste(sql, "ORDER BY\n cma.description desc", collapse = "\n")
+  }
+  
   return(
     DatabaseConnector::renderTranslateQuerySql(connection, sql,
                                                snakeCaseToCamelCase = TRUE,
-                                               results_schema = resultsSchema)
+                                               results_schema = resultsSchema,
+                                               table_prefix = tablePrefix,)
   )
 }
 
-getAllEstimationResults <- function(connection, resultsSchema) {
+getAllEstimationResults <- function(connection, resultsSchema, tablePrefix, databaseTable) {
   sql <- "
 SELECT
   cma.analysis_id,
@@ -166,10 +139,10 @@ SELECT
   cmr.calibrated_se_log_rr,
   COALESCE(cmds.unblind, 0) unblind -- TODO: assume unblinded? (or always populated and moot)
 FROM
-  @results_schema.cm_analysis cma
-  JOIN @results_schema.cm_result cmr on cmr.analysis_id = cma.analysis_id
-  JOIN @results_schema.database_meta_data dmd on dmd.database_id = cmr.database_id
-  LEFT JOIN @results_schema.cm_diagnostics_summary cmds on cmds.analysis_id = cmr.analysis_id
+  @results_schema.@table_prefixanalysis cma
+  JOIN @results_schema.@table_prefixresult cmr on cmr.analysis_id = cma.analysis_id
+  JOIN @results_schema.@database_table dmd on dmd.database_id = cmr.database_id
+  LEFT JOIN @results_schema.@table_prefixdiagnostics_summary cmds on cmds.analysis_id = cmr.analysis_id
   "
   
   
@@ -177,13 +150,17 @@ FROM
     DatabaseConnector::renderTranslateQuerySql(connection, sql,
                                                snakeCaseToCamelCase = TRUE,
                                                warnOnMissingParameters = FALSE,
-                                               results_schema = resultsSchema)
+                                               results_schema = resultsSchema,
+                                               table_prefix = tablePrefix,
+                                               database_table = databaseTable)
   )
 }
 
 
 getEstimationMainResults <- function(connection,
                                      resultsSchema,
+                                     tablePrefix,
+                                     databaseTable,
                                      targetIds = c(),
                                      comparatorIds = c(),
                                      outcomeIds = c(),
@@ -216,10 +193,10 @@ SELECT
   cmr.calibrated_se_log_rr,
   COALESCE(cmds.unblind, 0) unblind -- TODO: assume unblinded? (or always populated and moot)
 FROM
-  @results_schema.cm_analysis cma
-  JOIN @results_schema.cm_result cmr on cmr.analysis_id = cma.analysis_id
-  JOIN @results_schema.database_meta_data dmd on dmd.database_id = cmr.database_id
-  LEFT JOIN @results_schema.cm_diagnostics_summary cmds on cmds.analysis_id = cmr.analysis_id
+  @results_schema.@table_prefixanalysis cma
+  JOIN @results_schema.@table_prefixresult cmr on cmr.analysis_id = cma.analysis_id
+  JOIN @results_schema.@database_table dmd on dmd.database_id = cmr.database_id
+  LEFT JOIN @results_schema.@table_prefixdiagnostics_summary cmds on cmds.analysis_id = cmr.analysis_id
 	AND cmds.target_id = cmr.target_id
 	AND cmds.comparator_id = cmr.comparator_id
 	AND cmds.outcome_id = cmr.outcome_id
@@ -255,6 +232,8 @@ FROM
                                                snakeCaseToCamelCase = TRUE,
                                                warnOnMissingParameters = FALSE,
                                                results_schema = resultsSchema,
+                                               table_prefix = tablePrefix,
+                                               database_table = databaseTable,
                                                target_ids = paste0("'", paste(targetIds, collapse = "', '"), "'"),
                                                comparator_ids = paste0("'", paste(comparatorIds, collapse = "', '"), "'"),
                                                outcome_ids = paste0("'", paste(outcomeIds, collapse = "', '"), "'"),
@@ -265,17 +244,18 @@ FROM
 }
 
 
-getCohortMethodAnalyses <- function(connection, resultsSchema) {
+getCohortMethodAnalyses <- function(connection, resultsSchema, tablePrefix) {
   sql <- "
   SELECT
     cma.*
   FROM
-    @results_schema.cm_analysis cma
+    @results_schema.@table_prefixanalysis cma
   "
   return(
     DatabaseConnector::renderTranslateQuerySql(connection, sql,
                                                snakeCaseToCamelCase = TRUE,
-                                               results_schema = resultsSchema)
+                                               results_schema = resultsSchema,
+                                               table_prefix = tablePrefix)
   )
 }
 
@@ -287,7 +267,10 @@ getEstimationSubgroupResults <- function(connection,
                                          databaseIds = c(),
                                          analysisIds = c(),
                                          subgroupIds = c(),
-                                         estimatesOnly = FALSE) {
+                                         estimatesOnly = FALSE,
+                                         cmInteractionResult = c(), # added to clean check
+                                         covariate = c() # added to clean check
+                                         ) {
   idx <- rep(TRUE, nrow(cmInteractionResult))
   if (length(targetIds) != 0) {
     idx <- idx & cmInteractionResult$targetId %in% targetIds
@@ -331,17 +314,17 @@ getEstimationSubgroupResults <- function(connection,
 }
 
 
-getEstimationControlResults <- function(connection, resultsSchema, targetId,
+getEstimationControlResults <- function(connection, resultsSchema, tablePrefix, targetId,
                                         comparatorId, analysisId, databaseId = NULL,
-                                        includePositiveControls = TRUE) {
+                                        includePositiveControls = TRUE, emptyAsNa = TRUE) {
   
   sql <- "
     SELECT
       cmr.*,
       cmtco.true_effect_size effect_size
     FROM
-      @results_schema.cm_result cmr
-      JOIN @results_schema.cm_target_comparator_outcome cmtco ON cmr.target_id = cmtco.target_id AND cmr.comparator_id = cmtco.comparator_id AND cmr.outcome_id = cmtco.outcome_id
+      @results_schema.@table_prefixresult cmr
+      JOIN @results_schema.@table_prefixtarget_comparator_outcome cmtco ON cmr.target_id = cmtco.target_id AND cmr.comparator_id = cmtco.comparator_id AND cmr.outcome_id = cmtco.outcome_id
     WHERE
       cmtco.outcome_of_interest != 1
       AND cmr.target_id = @target_id
@@ -360,21 +343,27 @@ getEstimationControlResults <- function(connection, resultsSchema, targetId,
     sql <- paste(sql, paste("AND cmtco.true_effect_size = 1"), collapse = "\n")
   }
   
-  return(
-    DatabaseConnector::renderTranslateQuerySql(connection, sql,
-                                               snakeCaseToCamelCase = TRUE,
-                                               warnOnMissingParameters = FALSE,
-                                               results_schema = resultsSchema,
-                                               target_id = targetId,
-                                               comparator_id = comparatorId,
-                                               analysis_id = analysisId,
-                                               database_id = databaseId)
-  )
+  results <- DatabaseConnector::renderTranslateQuerySql(connection, sql,
+                                                            snakeCaseToCamelCase = TRUE,
+                                                            warnOnMissingParameters = FALSE,
+                                                            results_schema = resultsSchema,
+                                                            table_prefix = tablePrefix,
+                                                            target_id = targetId,
+                                                            comparator_id = comparatorId,
+                                                            analysis_id = analysisId,
+                                                            database_id = databaseId)
+  
+  if (emptyAsNa) {
+    results[results == ''] <- NA
+  }
+  
+  return(results)
 }
 
 
 getCmFollowUpDist <- function(connection,
                               resultsSchema,
+                              tablePrefix,
                               targetId,
                               comparatorId,
                               outcomeId,
@@ -385,7 +374,7 @@ getCmFollowUpDist <- function(connection,
   SELECT
     *
   FROM
-    @results_schema.cm_follow_up_dist cmfud
+    @results_schema.@table_prefixfollow_up_dist cmfud
   WHERE
     cmfud.target_id = @target_id
     AND cmfud.comparator_id = @comparator_id
@@ -400,6 +389,7 @@ getCmFollowUpDist <- function(connection,
                                                snakeCaseToCamelCase = TRUE,
                                                warnOnMissingParameters = FALSE,
                                                results_schema = resultsSchema,
+                                               table_prefix = tablePrefix,
                                                target_id = targetId,
                                                comparator_id = comparatorId,
                                                outcome_id = outcomeId,
@@ -411,6 +401,7 @@ getCmFollowUpDist <- function(connection,
 
 getEstimationCovariateBalance <- function(connection,
                                           resultsSchema,
+                                          tablePrefix,
                                           targetId,
                                           comparatorId,
                                           analysisId,
@@ -425,7 +416,7 @@ getEstimationCovariateBalance <- function(connection,
         cmscb.database_id,
         cmscb.covariate_id,
         cmc.covariate_name,
-        -- cmc.covariate_analysis_id analysis_id, #TODO: once cm_analysis_id bug fixed
+        -- cmc.covariate_analysis_id analysis_id, #TODO: once @table_prefixanalysis_id bug fixed
         cmscb.target_mean_before before_matching_mean_treated,
         cmscb.comparator_mean_before before_matching_mean_comparator,
         abs(cmscb.std_diff_before) abs_before_matching_std_diff, --absBeforeMatchingStdDiff
@@ -433,9 +424,9 @@ getEstimationCovariateBalance <- function(connection,
         cmscb.comparator_mean_after after_matching_mean_comparator,
         abs(cmscb.std_diff_after) abs_after_matching_std_diff
       FROM
-        @results_schema.cm_shared_covariate_balance cmscb 
-        JOIN @results_schema.cm_covariate cmc ON cmscb.covariate_id = cmc.covariate_id AND cmscb.analysis_id = cmc.analysis_id AND cmscb.database_id = cmc.database_id -- database_id optional
-       -- JOIN poc.cm_covariate_analysis cmca ON cmca.analysis_id = cmc.analysis_id  -- question: shouldn't we have a covariate_analysis_id in cm_covariate table?
+        @results_schema.@table_prefixshared_covariate_balance cmscb 
+        JOIN @results_schema.@table_prefixcovariate cmc ON cmscb.covariate_id = cmc.covariate_id AND cmscb.analysis_id = cmc.analysis_id AND cmscb.database_id = cmc.database_id -- database_id optional
+       -- JOIN @results_schema.@table_prefixcovariate_analysis cmca ON cmca.analysis_id = cmc.analysis_id  -- question: shouldn't we have a covariate_analysis_id in @table_prefixcovariate table?
       WHERE
         cmscb.target_id = @target_id
         AND cmscb.comparator_id = @comparator_id
@@ -448,7 +439,7 @@ getEstimationCovariateBalance <- function(connection,
         cmcb.database_id,
         cmcb.covariate_id,
         cmc.covariate_name,
-        -- cmc.covariate_analysis_id analysis_id, #TODO: once cm_analysis_id bug fixed
+        cmc.covariate_analysis_id analysis_id,
         cmcb.target_mean_before before_matching_mean_treated,
         cmcb.comparator_mean_before before_matching_mean_comparator,
         abs(cmcb.std_diff_before) before_matching_std_diff,
@@ -456,9 +447,9 @@ getEstimationCovariateBalance <- function(connection,
         cmcb.comparator_mean_after after_matching_mean_comparator,
         abs(cmcb.std_diff_after) after_matching_std_diff
       FROM
-        @results_schema.cm_covariate_balance cmcb
-        JOIN @results_schema.cm_covariate cmc ON cmcb.covariate_id = cmcb.covariate_id AND cmcb.analysis_id = cmc.analysis_id AND cmcb.database_id = cmc.database_id -- database_id optional
-       -- JOIN poc.cm_covariate_analysis cmca ON cmca.analysis_id = cmc.analysis_id  -- question: shouldn't we have a covariate_analysis_id in cm_covariate table?
+        @results_schema.@table_prefixcovariate_balance cmcb
+        JOIN @results_schema.@table_prefixcovariate cmc ON cmcb.covariate_id = cmcb.covariate_id AND cmcb.analysis_id = cmc.analysis_id AND cmcb.database_id = cmc.database_id -- database_id optional
+        JOIN @results_schema.@table_prefixcovariate_analysis cmca ON cmca.analysis_id = cmc.analysis_id AND cmca.covariate_analysis_id = cmc.covariate_analysis_id
       WHERE
         cmcb.target_id = @target_id
         AND cmcb.comparator_id = @comparator_id
@@ -468,12 +459,14 @@ getEstimationCovariateBalance <- function(connection,
     "
   }
   
+  
   return(
     DatabaseConnector::renderTranslateQuerySql(connection = connection,
                                                sql = sql,
                                                snakeCaseToCamelCase = TRUE,
                                                warnOnMissingParameters = FALSE,
                                                results_schema = resultsSchema,
+                                               table_prefix = tablePrefix,
                                                target_id = targetId,
                                                comparator_id = comparatorId,
                                                outcome_id = outcomeId,
@@ -484,12 +477,12 @@ getEstimationCovariateBalance <- function(connection,
 }
 
 
-getEstimationPs <- function(connection, resultsSchema, targetId, comparatorId, analysisId, databaseId = NULL) {
+getEstimationPs <- function(connection, resultsSchema, tablePrefix, targetId, comparatorId, analysisId, databaseId = NULL) {
   sql <- "
     SELECT
       *
     FROM
-      @results_schema.cm_preference_score_dist cmpsd
+      @results_schema.@table_prefixpreference_score_dist cmpsd
     WHERE
       cmpsd.target_id = @target_id
       AND cmpsd.comparator_id = @comparator_id
@@ -504,6 +497,7 @@ getEstimationPs <- function(connection, resultsSchema, targetId, comparatorId, a
                                                    snakeCaseToCamelCase = TRUE,
                                                    warnOnMissingParameters = FALSE,
                                                    results_schema = resultsSchema,
+                                                   table_prefix = tablePrefix,
                                                    target_id = targetId,
                                                    comparator_id = comparatorId,
                                                    analysis_id = analysisId,
@@ -517,13 +511,13 @@ getEstimationPs <- function(connection, resultsSchema, targetId, comparatorId, a
 }
 
 
-getEstimationKaplanMeier <- function(connection, resultsSchema, targetId, comparatorId, outcomeId, databaseId, analysisId) {
+getEstimationKaplanMeier <- function(connection, resultsSchema, tablePrefix, databaseTable, targetId, comparatorId, outcomeId, databaseId, analysisId) {
   sqlTmp <- "
   SELECT
     *
   FROM
-    @results_schema.cm_kaplan_meier_dist cmkmd
-    JOIN @results_schema.database_meta_data dmd on  dmd.database_id = cmkmd.database_id
+    @results_schema.@table_prefixkaplan_meier_dist cmkmd
+    JOIN @results_schema.@database_table dmd on  dmd.database_id = cmkmd.database_id
   WHERE
     cmkmd.target_id = @target_id
     AND cmkmd.comparator_id = @comparator_id
@@ -535,7 +529,7 @@ getEstimationKaplanMeier <- function(connection, resultsSchema, targetId, compar
   SELECT
     *
   FROM
-    @results_schema.cm_kaplan_meier_dist cmkmd
+    @results_schema.@table_prefixkaplan_meier_dist cmkmd
   WHERE
     cmkmd.target_id = @target_id
     AND cmkmd.comparator_id = @comparator_id
@@ -548,6 +542,8 @@ getEstimationKaplanMeier <- function(connection, resultsSchema, targetId, compar
     DatabaseConnector::renderTranslateQuerySql(connection, sql,
                                                snakeCaseToCamelCase = TRUE,
                                                results_schema = resultsSchema,
+                                               table_prefix = tablePrefix,
+                                               database_table = databaseTable,
                                                target_id = targetId,
                                                comparator_id = comparatorId,
                                                outcome_id = outcomeId,
@@ -557,13 +553,13 @@ getEstimationKaplanMeier <- function(connection, resultsSchema, targetId, compar
 }
 
 
-getEstimationAttrition <- function(connection, resultsSchema, targetId, comparatorId, outcomeId, analysisId, databaseId) {
+getEstimationAttrition <- function(connection, resultsSchema, tablePrefix, databaseTable, targetId, comparatorId, outcomeId, analysisId, databaseId) {
   sqlTmp <- "
   SELECT
     cmat.*
   FROM
-    @results_schema.cm_attrition cmat
-    JOIN @results_schema.database_meta_data dmd on dmd.database_id = cmat.database_id
+    @results_schema.@table_prefixattrition cmat
+    JOIN @results_schema.@database_table dmd on dmd.database_id = cmat.database_id
   WHERE
   cmat.target_id = @target_id
   AND cmat.comparator_id = @comparator_id
@@ -575,7 +571,7 @@ getEstimationAttrition <- function(connection, resultsSchema, targetId, comparat
   SELECT
     cmat.*
   FROM
-    @results_schema.cm_attrition cmat
+    @results_schema.@table_prefixattrition cmat
   WHERE
   cmat.target_id = @target_id
   AND cmat.comparator_id = @comparator_id
@@ -586,6 +582,8 @@ getEstimationAttrition <- function(connection, resultsSchema, targetId, comparat
   result <- DatabaseConnector::renderTranslateQuerySql(connection, sql,
                                                        snakeCaseToCamelCase = TRUE,
                                                        results_schema = resultsSchema,
+                                                       table_prefix = tablePrefix,
+                                                       database_table = databaseTable,
                                                        target_id = targetId,
                                                        comparator_id = comparatorId,
                                                        outcome_id = outcomeId,
@@ -615,21 +613,21 @@ getEstimationStudyPeriod <- function(connection, targetId, comparatorId, databas
                               comparator_id = comparatorId,
                               database_id = databaseId)$sql
   sql <- SqlRender::translateSql(sql, targetDialect = connection@dbms)$sql
-  studyPeriod <- querySql(connection, sql)
+  studyPeriod <- DatabaseConnector::querySql(connection, sql)
   colnames(studyPeriod) <- SqlRender::snakeCaseToCamelCase(colnames(studyPeriod))
   return(studyPeriod)
 }
 
 
-getEstimationPropensityModel <- function(connection, resultsSchema, targetId, comparatorId, analysisId, databaseId) {
+getEstimationPropensityModel <- function(connection, resultsSchema, tablePrefix, targetId, comparatorId, analysisId, databaseId) {
   sqlTmp <- "
   SELECT
     cmpm.coefficient,
     cmc.covariate_id,
     cmc.covariate_name
   FROM
-    @results_schema.cm_covariate cmc
-    JOIN @results_schema.cm_propensity_model cmpm ON cmc.covariate_id = cmpm.covariate_id AND cmc.database_id = cmpm.database_id
+    @results_schema.@table_prefixcovariate cmc
+    JOIN @results_schema.@table_prefixpropensity_model cmpm ON cmc.covariate_id = cmpm.covariate_id AND cmc.database_id = cmpm.database_id
   WHERE
     cmpm.target_id = @target_id
     AND cmpm.comparator_id = @comparator_id
@@ -648,7 +646,7 @@ getEstimationPropensityModel <- function(connection, resultsSchema, targetId, co
         covariate_id,
         covariate_name
       FROM
-        @results_schema.cm_covariate
+        @results_schema.@table_prefixcovariate
       WHERE
         analysis_id = @analysis_id
         AND database_id = '@database_id'
@@ -656,7 +654,7 @@ getEstimationPropensityModel <- function(connection, resultsSchema, targetId, co
       SELECT
       0 as covariate_id,
       'intercept' as covariate_name) cmc
-    JOIN @results_schema.cm_propensity_model cmpm ON cmc.covariate_id = cmpm.covariate_id
+    JOIN @results_schema.@table_prefixpropensity_model cmpm ON cmc.covariate_id = cmpm.covariate_id
   WHERE
     cmpm.target_id = @target_id
     AND cmpm.comparator_id = @comparator_id
@@ -667,6 +665,7 @@ getEstimationPropensityModel <- function(connection, resultsSchema, targetId, co
   model <- DatabaseConnector::renderTranslateQuerySql(connection, sql,
                                                       snakeCaseToCamelCase = TRUE,
                                                       results_schema = resultsSchema,
+                                                      table_prefix = tablePrefix,
                                                       target_id = targetId,
                                                       comparator_id = comparatorId,
                                                       analysis_id = analysisId,
@@ -675,7 +674,11 @@ getEstimationPropensityModel <- function(connection, resultsSchema, targetId, co
 }
 
 
-getEstimationCovariateBalanceSummary <- function(connection, targetId, comparatorId, analysisId,
+getEstimationCovariateBalanceSummary <- function(connection, 
+                                                 resultsSchema,
+                                                 tablePrefix,
+                                                 databaseId,
+                                                 targetId, comparatorId, analysisId,
                                                  beforeLabel = "Before matching",
                                                  afterLabel = "After matching") {
   
@@ -683,17 +686,20 @@ getEstimationCovariateBalanceSummary <- function(connection, targetId, comparato
                                            targetId = targetId,
                                            comparatorId = comparatorId,
                                            analysisId = analysisId,
+                                           resultsSchema,
+                                           tablePrefix,
+                                           databaseId = databaseId,
                                            outcomeId = NULL)
   balanceBefore <- balance %>%
     dplyr::group_by(.data$databaseId) %>%
     dplyr::summarise(covariateCount = dplyr::n(),
-                     qs = quantile(.data$beforeMatchingStdDiff, c(0, 0.25, 0.5, 0.75, 1)), prob = c("ymin", "lower", "median", "upper", "ymax")) %>%
+                     qs = stats::quantile(.data$absBeforeMatchingStdDiff, c(0, 0.25, 0.5, 0.75, 1)), prob = c("ymin", "lower", "median", "upper", "ymax")) %>%
     tidyr::spread(key = "prob", value = "qs")
   balanceBefore[, "type"] <- beforeLabel
   balanceAfter <-  balance %>%
     dplyr::group_by(.data$databaseId) %>%
     dplyr::summarise(covariateCount = dplyr::n(),
-                     qs = quantile(.data$afterMatchingStdDiff, c(0, 0.25, 0.5, 0.75, 1)), prob = c("ymin", "lower", "median", "upper", "ymax")) %>%
+                     qs = stats::quantile(.data$afterMatchingStdDiff, c(0, 0.25, 0.5, 0.75, 1)), prob = c("ymin", "lower", "median", "upper", "ymax")) %>%
     tidyr::spread(key = "prob", value = "qs")
   balanceAfter[, "type"] <- afterLabel
   
@@ -714,7 +720,7 @@ getEstimationNegativeControlEstimates <- function(cohortMethodResult, connection
 
 
 
-getDiagnosticsData <- function(connection, resultsSchema) {
+getDiagnosticsData <- function(connection, resultsSchema, tablePrefix, cohortTablePrefix, databaseTable) {
   sql <- "
     SELECT
       dmd.cdm_source_abbreviation database_name,
@@ -736,17 +742,20 @@ getDiagnosticsData <- function(connection, resultsSchema) {
       cmds.ease_diagnostic,
       cmds.unblind
     FROM
-      @results_schema.cm_diagnostics_summary cmds
-      JOIN @results_schema.cm_analysis cma ON cmds.analysis_id = cma.analysis_id
-      JOIN @results_schema.database_meta_data dmd ON dmd.database_id = cmds.database_id
-      JOIN @results_schema.cg_cohort_definition cgcd1 ON cmds.target_id = cgcd1.cohort_definition_id
-      JOIN @results_schema.cg_cohort_definition cgcd2 ON cmds.comparator_id = cgcd2.cohort_definition_id
-      JOIN @results_schema.cg_cohort_definition cgcd3 ON cmds.outcome_id = cgcd3.cohort_definition_id
+      @results_schema.@table_prefixdiagnostics_summary cmds
+      JOIN @results_schema.@table_prefixanalysis cma ON cmds.analysis_id = cma.analysis_id
+      JOIN @results_schema.@database_table dmd ON dmd.database_id = cmds.database_id
+      JOIN @results_schema.@cohort_table_prefixcohort_definition cgcd1 ON cmds.target_id = cgcd1.cohort_definition_id
+      JOIN @results_schema.@cohort_table_prefixcohort_definition cgcd2 ON cmds.comparator_id = cgcd2.cohort_definition_id
+      JOIN @results_schema.@cohort_table_prefixcohort_definition cgcd3 ON cmds.outcome_id = cgcd3.cohort_definition_id
   "
   
   return(
     DatabaseConnector::renderTranslateQuerySql(connection, sql,
                                                snakeCaseToCamelCase = TRUE,
-                                               results_schema = resultsSchema)
+                                               results_schema = resultsSchema,
+                                               table_prefix = tablePrefix,
+                                               cohort_table_prefix = cohortTablePrefix,
+                                               database_table = databaseTable)
   )
 }

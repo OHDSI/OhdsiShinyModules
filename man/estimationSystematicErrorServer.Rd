@@ -9,7 +9,9 @@ estimationSystematicErrorServer(
   selectedRow,
   inputParams,
   connection,
-  resultsSchema
+  resultsSchema,
+  tablePrefix,
+  metaAnalysisDbIds = NULL
 )
 }
 \arguments{
@@ -22,6 +24,10 @@ estimationSystematicErrorServer(
 \item{connection}{the connection to the PLE results database}
 
 \item{resultsSchema}{the schema with the PLE results}
+
+\item{tablePrefix}{tablePrefix}
+
+\item{metaAnalysisDbIds}{metaAnalysisDbIds}
 }
 \value{
 the PLE systematic error content server

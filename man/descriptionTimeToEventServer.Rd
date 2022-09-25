@@ -11,7 +11,9 @@ descriptionTimeToEventServer(
   schema,
   dbms,
   tablePrefix,
-  tempEmulationSchema
+  tempEmulationSchema = NULL,
+  cohortTablePrefix = "cg_",
+  databaseTable = "DATABASE_META_DATA"
 )
 }
 \arguments{
@@ -28,6 +30,10 @@ descriptionTimeToEventServer(
 \item{tablePrefix}{a string that appends the tables in the result schema}
 
 \item{tempEmulationSchema}{The temp schema (optional)}
+
+\item{cohortTablePrefix}{a string that appends the cohort table in the result schema}
+
+\item{databaseTable}{name of the database table}
 }
 \value{
 The server to the prediction time to event module

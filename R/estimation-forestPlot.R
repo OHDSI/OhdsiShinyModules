@@ -28,12 +28,12 @@ estimationForestPlotViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    plotOutput(outputId = ns("forestPlot")),
-    uiOutput(outputId = ns("forestPlotCaption")),
-    div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
-        downloadButton(outputId = ns("downloadForestPlotPng"),
+    shiny::plotOutput(outputId = ns("forestPlot")),
+    shiny::uiOutput(outputId = ns("forestPlotCaption")),
+    shiny::div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
+               shiny::downloadButton(outputId = ns("downloadForestPlotPng"),
                        label = "Download plot as PNG"),
-        downloadButton(outputId = ns("downloadForestPlotPdf"),
+               shiny::downloadButton(outputId = ns("downloadForestPlotPdf"),
                        label = "Download plot as PDF"))
   )
 }
@@ -45,14 +45,24 @@ estimationForestPlotViewer <- function(id) {
 #' The module server for rendering the PLE multiple results forest plot
 #'
 #' @param id the unique reference id for the module
+#' @param connection connection
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
+#' @param metaAnalysisDbIds metaAnalysisDbIds
+#' @param resultsSchema resultsSchema
+#' @param tablePrefix tablePrefix
+#' @param databaseTable databaseTable
 #'
 #' @return
 #' the PLE forest plot content server
 #' 
 #' @export
-estimationForestPlotServer <- function(id, selectedRow, inputParams) {
+estimationForestPlotServer <- function(
+  id, connection, selectedRow, inputParams, metaAnalysisDbIds = NULL,
+  resultsSchema,
+  tablePrefix,
+  databaseTable
+  ) {
   
   shiny::moduleServer(
     id,
@@ -63,6 +73,9 @@ estimationForestPlotServer <- function(id, selectedRow, inputParams) {
           return(NULL)
         } else {
           results <- getEstimationMainResults(connection = connection,
+                                              resultsSchema = resultsSchema,
+                                              tablePrefix = tablePrefix,
+                                              databaseTable = databaseTable,
                                               targetIds = row$targetId,
                                               comparatorIds = row$comparatorId,
                                               outcomeIds = row$outcomeId,

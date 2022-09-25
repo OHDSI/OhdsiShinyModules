@@ -85,7 +85,7 @@ descriptionTimeToEventServer <- function(
   schema, 
   dbms,
   tablePrefix,
-  tempEmulationSchema,
+  tempEmulationSchema = NULL,
   cohortTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA'
 ) {
@@ -156,26 +156,33 @@ descriptionTimeToEventServer <- function(
             print('Null ids value')
             return(invisible(NULL))
           }
-          allData <- getTimeToEventData(
-            targetId = input$targetId,
-            outcomeId = input$outcomeId,
-            con = con,
-            schema = schema, 
-            dbms = dbms,
-            tablePrefix = tablePrefix,
-            tempEmulationSchema = tempEmulationSchema
+          allData <- tryCatch({
+            getTimeToEventData(
+              targetId = input$targetId,
+              outcomeId = input$outcomeId,
+              con = con,
+              schema = schema, 
+              dbms = dbms,
+              tablePrefix = tablePrefix,
+              tempEmulationSchema = tempEmulationSchema, 
+              databaseTable = databaseTable
+            )
+          }, 
+          error = function(e){shiny::showNotification(paste0('Error: ', e));return(NULL)}
           )
           
           # TODO: create  NEW UI FOR SELECTING DATABASES
           # find databases and set to UI
-          databases <- unique(allData$databaseId)
+          #databases <- unique(allData$databaseId)
           
-          # do the plots reactively
-          output$timeToEvent <- shiny::renderPlot(
-            plotTimeToEvent(
-              timeToEventData = allData
+          if(!is.null(allData)){
+            # do the plots reactively
+            output$timeToEvent <- shiny::renderPlot(
+              plotTimeToEvent(
+                timeToEventData = allData
+              )
             )
-          )
+          }
           
         }
       )
@@ -293,7 +300,8 @@ getTimeToEventData <- function(
     result_database_schema = schema,
     table_prefix = tablePrefix,
     target_id = targetId,
-    outcome_id = outcomeId
+    outcome_id = outcomeId,
+    database_table = databaseTable
   )
   
   shiny::incProgress(1/3, detail = paste("Rendering and translating sql"))

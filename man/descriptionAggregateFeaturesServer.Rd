@@ -11,7 +11,9 @@ descriptionAggregateFeaturesServer(
   schema,
   dbms,
   tablePrefix,
-  tempEmulationSchema
+  tempEmulationSchema = NULL,
+  cohortTablePrefix = "cg_",
+  databaseTable = "DATABASE_META_DATA"
 )
 }
 \arguments{
@@ -28,6 +30,10 @@ descriptionAggregateFeaturesServer(
 \item{tablePrefix}{a string that appends the tables in the result schema}
 
 \item{tempEmulationSchema}{The temp schema (optional)}
+
+\item{cohortTablePrefix}{a string that appends the COHORT_DEFINITION table in the result schema}
+
+\item{databaseTable}{The database table name}
 }
 \value{
 The server to the description aggregate features module

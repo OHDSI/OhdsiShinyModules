@@ -44,6 +44,7 @@ predictionModelSummaryViewer <- function(id) {
 #' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
 #' @param modelDesignId a reactable id specifying the prediction model design identifier
+#' @param databaseTableAppend a string that appends the database_meta_data table
 #' 
 #' @return
 #' The server to the summary module
@@ -55,7 +56,8 @@ predictionModelSummaryServer <- function(
   mySchema,
   targetDialect,
   myTableAppend,
-  modelDesignId
+  modelDesignId,
+  databaseTableAppend = myTableAppend
 ) {
   shiny::moduleServer(
     id,
@@ -69,7 +71,8 @@ predictionModelSummaryServer <- function(
           mySchema = mySchema, 
           targetDialect = targetDialect, 
           myTableAppend = myTableAppend,
-          modelDesignId = modelDesignId
+          modelDesignId = modelDesignId,
+          databaseTableAppend = databaseTableAppend
         )
       )
       
@@ -143,7 +146,8 @@ getInternalPerformanceSummary <- function(
   mySchema, 
   targetDialect, 
   myTableAppend = '',
-  modelDesignId
+  modelDesignId,
+  databaseTableAppend
 ){
   
   if(is.null(modelDesignId())){
@@ -192,7 +196,10 @@ getInternalPerformanceSummary <- function(
              
         LEFT JOIN (SELECT cohort_id, cohort_name FROM @my_schema.@my_table_appendcohorts) AS targets ON results.target_id = targets.cohort_id
         LEFT JOIN (SELECT cohort_id, cohort_name FROM @my_schema.@my_table_appendcohorts) AS outcomes ON results.outcome_id = outcomes.cohort_id
-        LEFT JOIN @my_schema.@my_table_appenddatabase_details AS d ON results.development_database_id = d.database_id 
+        LEFT JOIN (select dd.database_id, md.cdm_source_abbreviation database_acronym 
+                   from @my_schema.@database_table_appenddatabase_meta_data md inner join 
+                   @my_schema.@my_table_appenddatabase_details dd 
+                   on md.database_id = dd.database_meta_data_id) AS d ON results.development_database_id = d.database_id 
         LEFT JOIN @my_schema.@my_table_appendtars AS tars ON results.tar_id = tars.tar_id
         LEFT JOIN (SELECT performance_id, value AS auc FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'AUROC' and evaluation in ('Test','Validation') ) AS aucResult ON results.performance_id = aucResult.performance_id
         LEFT JOIN (SELECT performance_id, value AS auprc FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'AUPRC' and evaluation in ('Test','Validation') ) AS auprcResult ON results.performance_id = auprcResult.performance_id
@@ -204,7 +211,8 @@ getInternalPerformanceSummary <- function(
     sql = sql, 
     my_schema = mySchema,
     my_table_append = myTableAppend,
-    model_design_id = modelDesignId()
+    model_design_id = modelDesignId(),
+    database_table_append = databaseTableAppend
   )
   
   sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)

@@ -46,8 +46,8 @@ estimationTitlePanelServer <- function(id) {
     id,
     function(input, output, session) {
       
-      output$titleText <- renderUI({
-        titlePanel("Evidence Explorer")
+      output$titleText <- shiny::renderUI({
+        shiny::titlePanel("Cohort Method Evidence Explorer")
       })
       
     }

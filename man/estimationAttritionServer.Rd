@@ -9,7 +9,9 @@ estimationAttritionServer(
   selectedRow,
   inputParams,
   connection,
-  resultsSchema
+  resultsSchema,
+  tablePrefix,
+  databaseTable
 )
 }
 \arguments{
@@ -22,6 +24,10 @@ estimationAttritionServer(
 \item{connection}{the connection to the PLE results database}
 
 \item{resultsSchema}{the schema with the PLE results}
+
+\item{tablePrefix}{tablePrefix}
+
+\item{databaseTable}{databaseTable}
 }
 \value{
 the PLE attrition results content server

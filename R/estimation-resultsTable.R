@@ -17,27 +17,6 @@
 # limitations under the License.
 
 
-mainColumns <- c("description",
-                 "cdmSourceAbbreviation",
-                 "rr",
-                 "ci95Lb",
-                 "ci95Ub",
-                 "p",
-                 "calibratedRr",
-                 "calibratedCi95Lb",
-                 "calibratedCi95Ub",
-                 "calibratedP")
-
-mainColumnNames <- c("<span title=\"Analysis\">Analysis</span>",
-                     "<span title=\"Data source\">Data source</span>",
-                     "<span title=\"Hazard ratio (uncalibrated)\">HR</span>",
-                     "<span title=\"Lower bound of the 95 percent confidence interval (uncalibrated)\">LB</span>",
-                     "<span title=\"Upper bound of the 95 percent confidence interval (uncalibrated)\">UB</span>",
-                     "<span title=\"Two-sided p-value (uncalibrated)\">P</span>",
-                     "<span title=\"Hazard ratio (calibrated)\">Cal.HR</span>",
-                     "<span title=\"Lower bound of the 95 percent confidence interval (calibrated)\">Cal.LB</span>",
-                     "<span title=\"Upper bound of the 95 percent confidence interval (calibrated)\">Cal.UB</span>",
-                     "<span title=\"Two-sided p-value (calibrated)\">Cal.P</span>")
 
 
 
@@ -64,22 +43,57 @@ estimationResultsTableViewer <- function(id) {
 #' @param connection the connection to the PLE results database
 #' @param inputParams  the selected study parameters of interest
 #' @param resultsSchema the schema with the PLE results
+#' @param tablePrefix tablePrefix
+#' @param databaseTable databaseTable
 #'
 #' @return
 #' the PLE main results table server server
 #' 
 #' @export
-estimationResultsTableServer <- function(id, connection, inputParams, resultsSchema) {
+estimationResultsTableServer <- function(
+  id, 
+  connection, 
+  inputParams, 
+  resultsSchema, 
+  tablePrefix, 
+  databaseTable
+  ) {
   
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
       
-      resultSubset <- reactive({
+      mainColumns <- c("description",
+                       "cdmSourceAbbreviation",
+                       "rr",
+                       "ci95Lb",
+                       "ci95Ub",
+                       "p",
+                       "calibratedRr",
+                       "calibratedCi95Lb",
+                       "calibratedCi95Ub",
+                       "calibratedP")
+      
+      mainColumnNames <- c("<span title=\"Analysis\">Analysis</span>",
+                           "<span title=\"Data source\">Data source</span>",
+                           "<span title=\"Hazard ratio (uncalibrated)\">HR</span>",
+                           "<span title=\"Lower bound of the 95 percent confidence interval (uncalibrated)\">LB</span>",
+                           "<span title=\"Upper bound of the 95 percent confidence interval (uncalibrated)\">UB</span>",
+                           "<span title=\"Two-sided p-value (uncalibrated)\">P</span>",
+                           "<span title=\"Hazard ratio (calibrated)\">Cal.HR</span>",
+                           "<span title=\"Lower bound of the 95 percent confidence interval (calibrated)\">Cal.LB</span>",
+                           "<span title=\"Upper bound of the 95 percent confidence interval (calibrated)\">Cal.UB</span>",
+                           "<span title=\"Two-sided p-value (calibrated)\">Cal.P</span>")
+      
+      
+      
+      resultSubset <- shiny::reactive({
         
         results <- getEstimationMainResults(connection = connection,
                                             resultsSchema = resultsSchema,
+                                            tablePrefix = tablePrefix,
+                                            databaseTable = databaseTable,
                                             targetIds = filterEstimationEmptyNullValues(inputParams()$target),
                                             comparatorIds = filterEstimationEmptyNullValues(inputParams()$comparator),
                                             outcomeIds = filterEstimationEmptyNullValues(inputParams()$outcome),
@@ -111,7 +125,7 @@ estimationResultsTableServer <- function(id, connection, inputParams, resultsSch
       output$mainTable <- DT::renderDataTable({
         table <- resultSubset()
         if (is.null(table) || nrow(table) == 0) {
-          validate(need(nrow(table) > 0, "No CM results for selections."))
+          shiny::validate(shiny::need(nrow(table) > 0, "No CM results for selections."))
           return(NULL)
         }
         table <- table[, mainColumns]

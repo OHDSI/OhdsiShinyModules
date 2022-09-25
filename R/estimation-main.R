@@ -17,7 +17,19 @@
 # limitations under the License.
 
 
-
+#' The location of the estimation module helper file
+#'
+#' @details
+#' Returns the location of the estimation helper file
+#' 
+#' @return
+#' string location of the estimation helper file
+#'
+#' @export
+estimationHelperFile <- function(){
+  fileLoc <- system.file('estimation-www', "estimation.html", package = "OhdsiShinyModules")
+  return(fileLoc)
+}
 
 #' The viewer of the main estimation module
 #'
@@ -30,9 +42,9 @@
 estimationViewer <- function(id) {
   ns <- shiny::NS(id)
   
-  fluidPage(style = "width:1500px;",
+  shiny::fluidPage(style = "width:1500px;",
             estimationTitlePanelViewer(ns("titlePanel")),
-            tags$head(tags$style(type = "text/css", "
+            htmltools::tags$head(htmltools::tags$style(type = "text/css", "
              #loadmessage {
                                  position: fixed;
                                  top: 0px;
@@ -47,57 +59,57 @@ estimationViewer <- function(id) {
                                  z-index: 105;
                                  }
                                  ")),
-            conditionalPanel(id = ns("loadmessage"),
+            shiny::conditionalPanel(id = ns("loadmessage"),
                              condition = "$('html').hasClass('shiny-busy')",
-                             tags$div("Processing...")),
-            tabsetPanel(
+                             htmltools::tags$div("Processing...")),
+            shiny::tabsetPanel(
               id = ns("mainTabsetPanel"),
-              tabPanel(
+              shiny::tabPanel(
                 title = "Diagnostics",
                 estimationDiagnosticsSummaryViewer(ns("estimationDiganostics"))
               ),
-              tabPanel(
+              shiny::tabPanel(
                 title = "Results",
-                fluidRow(
-                  column(width = 3,
-                         uiOutput(outputId = ns("targetWidget")),
-                         uiOutput(outputId = ns("comparatorWidget")),
-                         uiOutput(outputId = ns("outcomeWidget")),
-                         uiOutput(outputId = ns("databaseWidget")),
-                         uiOutput(outputId = ns("analysisWidget"))
+                shiny::fluidRow(
+                  shiny::column(width = 3,
+                         shiny::uiOutput(outputId = ns("targetWidget")),
+                         shiny::uiOutput(outputId = ns("comparatorWidget")),
+                         shiny::uiOutput(outputId = ns("outcomeWidget")),
+                         shiny::uiOutput(outputId = ns("databaseWidget")),
+                         shiny::uiOutput(outputId = ns("analysisWidget"))
                   ),
-                  column(width = 9,
+                  shiny::column(width = 9,
                          estimationResultsTableViewer(ns("resultsTable")),
-                         conditionalPanel("output.rowIsSelected == true", ns = ns,
-                                          tabsetPanel(id = ns("detailsTabsetPanel"),
-                                                      tabPanel(title = "Power",
+                         shiny::conditionalPanel("output.rowIsSelected == true", ns = ns,
+                                                 shiny::tabsetPanel(id = ns("detailsTabsetPanel"),
+                                                                    shiny::tabPanel(title = "Power",
                                                                estimationPowerViewer(ns("power"))
                                                       ),
-                                                      tabPanel(title = "Attrition",
+                                                      shiny::tabPanel(title = "Attrition",
                                                                estimationAttritionViewer(ns("attrition"))
                                                       ),
-                                                      tabPanel(title = "Population characteristics",
+                                                      shiny::tabPanel(title = "Population characteristics",
                                                                estimationPopulationCharacteristicsViewer(ns("popCharacteristics"))
                                                       ),
-                                                      tabPanel(title = "Propensity model",
+                                                      shiny::tabPanel(title = "Propensity model",
                                                                estimationPropensityModelViewer(ns("propensityModel"))
                                                       ),
-                                                      tabPanel(title = "Propensity scores",
+                                                      shiny::tabPanel(title = "Propensity scores",
                                                                estimationPropensityScoreDistViewer(ns("propensityScoreDist"))
                                                       ),
-                                                      tabPanel(title = "Covariate balance",
+                                                      shiny::tabPanel(title = "Covariate balance",
                                                                estimationCovariateBalanceViewer(ns("covariateBalance"))
                                                       ),
-                                                      tabPanel(title = "Systematic error",
+                                                      shiny::tabPanel(title = "Systematic error",
                                                                estimationSystematicErrorViewer(ns("systematicError"))
                                                       ),
-                                                      tabPanel(title = "Forest plot",
+                                                      shiny::tabPanel(title = "Forest plot",
                                                                estimationForestPlotViewer(ns("forestPlot"))
                                                       ),
-                                                      tabPanel(title = "Kaplan-Meier",
+                                                      shiny::tabPanel(title = "Kaplan-Meier",
                                                                estimationKaplanMeierViewer(ns("kaplanMeier"))
                                                       ),
-                                                      tabPanel(title = "Subgroups",
+                                                      shiny::tabPanel(title = "Subgroups",
                                                                estimationSubgroupsViewer(ns("subgroups"))
                                                       )
                                                       
@@ -117,7 +129,6 @@ estimationViewer <- function(id) {
 #'
 #' @param id the unique reference id for the module
 #' @param resultDatabaseSettings a named list containing the PLE results database connection details
-#' @param resultsSchema the schema with the PLE results
 #'
 #' @return
 #' the PLE results viewer main module server
@@ -129,28 +140,32 @@ estimationServer <- function(id, resultDatabaseSettings) {
     id,
     function(input, output, session) {
       
-      resultsSchema <- resultDatabaseSettings$schema
       
-      estimationTitlePanelServer("titlePanel")
+      estimationTitlePanelServer(id = "titlePanel")
       
       connection <- NULL
       dataFolder <- NULL
-      if (is.null(resultDatabaseSettings$server) ||
-          (is.list(resultDatabaseSettings$server) && length(resultDatabaseSettings$server) == 0)) {
-        assign("dataFolder", resultDatabaseSettings$dataFolder, envir = .GlobalEnv)
-        
-        loadEstimationData(resultDatabaseSettings$dataFolder)
-      } else {
-        connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = resultDatabaseSettings$dbms,
-                                                                        user = resultDatabaseSettings$user,
-                                                                        password = resultDatabaseSettings$password,
-                                                                        server = sprintf("%s/%s", resultDatabaseSettings$server,
-                                                                                         resultDatabaseSettings$database))
+      
+      
+      # =============================
+      #   CONNECTION
+      # =============================
+      connectionDetails <- DatabaseConnector::createConnectionDetails(
+        dbms = resultDatabaseSettings$dbms,
+        user = resultDatabaseSettings$user,
+        password = resultDatabaseSettings$password,
+        server = resultDatabaseSettings$server
+      )
+      
+        #connection <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
+        #                           dbms = resultDatabaseSettings$dbms,
+        #                           server = resultDatabaseSettings$server,
+        #                           user = resultDatabaseSettings$user,
+        #                           password = resultDatabaseSettings$password)
         
         
         connection <- DatabaseConnector::connect(connectionDetails = connectionDetails)
-      }
-      
+
       
       shiny::onStop(function() {
         if (DBI::dbIsValid(connection)) {
@@ -159,7 +174,10 @@ estimationServer <- function(id, resultDatabaseSettings) {
       })
       
       output$targetWidget <- shiny::renderUI({
-        targets <- getEstimationTargetChoices(connection, resultsSchema)
+        targets <- getEstimationTargetChoices(connection,
+                                              resultDatabaseSettings$schema,
+                                              resultDatabaseSettings$tablePrefix,
+                                              resultDatabaseSettings$cohortTablePrefix)
         shiny::selectInput(inputId = session$ns("target"),
                            label = "Target",
                            choices = getEstimationSelectNamedChoices(targets$targetId,
@@ -167,7 +185,10 @@ estimationServer <- function(id, resultDatabaseSettings) {
       })
       
       output$comparatorWidget <- shiny::renderUI({
-        comparators <- getEstimationComparatorChoices(connection, resultsSchema)
+        comparators <- getEstimationComparatorChoices(connection,
+                                                      resultDatabaseSettings$schema,
+                                                      resultDatabaseSettings$tablePrefix,
+                                                      resultDatabaseSettings$cohortTablePrefix)
         shiny::selectInput(inputId = session$ns("comparator"),
                            label = "Comparator",
                            choices = getEstimationSelectNamedChoices(comparators$comparatorId,
@@ -175,14 +196,20 @@ estimationServer <- function(id, resultDatabaseSettings) {
       })
       
       output$outcomeWidget <- shiny::renderUI({
-        outcomes <- getEstimationOutcomeChoices(connection, resultsSchema)
+        outcomes <- getEstimationOutcomeChoices(connection,
+                                                resultDatabaseSettings$schema,
+                                                resultDatabaseSettings$tablePrefix,
+                                                resultDatabaseSettings$cohortTablePrefix)
         shiny::selectInput(inputId = session$ns("outcome"),
                            label = "Outcome",
                            choices = getEstimationSelectNamedChoices(outcomes$outcomeId,
                                                                      outcomes$cohortName))
       })
       output$databaseWidget<- shiny::renderUI({
-        databases <- getEstimationDatabaseChoices(connection, resultsSchema)
+        databases <- getEstimationDatabaseChoices(connection,
+                                                  resultDatabaseSettings$schema,
+                                                  resultDatabaseSettings$tablePrefix,
+                                                  resultDatabaseSettings$databaseTable)
         shiny::checkboxGroupInput(inputId = session$ns("database"),
                                   label = "Data source",
                                   choices =  getEstimationSelectNamedChoices(databases$databaseId,
@@ -190,7 +217,9 @@ estimationServer <- function(id, resultDatabaseSettings) {
                                   selected = unique(databases$databaseId))
       })
       output$analysisWidget <- shiny::renderUI({
-        analyses <- getCmAnalysisOptions(connection, resultsSchema)
+        analyses <- getCmAnalysisOptions(connection,
+                                         resultDatabaseSettings$schema,
+                                         resultDatabaseSettings$tablePrefix)
         shiny::checkboxGroupInput(inputId = session$ns("analysis"),
                                   label = "Analysis",
                                   choices =  getEstimationSelectNamedChoices(analyses$analysisId,
@@ -199,7 +228,7 @@ estimationServer <- function(id, resultDatabaseSettings) {
       })
       
       
-      inputParams <- reactive({
+      inputParams <- shiny::reactive({
         t <- list()
         t$target <- input$target
         t$comparator <- input$comparator
@@ -210,23 +239,33 @@ estimationServer <- function(id, resultDatabaseSettings) {
       })
       
       
-      estimationDiagnosticsSummaryServer("estimationDiganostics", connection, resultsSchema)
+      estimationDiagnosticsSummaryServer(id = "estimationDiganostics",
+                                         connection = connection,
+                                         resultsSchema = resultDatabaseSettings$schema,
+                                         tablePrefix = resultDatabaseSettings$tablePrefix,
+                                         cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix,
+                                         databaseTable = resultDatabaseSettings$databaseTable)
       
       
-      selectedRow <- estimationResultsTableServer("resultsTable", connection, inputParams, resultsSchema)
+      selectedRow <- estimationResultsTableServer(id = "resultsTable",
+                                                  connection = connection,
+                                                  inputParams = inputParams,
+                                                  resultsSchema = resultDatabaseSettings$schema,
+                                                  tablePrefix = resultDatabaseSettings$tablePrefix,
+                                                  databaseTable = resultDatabaseSettings$databaseTable)
       
       output$rowIsSelected <- shiny::reactive({
         return(!is.null(selectedRow()))
       })
       
       
-      if (!exists("cmInteractionResult")) {
+      if (!exists("cmInteractionResult")) { # ISSUE: this should be an input resultDatabaseSettings$cmInteractionResult and not null check
         #TODO: update for testing once subgroup analysis completed
         shiny::hideTab(inputId = "detailsTabsetPanel", target = "Subgroups",
                        session = session)
       }
       
-      outputOptions(output, "rowIsSelected", suspendWhenHidden = FALSE)
+      shiny::outputOptions(output, "rowIsSelected", suspendWhenHidden = FALSE)
       
       output$isMetaAnalysis <- shiny::reactive({
         #TODO: update once MA implemented
@@ -234,21 +273,21 @@ estimationServer <- function(id, resultDatabaseSettings) {
         isMetaAnalysis <- FALSE # !is.null(row) && (row$databaseId %in% metaAnalysisDbIds)
         if (!is.null(row)) {
           if (isMetaAnalysis) {
-            hideTab("detailsTabsetPanel", "Attrition", session = session)
-            hideTab("detailsTabsetPanel", "Population characteristics", session = session)
-            hideTab("detailsTabsetPanel", "Kaplan-Meier", session = session)
-            hideTab("detailsTabsetPanel", "Propensity model", session = session)
-            showTab("detailsTabsetPanel", "Forest plot", session = session)
+            shiny::hideTab("detailsTabsetPanel", "Attrition", session = session)
+            shiny::hideTab("detailsTabsetPanel", "Population characteristics", session = session)
+            shiny::hideTab("detailsTabsetPanel", "Kaplan-Meier", session = session)
+            shiny::hideTab("detailsTabsetPanel", "Propensity model", session = session)
+            shiny::showTab("detailsTabsetPanel", "Forest plot", session = session)
           } else {
-            showTab("detailsTabsetPanel", "Attrition", session = session)
-            showTab("detailsTabsetPanel", "Population characteristics", session = session)
+            shiny::showTab("detailsTabsetPanel", "Attrition", session = session)
+            shiny::showTab("detailsTabsetPanel", "Population characteristics", session = session)
             if (row$unblind) {
-              showTab("detailsTabsetPanel", "Kaplan-Meier", session = session)
+              shiny::showTab("detailsTabsetPanel", "Kaplan-Meier", session = session)
             } else{
               shiny::hideTab("detailsTabsetPanel", "Kaplan-Meier", session = session)
             }
-            showTab("detailsTabsetPanel", "Propensity model", session = session)
-            hideTab("detailsTabsetPanel", "Forest plot", session = session)
+            shiny::showTab("detailsTabsetPanel", "Propensity model", session = session)
+            shiny::hideTab("detailsTabsetPanel", "Forest plot", session = session)
           }
         }
         return(isMetaAnalysis)
@@ -256,27 +295,73 @@ estimationServer <- function(id, resultDatabaseSettings) {
       shiny::outputOptions(output, "isMetaAnalysis", suspendWhenHidden = FALSE)
       
       
-      estimationPowerServer("power", selectedRow, inputParams, connection, resultsSchema)
+      estimationPowerServer(id = "power",
+                            selectedRow = selectedRow,
+                            inputParams = inputParams,
+                            connection = connection,
+                            resultsSchema = resultDatabaseSettings$schema,
+                            resultDatabaseSettings$tablePrefix)
       
-      estimationAttritionServer("attrition", selectedRow, inputParams, connection, resultsSchema)
+      estimationAttritionServer(id = "attrition",
+                                selectedRow = selectedRow,
+                                inputParams = inputParams,
+                                connection = connection,
+                                resultsSchema = resultDatabaseSettings$schema,
+                                tablePrefix = resultDatabaseSettings$tablePrefix,
+                                databaseTable = resultDatabaseSettings$cohortTablePrefix)
       
-      estimationPopulationCharacteristicsServer("popCharacteristics", selectedRow, inputParams, connection, resultsSchema)
+      estimationPopulationCharacteristicsServer(id = "popCharacteristics",
+                                                selectedRow = selectedRow,
+                                                inputParams = inputParams,
+                                                connection = connection,
+                                                resultsSchema = resultDatabaseSettings$schema,
+                                                tablePrefix = resultDatabaseSettings$tablePrefix)
       
-      estimationPropensityModelServer("propensityModel", selectedRow, inputParams, connection, resultsSchema)
+      estimationPropensityModelServer(id = "propensityModel",
+                                      selectedRow = selectedRow,
+                                      inputParams = inputParams,
+                                      connection = connection,
+                                      resultsSchema = resultDatabaseSettings$schema,
+                                      tablePrefix = resultDatabaseSettings$tablePrefix)
       
-      estimationPropensityScoreDistServer("propensityScoreDist", selectedRow, inputParams, connection, resultsSchema)
+      estimationPropensityScoreDistServer(id = "propensityScoreDist",
+                                          selectedRow = selectedRow,
+                                          inputParams = inputParams,
+                                          connection = connection,
+                                          resultsSchema = resultDatabaseSettings$schema,
+                                          tablePrefix = resultDatabaseSettings$tablePrefix,
+                                          cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix)
       
-      estimationCovariateBalanceServer("covariateBalance", selectedRow, inputParams, connection, resultsSchema)
+      estimationCovariateBalanceServer(id = "covariateBalance",
+                                       selectedRow = selectedRow,
+                                       inputParams = inputParams,
+                                       connection = connection,
+                                       resultsSchema = resultDatabaseSettings$schema,
+                                       tablePrefix = resultDatabaseSettings$tablePrefix)
       
-      estimationSystematicErrorServer("systematicError", selectedRow, inputParams, connection, resultsSchema)
+      estimationSystematicErrorServer(id = "systematicError",
+                                      selectedRow = selectedRow,
+                                      inputParams = inputParams,
+                                      connection = connection,
+                                      resultsSchema = resultDatabaseSettings$schema,
+                                      tablePrefix = resultDatabaseSettings$tablePrefix)
       
-      estimationKaplanMeierServer("kaplanMeier", selectedRow, inputParams, connection, resultsSchema)
+      estimationKaplanMeierServer(id = "kaplanMeier",
+                                  selectedRow = selectedRow,
+                                  inputParams = inputParams,
+                                  connection = connection,
+                                  resultsSchema = resultDatabaseSettings$schema,
+                                  tablePrefix = resultDatabaseSettings$tablePrefix,
+                                  cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix,
+                                  databaseTable = resultDatabaseSettings$databaseTable)
       
       #TODO: complete once MA implemented
-      # estimationForestPlotServer("forestPlot", selectedRow, inputParams)
+      # estimationForestPlotServer("forestPlot", connection, selectedRow, inputParams)
       
       #TODO: revisit once subgroup example conducted
-      estimationSubgroupsServer("subgroups", selectedRow, inputParams)
+      estimationSubgroupsServer(id = "subgroups",
+                                selectedRow = selectedRow,
+                                inputParams = inputParams)
       
     }
   )

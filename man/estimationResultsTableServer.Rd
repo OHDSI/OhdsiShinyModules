@@ -4,7 +4,14 @@
 \alias{estimationResultsTableServer}
 \title{The module server for rendering the PLE results per current selections}
 \usage{
-estimationResultsTableServer(id, connection, inputParams, resultsSchema)
+estimationResultsTableServer(
+  id,
+  connection,
+  inputParams,
+  resultsSchema,
+  tablePrefix,
+  databaseTable
+)
 }
 \arguments{
 \item{id}{the unique reference id for the module}
@@ -14,6 +21,10 @@ estimationResultsTableServer(id, connection, inputParams, resultsSchema)
 \item{inputParams}{the selected study parameters of interest}
 
 \item{resultsSchema}{the schema with the PLE results}
+
+\item{tablePrefix}{tablePrefix}
+
+\item{databaseTable}{databaseTable}
 }
 \value{
 the PLE main results table server server

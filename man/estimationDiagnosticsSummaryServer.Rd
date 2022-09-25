@@ -4,7 +4,14 @@
 \alias{estimationDiagnosticsSummaryServer}
 \title{The module server for rendering the PLE diagnostics summary}
 \usage{
-estimationDiagnosticsSummaryServer(id, connection, resultsSchema)
+estimationDiagnosticsSummaryServer(
+  id,
+  connection,
+  resultsSchema,
+  tablePrefix,
+  cohortTablePrefix,
+  databaseTable
+)
 }
 \arguments{
 \item{id}{the unique reference id for the module}
@@ -12,6 +19,12 @@ estimationDiagnosticsSummaryServer(id, connection, resultsSchema)
 \item{connection}{the connection to the PLE results database}
 
 \item{resultsSchema}{the schema with the PLE results}
+
+\item{tablePrefix}{tablePrefix}
+
+\item{cohortTablePrefix}{cohortTablePrefix}
+
+\item{databaseTable}{databaseTable}
 }
 \value{
 the PLE diagnostics summary results
