@@ -499,11 +499,11 @@ plotSparseCalibration2 <- function(
   # Histogram object detailing the distibution of event/noevent for each probability interval
   
   popData1 <- sparsePred[,c('averagePredictedProbability', 'personCountWithOutcome')]
-  popData1$label <- "Outcome"
+  popData1$label <- "Outcome" #cbind(popData1, rep("Outcome", nrow(sparsePred)))
   colnames(popData1) <- c('averagePredictedProbability','personCount',"label")
   
   popData2 <- sparsePred[,c('averagePredictedProbability', 'personCountAtRisk')]
-  popData2$label <- "No Outcome"
+  popData2$label <- "No Outcome" #cbind(popData2,rep("No Outcome", nrow(sparsePred)))
   popData2$personCountAtRisk <- -1*(popData2$personCountAtRisk -popData1$personCount)
   colnames(popData2) <- c('averagePredictedProbability','personCount',"label")
   
@@ -519,18 +519,13 @@ plotSparseCalibration2 <- function(
     )
   ) + 
     ggplot2::geom_bar(
-      data = subset(
-        popData, 
-        label == "Outcome"
-      ), 
+      data = popData[popData$label == "Outcome",], 
       stat = "identity"
     ) + 
     ggplot2::geom_bar(
-      data = subset(
-        popData, 
-        label == "No Outcome"
-      ), 
-      stat = "identity") + 
+      data = popData[popData$label == "No Outcome",],
+      stat = "identity"
+      ) + 
     ggplot2::geom_bar(stat = "identity") + 
     ggplot2::scale_x_continuous(labels = abs) + 
     ggplot2::coord_flip( ) +

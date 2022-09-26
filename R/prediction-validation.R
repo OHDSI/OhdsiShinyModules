@@ -335,7 +335,7 @@ plotRocs <- function(
   type= NULL, 
   fileName=NULL
 ){
-  if(class(thresholdSummaryList)!='list'){
+  if(!inherits(thresholdSummaryList,'list')){
     stop('Need to enter a list')
   }
   
