@@ -1,8 +1,7 @@
 OhdsiShinyModules
-======================
+=================
 
 [![Build Status](https://github.com/OHDSI/OhdsiShinyModules/workflows/R-CMD-check/badge.svg)](https://github.com/OHDSI/OhdsiShinyModules/actions?query=workflow%3AR-CMD-check)
-
 [![codecov.io](https://codecov.io/github/OHDSI/OhdsiShinyModules/coverage.svg?branch=main)](https://codecov.io/github/OHDSI/OhdsiShinyModules?branch=main)
 
 OhdsiShinyModules is an R package containing shiny modules that can be used within shiny result interfaces.
@@ -23,19 +22,24 @@ System Requirements
 ===================
 Requires R (version 3.3.0 or higher). 
 
-Getting Started
-===============
+Installation
+============
 
-- To install the package:
+1. See the instructions [here](https://ohdsi.github.io/Hades/rSetup.html) for configuring your R environment, including Java.
+
+2. To install the latest stable version:
 
 ```
 install.packages(remotes)
 remotes::install_github('ohdsi/OhdsiShinyModules')
 ```
 
-Please read the main vignette for the package:
+User Documentation
+==================
+Documentation can be found on the [package website](https://ohdsi.github.io/OhdsiShinyModules/).
 
-Package manual: [AddingShinyModules.pdf](https://github.com/OHDSI/OhdsiShinyModules/blob/main/inst/doc/AddingShinyModules.pdf)
+PDF versions of the documentation are also available:
+Vignette: [AddingShinyModules.pdf](https://github.com/OHDSI/OhdsiShinyModules/blob/main/inst/doc/AddingShinyModules.pdf)
 
 
 Support

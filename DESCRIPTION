@@ -1,6 +1,6 @@
 Package: OhdsiShinyModules
 Type: Package
-Title: A repository of shiny modules that are useful for OHDSI result viewers
+Title: Repository of Shiny Modules for OHDSI Result Viewers
 Version: 0.2.4
 Author: Jenna Reps
 Maintainer: Jenna Reps <reps@ohdsi.org>
