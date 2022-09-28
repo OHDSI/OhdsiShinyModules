@@ -391,7 +391,7 @@ plotDemographicSummary <- function(
         guide = ggplot2::guide_legend(title = NULL),
         labels = c("Expected", "Observed")
         ) +
-      ggplot2::guides(linetype = FALSE)
+      ggplot2::guides(linetype = 'none') # edit from FALSE
     
     return(plot)
   }

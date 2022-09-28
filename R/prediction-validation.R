@@ -92,28 +92,46 @@ predictionValidationServer <- function(
     id,
     function(input, output, session) {
       
-      validationTable <- shiny::reactive({
-        if(
-          inputSingleView() == 'Validation' & 
-          !is.null(modelDesignId()) & 
-          !is.null(developmentDatabaseId())
-          ){
-          return(
-            getValSummary(
-              con, 
-              mySchema, 
-              modelDesignId = modelDesignId,
-              developmentDatabaseId = developmentDatabaseId,
-              targetDialect = targetDialect, 
-              myTableAppend = myTableAppend,
-              databaseTableAppend = databaseTableAppend
-            ) 
-          )
-        } else{
-          return(NULL)
+      #validationTable <- shiny::reactive({
+      #  if(
+      #    inputSingleView() == 'Validation' & 
+      #    !is.null(modelDesignId()) & 
+      #    !is.null(developmentDatabaseId())
+      #    ){
+      #    return(
+      #      getValSummary(
+      #        con, 
+      #        mySchema, 
+      #        modelDesignId = modelDesignId,
+      #        developmentDatabaseId = developmentDatabaseId,
+      #        targetDialect = targetDialect, 
+      #        myTableAppend = myTableAppend,
+      #        databaseTableAppend = databaseTableAppend
+      #      ) 
+      #    )
+      #  } else{
+      #    return(NULL)
+      #  }
+      #}
+      #)
+      
+      validationTable <- shiny::eventReactive(inputSingleView(),
+        {
+          
+          getValSummary(
+            con, 
+            mySchema, 
+            modelDesignId = modelDesignId(),
+            developmentDatabaseId = developmentDatabaseId(),
+            targetDialect = targetDialect, 
+            myTableAppend = myTableAppend,
+            databaseTableAppend = databaseTableAppend,
+            inputSingleView = inputSingleView()
+          )  
+
         }
-      }
-      )
+        )
+      
       
       output$validationTable <- DT::renderDataTable(
         {
@@ -235,9 +253,19 @@ getValSummary <- function(
   developmentDatabaseId,
   targetDialect, 
   myTableAppend = '',
-  databaseTableAppend = myTableAppend
+  databaseTableAppend = myTableAppend,
+  inputSingleView
 ){
   ParallelLogger::logInfo("getting Val summary")
+  
+  if(
+    inputSingleView != 'Validation' | 
+    is.null(modelDesignId) |
+    is.null(developmentDatabaseId)
+  ){
+    return(NULL)
+  }
+  
   
   sql <- "SELECT 
            results.performance_id, 
@@ -287,8 +315,8 @@ getValSummary <- function(
   
   sql <- SqlRender::render(sql = sql, 
                            my_schema = mySchema, 
-                           model_design_id = modelDesignId(),
-                           development_database_id = developmentDatabaseId(),
+                           model_design_id = modelDesignId,
+                           development_database_id = developmentDatabaseId,
                            my_table_append = myTableAppend,
                            database_table_append = databaseTableAppend)
   
@@ -413,7 +441,7 @@ plotRocs <- function(
       limits=c(0,1)
     ) +
     ggplot2::scale_color_discrete(name = 'Result') +
-    ggplot2::scale_fill_discrete(guide = FALSE) + 
+    ggplot2::scale_fill_discrete(guide = "none") + 
     ggplot2::theme(
       legend.position = "bottom", 
       legend.direction = "vertical"

@@ -342,10 +342,11 @@ predictionDiagnosticsServer <- function(
                         unique(outcomeTable$aggregation)[1],
                         input$outcomeParameters
                       )
-                    ), 
+                    ) %>% 
+                    dplyr::group_by(.data$inputType), # dep fix
                   x = ~ xvalue, 
                   y = ~ outcomePercent, 
-                  group = ~ inputType,
+                  #group = ~ inputType,
                   color = ~ inputType,
                   type = 'scatter', 
                   mode = 'lines'
