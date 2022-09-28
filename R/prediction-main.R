@@ -179,11 +179,23 @@ predictionServer <- function(
       
       # when going to the all model design hide tabs
       shiny::observeEvent(input$allView, {
-        if(input$allView == 'Model Designs Summary'){
+        
+        tempView <- ifelse(is.null(input$allView), 'Model Designs Summary', input$allView)
+        
+        if(tempView == 'Model Designs Summary'){
           shiny::hideTab(inputId = "allView", session = session, target = "Models Summary")
           shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
         }
-      })
+    
+          if(tempView != 'Explore Selected Model')
+          shiny::updateTabsetPanel(
+            session = session,
+            inputId = 'singleView',
+            selected = 'Design Settings'
+          )
+        }
+        
+      )
       
       
       # keep a reactive variable tracking the active tab

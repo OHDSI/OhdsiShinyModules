@@ -231,10 +231,8 @@ descriptionAggregateFeaturesServer <- function(
       return
     }
 
-    if (window.Shiny) {
     if(column.id == 'view'){
       Shiny.setInputValue('",session$ns('descAgSelect'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
     }
   }")
           ),

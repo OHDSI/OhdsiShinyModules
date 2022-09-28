@@ -175,7 +175,6 @@ predictionDiagnosticsServer <- function(
 
     // Send the click event to Shiny, which will be available in input$show_details
     // Note that the row index starts at 0 in JavaScript, so we add 1
-    if (window.Shiny) {
     if(column.id == 'participants'){
       Shiny.setInputValue('",session$ns('show_participants'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
     }
@@ -184,7 +183,6 @@ predictionDiagnosticsServer <- function(
     }
     if(column.id == 'outcomes'){
       Shiny.setInputValue('",session$ns('show_outcomes'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
     }
   }"
                 )
@@ -344,10 +342,11 @@ predictionDiagnosticsServer <- function(
                         unique(outcomeTable$aggregation)[1],
                         input$outcomeParameters
                       )
-                    ), 
+                    ) %>% 
+                    dplyr::group_by(.data$inputType), # dep fix
                   x = ~ xvalue, 
                   y = ~ outcomePercent, 
-                  group = ~ inputType,
+                  #group = ~ inputType,
                   color = ~ inputType,
                   type = 'scatter', 
                   mode = 'lines'

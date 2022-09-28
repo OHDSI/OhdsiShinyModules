@@ -1,2 +1,8 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+extras
+_pkgdown.yml
+docs
+.github
+deploy.sh
+compare_versions

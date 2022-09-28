@@ -7,13 +7,20 @@ shiny::testServer(
     developmentDatabaseId = shiny::reactiveVal(1),
     performanceId = shiny::reactiveVal(1),
     con = connectionPlp,
-    inputSingleView = shiny::reactiveVal('Validation'),
+    inputSingleView = shiny::reactiveVal('No Validation'),
     mySchema = schemaTest,
     targetDialect = dbmsTest,
-    myTableAppend = tablePrefixTest
+    myTableAppend = tablePrefixTest,
+    databaseTableAppend = tablePrefixTest
     ), 
   expr = {
+    
+  expect_true(is.null(validationTable()))
+    
+    # after setting the inputSingleView the table should load
+  inputSingleView('Validation')
   
+  expect_true(!is.null(validationTable()))
   expect_true(nrow(validationTable()) > 0)
     
   # no rows selected so valResult() should empty list

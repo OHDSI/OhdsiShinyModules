@@ -125,16 +125,17 @@ estimationSystematicErrorServer <- function(id, selectedRow, inputParams, connec
         if (is.null(row) || !(row$databaseId %in% metaAnalysisDbIds)) {
           return(NULL)
         } else {
-          negativeControls <- getEstimationNegativeControlEstimates(connection = connection,
-                                                                    #resultsSchema = resultsSchema, unused argument
-                                                                    targetId = inputParams()$target,
-                                                                    comparatorId = inputParams()$comparator,
-                                                                    analysisId =  row$analysisId)
-          if (is.null(negativeControls))
+          ##negativeControls <- getEstimationNegativeControlEstimates(connection = connection,
+          ##                                                          #resultsSchema = resultsSchema, unused argument
+          ##                                                          targetId = inputParams()$target,
+          ##                                                         comparatorId = inputParams()$comparator,
+          ##                                                          analysisId =  row$analysisId)
+          ##if (is.null(negativeControls))
             return(NULL)
           
-          plot <- plotEstimationEmpiricalNulls(negativeControls)
-          return(plot)
+          ## plotEstimationEmpiricalNulls() not found
+          #plot <- plotEstimationEmpiricalNulls(negativeControls)
+          ##return(plot)
         }
       })
       

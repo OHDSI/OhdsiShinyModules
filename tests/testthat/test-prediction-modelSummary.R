@@ -12,6 +12,7 @@ shiny::testServer(
   ), 
   expr = {
     
+    expect_true(nrow(resultTable())>0)
     # check reactives are null untill input set
     expect_true(is.null(performanceId()))
     expect_true(is.null(developmentDatabaseId()))
