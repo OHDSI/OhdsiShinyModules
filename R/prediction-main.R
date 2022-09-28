@@ -307,6 +307,18 @@ predictionServer <- function(
         
         if(!is.null(designSummary$reportId())){
           
+          #check protocol generator packages installed for this
+          # could make this interactive in shiny
+          if(!is_installed("CirceR")){
+            shiny::showNotification("Need to install CirceR for this to work: remotes::install_github('OHDSI/CirceR')")
+          }
+          if(!is_installed("kableExtra")){
+            shiny::showNotification("Need to install kableExtra for this to work: install.packages('kableExtra')")
+          }
+          if(!is_installed("knitr")){
+            shiny::showNotification("Need to install knitr for this to work: install.packages('kableExtra')")
+          }
+          
           #protocolOutputLoc <- tempdir()
           protocolOutputLoc <- getwd()
           

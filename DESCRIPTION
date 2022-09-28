@@ -36,7 +36,6 @@ Suggests:
     kableExtra,
     knitr,
     markdown,
-    RSQLite,
     testthat,
     withr
 Remotes:
