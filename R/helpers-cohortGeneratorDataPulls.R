@@ -6,7 +6,7 @@ getCohortGeneratorCohortCounts <- function(
   tablePrefix = 'cg_'
   ) {
   
-  sql <- "SELECT * FROM @results_schema.@table_prefixCOHORT_COUNT"
+  sql <- "SELECT * FROM @results_schema.@table_prefixCOHORT_COUNT;"
   return(
     DatabaseConnector::renderTranslateQuerySql(
       connection, sql,
@@ -23,7 +23,7 @@ getCohortGeneratorCohortMeta <- function(
   tablePrefix = 'cg_'
   ) {
   
-  sql <- "SELECT * FROM @results_schema.@table_prefixCOHORT_GENERATION"
+  sql <- "SELECT * FROM @results_schema.@table_prefixCOHORT_GENERATION;"
   return(
     DatabaseConnector::renderTranslateQuerySql(
       connection, sql,
@@ -43,7 +43,7 @@ getCohortGeneratorCohortInclusionStats <- function(
   tablePrefix = 'cg_'
   ) {
   
-  sql <- "SELECT * FROM @results_schema.@table_prefixCOHORT_SUMMARY_STATS"
+  sql <- "SELECT * FROM @results_schema.@table_prefixCOHORT_SUMMARY_STATS;"
   return(
     DatabaseConnector::renderTranslateQuerySql(
       connection, sql,

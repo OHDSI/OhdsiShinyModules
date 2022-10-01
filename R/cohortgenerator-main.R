@@ -50,19 +50,19 @@ cohortGeneratorViewer <- function(id) {
       
       shiny::tabPanel(
         title = "Cohort Counts",
-        value =  DT::dataTableOutput(
+        DT::dataTableOutput(
           outputId = ns("cohortCounts")
           )
       ),
       shiny::tabPanel(
         title = "Cohort Generation",
-        value = DT::dataTableOutput(
+        DT::dataTableOutput(
           outputId = ns("cohortGeneration")
           )
       ),
       shiny::tabPanel(
         title = "Cohort Inclusions",
-        value = reactable::reactableOutput(
+        reactable::reactableOutput(
           outputId = ns("inclusionStats")
           )
       )
@@ -102,7 +102,6 @@ cohortGeneratorServer <- function(
         server = resultDatabaseSettings$server
       )
       
-      
       connection <- DatabaseConnector::connect(
         connectionDetails = connectionDetails
         )
@@ -115,7 +114,7 @@ cohortGeneratorServer <- function(
           )
         data
       })
-      
+
       output$cohortGeneration <- DT::renderDataTable({
         data <- getCohortGeneratorCohortMeta(
           connection = connection, 
@@ -130,6 +129,7 @@ cohortGeneratorServer <- function(
         resultsSchema = resultsSchema,
         tablePrefix = resultDatabaseSettings$tablePrefix
       )
+      
       output$inclusionStats <- reactable::renderReactable({
         reactable::reactable(
           data = inclusionStats,
