@@ -11,7 +11,7 @@ descriptionIncidenceServer(
   schema,
   dbms,
   incidenceTablePrefix,
-  tempEmulationSchema,
+  tempEmulationSchema = NULL,
   databaseTable = "DATABASE_META_DATA"
 )
 }

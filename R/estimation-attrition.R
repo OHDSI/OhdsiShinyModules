@@ -28,12 +28,12 @@ estimationAttritionViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    plotOutput(outputId = ns("attritionPlot"), width = 600, height = 600),
-    uiOutput(outputId = ns("attritionPlotCaption")),
-    div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
-        downloadButton(outputId = ns("downloadAttritionPlotPng"),
+    shiny::plotOutput(outputId = ns("attritionPlot"), width = 600, height = 600),
+    shiny::uiOutput(outputId = ns("attritionPlotCaption")),
+    shiny::div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
+               shiny::downloadButton(outputId = ns("downloadAttritionPlotPng"),
                        label = "Download diagram as PNG"),
-        downloadButton(outputId = ns("downloadAttritionPlotPdf"),
+               shiny::downloadButton(outputId = ns("downloadAttritionPlotPdf"),
                        label = "Download diagram as PDF"))
   )
 }
@@ -45,6 +45,8 @@ estimationAttritionViewer <- function(id) {
 #' @param inputParams  the selected study parameters of interest
 #' @param connection the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
+#' @param tablePrefix tablePrefix
+#' @param databaseTable databaseTable
 #'
 #' @return
 #' the PLE attrition results content server

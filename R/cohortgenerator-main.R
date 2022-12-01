@@ -43,19 +43,32 @@ cohortGeneratorViewer <- function(id) {
   
   ns <- shiny::NS(id)
   
-  fluidPage(
-    tabsetPanel(
+  shiny::fluidPage(
+    
+    shiny::tabsetPanel(
       id = ns("cohortGeneratorTabs"),
-      tabPanel(title = "Cohort Counts",
-               DT::dataTableOutput(outputId = ns("cohortCounts"))
+      
+      shiny::tabPanel(
+        title = "Cohort Counts",
+        DT::dataTableOutput(
+          outputId = ns("cohortCounts")
+          )
       ),
-      tabPanel(title = "Cohort Generation",
-               DT::dataTableOutput(outputId = ns("cohortGeneration"))
+      shiny::tabPanel(
+        title = "Cohort Generation",
+        DT::dataTableOutput(
+          outputId = ns("cohortGeneration")
+          )
       ),
-      tabPanel(title = "Cohort Inclusions",
-               reactable::reactableOutput(outputId = ns("inclusionStats"))
+      shiny::tabPanel(
+        title = "Cohort Inclusions",
+        reactable::reactableOutput(
+          outputId = ns("inclusionStats")
+          )
       )
+      
     )
+    
   )
 }
 
@@ -66,13 +79,17 @@ cohortGeneratorViewer <- function(id) {
 #'
 #' @param id the unique reference id for the module
 #' @param resultDatabaseSettings a named list containing the cohort generator results database connection details
-#' @param resultsSchema the schema with the cohort generator results
 #'
 #' @return
 #' the cohort generator results viewer main module server
 #' 
 #' @export
-cohortGeneratorServer <- function(id, connection, resultDatabaseSettings) {
+
+cohortGeneratorServer <- function(
+  id, 
+  connection, 
+  resultDatabaseSettings
+) {
 
   shiny::moduleServer(
     id,
@@ -80,22 +97,38 @@ cohortGeneratorServer <- function(id, connection, resultDatabaseSettings) {
       
       resultsSchema <- resultDatabaseSettings$schema
       
+      
       output$cohortCounts <- DT::renderDataTable({
-        data <- getCohortGeneratorCohortCounts(connection, resultsSchema)
+        data <- getCohortGeneratorCohortCounts(
+          connection = connection, 
+          resultsSchema = resultsSchema,
+          tablePrefix = resultDatabaseSettings$tablePrefix
+          )
+        data
+      })
+
+      output$cohortGeneration <- DT::renderDataTable({
+        data <- getCohortGeneratorCohortMeta(
+          connection = connection, 
+          resultsSchema = resultsSchema,
+          tablePrefix = resultDatabaseSettings$tablePrefix
+          )
         data
       })
       
-      output$cohortGeneration <- DT::renderDataTable({
-        data <- getCohortGeneratorCohortMeta(connection, resultsSchema)
-        data
-      })
+      inclusionStats <- getCohortGeneratorCohortInclusionStats(
+        connection = connection, 
+        resultsSchema = resultsSchema,
+        tablePrefix = resultDatabaseSettings$tablePrefix
+      )
       
       output$inclusionStats <- reactable::renderReactable({
-        data <- getCohortGeneratorCohortInclusionStats(connection, resultsSchema)
-        
         reactable::reactable(
-          data,
-          groupBy = c("databaseId", "cohortDefinitionId"),
+          data = inclusionStats,
+          groupBy = c(
+            "databaseId", 
+            "cohortDefinitionId"
+            ),
           striped = TRUE,
           filterable = TRUE,
           searchable = TRUE,

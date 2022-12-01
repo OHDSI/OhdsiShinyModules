@@ -69,7 +69,7 @@ descriptionAggregateFeaturesViewer <- function(id) {
     shinydashboard::tabBox(
       width = 12,
       # Title can include an icon
-      title = shiny::tagList(shiny::icon("gear"), "Plots"),
+      title = shiny::tagList(shiny::icon("gear"), "Table and Plots"),
       shiny::tabPanel("Binary Table", 
                       shiny::downloadButton(
                         ns('downloadBinary'), 
@@ -125,7 +125,7 @@ descriptionAggregateFeaturesServer <- function(
   schema, 
   dbms,
   tablePrefix,
-  tempEmulationSchema,
+  tempEmulationSchema = NULL,
   cohortTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA'
 ) {
@@ -231,10 +231,8 @@ descriptionAggregateFeaturesServer <- function(
       return
     }
 
-    if (window.Shiny) {
     if(column.id == 'view'){
       Shiny.setInputValue('",session$ns('descAgSelect'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
     }
   }")
           ),
@@ -274,8 +272,8 @@ descriptionAggregateFeaturesServer <- function(
           output$inputsDesc <- shiny::renderUI({
             
             shiny::fluidPage(
-            fluidRow(
-              column(width = 3,
+              shiny::fluidRow(
+                shiny::column(width = 3,
                      shiny::selectInput(
                        inputId = session$ns('database1'), 
                        label = 'Database 1: ', 
@@ -289,7 +287,7 @@ descriptionAggregateFeaturesServer <- function(
                        selected = 1
                      )
               ),
-              column(width = 7, 
+              shiny::column(width = 7, 
                      shiny::selectInput(
                        inputId = session$ns('type1'), 
                        label = 'Type 1: ', 
@@ -304,7 +302,7 @@ descriptionAggregateFeaturesServer <- function(
                      )
               ),
               
-              column(width = 2, 
+              shiny::column(width = 2, 
                      shiny::actionButton(
                        inputId = session$ns('ag_plot'), 
                        label = 'Click'
@@ -476,7 +474,7 @@ descriptionAggregateFeaturesServer <- function(
              paste('binarydata-', Sys.Date(), '.csv', sep='')
            },
           content = function(con) {
-            write.csv(binaryData(), con)
+            utils::write.csv(binaryData(), con)
           }
          )
       output$downloadContinuous <- shiny::downloadHandler(
@@ -484,7 +482,7 @@ descriptionAggregateFeaturesServer <- function(
           paste('continuousdata-', Sys.Date(), '.csv', sep='')
         },
         content = function(con) {
-          write.csv(continuousData(), con)
+          utils::write.csv(continuousData(), con)
         }
       )
       
@@ -500,7 +498,7 @@ getAggregateFeatureOptions <- function(
   schema, 
   dbms,
   tablePrefix,
-  tempEmulationSchema,
+  tempEmulationSchema = NULL,
   cohortTablePrefix
 ){
   
@@ -822,25 +820,27 @@ descriptiveFeaturePlot <- function(
     return(NULL)
   }
   
+  valueColumns <- c("covariateName", "covariateId", valueColumn)
+  
   
   shiny::withProgress(message = 'Generating plots', value = 0, {
   
   comp1 <- data %>% 
     dplyr::filter(.data$label == 'comp1') %>%
-    dplyr::select(.data$covariateName, .data$covariateId, .data[[valueColumn]]) %>%
-    dplyr::rename(comp1 = .data[[valueColumn]])
+    dplyr::select(dplyr::all_of(valueColumns)) %>%
+    dplyr::rename(comp1 = dplyr::all_of(valueColumn)) #.data[[valueColumn]])  # not sure how to do this ERROR?
   
   shiny::incProgress(1/5, detail = paste("Filtered comparision 1"))
     
   comp2 <- data %>% 
     dplyr::filter(.data$label == 'comp2') %>%
-    dplyr::select(.data$covariateName, .data$covariateId, .data[[valueColumn]]) %>%
-    dplyr::rename(comp2 = .data[[valueColumn]])
+    dplyr::select(dplyr::all_of(valueColumns)) %>%
+    dplyr::rename(comp2 = dplyr::all_of(valueColumn))  # not sure this will work ERROR?
   
   shiny::incProgress(2/5, detail = paste("Filtered comparision 2"))
   
   analysisIds <- data %>%
-    dplyr::select(.data$covariateName, .data$covariateId, .data$analysisName) %>%
+    dplyr::select(c("covariateName", "covariateId", "analysisName")) %>%
     dplyr::distinct()
   
   shiny::incProgress(3/5, detail = paste("Extracting analysisNames"))
@@ -916,14 +916,16 @@ descriptiveFeatureTable <- function(
     comp1 <- data %>% 
       dplyr::filter(.data$label == 'comp1') %>%
       dplyr::select(
-        .data$covariateId,
-        .data$covariateName, 
-        .data$averageValue, 
-        .data$standardDeviation
+        c(
+        "covariateId",
+        "covariateName", 
+        "averageValue", 
+        "standardDeviation"
+        )
         ) %>%
       dplyr::rename(
-        comp1 = .data$averageValue,
-        comp1sd = .data$standardDeviation
+        comp1 = "averageValue",
+        comp1sd = "standardDeviation"
         )
 
     
@@ -932,20 +934,22 @@ descriptiveFeatureTable <- function(
     comp2 <- data %>% 
       dplyr::filter(.data$label == 'comp2') %>%
       dplyr::select(
-        .data$covariateId,
-        .data$covariateName, 
-        .data$averageValue, 
-        .data$standardDeviation
+        c(
+        "covariateId",
+        "covariateName", 
+        "averageValue", 
+        "standardDeviation"
+        )
         ) %>%
       dplyr::rename(
-        comp2 = .data$averageValue,
-        comp2sd = .data$standardDeviation
+        comp2 = "averageValue",
+        comp2sd = "standardDeviation"
         )
     
     shiny::incProgress(2/4, detail = paste("Filtered comparision 2"))
     
     analysisIds <- data %>%
-      dplyr::select(.data$covariateName, .data$covariateId, .data$analysisName) %>%
+      dplyr::select(c("covariateName", "covariateId", "analysisName")) %>%
       dplyr::distinct()
     
     shiny::incProgress(3/4, detail = paste("Extracting analysisIds"))

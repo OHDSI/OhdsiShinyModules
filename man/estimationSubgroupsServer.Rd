@@ -4,7 +4,14 @@
 \alias{estimationSubgroupsServer}
 \title{The module server for rendering the subgroup results}
 \usage{
-estimationSubgroupsServer(id, selectedRow, inputParams)
+estimationSubgroupsServer(
+  id,
+  selectedRow,
+  inputParams,
+  exposureOfInterest,
+  outcomeOfInterest,
+  connection
+)
 }
 \arguments{
 \item{id}{the unique reference id for the module}
@@ -12,6 +19,12 @@ estimationSubgroupsServer(id, selectedRow, inputParams)
 \item{selectedRow}{the selected row from the main results table}
 
 \item{inputParams}{the selected study parameters of interest}
+
+\item{exposureOfInterest}{exposureOfInterest}
+
+\item{outcomeOfInterest}{outcomeOfInterest}
+
+\item{connection}{connection}
 }
 \value{
 the PLE subgroup results server

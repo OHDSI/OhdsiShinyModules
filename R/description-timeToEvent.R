@@ -85,7 +85,7 @@ descriptionTimeToEventServer <- function(
   schema, 
   dbms,
   tablePrefix,
-  tempEmulationSchema,
+  tempEmulationSchema = NULL,
   cohortTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA'
 ) {
@@ -240,7 +240,7 @@ timeToEventGetIds <- function(
   shiny::incProgress(3/4, detail = paste("Processing ids"))
   
   targetUnique <- bothIds %>% 
-    dplyr::select(.data$targetCohortDefinitionId, .data$target) %>%
+    dplyr::select(c("targetCohortDefinitionId", "target")) %>%
     dplyr::distinct()
   
   targetIds <- targetUnique$targetCohortDefinitionId
@@ -250,7 +250,7 @@ timeToEventGetIds <- function(
     
     outcomeUnique <- bothIds %>% 
       dplyr::filter(.data$targetCohortDefinitionId == x) %>%
-      dplyr::select(.data$outcomeCohortDefinitionId, .data$outcome) %>%
+      dplyr::select(c("outcomeCohortDefinitionId", "outcome")) %>%
       dplyr::distinct()
     
     outcomeIds <- outcomeUnique$outcomeCohortDefinitionId

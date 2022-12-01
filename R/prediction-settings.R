@@ -84,7 +84,7 @@ predictionSettingsServer <- function(
   inputSingleView,
   myTableAppend, 
   targetDialect,
-  cohortTableAppend
+  cohortTableAppend = myTableAppend
 ) {
   
   shiny::moduleServer(
@@ -400,7 +400,7 @@ predictionSettingsServer <- function(
                 title = "Attrition",
                 shiny::div(
                   DT::renderDataTable(
-                    attrition %>% dplyr::select(-.data$performanceId, -.data$outcomeId)
+                    attrition %>% dplyr::select(-c("performanceId", "outcomeId"))
                   )
                 ),
                 easyClose = TRUE,
@@ -429,7 +429,7 @@ getModelDesign <- function(
   con,
   myTableAppend, 
   targetDialect,
-  cohortTableAppend
+  cohortTableAppend = myTableAppend
 ){
   if(!is.null(modelDesignId())){
     print(paste0('model design: ', modelDesignId()))
@@ -692,7 +692,7 @@ formatModSettings <- function(modelSettings){
 # format covariateSettings
 formatCovSettings <- function(covariateSettings){
   
-  if(class(covariateSettings)=='covariateSettings'){
+  if(inherits(covariateSettings, 'covariateSettings')){
     covariateSettings <- list(covariateSettings)
   }
   

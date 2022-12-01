@@ -12,7 +12,7 @@ descriptionTableServer(
   dbms,
   tablePrefix,
   cohortTablePrefix,
-  tempEmulationSchema,
+  tempEmulationSchema = NULL,
   databaseTable = "DATABASE_META_DATA"
 )
 }

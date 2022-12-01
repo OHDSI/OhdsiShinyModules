@@ -84,7 +84,7 @@ res <- ParallelLogger::convertJsonToSettings(res$value)
     })
   
   # do the cohort separately due to required join
-  for(i in 1:2){
+  for(tind in 1:2){
 
     sqlStart <- "select cd.json as value from 
     @result_schema.@my_table_appendcohorts c inner join
@@ -101,7 +101,7 @@ res <- ParallelLogger::convertJsonToSettings(res$value)
     my_table_append = myTableAppend,
     cohort_table_append = cohortTableAppend,
     model_design_id = modelDesignId,
-    cohort_type = c('target_id','outcome_id')[i]
+    cohort_type = c('target_id','outcome_id')[tind]
   )
   
   sql <- SqlRender::translate(
@@ -115,7 +115,7 @@ res <- ParallelLogger::convertJsonToSettings(res$value)
     sql = sql, 
     snakeCaseToCamelCase = T
     )
-result[[length(result+1)]] <- ParallelLogger::convertJsonToSettings(res$value)
+result[[length(result)+1]] <- ParallelLogger::convertJsonToSettings(res$value)
     
   }
   

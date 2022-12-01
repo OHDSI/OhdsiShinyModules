@@ -57,7 +57,7 @@ predictionModelSummaryServer <- function(
   targetDialect,
   myTableAppend,
   modelDesignId,
-  databaseTableAppend
+  databaseTableAppend = myTableAppend
 ) {
   shiny::moduleServer(
     id,
@@ -107,11 +107,11 @@ predictionModelSummaryServer <- function(
 
     // Send the click event to Shiny, which will be available in input$show_details
     // Note that the row index starts at 0 in JavaScript, so we add 1
-    if (window.Shiny) {
+    // if (window.Shiny) {
     if(column.id == 'view'){
       Shiny.setInputValue('",session$ns('view_details'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
     }
-    }
+    // }
   }")
           )
           
@@ -227,10 +227,10 @@ getInternalPerformanceSummary <- function(
   summaryTable$o <- trimws(summaryTable$o)
   
   summaryTable <- summaryTable %>% 
-    dplyr::rename(`T Size` = .data$populationSize) %>% 
-    dplyr::rename(`O Count` = .data$outcomeCount) %>%
-    dplyr::rename(`Val (%)` = .data$evalPercent) %>%
-    dplyr::rename(`O Incidence (%)` = .data$outcomePercent)
+    dplyr::rename(`T Size` = "populationSize") %>% 
+    dplyr::rename(`O Count` = "outcomeCount") %>%
+    dplyr::rename(`Val (%)` = "evalPercent") %>%
+    dplyr::rename(`O Incidence (%)` = "outcomePercent")
   
   summaryTable <- editTar(summaryTable)
   
@@ -255,7 +255,7 @@ getInternalPerformanceSummary <- function(
 editTar <- function(summaryTable){
   
   summaryTable <- summaryTable %>% dplyr::mutate(TAR = paste0('(',trimws(.data$tarStartAnchor),' + ',.data$tarStartDay, ') - (',trimws(.data$tarEndAnchor),' + ',.data$tarEndDay, ')' )) %>%
-    dplyr::select(-c(.data$tarStartAnchor, .data$tarStartDay, .data$tarEndAnchor, .data$tarEndDay))
+    dplyr::select(-c("tarStartAnchor", "tarStartDay", "tarEndAnchor", "tarEndDay"))
   
   return(summaryTable)
 }

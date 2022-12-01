@@ -14,7 +14,7 @@ predictionSettingsServer(
   inputSingleView,
   myTableAppend,
   targetDialect,
-  cohortTableAppend
+  cohortTableAppend = myTableAppend
 )
 }
 \arguments{

@@ -3,14 +3,16 @@ context("prediction-modelSummary")
 shiny::testServer(
   app = predictionModelSummaryServer, 
   args = list(
-    con = connection,
-    mySchema = mySchemaTest,
-    targetDialect = targetDialectTest,
-    myTableAppend = myTableAppendTest,
-    modelDesignId = shiny::reactiveVal(1)
+    con = connectionPlp,
+    mySchema = schemaTest,
+    targetDialect = dbmsTest,
+    myTableAppend = tablePrefixTest,
+    modelDesignId = shiny::reactiveVal(1),
+    databaseTableAppend = ''
   ), 
   expr = {
     
+    expect_true(nrow(resultTable())>0)
     # check reactives are null untill input set
     expect_true(is.null(performanceId()))
     expect_true(is.null(developmentDatabaseId()))

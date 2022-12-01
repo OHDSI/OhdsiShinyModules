@@ -92,28 +92,46 @@ predictionValidationServer <- function(
     id,
     function(input, output, session) {
       
-      validationTable <- shiny::reactive({
-        if(
-          inputSingleView() == 'Validation' & 
-          !is.null(modelDesignId()) & 
-          !is.null(developmentDatabaseId())
-          ){
-          return(
-            getValSummary(
-              con, 
-              mySchema, 
-              modelDesignId = modelDesignId,
-              developmentDatabaseId = developmentDatabaseId,
-              targetDialect = targetDialect, 
-              myTableAppend = myTableAppend,
-              databaseTableAppend = databaseTableAppend
-            ) 
-          )
-        } else{
-          return(NULL)
+      #validationTable <- shiny::reactive({
+      #  if(
+      #    inputSingleView() == 'Validation' & 
+      #    !is.null(modelDesignId()) & 
+      #    !is.null(developmentDatabaseId())
+      #    ){
+      #    return(
+      #      getValSummary(
+      #        con, 
+      #        mySchema, 
+      #        modelDesignId = modelDesignId,
+      #        developmentDatabaseId = developmentDatabaseId,
+      #        targetDialect = targetDialect, 
+      #        myTableAppend = myTableAppend,
+      #        databaseTableAppend = databaseTableAppend
+      #      ) 
+      #    )
+      #  } else{
+      #    return(NULL)
+      #  }
+      #}
+      #)
+      
+      validationTable <- shiny::eventReactive(inputSingleView(),
+        {
+          
+          getValSummary(
+            con, 
+            mySchema, 
+            modelDesignId = modelDesignId(),
+            developmentDatabaseId = developmentDatabaseId(),
+            targetDialect = targetDialect, 
+            myTableAppend = myTableAppend,
+            databaseTableAppend = databaseTableAppend,
+            inputSingleView = inputSingleView()
+          )  
+
         }
-      }
-      )
+        )
+      
       
       output$validationTable <- DT::renderDataTable(
         {
@@ -235,9 +253,19 @@ getValSummary <- function(
   developmentDatabaseId,
   targetDialect, 
   myTableAppend = '',
-  databaseTableAppend = myTableAppend
+  databaseTableAppend = myTableAppend,
+  inputSingleView
 ){
   ParallelLogger::logInfo("getting Val summary")
+  
+  if(
+    inputSingleView != 'Validation' | 
+    is.null(modelDesignId) |
+    is.null(developmentDatabaseId)
+  ){
+    return(NULL)
+  }
+  
   
   sql <- "SELECT 
            results.performance_id, 
@@ -287,8 +315,8 @@ getValSummary <- function(
   
   sql <- SqlRender::render(sql = sql, 
                            my_schema = mySchema, 
-                           model_design_id = modelDesignId(),
-                           development_database_id = developmentDatabaseId(),
+                           model_design_id = modelDesignId,
+                           development_database_id = developmentDatabaseId,
                            my_table_append = myTableAppend,
                            database_table_append = databaseTableAppend)
   
@@ -301,17 +329,17 @@ getValSummary <- function(
   valTable$outcome <- trimws(valTable$outcome) # not needed
   
   valTable <- valTable %>% 
-    dplyr::rename(`Population setting` = .data$populationSettingId) %>%
-    dplyr::rename(`T Size` = .data$populationSize) %>% 
-    dplyr::rename(`O Count` = .data$outcomeCount) %>%
-    dplyr::rename(`Val (%)` = .data$evalPercent) %>%
-    dplyr::rename(`O Incidence (%)` = .data$outcomePercent) %>%
-    dplyr::rename(`T` = .data$target) %>%
-    dplyr::rename(`O` = .data$outcome) %>%
-    dplyr::rename(`AUROC` = .data$auroc) %>%
-    dplyr::rename(`AUPRC` = .data$auprc) %>%
-    dplyr::rename(`Val` = .data$val) %>%
-    dplyr::rename(`calibrationInLarge intercept` = .data$calibrationInLarge)
+    dplyr::rename(`Population setting` = "populationSettingId") %>%
+    dplyr::rename(`T Size` = "populationSize") %>% 
+    dplyr::rename(`O Count` = "outcomeCount") %>%
+    dplyr::rename(`Val (%)` = "evalPercent") %>%
+    dplyr::rename(`O Incidence (%)` = "outcomePercent") %>%
+    dplyr::rename(`T` = "target") %>%
+    dplyr::rename(`O` = "outcome") %>%
+    dplyr::rename(`AUROC` = "auroc") %>%
+    dplyr::rename(`AUPRC` = "auprc") %>%
+    dplyr::rename(`Val` = "val") %>%
+    dplyr::rename(`calibrationInLarge intercept` = "calibrationInLarge")
   
   valTable <- editTar(valTable) # ISSUE: function not in the module
   
@@ -335,7 +363,7 @@ plotRocs <- function(
   type= NULL, 
   fileName=NULL
 ){
-  if(class(thresholdSummaryList)!='list'){
+  if(!inherits(thresholdSummaryList,'list')){
     stop('Need to enter a list')
   }
   
@@ -413,7 +441,7 @@ plotRocs <- function(
       limits=c(0,1)
     ) +
     ggplot2::scale_color_discrete(name = 'Result') +
-    ggplot2::scale_fill_discrete(guide = FALSE) + 
+    ggplot2::scale_fill_discrete(guide = "none") + 
     ggplot2::theme(
       legend.position = "bottom", 
       legend.direction = "vertical"

@@ -70,6 +70,23 @@ reference:
       - predictionNbServer
       - predictionValidationViewer
       - predictionValidationServer
+  - title: "Decription module"
+    desc: >
+      Modules for the description analyses.
+    contents:
+      - descriptionHelperFile
+      - descriptionViewer
+      - descriptionServer
+      - descriptionAggregateFeaturesViewer
+      - descriptionAggregateFeaturesServer
+      - descriptionDechallengeRechallengeViewer
+      - descriptionDechallengeRechallengeServer
+      - descriptionIncidenceViewer
+      - descriptionIncidenceServer
+      - descriptionTableViewer
+      - descriptionTableServer
+      - descriptionTimeToEventViewer
+      - descriptionTimeToEventServer
   - title: "About module"
     desc: >
       Modules for the information page.
@@ -77,4 +94,43 @@ reference:
       - aboutHelperFile
       - aboutViewer
       - aboutServer
-      
+  - title: "Cohort Generator module"
+    desc: >
+      Modules for the cohort generator package.
+    contents:
+      - cohortGeneratorHelperFile
+      - cohortGeneratorViewer
+      - cohortGeneratorServer
+  - title: "Estimator module"
+    desc: >
+      Modules for the CohortMethod package.
+    contents:
+      - estimationHelperFile
+      - estimationViewer
+      - estimationServer
+      - estimationAttritionViewer
+      - estimationAttritionServer
+      - estimationCovariateBalanceViewer
+      - estimationCovariateBalanceServer
+      - estimationDiagnosticsSummaryViewer
+      - estimationDiagnosticsSummaryServer
+      - estimationForestPlotViewer
+      - estimationForestPlotServer
+      - estimationKaplanMeierViewer
+      - estimationKaplanMeierServer
+      - estimationPopulationCharacteristicsViewer
+      - estimationPopulationCharacteristicsServer
+      - estimationPowerViewer
+      - estimationPowerServer
+      - estimationPropensityModelViewer
+      - estimationPropensityModelServer
+      - estimationPropensityScoreDistViewer
+      - estimationPropensityScoreDistServer
+      - estimationResultsTableViewer
+      - estimationResultsTableServer
+      - estimationSubgroupsViewer
+      - estimationSubgroupsServer
+      - estimationSystematicErrorViewer
+      - estimationSystematicErrorServer
+      - estimationTitlePanelViewer
+      - estimationTitlePanelServer

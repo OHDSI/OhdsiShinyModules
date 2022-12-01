@@ -11,7 +11,8 @@ estimationPropensityScoreDistServer(
   connection,
   resultsSchema,
   tablePrefix,
-  cohortTablePrefix
+  cohortTablePrefix,
+  metaAnalysisDbIds = F
 )
 }
 \arguments{
@@ -24,6 +25,12 @@ estimationPropensityScoreDistServer(
 \item{connection}{the connection to the PLE results database}
 
 \item{resultsSchema}{the schema with the PLE results}
+
+\item{tablePrefix}{tablePrefix}
+
+\item{cohortTablePrefix}{cohortTablePrefix}
+
+\item{metaAnalysisDbIds}{metaAnalysisDbIds}
 }
 \value{
 the PLE propensity score distribution content server

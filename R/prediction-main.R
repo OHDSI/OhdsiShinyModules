@@ -125,8 +125,8 @@ predictionServer <- function(
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      # =============================
+
+
       #   VIEW SETTINGS
       # =============================
       # initially hide the models and selected model
@@ -135,11 +135,23 @@ predictionServer <- function(
       
       # when going to the all model design hide tabs
       shiny::observeEvent(input$allView, {
-        if(input$allView == 'Model Designs Summary'){
+        
+        tempView <- ifelse(is.null(input$allView), 'Model Designs Summary', input$allView)
+        
+        if(tempView == 'Model Designs Summary'){
           shiny::hideTab(inputId = "allView", session = session, target = "Models Summary")
           shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
         }
-      })
+    
+          if(tempView != 'Explore Selected Model')
+          shiny::updateTabsetPanel(
+            session = session,
+            inputId = 'singleView',
+            selected = 'Design Settings'
+          )
+        }
+        
+      )
       
       
       # keep a reactive variable tracking the active tab
@@ -251,8 +263,23 @@ predictionServer <- function(
         
         if(!is.null(designSummary$reportId())){
           
-          if(file.exists(file.path(tempdir(), 'main.html'))){
-            file.remove(file.path(tempdir(), 'main.html'))
+          #check protocol generator packages installed for this
+          # could make this interactive in shiny
+          if(!is_installed("CirceR")){
+            shiny::showNotification("Need to install CirceR for this to work: remotes::install_github('OHDSI/CirceR')")
+          }
+          if(!is_installed("kableExtra")){
+            shiny::showNotification("Need to install kableExtra for this to work: install.packages('kableExtra')")
+          }
+          if(!is_installed("knitr")){
+            shiny::showNotification("Need to install knitr for this to work: install.packages('kableExtra')")
+          }
+          
+          #protocolOutputLoc <- tempdir()
+          protocolOutputLoc <- getwd()
+          
+          if(file.exists(file.path(protocolOutputLoc, 'main.html'))){
+            file.remove(file.path(protocolOutputLoc, 'main.html'))
           }
           tryCatch(
             {createPredictionProtocol( # add database_table_append and cohort_table_append
@@ -271,7 +298,8 @@ predictionServer <- function(
                 resultDatabaseSettings$tablePrefix
               ),
               modelDesignId = designSummary$reportId(),
-              output = tempdir()
+              output = protocolOutputLoc,
+              intermediatesDir = file.path(protocolOutputLoc, 'plp-prot')
             )
             }, error = function(e){
               shiny::showNotification(
@@ -280,7 +308,7 @@ predictionServer <- function(
             }
           )
              
-          if(file.exists(file.path(tempdir(), 'main.html'))){
+          if(file.exists(file.path(protocolOutputLoc, 'main.html'))){
             # display the generated html report
             shiny::showModal(shiny::modalDialog(
               title = "Report",
@@ -294,7 +322,7 @@ predictionServer <- function(
                   inputId = session$ns('downloadButton'), 
                   label = 'Download'
                 ),
-                shiny::includeHTML(file.path(tempdir(), 'main.html'))
+                shiny::includeHTML(file.path(protocolOutputLoc, 'main.html'))
               ), 
               size = "l",
               easyClose = T
@@ -316,7 +344,8 @@ predictionServer <- function(
             'prediction-document', 
             "export-main.Rmd", 
             package = "OhdsiShinyModules"
-          ), 
+          ),  
+          intermediates_dir = file.path(tempdir(), 'plp-prot'),
           output_dir = file.path(input$plpProtocolDownload, paste0('plp_report',designSummary$reportId())), 
           params = list(
             connection = connection, 
@@ -349,7 +378,7 @@ predictionServer <- function(
         developmentDatabaseId = developmentDatabaseId, # reactive
         performanceId = performanceId, # reactive
         mySchema = resultDatabaseSettings$schema, 
-        con = connection,
+        connnectionHandler = connectionHandler,
         inputSingleView = singleViewValue,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
         targetDialect = resultDatabaseSettings$dbms

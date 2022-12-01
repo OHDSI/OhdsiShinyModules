@@ -94,7 +94,7 @@ descriptionTableServer <- function(
   dbms,
   tablePrefix,
   cohortTablePrefix,
-  tempEmulationSchema,
+  tempEmulationSchema = NULL,
   databaseTable = 'DATABASE_META_DATA'
 ) {
   shiny::moduleServer(
@@ -352,9 +352,9 @@ getDesFEData <- function(
 
   resultTable <- resultTable %>% 
     tidyr::pivot_wider(
-      names_from = .data$cohortName, 
-      values_from = c(.data$averageValue, .data$countValue), 
-      id_cols = c(.data$covariateId, .data$covariateName, .data$analysisName)
+      names_from = "cohortName", #.data$cohortName, 
+      values_from = c("averageValue", "countValue"), #c(.data$averageValue, .data$countValue), 
+      id_cols = c("covariateId", "covariateName", "analysisName") #c(.data$covariateId, .data$covariateName, .data$analysisName)
         )
   
   resultTable$analysisName <- as.factor(resultTable$analysisName)
