@@ -69,7 +69,7 @@ descriptionAggregateFeaturesViewer <- function(id) {
     shinydashboard::tabBox(
       width = 12,
       # Title can include an icon
-      title = shiny::tagList(shiny::icon("gear"), "Plots"),
+      title = shiny::tagList(shiny::icon("gear"), "Table and Plots"),
       shiny::tabPanel("Binary Table", 
                       shiny::downloadButton(
                         ns('downloadBinary'), 
