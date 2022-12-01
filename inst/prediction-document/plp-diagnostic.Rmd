@@ -142,9 +142,11 @@ library(plotly)
 if(nrow(tempPredTable)>0){
 tempPredTable <-  tempPredTable %>% 
                   dplyr::select(
-                    .data$daysToEvent, 
-                    .data$outcomeAtTime, 
-                    .data$observedAtStartOfDay
+                    c(
+                    "daysToEvent", 
+                    "outcomeAtTime", 
+                    "observedAtStartOfDay"
+                    )
                   ) %>%
                   dplyr::mutate(
                     survivalT = (.data$observedAtStartOfDay -.data$outcomeAtTime)/.data$observedAtStartOfDay

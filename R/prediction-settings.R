@@ -400,7 +400,7 @@ predictionSettingsServer <- function(
                 title = "Attrition",
                 shiny::div(
                   DT::renderDataTable(
-                    attrition %>% dplyr::select(-.data$performanceId, -.data$outcomeId)
+                    attrition %>% dplyr::select(-c("performanceId", "outcomeId"))
                   )
                 ),
                 easyClose = TRUE,
