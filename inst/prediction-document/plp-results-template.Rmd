@@ -10,7 +10,7 @@ cat('\n ',paste0('Validation on ', result$database), '\n')
 
 ```{r results='asis', echo=FALSE}
 result$attrition %>%
-  dplyr::select(-.data$performanceId) %>%
+  dplyr::select(-"performanceId") %>%
   kableExtra::kbl() %>%
   kableExtra::kable_material_dark()
 ```
@@ -19,11 +19,11 @@ result$attrition %>%
 
 ```{r results='asis', echo=FALSE}
 result$evaluation_statistics %>%
-  dplyr::select(-.data$performanceId) %>%
+  dplyr::select(-"performanceId") %>%
   tidyr::pivot_wider(
-    id_cols = .data$metric, 
-    names_from = .data$evaluation, 
-    values_from = .data$value
+    id_cols =  "metric",  #.data$metric, 
+    names_from = "evaluation", #.data$evaluation, 
+    values_from = "value" #.data$value
     ) %>%
   kableExtra::kbl() %>%
   kableExtra::kable_material_dark()
@@ -38,12 +38,14 @@ add roc and smooth cal plots here
 ```{r results='asis', echo=FALSE}
 result$covariate_summary %>%
   dplyr::select(
-    .data$covariateName, 
-    .data$covariateValue,
-    .data$covariateCount,
-    .data$withNoOutcomeCovariateMean,
-    .data$withOutcomeCovariateMean,
-    .data$standardizedMeanDiff
+    c(
+    "covariateName", 
+    "covariateValue",
+    "covariateCount",
+    "withNoOutcomeCovariateMean",
+    "withOutcomeCovariateMean",
+    "standardizedMeanDiff"
+    )
     ) %>%
   kableExtra::kbl() %>%
   kableExtra::kable_material_dark()

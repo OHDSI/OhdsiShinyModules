@@ -155,12 +155,12 @@ descriptionIncidenceServer <- function(
             {
               reactable::reactable(
                 data = allData %>% 
-                  dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation) %>%
-                  dplyr::relocate(.data$personsAtRisk, .after = .data$tarEndOffset) %>% 
-                  dplyr::relocate(.data$personDays, .after = .data$personsAtRisk) %>% 
-                  dplyr::relocate(.data$personOutcomes, .after = .data$personDays) %>% 
-                  dplyr::relocate(.data$incidenceProportionP100p, .after = .data$personOutcomes) %>% 
-                  dplyr::relocate(.data$incidenceRateP100py, .after = .data$incidenceProportionP100p) 
+                  dplyr::relocate("tarId", .after = "cdmSourceAbbreviation") %>%
+                  dplyr::relocate("personsAtRisk", .after = "tarEndOffset") %>% 
+                  dplyr::relocate("personDays", .after = "personsAtRisk") %>% 
+                  dplyr::relocate("personOutcomes", .after = "personDays") %>% 
+                  dplyr::relocate("incidenceProportionP100p", .after = "personOutcomes") %>% 
+                  dplyr::relocate("incidenceRateP100py", .after = "incidenceProportionP100p") 
                   #dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation) %>% 
                   #dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation) %>% 
                   #dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation) %>% 

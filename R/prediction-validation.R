@@ -329,17 +329,17 @@ getValSummary <- function(
   valTable$outcome <- trimws(valTable$outcome) # not needed
   
   valTable <- valTable %>% 
-    dplyr::rename(`Population setting` = .data$populationSettingId) %>%
-    dplyr::rename(`T Size` = .data$populationSize) %>% 
-    dplyr::rename(`O Count` = .data$outcomeCount) %>%
-    dplyr::rename(`Val (%)` = .data$evalPercent) %>%
-    dplyr::rename(`O Incidence (%)` = .data$outcomePercent) %>%
-    dplyr::rename(`T` = .data$target) %>%
-    dplyr::rename(`O` = .data$outcome) %>%
-    dplyr::rename(`AUROC` = .data$auroc) %>%
-    dplyr::rename(`AUPRC` = .data$auprc) %>%
-    dplyr::rename(`Val` = .data$val) %>%
-    dplyr::rename(`calibrationInLarge intercept` = .data$calibrationInLarge)
+    dplyr::rename(`Population setting` = "populationSettingId") %>%
+    dplyr::rename(`T Size` = "populationSize") %>% 
+    dplyr::rename(`O Count` = "outcomeCount") %>%
+    dplyr::rename(`Val (%)` = "evalPercent") %>%
+    dplyr::rename(`O Incidence (%)` = "outcomePercent") %>%
+    dplyr::rename(`T` = "target") %>%
+    dplyr::rename(`O` = "outcome") %>%
+    dplyr::rename(`AUROC` = "auroc") %>%
+    dplyr::rename(`AUPRC` = "auprc") %>%
+    dplyr::rename(`Val` = "val") %>%
+    dplyr::rename(`calibrationInLarge intercept` = "calibrationInLarge")
   
   valTable <- editTar(valTable) # ISSUE: function not in the module
   
