@@ -1,69 +1,4 @@
 
-loadEstimationData <- function(dataFolder) {
-  positiveControlOutcome <- NULL
-  
-  splittableTables <- c("covariate_balance", "preference_score_dist", "kaplan_meier_dist")
-  
-  files <- list.files(dataFolder, pattern = ".rds")
-  
-  # Find part to remove from all file names (usually databaseId):
-  databaseFileName <- files[grepl("^database", files)]
-  removeParts <- paste0(gsub("database", "", databaseFileName), "$")
-  
-  # Remove data already in global environment:
-  for (removePart in removeParts) {
-    tableNames <- gsub("_t[0-9]+_c[0-9]+$", "", gsub(removePart, "", files[grepl(removePart, files)]))
-    camelCaseNames <- SqlRender::snakeCaseToCamelCase(tableNames)
-    camelCaseNames <- unique(camelCaseNames)
-    camelCaseNames <- camelCaseNames[!(camelCaseNames %in% SqlRender::snakeCaseToCamelCase(splittableTables))]
-    suppressWarnings(
-      rm(list = camelCaseNames)
-    )
-  }
-  
-  # Load data from data folder. R data objects will get names derived from the filename:
-  loadFile <- function(file, removePart) {
-    tableName <- gsub("_t[0-9]+_c[0-9]+$", "", gsub(removePart, "", file))
-    camelCaseName <- SqlRender::snakeCaseToCamelCase(tableName)
-    if (!(tableName %in% splittableTables)) {
-      newData <- readRDS(file.path(dataFolder, file))
-      colnames(newData) <- SqlRender::snakeCaseToCamelCase(colnames(newData))
-      if (exists(camelCaseName, envir = .GlobalEnv)) {
-        existingData <- get(camelCaseName, envir = .GlobalEnv)
-        newData$tau <- NULL
-        newData$traditionalLogRr <- NULL
-        newData$traditionalSeLogRr <- NULL
-        if (!all(colnames(newData) %in% colnames(existingData))) {
-          stop(sprintf("Columns names do not match in %s. \nObserved:\n %s, \nExpecting:\n %s",
-                       file,
-                       paste(colnames(newData), collapse = ", "),
-                       paste(colnames(existingData), collapse = ", ")))
-          
-        }
-        newData <- dplyr::bind_rows(existingData, newData)
-        newData <- unique(newData)
-      }
-      assign(camelCaseName, newData, envir = .GlobalEnv)
-    }
-    invisible(NULL)
-  }
-  # removePart <- removeParts[3]
-  file <- files[grepl(removePart, files)][1]
-  for (removePart in removeParts) {
-    invisible(lapply(files[grepl(removePart, files)], loadFile, removePart))
-  }
-  
-  # tcos <- unique(cohortMethodResult[, c("targetId", "comparatorId", "outcomeId")])
-  # tcos <- tcos[tcos$outcomeId %in% outcomeOfInterest$outcomeId, ]
-  # assign("tcos", tcos, envir = .GlobalEnv)
-  metaAnalysisDbIds <- database$databaseId[database$isMetaAnalysis == 1]
-  assign("metaAnalysisDbIds", metaAnalysisDbIds, envir = .GlobalEnv)
-  
-  
-  
-}
-
-
 getCohortNameFromId <- function(connection, resultsSchema, cohortTablePrefix, cohortId) {
   sql <- "
   SELECT
@@ -332,7 +267,10 @@ getEstimationSubgroupResults <- function(connection,
                                          databaseIds = c(),
                                          analysisIds = c(),
                                          subgroupIds = c(),
-                                         estimatesOnly = FALSE) {
+                                         estimatesOnly = FALSE,
+                                         cmInteractionResult = c(), # added to clean check
+                                         covariate = c() # added to clean check
+                                         ) {
   idx <- rep(TRUE, nrow(cmInteractionResult))
   if (length(targetIds) != 0) {
     idx <- idx & cmInteractionResult$targetId %in% targetIds
@@ -675,7 +613,7 @@ getEstimationStudyPeriod <- function(connection, targetId, comparatorId, databas
                               comparator_id = comparatorId,
                               database_id = databaseId)$sql
   sql <- SqlRender::translateSql(sql, targetDialect = connection@dbms)$sql
-  studyPeriod <- querySql(connection, sql)
+  studyPeriod <- DatabaseConnector::querySql(connection, sql)
   colnames(studyPeriod) <- SqlRender::snakeCaseToCamelCase(colnames(studyPeriod))
   return(studyPeriod)
 }
@@ -736,7 +674,11 @@ getEstimationPropensityModel <- function(connection, resultsSchema, tablePrefix,
 }
 
 
-getEstimationCovariateBalanceSummary <- function(connection, targetId, comparatorId, analysisId,
+getEstimationCovariateBalanceSummary <- function(connection, 
+                                                 resultsSchema,
+                                                 tablePrefix,
+                                                 databaseId,
+                                                 targetId, comparatorId, analysisId,
                                                  beforeLabel = "Before matching",
                                                  afterLabel = "After matching") {
   
@@ -744,17 +686,20 @@ getEstimationCovariateBalanceSummary <- function(connection, targetId, comparato
                                            targetId = targetId,
                                            comparatorId = comparatorId,
                                            analysisId = analysisId,
+                                           resultsSchema,
+                                           tablePrefix,
+                                           databaseId = databaseId,
                                            outcomeId = NULL)
   balanceBefore <- balance %>%
     dplyr::group_by(.data$databaseId) %>%
     dplyr::summarise(covariateCount = dplyr::n(),
-                     qs = quantile(.data$beforeMatchingStdDiff, c(0, 0.25, 0.5, 0.75, 1)), prob = c("ymin", "lower", "median", "upper", "ymax")) %>%
+                     qs = stats::quantile(.data$absBeforeMatchingStdDiff, c(0, 0.25, 0.5, 0.75, 1)), prob = c("ymin", "lower", "median", "upper", "ymax")) %>%
     tidyr::spread(key = "prob", value = "qs")
   balanceBefore[, "type"] <- beforeLabel
   balanceAfter <-  balance %>%
     dplyr::group_by(.data$databaseId) %>%
     dplyr::summarise(covariateCount = dplyr::n(),
-                     qs = quantile(.data$afterMatchingStdDiff, c(0, 0.25, 0.5, 0.75, 1)), prob = c("ymin", "lower", "median", "upper", "ymax")) %>%
+                     qs = stats::quantile(.data$afterMatchingStdDiff, c(0, 0.25, 0.5, 0.75, 1)), prob = c("ymin", "lower", "median", "upper", "ymax")) %>%
     tidyr::spread(key = "prob", value = "qs")
   balanceAfter[, "type"] <- afterLabel
   

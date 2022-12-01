@@ -49,6 +49,7 @@ predictionDiagnosticsViewer <- function(id) {
 #' @param con the connection to the prediction result database
 #' @param myTableAppend a string that appends the tables in the result schema
 #' @param targetDialect the database management system for the model results
+#' @param databaseTableAppend a string that appends the database_meta_data table
 #' 
 #' @return
 #' The server to the predcition diagnostic module
@@ -60,7 +61,8 @@ predictionDiagnosticsServer <- function(
   mySchema, 
   con,
   myTableAppend, 
-  targetDialect                     
+  targetDialect,
+  databaseTableAppend
 ) {
   shiny::moduleServer(
     id,
@@ -74,7 +76,8 @@ predictionDiagnosticsServer <- function(
             mySchema, 
             con,
             myTableAppend, 
-            targetDialect   
+            targetDialect,
+            databaseTableAppend = databaseTableAppend
           )
           # input tables
           output$diagnosticSummaryTable <- reactable::renderReactable({
@@ -172,7 +175,6 @@ predictionDiagnosticsServer <- function(
 
     // Send the click event to Shiny, which will be available in input$show_details
     // Note that the row index starts at 0 in JavaScript, so we add 1
-    if (window.Shiny) {
     if(column.id == 'participants'){
       Shiny.setInputValue('",session$ns('show_participants'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
     }
@@ -181,7 +183,6 @@ predictionDiagnosticsServer <- function(
     }
     if(column.id == 'outcomes'){
       Shiny.setInputValue('",session$ns('show_outcomes'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
     }
   }"
                 )
@@ -211,17 +212,19 @@ predictionDiagnosticsServer <- function(
                   data = participants %>% 
                     dplyr::filter(.data$parameter == ifelse(is.null(input$participantParameters), unique(participants$parameter)[1], input$participantParameters)) %>%
                     dplyr::select(
-                      .data$probastId,
-                      .data$paramvalue,
-                      .data$metric, 
-                      .data$value
+                      c(
+                      "probastId",
+                      "paramvalue",
+                      "metric", 
+                      "value"
+                      )
                     ) %>%
                     dplyr::mutate(
                       value = format(.data$value, nsmall = 2, )
                     )  %>%
                     tidyr::pivot_wider(
-                      names_from = .data$paramvalue, 
-                      values_from = .data$value
+                      names_from = "paramvalue", #.data$paramvalue, 
+                      values_from = "value" #.data$value
                     )
                 )
               })
@@ -266,9 +269,11 @@ predictionDiagnosticsServer <- function(
                     )
                   ) %>%
                   dplyr::select(
-                    .data$daysToEvent, 
-                    .data$outcomeAtTime, 
-                    .data$observedAtStartOfDay
+                    c(
+                    "daysToEvent", 
+                    "outcomeAtTime", 
+                    "observedAtStartOfDay"
+                    )
                   ) %>%
                   dplyr::mutate(
                     survivalT = (.data$observedAtStartOfDay -.data$outcomeAtTime)/.data$observedAtStartOfDay
@@ -341,10 +346,11 @@ predictionDiagnosticsServer <- function(
                         unique(outcomeTable$aggregation)[1],
                         input$outcomeParameters
                       )
-                    ), 
+                    ) %>% 
+                    dplyr::group_by(.data$inputType), # dep fix
                   x = ~ xvalue, 
                   y = ~ outcomePercent, 
-                  group = ~ inputType,
+                  #group = ~ inputType,
                   color = ~ inputType,
                   type = 'scatter', 
                   mode = 'lines'
@@ -394,6 +400,7 @@ getDiagnostics <- function(
   con,
   myTableAppend, 
   targetDialect,
+  databaseTableAppend = myTableAppend,
   threshold1_2 = 0.9
 ){
   if(!is.null(modelDesignId)){
@@ -413,7 +420,11 @@ getDiagnostics <- function(
           @my_schema.@my_table_appendMODEL_DESIGNS design inner join
           @my_schema.@my_table_appendDIAGNOSTIC_SUMMARY summary inner join
           
-          @my_schema.@my_table_appendDATABASE_DETAILS database inner join
+          (select dd.database_id, md.cdm_source_abbreviation as database_name
+                   from @my_schema.@database_table_appenddatabase_meta_data md inner join 
+                   @my_schema.@my_table_appenddatabase_details dd 
+                   on md.database_id = dd.database_meta_data_id) 
+          as database inner join
           
           @my_schema.@my_table_appendCOHORTS cohortT inner join
           @my_schema.@my_table_appendCOHORTS cohortO 
@@ -431,7 +442,8 @@ getDiagnostics <- function(
     sql = sql, 
     my_schema = mySchema,
     my_table_append = myTableAppend,
-    model_design_id = modelDesignId
+    model_design_id = modelDesignId,
+    database_table_append = databaseTableAppend
   )
   
   sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
@@ -462,7 +474,7 @@ getDiagnostics <- function(
   )
   
   summary <- summary[, - grep('1.2.', colnames(summary))] %>%
-    dplyr::relocate(.data$`1.2`, .after = .data$`1.1`)
+    dplyr::relocate("1.2", .after = "1.1")
   ParallelLogger::logInfo("got summary")
   return(summary)
 }

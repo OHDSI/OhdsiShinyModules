@@ -40,6 +40,9 @@ estimationDiagnosticsSummaryViewer <- function(id) {
 #' @param id the unique reference id for the module
 #' @param connection the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
+#' @param tablePrefix tablePrefix
+#' @param cohortTablePrefix cohortTablePrefix
+#' @param databaseTable databaseTable
 #'
 #' @return
 #' the PLE diagnostics summary results

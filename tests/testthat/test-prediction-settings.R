@@ -1,28 +1,30 @@
 context("prediction-settings")
 
 shiny::testServer(
-  app = predictionSetingsServer, 
+  app = predictionSettingsServer, 
   args = list(
-    modelDesignId = shiny::reactiveVal(1),
+    modelDesignId = shiny::reactiveVal(NULL),
     developmentDatabaseId = shiny::reactiveVal(1),
     performanceId = shiny::reactiveVal(1),
-    con = connection,
+    con = connectionPlp,
     inputSingleView = shiny::reactiveVal('Design Settings'), # only works with this
-    mySchema = mySchemaTest,
-    targetDialect = targetDialectTest,
-    myTableAppend = myTableAppendTest
+    mySchema = schemaTest,
+    targetDialect = dbmsTest,
+    myTableAppend = tablePrefixTest
   ), 
   expr = {
     
+    modelDesignId(1)
     session$setInputs(showAttrition  = T) 
     expect_true(!is.null(output$attrition))
     
     design <- getModelDesign(
       modelDesignId = modelDesignId,
-      mySchema = mySchemaTest, 
-      con = connection,
-      myTableAppend = myTableAppendTest, 
-      targetDialect = targetDialectTest  
+      mySchema = schemaTest, 
+      con = connectionPlp,
+      myTableAppend = tablePrefixTest, 
+      targetDialect = dbmsTest,
+      cohortTableAppend = ''
     )
     expect_true(class(design) == 'list')
     expect_true(!is.null(design$RestrictPlpData))

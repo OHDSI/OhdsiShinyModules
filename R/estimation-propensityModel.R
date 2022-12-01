@@ -29,7 +29,7 @@ estimationPropensityModelViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    div(strong("Table 3."),"Fitted propensity model, listing all coviates with non-zero coefficients. Positive coefficients indicate predictive of the target exposure."),
+    shiny::div(shiny::strong("Table 3."),"Fitted propensity model, listing all coviates with non-zero coefficients. Positive coefficients indicate predictive of the target exposure."),
     DT::dataTableOutput(outputId = ns("propensityModelTable"))
   )
 }
@@ -42,6 +42,7 @@ estimationPropensityModelViewer <- function(id) {
 #' @param inputParams  the selected study parameters of interest
 #' @param connection the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
+#' @param tablePrefix tablePrefix
 #'
 #' @return
 #' the PLE propensity score model

@@ -29,7 +29,7 @@ estimationPopulationCharacteristicsViewer <- function(id) {
   
   ns <- shiny::NS(id)
   shiny::div(
-    uiOutput(outputId = ns("table1Caption")),
+    shiny::uiOutput(outputId = ns("table1Caption")),
     DT::dataTableOutput(outputId = ns("table1Table"))
   )
 }
@@ -42,6 +42,7 @@ estimationPopulationCharacteristicsViewer <- function(id) {
 #' @param inputParams  the selected study parameters of interest
 #' @param connection the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
+#' @param tablePrefix tablePrefix
 #'
 #' @return
 #' the PLE population characteristics content server
@@ -86,22 +87,22 @@ estimationPopulationCharacteristicsServer <- function(id, selectedRow, inputPara
                                             beforeLabel = paste("Before PS adjustment"),
                                             afterLabel = paste("After PS adjustment"))
           
-          container <- htmltools::withTags(table(
+          container <- htmltools::tags$table(
             class = 'display',
-            thead(
-              tr(
-                th(rowspan = 3, "Characteristic"),
-                th(colspan = 3, class = "dt-center", paste("Before PS adjustment")),
-                th(colspan = 3, class = "dt-center", paste("After PS adjustment"))
+            htmltools::tags$thead(
+              htmltools::tags$tr(
+                htmltools::tags$th(rowspan = 3, "Characteristic"),
+                htmltools::tags$th(colspan = 3, class = "dt-center", paste("Before PS adjustment")),
+                htmltools::tags$th(colspan = 3, class = "dt-center", paste("After PS adjustment"))
               ),
-              tr(
-                lapply(table1[1, 2:ncol(table1)], th)
+              htmltools::tags$tr(
+                lapply(table1[1, 2:ncol(table1)], htmltools::tags$th)
               ),
-              tr(
-                lapply(table1[2, 2:ncol(table1)], th)
+              htmltools::tags$tr(
+                lapply(table1[2, 2:ncol(table1)], htmltools::tags$th)
               )
             )
-          ))
+          )
           options <- list(columnDefs = list(list(className = 'dt-right',  targets = 1:6)),
                           searching = FALSE,
                           ordering = FALSE,

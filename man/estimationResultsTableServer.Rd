@@ -21,6 +21,10 @@ estimationResultsTableServer(
 \item{inputParams}{the selected study parameters of interest}
 
 \item{resultsSchema}{the schema with the PLE results}
+
+\item{tablePrefix}{tablePrefix}
+
+\item{databaseTable}{databaseTable}
 }
 \value{
 the PLE main results table server server

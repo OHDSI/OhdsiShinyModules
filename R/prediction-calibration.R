@@ -173,10 +173,8 @@ predictionCalibrationServer <- function(
 
     // Send the click event to Shiny, which will be available in input$show_details
     // Note that the row index starts at 0 in JavaScript, so we add 1
-    if (window.Shiny) {
     if(column.id == 'view'){
       Shiny.setInputValue('",session$ns('show_view'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
     }
   }")
             ),
@@ -276,6 +274,8 @@ plotDemographicSummary <- function(
   type = NULL
 ){
   if (!all(is.na(demographicSummary$averagePredictedProbability))){
+    # remove spaces
+    demographicSummary$evaluation <- gsub(' ', '', demographicSummary$evaluation)
     
     ind <- 1:nrow(demographicSummary)
     if(is.null(type)){
@@ -329,17 +329,17 @@ plotDemographicSummary <- function(
     ci$upper <- ci$averagePredictedProbability+1.96*ci$stDevPredictedProbability
     ci$upper[ci$upper >1] <- max(ci$upper[ci$upper <1])
     
-    x$age <- gsub('Age group:','', x$ageGroup)
+    x$age <- gsub(' ' ,'', gsub('Age group:','', x$ageGroup))
     x$age <- factor(
       x$age,
       levels = c(
-        " 0-4"," 5-9"," 10-14",
-        " 15-19"," 20-24"," 25-29",
-        " 30-34"," 35-39"," 40-44",
-        " 45-49"," 50-54"," 55-59",
-        " 60-64"," 65-69"," 70-74",
-        " 75-79"," 80-84"," 85-89",
-        " 90-94"," 95-99","-1"
+        "0-4","5-9","10-14",
+        "15-19","20-24","25-29",
+        "30-34","35-39","40-44",
+        "45-49","50-54","55-59",
+        "60-64","65-69","70-74",
+        "75-79","80-84","85-89",
+        "90-94","95-99","-1"
       ),
       ordered = TRUE
     )
@@ -391,7 +391,7 @@ plotDemographicSummary <- function(
         guide = ggplot2::guide_legend(title = NULL),
         labels = c("Expected", "Observed")
         ) +
-      ggplot2::guides(linetype = FALSE)
+      ggplot2::guides(linetype = 'none') # edit from FALSE
     
     return(plot)
   }
@@ -497,11 +497,11 @@ plotSparseCalibration2 <- function(
   # Histogram object detailing the distibution of event/noevent for each probability interval
   
   popData1 <- sparsePred[,c('averagePredictedProbability', 'personCountWithOutcome')]
-  popData1$label <- "Outcome"
+  popData1$label <- "Outcome" #cbind(popData1, rep("Outcome", nrow(sparsePred)))
   colnames(popData1) <- c('averagePredictedProbability','personCount',"label")
   
   popData2 <- sparsePred[,c('averagePredictedProbability', 'personCountAtRisk')]
-  popData2$label <- "No Outcome"
+  popData2$label <- "No Outcome" #cbind(popData2,rep("No Outcome", nrow(sparsePred)))
   popData2$personCountAtRisk <- -1*(popData2$personCountAtRisk -popData1$personCount)
   colnames(popData2) <- c('averagePredictedProbability','personCount',"label")
   
@@ -517,18 +517,13 @@ plotSparseCalibration2 <- function(
     )
   ) + 
     ggplot2::geom_bar(
-      data = subset(
-        popData, 
-        label == "Outcome"
-      ), 
+      data = popData[popData$label == "Outcome",], 
       stat = "identity"
     ) + 
     ggplot2::geom_bar(
-      data = subset(
-        popData, 
-        label == "No Outcome"
-      ), 
-      stat = "identity") + 
+      data = popData[popData$label == "No Outcome",],
+      stat = "identity"
+      ) + 
     ggplot2::geom_bar(stat = "identity") + 
     ggplot2::scale_x_continuous(labels = abs) + 
     ggplot2::coord_flip( ) +

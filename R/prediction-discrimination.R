@@ -229,10 +229,8 @@ predictionDiscriminationServer <- function(
 
     // Send the click event to Shiny, which will be available in input$show_details
     // Note that the row index starts at 0 in JavaScript, so we add 1
-    if (window.Shiny) {
     if(column.id == 'view'){
       Shiny.setInputValue('",session$ns('show_view'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
     }
   }")
             ),
@@ -414,7 +412,13 @@ rocPlot <- function(thresholdSummary, type){
   length(rocobject) <- length(types)
   names(rocobject) <- types
   
-  for(type in types){
+  shiny::withProgress(message = 'Plotting AUROCs', value = 0, {
+    
+    i <- 0
+    for(type in types){
+      i <- i + 1
+      shiny::incProgress(i/length(types), detail = paste("Plotting for type ", type))
+      
     data <- thresholdSummary[thresholdSummary$evaluation%in%type,]
     
     rocobject[[type]] <- plotly::plot_ly(x = 1-c(0,data$specificity,1)) %>%
@@ -430,7 +434,9 @@ rocPlot <- function(thresholdSummary, type){
                      xaxis = list(title = "1-specificity"),
                      yaxis = list (title = "Sensitivity"),
                      showlegend = FALSE)
-  }
+    }
+  })
+  
   return(rocobject)
 }
 
@@ -440,7 +446,13 @@ prPlot <- function(thresholdSummary, type){
   length(probject) <- length(types)
   names(probject) <- types
   
-  for(type in types){
+  shiny::withProgress(message = 'Plotting AUPRCs', value = 0, {
+    
+    i <- 0
+    for(type in types){
+      i <- i + 1
+      shiny::incProgress(i/length(types), detail = paste("Plotting for type ", type))
+      
     data <- thresholdSummary[thresholdSummary$evaluation%in%type,]
     
     popAv <- data$trueCount[1]/(data$trueCount[1] + data$falseCount[1])
@@ -458,7 +470,10 @@ prPlot <- function(thresholdSummary, type){
                      yaxis = list (title = "Precision"),
                      showlegend = FALSE)
     
-  }
+    }
+    
+  })
+  
   return(probject)
 }
 
@@ -468,7 +483,13 @@ f1Plot <- function(thresholdSummary, type){
   length(f1object) <- length(types)
   names(f1object) <- types
   
-  for(type in types){
+  shiny::withProgress(message = 'Plotting f1s', value = 0, {
+    
+    i <- 0
+    for(type in types){
+      i <- i + 1
+      shiny::incProgress(i/length(types), detail = paste("Plotting for type ", type))
+      
     data <- thresholdSummary[thresholdSummary$evaluation%in%type,]
     
     f1object[[type]]  <- plotly::plot_ly(x = data$predictionThreshold) %>%
@@ -482,7 +503,9 @@ f1Plot <- function(thresholdSummary, type){
                      yaxis = list (title = "F1-Score"),
                      showlegend = FALSE)
     
-  }
+    }
+    
+  })
   return(f1object)
 }
 
@@ -506,8 +529,13 @@ plotPredictedPDF <- function(thresholdSummary, fileName=NULL){
   length(plotResult) <- length(types)
   names(plotResult) <- types
   
-  for(type in types){
+  shiny::withProgress(message = 'Plotting predictedPDF', value = 0, {
     
+    i <- 0
+    for(type in types){
+      i <- i + 1
+      shiny::incProgress(i/length(types), detail = paste("Plotting for type ", type))
+      
     ind <- 1:nrow(thresholdSummary)
     if(!is.null(thresholdSummary$evaluation)){
       ind <- thresholdSummary$evaluation == type
@@ -565,6 +593,9 @@ plotPredictedPDF <- function(thresholdSummary, fileName=NULL){
     
     plotResult[[type]] <- plot
   }
+  
+})
+  
   return(plotResult)
 }
 
@@ -584,7 +615,13 @@ plotPreferencePDF <- function(thresholdSummary, fileName=NULL){
   length(plotResult) <- length(types)
   names(plotResult) <- types
   
+  shiny::withProgress(message = 'Plotting preferencePDF', value = 0, {
+    
+    i <- 0
   for(type in types){
+    i <- i + 1
+    shiny::incProgress(i/length(types), detail = paste("Plotting for type ", type))
+    
     
     ind <- 1:nrow(thresholdSummary)
     if(!is.null(thresholdSummary$evaluation)){
@@ -643,6 +680,8 @@ plotPreferencePDF <- function(thresholdSummary, fileName=NULL){
     plotResult[[type]] <- plot
     
   }
+    
+  })
   
   return(plotResult)
 }
@@ -656,11 +695,17 @@ plotPredictionDistribution <- function(predictionDistribution){
     types <- 'na'
   }
   
+  shiny::withProgress(message = 'Plotting distributions', value = 0, {
+    
+  
   plotResult <- list()
   length(plotResult) <- length(types)
   names(plotResult) <- types
   
+  i <- 0
   for(type in types){
+    i <- i + 1
+    shiny::incProgress(i/length(types), detail = paste("Plotting for type ", type))
     
     ind <- 1:nrow(predictionDistribution)
     if(!is.null(predictionDistribution$evaluation)){
@@ -728,6 +773,8 @@ plotPredictionDistribution <- function(predictionDistribution){
     plotResult[[type]] <- plot
     
   }
+  
+  })
   
   return(plotResult)
 }

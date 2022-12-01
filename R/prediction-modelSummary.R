@@ -44,6 +44,7 @@ predictionModelSummaryViewer <- function(id) {
 #' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
 #' @param modelDesignId a reactable id specifying the prediction model design identifier
+#' @param databaseTableAppend a string that appends the database_meta_data table
 #' 
 #' @return
 #' The server to the summary module
@@ -55,7 +56,8 @@ predictionModelSummaryServer <- function(
   mySchema,
   targetDialect,
   myTableAppend,
-  modelDesignId
+  modelDesignId,
+  databaseTableAppend = myTableAppend
 ) {
   shiny::moduleServer(
     id,
@@ -69,7 +71,8 @@ predictionModelSummaryServer <- function(
           mySchema = mySchema, 
           targetDialect = targetDialect, 
           myTableAppend = myTableAppend,
-          modelDesignId = modelDesignId
+          modelDesignId = modelDesignId,
+          databaseTableAppend = databaseTableAppend
         )
       )
       
@@ -104,11 +107,11 @@ predictionModelSummaryServer <- function(
 
     // Send the click event to Shiny, which will be available in input$show_details
     // Note that the row index starts at 0 in JavaScript, so we add 1
-    if (window.Shiny) {
+    // if (window.Shiny) {
     if(column.id == 'view'){
       Shiny.setInputValue('",session$ns('view_details'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
     }
-    }
+    // }
   }")
           )
           
@@ -143,7 +146,8 @@ getInternalPerformanceSummary <- function(
   mySchema, 
   targetDialect, 
   myTableAppend = '',
-  modelDesignId
+  modelDesignId,
+  databaseTableAppend
 ){
   
   if(is.null(modelDesignId())){
@@ -152,6 +156,10 @@ getInternalPerformanceSummary <- function(
   
   ParallelLogger::logInfo("gettingDb summary")
   
+  shiny::withProgress(message = 'Plotting distributions', value = 0, {
+    
+    shiny::incProgress(1/3, detail = paste("Extracting data"))
+    
   sql <- "SELECT distinct 
      results.performance_id, 
      results.model_design_id, 
@@ -173,9 +181,10 @@ getInternalPerformanceSummary <- function(
        ROUND(nTest.test_size*100.0/nResult.population_size, 1) as eval_percent,
        ROUND(oResult.outcome_count*100.0/nResult.population_size,4) as outcome_percent
        
-       FROM (select * from @my_schema.@my_table_appendperformances where model_design_id = @model_design_id) AS results INNER JOIN @my_schema.@my_table_appendmodels AS models 
+       FROM (select * from @my_schema.@my_table_appendperformances where model_design_id = @model_design_id and model_development = 1) AS results INNER JOIN @my_schema.@my_table_appendmodels AS models 
           ON results.model_design_id = models.model_design_id and
-             results.development_database_id = models.database_id
+             results.development_database_id = models.database_id 
+             
              
     inner join @my_schema.@my_table_appendmodel_designs as model_designs
     on model_designs.model_design_id = models.model_design_id and
@@ -187,7 +196,10 @@ getInternalPerformanceSummary <- function(
              
         LEFT JOIN (SELECT cohort_id, cohort_name FROM @my_schema.@my_table_appendcohorts) AS targets ON results.target_id = targets.cohort_id
         LEFT JOIN (SELECT cohort_id, cohort_name FROM @my_schema.@my_table_appendcohorts) AS outcomes ON results.outcome_id = outcomes.cohort_id
-        LEFT JOIN @my_schema.@my_table_appenddatabase_details AS d ON results.development_database_id = d.database_id 
+        LEFT JOIN (select dd.database_id, md.cdm_source_abbreviation database_acronym 
+                   from @my_schema.@database_table_appenddatabase_meta_data md inner join 
+                   @my_schema.@my_table_appenddatabase_details dd 
+                   on md.database_id = dd.database_meta_data_id) AS d ON results.development_database_id = d.database_id 
         LEFT JOIN @my_schema.@my_table_appendtars AS tars ON results.tar_id = tars.tar_id
         LEFT JOIN (SELECT performance_id, value AS auc FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'AUROC' and evaluation in ('Test','Validation') ) AS aucResult ON results.performance_id = aucResult.performance_id
         LEFT JOIN (SELECT performance_id, value AS auprc FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'AUPRC' and evaluation in ('Test','Validation') ) AS auprcResult ON results.performance_id = auprcResult.performance_id
@@ -199,22 +211,26 @@ getInternalPerformanceSummary <- function(
     sql = sql, 
     my_schema = mySchema,
     my_table_append = myTableAppend,
-    model_design_id = modelDesignId()
+    model_design_id = modelDesignId(),
+    database_table_append = databaseTableAppend
   )
   
   sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
   
   summaryTable <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
+  
+  shiny::incProgress(2/3, detail = paste("Data extracted"))
+  
   colnames(summaryTable) <- SqlRender::snakeCaseToCamelCase(colnames(summaryTable))
   
   summaryTable$t <- trimws(summaryTable$t)
   summaryTable$o <- trimws(summaryTable$o)
   
   summaryTable <- summaryTable %>% 
-    dplyr::rename(`T Size` = .data$populationSize) %>% 
-    dplyr::rename(`O Count` = .data$outcomeCount) %>%
-    dplyr::rename(`Val (%)` = .data$evalPercent) %>%
-    dplyr::rename(`O Incidence (%)` = .data$outcomePercent)
+    dplyr::rename(`T Size` = "populationSize") %>% 
+    dplyr::rename(`O Count` = "outcomeCount") %>%
+    dplyr::rename(`Val (%)` = "evalPercent") %>%
+    dplyr::rename(`O Incidence (%)` = "outcomePercent")
   
   summaryTable <- editTar(summaryTable)
   
@@ -224,7 +240,12 @@ getInternalPerformanceSummary <- function(
   summaryTable$T <- as.factor(summaryTable$T)
   summaryTable$O <- as.factor(summaryTable$O)
   
+  shiny::incProgress(3/3, detail = paste("Finished"))
+  
   ParallelLogger::logInfo("Got db summary")
+  
+  })
+  
   return(summaryTable[,c('Dev', 'Val', 'T','O', 'Model','modelDesignId',
                          'TAR', 'AUC', 'AUPRC', 
                          'T Size', 'O Count','Val (%)', 'O Incidence (%)', 'timeStamp', 'performanceId', 'developmentDatabaseId')])
@@ -234,7 +255,7 @@ getInternalPerformanceSummary <- function(
 editTar <- function(summaryTable){
   
   summaryTable <- summaryTable %>% dplyr::mutate(TAR = paste0('(',trimws(.data$tarStartAnchor),' + ',.data$tarStartDay, ') - (',trimws(.data$tarEndAnchor),' + ',.data$tarEndDay, ')' )) %>%
-    dplyr::select(-c(.data$tarStartAnchor, .data$tarStartDay, .data$tarEndAnchor, .data$tarEndDay))
+    dplyr::select(-c("tarStartAnchor", "tarStartDay", "tarEndAnchor", "tarEndDay"))
   
   return(summaryTable)
 }

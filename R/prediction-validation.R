@@ -68,6 +68,7 @@ predictionValidationViewer <- function(id) {
 #' @param mySchema the database schema for the model results
 #' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
+#' @param databaseTableAppend a string that appends the database_meta_data table
 #' 
 #' @return
 #' The server to the validation module
@@ -82,7 +83,8 @@ predictionValidationServer <- function(
   inputSingleView,
   mySchema,
   targetDialect = NULL,
-  myTableAppend = NULL
+  myTableAppend = NULL,
+  databaseTableAppend = myTableAppend
 ) {
   shiny::moduleServer(
     
@@ -90,27 +92,46 @@ predictionValidationServer <- function(
     id,
     function(input, output, session) {
       
-      validationTable <- shiny::reactive({
-        if(
-          inputSingleView() == 'Validation' & 
-          !is.null(modelDesignId()) & 
-          !is.null(developmentDatabaseId())
-          ){
-          return(
-            getValSummary(
-              con, 
-              mySchema, 
-              modelDesignId = modelDesignId,
-              developmentDatabaseId = developmentDatabaseId,
-              targetDialect = targetDialect, 
-              myTableAppend = myTableAppend
-            ) 
-          )
-        } else{
-          return(NULL)
+      #validationTable <- shiny::reactive({
+      #  if(
+      #    inputSingleView() == 'Validation' & 
+      #    !is.null(modelDesignId()) & 
+      #    !is.null(developmentDatabaseId())
+      #    ){
+      #    return(
+      #      getValSummary(
+      #        con, 
+      #        mySchema, 
+      #        modelDesignId = modelDesignId,
+      #        developmentDatabaseId = developmentDatabaseId,
+      #        targetDialect = targetDialect, 
+      #        myTableAppend = myTableAppend,
+      #        databaseTableAppend = databaseTableAppend
+      #      ) 
+      #    )
+      #  } else{
+      #    return(NULL)
+      #  }
+      #}
+      #)
+      
+      validationTable <- shiny::eventReactive(inputSingleView(),
+        {
+          
+          getValSummary(
+            con, 
+            mySchema, 
+            modelDesignId = modelDesignId(),
+            developmentDatabaseId = developmentDatabaseId(),
+            targetDialect = targetDialect, 
+            myTableAppend = myTableAppend,
+            databaseTableAppend = databaseTableAppend,
+            inputSingleView = inputSingleView()
+          )  
+
         }
-      }
-      )
+        )
+      
       
       output$validationTable <- DT::renderDataTable(
         {
@@ -132,63 +153,16 @@ predictionValidationServer <- function(
         rownames= FALSE 
       ) #options = list(filter = 'top'))
       
-      # need to modify this for non-database results!
+      # get validation results
       valResult <- shiny::reactive({
-        
-        if(is.null(validationTable())){
-          return(
-            list(
-              thresholdSummaryList = NULL,
-              calibrationSummaryList = NULL, 
-              databaseName = '', 
-              Ts='', 
-              Os=''
-            )
+        getValidationResults(
+          validationTable = validationTable,
+          validationRowIds = input$validationTable_rows_selected,
+          con = con,
+          myTableAppend = myTableAppend,
+          mySchema = mySchema,
+          targetDialect = targetDialect
           )
-        }
-        
-        valTable <- validationTable()[input$validationTable_rows_selected,,]
-        if(!is.null(input$validationTable_rows_selected)){
-          names <- valTable[, "Val"]
-          Ts <- valTable[, "T"]
-          Os <- valTable[, "O"]
-          thresholdSummaryList <- list()
-          calibrationSummaryList <- list()
-          
-          performanceId <- shiny::reactiveVal()
-          for (i in 1:nrow(valTable)){
-            performanceId(valTable$performanceId[i])
-            thresholdSummaryList[[i]] <- getPredictionResult(
-              performanceId = performanceId, 
-              con = con,
-              tableName = paste0(myTableAppend,'threshold_summary'), 
-              mySchema = mySchema, 
-              targetDialect = targetDialect 
-            )
-            calibrationSummaryList[[i]] <- getPredictionResult(
-              performanceId = performanceId, 
-              con = con,
-              tableName = paste0(myTableAppend,'calibration_summary'), 
-              mySchema = mySchema, 
-              targetDialect = targetDialect 
-            )
-          }
-          list(
-            thresholdSummaryList = thresholdSummaryList, 
-            calibrationSummaryList = calibrationSummaryList,
-            databaseName = names, 
-            Ts=Ts, 
-            Os=Os
-          )
-        }else{
-          list(
-            thresholdSummaryList = NULL,
-            calibrationSummaryList = NULL, 
-            databaseName = '', 
-            Ts='', 
-            Os=''
-          )
-        }
       })
       
       output$valRoc <- shiny::renderPlot({
@@ -198,7 +172,7 @@ predictionValidationServer <- function(
         } else{
           plotRocs(
             thresholdSummaryList = valResult()$thresholdSummaryList, 
-            modelNames = paste0(1:length(valResult()$Ts),':',substr(valResult()$Ts,1,5),'-',substr(valResult()$Os,1,5),'-', substr(valResult()$databaseName,1,5))
+            modelNames = paste0(1:length(valResult()$Ts),':',substr(valResult()$Ts,1,25),'-',substr(valResult()$Os,1,25),'-', substr(valResult()$databaseName,1,20))
           )
         }
       })
@@ -209,7 +183,7 @@ predictionValidationServer <- function(
         } else{
           plotCalsSmooth(
             calibrationSummaryList = valResult()$calibrationSummary, 
-            modelNames =  paste0(1:length(valResult()$Ts),':',substr(valResult()$Ts,1,5),'-',substr(valResult()$Os,1,5),'-', substr(valResult()$databaseName,1,5))
+            modelNames =  paste0(1:length(valResult()$Ts),':',substr(valResult()$Ts,1,25),'-',substr(valResult()$Os,1,25),'-', substr(valResult()$databaseName,1,20))
           )
         }
         
@@ -221,6 +195,56 @@ predictionValidationServer <- function(
   )
 }
 
+getValidationResults <- function(
+  validationTable,
+  validationRowIds,
+  con,
+  myTableAppend,
+  mySchema,
+  targetDialect
+  ){
+  
+  if(!is.null(validationTable()) & !is.null(validationRowIds)){
+    valTable <- validationTable()[validationRowIds,,]
+    thresholdSummaryList <- list()
+    calibrationSummaryList <- list()
+    
+    for (i in 1:nrow(valTable)){
+      thresholdSummaryList[[i]] <- getPredictionResult(
+        performanceId = shiny::reactiveVal(valTable$performanceId[i]), 
+        con = con,
+        tableName = paste0(myTableAppend,'threshold_summary'), 
+        mySchema = mySchema, 
+        targetDialect = targetDialect 
+      )
+      calibrationSummaryList[[i]] <- getPredictionResult(
+        performanceId = shiny::reactiveVal(valTable$performanceId[i]), 
+        con = con,
+        tableName = paste0(myTableAppend,'calibration_summary'), 
+        mySchema = mySchema, 
+        targetDialect = targetDialect 
+      )
+    }
+    return(
+      list(
+        thresholdSummaryList = thresholdSummaryList, 
+        calibrationSummaryList = calibrationSummaryList,
+        databaseName = valTable[, "Val"], 
+        Ts = valTable[, "T"], 
+        Os = valTable[, "O"]
+      )
+    )
+  } else{
+    return(list(
+      thresholdSummaryList = NULL,
+      calibrationSummaryList = NULL, 
+      databaseName = '', 
+      Ts = '', 
+      Os = ''
+    )
+    )
+  }
+}
 
 getValSummary <- function(
   con, 
@@ -228,9 +252,20 @@ getValSummary <- function(
   modelDesignId, 
   developmentDatabaseId,
   targetDialect, 
-  myTableAppend = '' 
+  myTableAppend = '',
+  databaseTableAppend = myTableAppend,
+  inputSingleView
 ){
   ParallelLogger::logInfo("getting Val summary")
+  
+  if(
+    inputSingleView != 'Validation' | 
+    is.null(modelDesignId) |
+    is.null(developmentDatabaseId)
+  ){
+    return(NULL)
+  }
+  
   
   sql <- "SELECT 
            results.performance_id, 
@@ -262,7 +297,10 @@ getValSummary <- function(
          
     LEFT JOIN (SELECT cohort_id, cohort_name FROM @my_schema.@my_table_appendcohorts) AS targets ON results.target_id = targets.cohort_id
     LEFT JOIN (SELECT cohort_id, cohort_name FROM @my_schema.@my_table_appendcohorts) AS outcomes ON results.outcome_id = outcomes.cohort_id
-    LEFT JOIN @my_schema.@my_table_appenddatabase_details AS d ON results.validation_database_id = d.database_id 
+    LEFT JOIN (select dd.database_id, md.cdm_source_abbreviation database_acronym 
+                   from @my_schema.@database_table_appenddatabase_meta_data md inner join 
+                   @my_schema.@my_table_appenddatabase_details dd 
+                   on md.database_id = dd.database_meta_data_id) AS d ON results.validation_database_id = d.database_id 
     LEFT JOIN @my_schema.@my_table_appendtars AS tars ON results.tar_id = tars.tar_id
     LEFT JOIN (SELECT performance_id, value AS auc FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'AUROC' and evaluation in ('Test','Validation') ) AS aucResult ON results.performance_id = aucResult.performance_id
     LEFT JOIN (SELECT performance_id, value AS auclb FROM @my_schema.@my_table_appendevaluation_statistics where metric = '95% lower AUROC' and evaluation in ('Test','Validation') ) AS auclbResult ON results.performance_id = auclbResult.performance_id
@@ -277,9 +315,10 @@ getValSummary <- function(
   
   sql <- SqlRender::render(sql = sql, 
                            my_schema = mySchema, 
-                           model_design_id = modelDesignId(),
-                           development_database_id = developmentDatabaseId(),
-                           my_table_append = myTableAppend)
+                           model_design_id = modelDesignId,
+                           development_database_id = developmentDatabaseId,
+                           my_table_append = myTableAppend,
+                           database_table_append = databaseTableAppend)
   
   sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
   
@@ -290,17 +329,17 @@ getValSummary <- function(
   valTable$outcome <- trimws(valTable$outcome) # not needed
   
   valTable <- valTable %>% 
-    dplyr::rename(`Population setting` = .data$populationSettingId) %>%
-    dplyr::rename(`T Size` = .data$populationSize) %>% 
-    dplyr::rename(`O Count` = .data$outcomeCount) %>%
-    dplyr::rename(`Val (%)` = .data$evalPercent) %>%
-    dplyr::rename(`O Incidence (%)` = .data$outcomePercent) %>%
-    dplyr::rename(`T` = .data$target) %>%
-    dplyr::rename(`O` = .data$outcome) %>%
-    dplyr::rename(`AUROC` = .data$auroc) %>%
-    dplyr::rename(`AUPRC` = .data$auprc) %>%
-    dplyr::rename(`Val` = .data$val) %>%
-    dplyr::rename(`calibrationInLarge intercept` = .data$calibrationInLarge)
+    dplyr::rename(`Population setting` = "populationSettingId") %>%
+    dplyr::rename(`T Size` = "populationSize") %>% 
+    dplyr::rename(`O Count` = "outcomeCount") %>%
+    dplyr::rename(`Val (%)` = "evalPercent") %>%
+    dplyr::rename(`O Incidence (%)` = "outcomePercent") %>%
+    dplyr::rename(`T` = "target") %>%
+    dplyr::rename(`O` = "outcome") %>%
+    dplyr::rename(`AUROC` = "auroc") %>%
+    dplyr::rename(`AUPRC` = "auprc") %>%
+    dplyr::rename(`Val` = "val") %>%
+    dplyr::rename(`calibrationInLarge intercept` = "calibrationInLarge")
   
   valTable <- editTar(valTable) # ISSUE: function not in the module
   
@@ -324,7 +363,7 @@ plotRocs <- function(
   type= NULL, 
   fileName=NULL
 ){
-  if(class(thresholdSummaryList)!='list'){
+  if(!inherits(thresholdSummaryList,'list')){
     stop('Need to enter a list')
   }
   
@@ -402,7 +441,11 @@ plotRocs <- function(
       limits=c(0,1)
     ) +
     ggplot2::scale_color_discrete(name = 'Result') +
-    ggplot2::scale_fill_discrete(guide = FALSE)
+    ggplot2::scale_fill_discrete(guide = "none") + 
+    ggplot2::theme(
+      legend.position = "bottom", 
+      legend.direction = "vertical"
+      )
   
   if (!is.null(fileName)){
     ggplot2::ggsave(fileName, plot, width = 5, height = 4.5, dpi = 400)
@@ -522,7 +565,11 @@ plotCalsSmooth <- function(
     ggplot2::labs(
       x = "Average Predicted Probability", 
       y = "Observed Fraction With Outcome"
-    ) 
+    ) +
+    ggplot2::theme(
+      legend.position = "bottom", 
+      legend.direction = "vertical"
+    )
   
   return(plot)
 }

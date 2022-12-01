@@ -19,6 +19,12 @@ estimationDiagnosticsSummaryServer(
 \item{connection}{the connection to the PLE results database}
 
 \item{resultsSchema}{the schema with the PLE results}
+
+\item{tablePrefix}{tablePrefix}
+
+\item{cohortTablePrefix}{cohortTablePrefix}
+
+\item{databaseTable}{databaseTable}
 }
 \value{
 the PLE diagnostics summary results

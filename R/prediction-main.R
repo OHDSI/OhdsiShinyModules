@@ -183,11 +183,23 @@ predictionServer <- function(
       
       # when going to the all model design hide tabs
       shiny::observeEvent(input$allView, {
-        if(input$allView == 'Model Designs Summary'){
+        
+        tempView <- ifelse(is.null(input$allView), 'Model Designs Summary', input$allView)
+        
+        if(tempView == 'Model Designs Summary'){
           shiny::hideTab(inputId = "allView", session = session, target = "Models Summary")
           shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
         }
-      })
+    
+          if(tempView != 'Explore Selected Model')
+          shiny::updateTabsetPanel(
+            session = session,
+            inputId = 'singleView',
+            selected = 'Design Settings'
+          )
+        }
+        
+      )
       
       
       # keep a reactive variable tracking the active tab
@@ -243,7 +255,12 @@ predictionServer <- function(
           mySchema = resultDatabaseSettings$schema, 
           targetDialect = resultDatabaseSettings$dbms,
           myTableAppend = resultDatabaseSettings$tablePrefix,
-          modelDesignId = modelDesignId
+          modelDesignId = modelDesignId,
+          databaseTableAppend = ifelse(
+            !is.null(resultDatabaseSettings$databaseTablePrefix), 
+            resultDatabaseSettings$databaseTablePrefix,
+            resultDatabaseSettings$tablePrefix
+          )
         )
 
       
@@ -278,7 +295,12 @@ predictionServer <- function(
         mySchema = resultDatabaseSettings$schema, 
         con = con,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        targetDialect = resultDatabaseSettings$dbms,
+        databaseTableAppend = ifelse(
+          !is.null(resultDatabaseSettings$databaseTablePrefix), 
+          resultDatabaseSettings$databaseTablePrefix,
+          resultDatabaseSettings$tablePrefix
+        )
       )
       
       # =============================
@@ -289,33 +311,71 @@ predictionServer <- function(
         
         if(!is.null(designSummary$reportId())){
           
-              createPredictionProtocol(
-                con = con, 
-                mySchema = resultDatabaseSettings$schema, 
-                targetDialect = resultDatabaseSettings$dbms,
-                myTableAppend = resultDatabaseSettings$tablePrefix,
-                modelDesignId = designSummary$reportId(),
-                output = tempdir()
-              )
-             
-          # display the generated html report
-          shiny::showModal(shiny::modalDialog(
-            title = "Report",
-            shiny::div(
-              shiny::textInput(
-                inputId = session$ns('plpProtocolDownload'), 
-                label = 'Download Protocol Location:', 
-                placeholder = '/Users/jreps/Documents'
+          #check protocol generator packages installed for this
+          # could make this interactive in shiny
+          if(!is_installed("CirceR")){
+            shiny::showNotification("Need to install CirceR for this to work: remotes::install_github('OHDSI/CirceR')")
+          }
+          if(!is_installed("kableExtra")){
+            shiny::showNotification("Need to install kableExtra for this to work: install.packages('kableExtra')")
+          }
+          if(!is_installed("knitr")){
+            shiny::showNotification("Need to install knitr for this to work: install.packages('kableExtra')")
+          }
+          
+          #protocolOutputLoc <- tempdir()
+          protocolOutputLoc <- getwd()
+          
+          if(file.exists(file.path(protocolOutputLoc, 'main.html'))){
+            file.remove(file.path(protocolOutputLoc, 'main.html'))
+          }
+          tryCatch(
+            {createPredictionProtocol( # add database_table_append and cohort_table_append
+              con = con, 
+              mySchema = resultDatabaseSettings$schema, 
+              targetDialect = resultDatabaseSettings$dbms,
+              myTableAppend = resultDatabaseSettings$tablePrefix,
+              databaseTableAppend = ifelse(
+                !is.null(resultDatabaseSettings$databaseTablePrefix), 
+                resultDatabaseSettings$databaseTablePrefix,
+                resultDatabaseSettings$tablePrefix
               ),
-              shiny::actionButton(
-                inputId = session$ns('downloadButton'), 
-                label = 'Download'
+              cohortTableAppend = ifelse(
+                !is.null(resultDatabaseSettings$cohortTablePrefix), 
+                resultDatabaseSettings$cohortTablePrefix,
+                resultDatabaseSettings$tablePrefix
+              ),
+              modelDesignId = designSummary$reportId(),
+              output = protocolOutputLoc,
+              intermediatesDir = file.path(protocolOutputLoc, 'plp-prot')
+            )
+            }, error = function(e){
+              shiny::showNotification(
+                paste('error generating protocol:',e)
+              )
+            }
+          )
+             
+          if(file.exists(file.path(protocolOutputLoc, 'main.html'))){
+            # display the generated html report
+            shiny::showModal(shiny::modalDialog(
+              title = "Report",
+              shiny::div(
+                shiny::textInput(
+                  inputId = session$ns('plpProtocolDownload'), 
+                  label = 'Download Protocol Location:', 
+                  placeholder = '/Users/jreps/Documents'
                 ),
-              shiny::includeHTML(file.path(tempdir(), 'main.html'))
-            ), 
-            size = "l",
-            easyClose = T
-          ))
+                shiny::actionButton(
+                  inputId = session$ns('downloadButton'), 
+                  label = 'Download'
+                ),
+                shiny::includeHTML(file.path(protocolOutputLoc, 'main.html'))
+              ), 
+              size = "l",
+              easyClose = T
+            ))
+          }
         }
         
       })
@@ -332,13 +392,24 @@ predictionServer <- function(
             'prediction-document', 
             "export-main.Rmd", 
             package = "OhdsiShinyModules"
-          ), 
+          ),  
+          intermediates_dir = file.path(tempdir(), 'plp-prot'),
           output_dir = file.path(input$plpProtocolDownload, paste0('plp_report',designSummary$reportId())), 
           params = list(
             connection = con, 
             resultSchema = resultDatabaseSettings$schema, 
             targetDialect = resultDatabaseSettings$dbms,
             myTableAppend = resultDatabaseSettings$tablePrefix,
+            databaseTableAppend = ifelse(
+              !is.null(resultDatabaseSettings$databaseTablePrefix), 
+              resultDatabaseSettings$databaseTablePrefix,
+              resultDatabaseSettings$tablePrefix
+            ),
+            cohortTableAppend = ifelse(
+              !is.null(resultDatabaseSettings$cohortTablePrefix), 
+              resultDatabaseSettings$cohortTablePrefix,
+              resultDatabaseSettings$tablePrefix
+            ),
             modelDesignIds = designSummary$reportId()
           )
         )
@@ -370,7 +441,12 @@ predictionServer <- function(
         con = con,
         inputSingleView = singleViewValue,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        targetDialect = resultDatabaseSettings$dbms,
+        cohortTableAppend = ifelse(
+          !is.null(resultDatabaseSettings$cohortTablePrefix), 
+          resultDatabaseSettings$cohortTablePrefix,
+          resultDatabaseSettings$tablePrefix
+        )
       )
       
       predictionCutoffServer(
@@ -422,7 +498,12 @@ predictionServer <- function(
         inputSingleView = singleViewValue,
         mySchema = resultDatabaseSettings$schema,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        targetDialect = resultDatabaseSettings$dbms,
+        databaseTableAppend = ifelse(
+          !is.null(resultDatabaseSettings$databaseTablePrefix), 
+          resultDatabaseSettings$databaseTablePrefix,
+          resultDatabaseSettings$tablePrefix
+        )
       ) 
       
     }

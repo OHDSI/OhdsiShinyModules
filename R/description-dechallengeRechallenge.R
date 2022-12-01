@@ -89,7 +89,7 @@ descriptionDechallengeRechallengeServer <- function(
   schema, 
   dbms,
   tablePrefix,
-  tempEmulationSchema,
+  tempEmulationSchema = NULL,
   cohortTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA'
 ) {
@@ -183,15 +183,48 @@ descriptionDechallengeRechallengeServer <- function(
               reactable::reactable(
                 data = cbind(
                   view = rep("",nrow(allData)),
-                  allData
+                  allData %>% dplyr::relocate("databaseName")
                   )
                 ,
+                filterable = TRUE,
+                showPageSizeOptions = TRUE,
+                pageSizeOptions = c(10, 50, 100,1000),
+                defaultPageSize = 50,
+                striped = TRUE,
+                highlight = TRUE,
+                elementId = "desc-dechal-select",
+                
                 columns = list(  
                   view = reactable::colDef(
                     name = "",
                     sortable = FALSE,
                     cell = function() htmltools::tags$button("Plot Fails")
+                  ),
+                  targetCohortDefinitionId = reactable::colDef(show = F),
+                  databaseId = reactable::colDef(show = F),
+                  outcomeCohortDefinitionId = reactable::colDef(show = F),
+                  
+                  databaseName = reactable::colDef(name = 'Database'),
+                  
+                  pctDechallengeAttempt = reactable::colDef(
+                    format = reactable::colFormat(digits = 2, percent = T)
+                  ),
+                  pctDechallengeSuccess = reactable::colDef(
+                    format = reactable::colFormat(digits = 2, percent = T)
+                  ),
+                  pctDechallengeFail = reactable::colDef(
+                    format = reactable::colFormat(digits = 2, percent = T)
+                  ),
+                  pctRechallengeAttempt = reactable::colDef(
+                    format = reactable::colFormat(digits = 2, percent = T)
+                  ),
+                  pctRechallengeSuccess = reactable::colDef(
+                    format = reactable::colFormat(digits = 2, percent = T)
+                  ),
+                  pctRechallengeFail = reactable::colDef(
+                    format = reactable::colFormat(digits = 2, percent = T)
                   )
+                  
                 ),
                 onClick = reactable::JS(paste0("function(rowInfo, column) {
     // Only handle click events on the 'details' column
@@ -199,14 +232,11 @@ descriptionDechallengeRechallengeServer <- function(
       return
     }
 
-    if (window.Shiny) {
     if(column.id == 'view'){
       Shiny.setInputValue('",session$ns('databaseRowId'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
     }
-    }
   }")
-                ),
-                filterable = TRUE
+                )
               )
                 
                 
@@ -299,7 +329,7 @@ dechalRechalGetIds <- function(
   shiny::incProgress(3/4, detail = paste("Processing ids"))
   
   targetUnique <- bothIds %>% 
-    dplyr::select(.data$targetCohortDefinitionId, .data$target) %>%
+    dplyr::select(c("targetCohortDefinitionId", "target")) %>%
     dplyr::distinct()
   
   targetIds <- targetUnique$targetCohortDefinitionId
@@ -309,7 +339,7 @@ dechalRechalGetIds <- function(
     
     outcomeUnique <- bothIds %>% 
       dplyr::filter(.data$targetCohortDefinitionId == x) %>%
-      dplyr::select(.data$outcomeCohortDefinitionId, .data$outcome) %>%
+      dplyr::select(c("outcomeCohortDefinitionId", "outcome")) %>%
       dplyr::distinct()
     
     outcomeIds <- outcomeUnique$outcomeCohortDefinitionId
@@ -456,64 +486,67 @@ plotDechalRechal <- function(
     
     
     # add the offsets (hack until update results)
-    dechalRechalData <- dechalRechalData %>% 
-      dplyr::mutate(
-        dechallengeExposureNumber = .data$firstExposureNumber,
-        dechallengeOutcomeNumber = .data$firstOutcomeNumber,
-        dechallengeExposureEndDateOffset = difftime(.data$firstExposureStartDate, .data$firstExposureEndDate, units = "days"), 
-        dechallengeExposureStartDateOffset = difftime(.data$firstExposureStartDate, .data$firstExposureStartDate, units = "days"), 
-        dechallengeOutcomeStartDateOffset = difftime(.data$firstExposureStartDate, .data$firstOutcomeStartDate, units = "days"),  
-        rechallengeExposureStartDateOffset = difftime(.data$firstExposureStartDate, .data$rechallengeExposureStartDate, units = "days"),   
-        rechallengeExposureEndDateOffset = difftime(.data$firstExposureStartDate, .data$rechallengeExposureEndDate, units = "days"),   
-        rechallengeOutcomeStartDateOffset = difftime(.data$firstExposureStartDate, .data$rechallengeOutcomeStartDate, units = "days"),  
-      )
+    #dechalRechalData <- dechalRechalData %>% 
+    #  dplyr::mutate(
+    #    dechallengeExposureNumber = .data$firstExposureNumber,
+    #    dechallengeOutcomeNumber = .data$firstOutcomeNumber,
+    #    dechallengeExposureEndDateOffset = difftime(.data$firstExposureStartDate, .data$firstExposureEndDate, units = "days"), 
+    #    dechallengeExposureStartDateOffset = difftime(.data$firstExposureStartDate, .data$firstExposureStartDate, units = "days"), 
+    #    dechallengeOutcomeStartDateOffset = difftime(.data$firstExposureStartDate, .data$firstOutcomeStartDate, units = "days"),  
+    #    rechallengeExposureStartDateOffset = difftime(.data$firstExposureStartDate, .data$rechallengeExposureStartDate, units = "days"),   
+    #    rechallengeExposureEndDateOffset = difftime(.data$firstExposureStartDate, .data$rechallengeExposureEndDate, units = "days"),   
+    #    rechallengeOutcomeStartDateOffset = difftime(.data$firstExposureStartDate, .data$rechallengeOutcomeStartDate, units = "days"),  
+    #  )
     
   
     #order the data so that cases are in order of exposure/outcome offsets
     dechalRechalData <- dechalRechalData %>% 
       dplyr::arrange(
-        dechallengeExposureStartDateOffset, 
-        dechallengeOutcomeStartDateOffset, 
-        rechallengeExposureStartDateOffset, 
-        rechallengeOutcomeStartDateOffset
+        .data$dechallengeExposureStartDateOffset, 
+        .data$dechallengeOutcomeStartDateOffset, 
+        .data$rechallengeExposureStartDateOffset, 
+        .data$rechallengeOutcomeStartDateOffset
         )
     
     #give temp ID for purposes of allowing plotting in order of sort
-    cases <- data.frame(subjectId = unique(dechalRechalData$subjectId))
+    ##cases <- data.frame(subjectId = unique(dechalRechalData$subjectId))
+    cases <- data.frame(personKey = unique(dechalRechalData$personKey))
     cases <- tibble::rowid_to_column(cases, "PID")
     dechalRechalData <- dechalRechalData %>% dplyr::inner_join(cases)
     
     
-      i50 <- min(i + 49,length(cases$subject_id))
+      i50 <- min(i + 49,length(cases$personKey))
       caseSubset <- cases[i:i50,2]
       
       #grab the cases to plot      
       rdcsSubset <- dechalRechalData %>% 
         dplyr::filter(
-          .data$subjectId %in% caseSubset
+          .data$personKey %in% caseSubset
           )
       
       #small datasets to fit ggplot
       dechallengeExposure <- rdcsSubset %>%
         dplyr::select(
-          .data$PID, 
-          .data$targetCohortDefinitionId, 
-          .data$outcomeCohortDefinitionId, 
-          .data$subjectId, 
-          .data$dechallengeExposureNumber,
-          .data$dechallengeExposureStartDateOffset, 
-          .data$dechallengeExposureEndDateOffset
+          c(
+          "PID", 
+          "targetCohortDefinitionId", 
+          "outcomeCohortDefinitionId", 
+          "personKey", 
+          "dechallengeExposureNumber",
+          "dechallengeExposureStartDateOffset", 
+          "dechallengeExposureEndDateOffset"
+          )
           ) %>%
         dplyr::mutate(
-          eventId = .data$subjectId*1000 + .data$dechallengeExposureNumber
+          eventId = .data$personKey*1000 + .data$dechallengeExposureNumber
           ) %>%
         dplyr::rename(
-          eventNumber = .data$dechallengeExposureNumber, 
-          eventStart = .data$dechallengeExposureStartDateOffset, 
-          eventEnd = .data$dechallengeExposureEndDateOffset) %>%
+          eventNumber = "dechallengeExposureNumber", 
+          eventStart = "dechallengeExposureStartDateOffset", 
+          eventEnd = "dechallengeExposureEndDateOffset") %>%
         dplyr::distinct() %>%
         tidyr::pivot_longer(
-          cols = c(.data$eventStart, .data$eventEnd),
+          cols = c("eventStart", "eventEnd"),
           names_to = "eventDateType",
           values_to = "offset"
         )
@@ -523,44 +556,48 @@ plotDechalRechal <- function(
       
       dechallengeOutcome <- rdcsSubset %>%
         dplyr::select(
-          .data$PID, 
-          .data$targetCohortDefinitionId, 
-          .data$outcomeCohortDefinitionId, 
-          .data$subjectId, 
-          .data$dechallengeOutcomeNumber, 
-          .data$dechallengeOutcomeStartDateOffset
+          c(
+          "PID", 
+          "targetCohortDefinitionId", 
+          "outcomeCohortDefinitionId", 
+          "personKey", 
+          "dechallengeOutcomeNumber", 
+          "dechallengeOutcomeStartDateOffset"
+          )
           ) %>%
         dplyr::mutate(
-          eventId = .data$subjectId*1000 + .data$dechallengeOutcomeNumber
+          eventId = .data$personKey*1000 + .data$dechallengeOutcomeNumber
           ) %>%
         dplyr::rename(
-          eventNumber = .data$dechallengeOutcomeNumber, 
-          offset = .data$dechallengeOutcomeStartDateOffset
+          eventNumber = "dechallengeOutcomeNumber", 
+          offset = "dechallengeOutcomeStartDateOffset"
           ) %>%
         dplyr::distinct()
       
       
       rechallengeExposure <- rdcsSubset %>%
         dplyr::select(
-          .data$PID, 
-          .data$targetCohortDefinitionId, 
-          .data$outcomeCohortDefinitionId, 
-          .data$subjectId, 
-          .data$rechallengeExposureNumber, 
-          .data$rechallengeExposureStartDateOffset, 
-          .data$rechallengeExposureEndDateOffset
+          c(
+          "PID", 
+          "targetCohortDefinitionId", 
+          "outcomeCohortDefinitionId", 
+          "personKey", 
+          "rechallengeExposureNumber", 
+          "rechallengeExposureStartDateOffset", 
+          "rechallengeExposureEndDateOffset"
+          )
           ) %>%
         dplyr::mutate(
-          eventId = .data$subjectId*1000 + .data$rechallengeExposureNumber
+          eventId = .data$personKey*1000 + .data$rechallengeExposureNumber
           ) %>%
         dplyr::rename(
-          eventNumber = .data$rechallengeExposureNumber, 
-          eventStart = .data$rechallengeExposureStartDateOffset, 
-          eventEnd = .data$rechallengeExposureEndDateOffset
+          eventNumber = "rechallengeExposureNumber", 
+          eventStart = "rechallengeExposureStartDateOffset", 
+          eventEnd = "rechallengeExposureEndDateOffset"
           ) %>%
         dplyr::distinct() %>%
         tidyr::pivot_longer(
-          cols = c(.data$eventStart, .data$eventEnd),
+          cols = c("eventStart", "eventEnd"),
           names_to = "eventDateType",
           values_to = "offset"
         )
@@ -573,19 +610,21 @@ plotDechalRechal <- function(
       
       rechallengeOutcome <- rdcsSubset %>%
         dplyr::select(
-          .data$PID, 
-          .data$targetCohortDefinitionId, 
-          .data$outcomeCohortDefinitionId, 
-          .data$subjectId, 
-          .data$rechallengeOutcomeNumber, 
-          .data$rechallengeOutcomeStartDateOffset
+          c(
+          "PID", 
+          "targetCohortDefinitionId", 
+          "outcomeCohortDefinitionId", 
+          "personKey", 
+          "rechallengeOutcomeNumber", 
+          "rechallengeOutcomeStartDateOffset"
+          )
           ) %>%
         dplyr::mutate(
-          eventId = .data$subjectId*1000 + .data$rechallengeOutcomeNumber
+          eventId = .data$personKey*1000 + .data$rechallengeOutcomeNumber
           ) %>%
         dplyr::rename(
-          eventNumber = .data$rechallengeOutcomeNumber, 
-          offset = .data$rechallengeOutcomeStartDateOffset) %>%
+          eventNumber = "rechallengeOutcomeNumber", 
+          offset = "rechallengeOutcomeStartDateOffset") %>%
         dplyr::distinct()
       
       shiny::incProgress(1/2, detail = paste("Formatted data, now plotting"))
@@ -608,7 +647,7 @@ plotDechalRechal <- function(
           ) +
         ggplot2::geom_line(
           data = rechallengeExposure, 
-          ggplot2::aes(group = eventId), 
+          ggplot2::aes(group = .data$eventId), 
           size = 2, 
           color = "navyblue"
           ) +
