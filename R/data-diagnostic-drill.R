@@ -166,7 +166,7 @@ dataDiagnosticDrillServer <- function(
                 dplyr::select(-c("analysisId", "analysisName")) %>%
                 dplyr::filter(.data$databaseId %in% input$databasesSelected) %>%
                 dplyr::mutate(view  = '') %>%
-                dplyr::relocate(.data$view, .before = 'databaseId'),
+                dplyr::relocate("view", .before = 'databaseId'),
               defaultPageSize = 20,
               searchable = TRUE,
               columns = c(
@@ -295,7 +295,7 @@ getAnalysesDataDiagnostics <- function(
   analysisNames <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
   colnames(analysisNames) <- SqlRender::snakeCaseToCamelCase(colnames(analysisNames))
   
-  result <- list(analysisNames$analysisId)
+  result <- as.list(analysisNames$analysisId)
   names(result) <- analysisNames$analysisName
   
   print('Got Analyses')

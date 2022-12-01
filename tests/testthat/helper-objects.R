@@ -69,3 +69,18 @@ connectionEst <- DatabaseConnector::connect(
 )
 estTablePrefix <- 'cm_'
 
+
+
+connectionDetailsDataDiag <- DatabaseConnector::createConnectionDetails(
+  dbms = 'sqlite', 
+  server = "../resources/datadiagDatabase/databaseFile.sqlite"
+)
+connectionDataDiag <- DatabaseConnector::connect(
+  connectionDetails = connectionDetailsDataDiag, 
+  dbms = 'sqlite', 
+  user = NULL, 
+  password = NULL, 
+  server = "../resources/datadiagDatabase/databaseFile.sqlite",
+  port = NULL#, 
+  #pathToDriver = 
+)

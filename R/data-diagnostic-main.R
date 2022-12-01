@@ -42,12 +42,12 @@ dataDiagnosticHelperFile <- function(){
 #' The user interface to the data-diagnostic viewer module
 #'
 #' @export
-dataDiagnosticViewer <- function(id=1) {
+dataDiagnosticViewer <- function(id = 'dataDiag') {
   ns <- shiny::NS(id)
 
   shiny::tabsetPanel(
     header = shiny::h1("Data Diagnostic Explorer"),
-    id = ns('main-tabs'),
+    id = ns('main_tabs'),
     type = "pills",
     
     shiny::tabPanel(
@@ -77,7 +77,7 @@ dataDiagnosticViewer <- function(id=1) {
 #'
 #' @export
 dataDiagnosticServer <- function(
-  id, 
+  id = 'dataDiag', 
   resultDatabaseSettings = list(port = 1)
 ) {
   shiny::moduleServer(

@@ -227,10 +227,10 @@ getInternalPerformanceSummary <- function(
   summaryTable$o <- trimws(summaryTable$o)
   
   summaryTable <- summaryTable %>% 
-    dplyr::rename(`T Size` = .data$populationSize) %>% 
-    dplyr::rename(`O Count` = .data$outcomeCount) %>%
-    dplyr::rename(`Val (%)` = .data$evalPercent) %>%
-    dplyr::rename(`O Incidence (%)` = .data$outcomePercent)
+    dplyr::rename(`T Size` = "populationSize") %>% 
+    dplyr::rename(`O Count` = "outcomeCount") %>%
+    dplyr::rename(`Val (%)` = "evalPercent") %>%
+    dplyr::rename(`O Incidence (%)` = "outcomePercent")
   
   summaryTable <- editTar(summaryTable)
   
@@ -255,7 +255,7 @@ getInternalPerformanceSummary <- function(
 editTar <- function(summaryTable){
   
   summaryTable <- summaryTable %>% dplyr::mutate(TAR = paste0('(',trimws(.data$tarStartAnchor),' + ',.data$tarStartDay, ') - (',trimws(.data$tarEndAnchor),' + ',.data$tarEndDay, ')' )) %>%
-    dplyr::select(-c(.data$tarStartAnchor, .data$tarStartDay, .data$tarEndAnchor, .data$tarEndDay))
+    dplyr::select(-c("tarStartAnchor", "tarStartDay", "tarEndAnchor", "tarEndDay"))
   
   return(summaryTable)
 }

@@ -212,17 +212,19 @@ predictionDiagnosticsServer <- function(
                   data = participants %>% 
                     dplyr::filter(.data$parameter == ifelse(is.null(input$participantParameters), unique(participants$parameter)[1], input$participantParameters)) %>%
                     dplyr::select(
-                      .data$probastId,
-                      .data$paramvalue,
-                      .data$metric, 
-                      .data$value
+                      c(
+                      "probastId",
+                      "paramvalue",
+                      "metric", 
+                      "value"
+                      )
                     ) %>%
                     dplyr::mutate(
                       value = format(.data$value, nsmall = 2, )
                     )  %>%
                     tidyr::pivot_wider(
-                      names_from = .data$paramvalue, 
-                      values_from = .data$value
+                      names_from = "paramvalue", #.data$paramvalue, 
+                      values_from = "value" #.data$value
                     )
                 )
               })
@@ -267,9 +269,11 @@ predictionDiagnosticsServer <- function(
                     )
                   ) %>%
                   dplyr::select(
-                    .data$daysToEvent, 
-                    .data$outcomeAtTime, 
-                    .data$observedAtStartOfDay
+                    c(
+                    "daysToEvent", 
+                    "outcomeAtTime", 
+                    "observedAtStartOfDay"
+                    )
                   ) %>%
                   dplyr::mutate(
                     survivalT = (.data$observedAtStartOfDay -.data$outcomeAtTime)/.data$observedAtStartOfDay
@@ -470,7 +474,7 @@ getDiagnostics <- function(
   )
   
   summary <- summary[, - grep('1.2.', colnames(summary))] %>%
-    dplyr::relocate(.data$`1.2`, .after = .data$`1.1`)
+    dplyr::relocate("1.2", .after = "1.1")
   ParallelLogger::logInfo("got summary")
   return(summary)
 }
