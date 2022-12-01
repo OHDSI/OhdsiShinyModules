@@ -90,58 +90,12 @@ descriptionViewer <- function(id=1) {
 #' @export
 descriptionServer <- function(
   id, 
+  connection,
   resultDatabaseSettings = list(port = 1)
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      # =============================
-      #   CONNECTION
-      # =============================
-      if(F){
-        if(resultDatabaseSettings$port != ""){
-          ParallelLogger::logInfo('Port')
-          ParallelLogger::logInfo(paste(resultDatabaseSettings$port))
-          con <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
-                              dbms = resultDatabaseSettings$dbms,
-                              server = resultDatabaseSettings$server,
-                              user = resultDatabaseSettings$user,
-                              password = resultDatabaseSettings$password,
-                              port = resultDatabaseSettings$port)
-          
-        } else{
-          ParallelLogger::logInfo('No Port')
-          con <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
-                              dbms = resultDatabaseSettings$dbms,
-                              server = resultDatabaseSettings$server,
-                              user = resultDatabaseSettings$user,
-                              password = resultDatabaseSettings$password
-          )
-          
-        }
-      }
-      
-      # old connection 
-      connectionDetails <- DatabaseConnector::createConnectionDetails(
-        dbms = resultDatabaseSettings$dbms,
-        server = resultDatabaseSettings$server,
-        user = resultDatabaseSettings$user,
-        password = resultDatabaseSettings$password,
-        port = resultDatabaseSettings$port
-        #pathToDriver =  '/Users/jreps/Documents/drivers'
-      )
-      
-      
-      con <- DatabaseConnector::connect(connectionDetails)
-      
-      
-      shiny::onStop(function() {
-        if (DBI::dbIsValid(con)) {
-          ParallelLogger::logInfo("Closing connection pool")
-          DatabaseConnector::disconnect(con)
-        }
-      })
       
       mainPanelTab <- shiny::reactiveVal(input$mainPanel)
       shiny::observeEvent(
@@ -156,7 +110,7 @@ descriptionServer <- function(
       # =============================
       descriptionTableServer(
         id = 'descriptiveTableTab',
-        con = con, 
+        con = connection, 
         mainPanelTab = mainPanelTab,
         schema = resultDatabaseSettings$schema, 
         dbms = resultDatabaseSettings$dbms,
@@ -173,7 +127,7 @@ descriptionServer <- function(
       
       descriptionAggregateFeaturesServer(
         id = 'aggregateFeaturesTab',
-        con = con, 
+        con = connection, 
         mainPanelTab = mainPanelTab,
         schema = resultDatabaseSettings$schema, 
         dbms = resultDatabaseSettings$dbms,
@@ -188,7 +142,7 @@ descriptionServer <- function(
       # =============================
       descriptionIncidenceServer(
         id = 'incidenceTab',
-        con = con, 
+        con = connection, 
         mainPanelTab = mainPanelTab,
         schema = resultDatabaseSettings$schema, 
         dbms = resultDatabaseSettings$dbms,
@@ -204,7 +158,7 @@ descriptionServer <- function(
       
       descriptionTimeToEventServer(
           id = 'timeToEventTab', 
-          con = con, 
+          con = connection, 
           mainPanelTab = mainPanelTab,
           schema = resultDatabaseSettings$schema, 
           dbms = resultDatabaseSettings$dbms,
@@ -221,7 +175,7 @@ descriptionServer <- function(
       
       descriptionDechallengeRechallengeServer(
         id = 'dechallengeRechallengeTab', 
-        con = con, 
+        con = connection, 
         mainPanelTab = mainPanelTab,
         schema = resultDatabaseSettings$schema, 
         dbms = resultDatabaseSettings$dbms,
