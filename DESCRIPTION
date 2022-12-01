@@ -41,5 +41,6 @@ Suggests:
     withr
 Remotes:
     ohdsi/CirceR,
-    ohdsi/ParallelLogger
+    ohdsi/ParallelLogger,
+    ohdsi/ResultModelManager
 RoxygenNote: 7.2.1

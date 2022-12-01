@@ -27,9 +27,17 @@ connectionPlp <- DatabaseConnector::connect(
   #pathToDriver = 
 )
 
+
+connnectionHandler <- ResultModelManager::ConnectionHander$new(connectionDetails)
+
+# TODO: merging gave all these - only 3 are probably used - clean
+mySchemaTest <- 'main'
+targetDialectTest <- 'sqlite'
+myTableAppendTest <- ''
 schemaTest <- 'main'
 dbmsTest <- 'sqlite'
 tablePrefixTest <- ''
+
 
 
 serverDesc <- "../resources/descDatabase/databaseFile.sqlite"

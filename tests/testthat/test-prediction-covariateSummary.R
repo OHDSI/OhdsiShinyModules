@@ -6,7 +6,10 @@ shiny::testServer(
     modelDesignId = shiny::reactiveVal(1),
     developmentDatabaseId = shiny::reactiveVal(1),
     performanceId = shiny::reactiveVal(NULL),
-    con = connectionPlp,
+
+    connnectionHandler = connnectionHandler,
+    mySchema = mySchemaTest,
+
     inputSingleView = shiny::reactiveVal("Discrimination"),
     mySchema = schemaTest,
     targetDialect = dbmsTest,
