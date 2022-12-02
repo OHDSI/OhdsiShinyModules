@@ -45,7 +45,7 @@ estimationForestPlotViewer <- function(id) {
 #' The module server for rendering the PLE multiple results forest plot
 #'
 #' @param id the unique reference id for the module
-#' @param connection connection
+#' @param connectionHandler connection
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
 #' @param metaAnalysisDbIds metaAnalysisDbIds
@@ -58,7 +58,7 @@ estimationForestPlotViewer <- function(id) {
 #' 
 #' @export
 estimationForestPlotServer <- function(
-  id, connection, selectedRow, inputParams, metaAnalysisDbIds = NULL,
+  id, connectionHandler, selectedRow, inputParams, metaAnalysisDbIds = NULL,
   resultsSchema,
   tablePrefix,
   databaseTable
@@ -72,7 +72,7 @@ estimationForestPlotServer <- function(
         if (is.null(row) || !(row$databaseId %in% metaAnalysisDbIds)) {
           return(NULL)
         } else {
-          results <- getEstimationMainResults(connection = connection,
+          results <- getEstimationMainResults(connectionHandler = connectionHandler,
                                               resultsSchema = resultsSchema,
                                               tablePrefix = tablePrefix,
                                               databaseTable = databaseTable,

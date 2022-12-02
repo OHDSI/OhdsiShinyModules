@@ -40,7 +40,7 @@ estimationResultsTableViewer <- function(id) {
 #' The module server for rendering the PLE results per current selections
 #'
 #' @param id the unique reference id for the module
-#' @param connection the connection to the PLE results database
+#' @param connectionHandler the connection to the PLE results database
 #' @param inputParams  the selected study parameters of interest
 #' @param resultsSchema the schema with the PLE results
 #' @param tablePrefix tablePrefix
@@ -52,7 +52,7 @@ estimationResultsTableViewer <- function(id) {
 #' @export
 estimationResultsTableServer <- function(
   id, 
-  connection, 
+  connectionHandler, 
   inputParams, 
   resultsSchema, 
   tablePrefix, 
@@ -90,7 +90,7 @@ estimationResultsTableServer <- function(
       
       resultSubset <- shiny::reactive({
         
-        results <- getEstimationMainResults(connection = connection,
+        results <- getEstimationMainResults(connectionHandler = connectionHandler,
                                             resultsSchema = resultsSchema,
                                             tablePrefix = tablePrefix,
                                             databaseTable = databaseTable,

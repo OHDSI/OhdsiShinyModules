@@ -11,84 +11,96 @@ if (jarFolder == "") {
   }, testthat::teardown_env())
 }
 
+dbmsTest <- 'sqlite'
+schemaTest <- 'main'
+
+# =========== CG START
+cohortTablePrefix <- 'cg_'
+
+connectionDetailsCG <- DatabaseConnector::createConnectionDetails(
+  server = "../resources/cgDatabase/databaseFile.sqlite",
+  dbms = 'sqlite'
+)
+connectionHandlerCG <- ResultModelManager::ConnectionHandler$new(connectionDetailsCG)
+
+# =========== CG START
+  
+# =========== PLP START
 serverPlp <- "../resources/plpDatabase/databaseFile.sqlite"
 connectionDetailsPlp <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite',
   server = serverPlp
 )
 
-connectionPlp <- DatabaseConnector::connect(
-  connectionDetails = connectionDetailsPlp, 
-  dbms = 'sqlite', 
-  user = NULL, 
-  password = NULL, 
-  server = serverPlp,
-  port = NULL#, 
-  #pathToDriver = 
+connectionHandlerPlp <- ResultModelManager::ConnectionHandler$new(connectionDetailsPlp)
+
+resultDatabaseSettingsPlp <- list(
+  dbms = 'sqlite', # should this be removed - can use connection
+  tablePrefix = '',
+  cohortTablePrefix = '',
+  databaseTablePrefix = '',
+  schema = 'main'
 )
-
-
-connnectionHandler <- ResultModelManager::ConnectionHander$new(connectionDetails)
-
-# TODO: merging gave all these - only 3 are probably used - clean
-mySchemaTest <- 'main'
-targetDialectTest <- 'sqlite'
-myTableAppendTest <- ''
-schemaTest <- 'main'
-dbmsTest <- 'sqlite'
-tablePrefixTest <- ''
+# =========== PLP End
 
 
 
+# =========== Desc START
 serverDesc <- "../resources/descDatabase/databaseFile.sqlite"
 connectionDetailsDesc <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite',
   server = serverDesc
 )
-connectionDesc <- DatabaseConnector::connect(
-  connectionDetails = connectionDetailsDesc, 
-  dbms = 'sqlite', 
-  user = NULL, 
-  password = NULL, 
-  server = serverDesc,
-  port = NULL#, 
-  #pathToDriver = 
+
+connectionHandlerDesc <- ResultModelManager::ConnectionHandler$new(connectionDetailsDesc)
+
+resultDatabaseSettingsDesc <- list(
+  dbms = 'sqlite', # should this be removed - can use connection
+  tablePrefix = 'c_',
+  cohortTablePrefix = 'cg_',
+  databaseTablePrefix = '',
+  schema = 'main',
+  databaseTable = 'DATABASE_META_DATA',
+  incidenceTablePrefix = 'i_',
+  tempEmulationSchema = NULL
 )
-descTablePrefix <- 'c_'
-cohortTablePrefix <- 'cg_'
-databaseTable <- 'DATABASE_META_DATA'
-incidenceTablePrefix <- 'i_'
 
 
+# =========== Desc START
 
 
+# =========== Estimation START
 connectionDetailsEst <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite', 
   server = "../resources/estDatabase/databaseFile.sqlite"
 )
-connectionEst <- DatabaseConnector::connect(
-  connectionDetails = connectionDetailsEst, 
-  dbms = 'sqlite', 
-  user = NULL, 
-  password = NULL, 
-  server = "../resources/estDatabase/databaseFile.sqlite",
-  port = NULL#, 
-  #pathToDriver = 
+
+connectionHandlerEst  <- ResultModelManager::ConnectionHandler$new(connectionDetailsEst )
+
+resultDatabaseSettingsEst <- list(
+  dbms = 'sqlite',
+  tablePrefix = 'cm_',
+  cohortTablePrefix = 'cg_',
+  databaseTable = 'DATABASE_META_DATA',
+  schema = "main",
+  tempEmulationSchema = NULL
 )
-estTablePrefix <- 'cm_'
+
+# =========== Estimation END
 
 
-
+# =========== Data diag START
 connectionDetailsDataDiag <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite', 
   server = "../resources/datadiagDatabase/databaseFile.sqlite"
 )
-connectionDataDiag <- DatabaseConnector::connect(
-  connectionDetails = connectionDetailsDataDiag, 
-  dbms = 'sqlite', 
-  user = NULL, 
-  password = NULL, 
-  server = "../resources/datadiagDatabase/databaseFile.sqlite",
-  port = NULL#, 
-  #pathToDriver = 
+
+connectionHandlerDataDiag <- ResultModelManager::ConnectionHandler$new(connectionDetailsDataDiag)
+
+resultDatabaseSettingsDataDiag <- list(
+  dbms = 'sqlite',
+  tablePrefix = '',
+  schema = "main"
 )
+
+# =========== Data diag End

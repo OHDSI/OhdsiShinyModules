@@ -9,11 +9,11 @@ shiny::testServer(
       comparator = 2, 
       outcome = 3
       )), 
-    connection = connectionEst, 
+    connectionHandler = connectionHandlerEst, 
     resultsSchema = 'main', 
     tablePrefix = 'cm_',
-    cohortTablePrefix = cohortTablePrefix, 
-    databaseTable = databaseTable,
+    cohortTablePrefix = resultDatabaseSettingsEst$cohortTablePrefix, 
+    databaseTable = resultDatabaseSettingsEst$databaseTable,
     metaAnalysisDbIds = '1'
   ), 
   expr = {

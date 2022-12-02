@@ -78,7 +78,8 @@ cohortGeneratorViewer <- function(id) {
 #' The module server for the main cohort generator module
 #'
 #' @param id the unique reference id for the module
-#' @param resultDatabaseSettings a named list containing the cohort generator results database connection details
+#' @param connectionHandler a connection to the database with the results
+#' @param resultDatabaseSettings a named list containing the cohort generator results database details (schema, table prefix)
 #'
 #' @return
 #' the cohort generator results viewer main module server
@@ -87,7 +88,7 @@ cohortGeneratorViewer <- function(id) {
 
 cohortGeneratorServer <- function(
   id, 
-  connection, 
+  connectionHandler, 
   resultDatabaseSettings
 ) {
 
@@ -97,10 +98,9 @@ cohortGeneratorServer <- function(
       
       resultsSchema <- resultDatabaseSettings$schema
       
-      
       output$cohortCounts <- DT::renderDataTable({
         data <- getCohortGeneratorCohortCounts(
-          connection = connection, 
+          connectionHandler = connectionHandler, 
           resultsSchema = resultsSchema,
           tablePrefix = resultDatabaseSettings$tablePrefix
           )
@@ -109,7 +109,7 @@ cohortGeneratorServer <- function(
 
       output$cohortGeneration <- DT::renderDataTable({
         data <- getCohortGeneratorCohortMeta(
-          connection = connection, 
+          connectionHandler = connectionHandler, 
           resultsSchema = resultsSchema,
           tablePrefix = resultDatabaseSettings$tablePrefix
           )
@@ -117,7 +117,7 @@ cohortGeneratorServer <- function(
       })
       
       inclusionStats <- getCohortGeneratorCohortInclusionStats(
-        connection = connection, 
+        connectionHandler = connectionHandler, 
         resultsSchema = resultsSchema,
         tablePrefix = resultDatabaseSettings$tablePrefix
       )

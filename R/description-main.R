@@ -82,7 +82,8 @@ descriptionViewer <- function(id=1) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param resultDatabaseSettings a list containing the prediction result schema and connection details
+#' @param connectionHandler a connection to the database with the results
+#' @param resultDatabaseSettings a list containing the description result schema, dbms, tablePrefix, databaseTable and cohortTablePrefix
 #' 
 #' @return
 #' The server for the description module
@@ -90,7 +91,7 @@ descriptionViewer <- function(id=1) {
 #' @export
 descriptionServer <- function(
   id, 
-  connection,
+  connectionHandler,
   resultDatabaseSettings = list(port = 1)
 ) {
   shiny::moduleServer(
@@ -110,12 +111,10 @@ descriptionServer <- function(
       # =============================
       descriptionTableServer(
         id = 'descriptiveTableTab',
-        con = connection, 
+        connectionHandler = connectionHandler, 
         mainPanelTab = mainPanelTab,
         schema = resultDatabaseSettings$schema, 
-        dbms = resultDatabaseSettings$dbms,
         tablePrefix = resultDatabaseSettings$tablePrefix,
-        tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema, 
         cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
         databaseTable = resultDatabaseSettings$databaseTable
         )
@@ -127,12 +126,10 @@ descriptionServer <- function(
       
       descriptionAggregateFeaturesServer(
         id = 'aggregateFeaturesTab',
-        con = connection, 
+        connectionHandler = connectionHandler, 
         mainPanelTab = mainPanelTab,
         schema = resultDatabaseSettings$schema, 
-        dbms = resultDatabaseSettings$dbms,
         tablePrefix = resultDatabaseSettings$tablePrefix,
-        tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema, 
         cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
         databaseTable = resultDatabaseSettings$databaseTable
       )
@@ -142,12 +139,10 @@ descriptionServer <- function(
       # =============================
       descriptionIncidenceServer(
         id = 'incidenceTab',
-        con = connection, 
+        connectionHandler = connectionHandler, 
         mainPanelTab = mainPanelTab,
         schema = resultDatabaseSettings$schema, 
-        dbms = resultDatabaseSettings$dbms,
         incidenceTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
-        tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema,
         databaseTable = resultDatabaseSettings$databaseTable
         )
 
@@ -158,12 +153,10 @@ descriptionServer <- function(
       
       descriptionTimeToEventServer(
           id = 'timeToEventTab', 
-          con = connection, 
+          connectionHandler = connectionHandler, 
           mainPanelTab = mainPanelTab,
           schema = resultDatabaseSettings$schema, 
-          dbms = resultDatabaseSettings$dbms,
           tablePrefix = resultDatabaseSettings$tablePrefix,
-          tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema,
           cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
           databaseTable = resultDatabaseSettings$databaseTable
         )
@@ -175,12 +168,10 @@ descriptionServer <- function(
       
       descriptionDechallengeRechallengeServer(
         id = 'dechallengeRechallengeTab', 
-        con = connection, 
+        connectionHandler = connectionHandler, 
         mainPanelTab = mainPanelTab,
         schema = resultDatabaseSettings$schema, 
-        dbms = resultDatabaseSettings$dbms,
         tablePrefix = resultDatabaseSettings$tablePrefix,
-        tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema,
         cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
         databaseTable = resultDatabaseSettings$databaseTable
       )

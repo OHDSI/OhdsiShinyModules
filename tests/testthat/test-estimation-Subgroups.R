@@ -19,7 +19,7 @@ shiny::testServer(
       database = 1,
       analysis = 1
       )), 
-    connection = connectionEst, 
+    connectionHandler = connectionHandlerEst, 
     exposureOfInterest = list(exposureId = c(1,2), exposureName = c(1,2)), 
     outcomeOfInterest = list(outcomeId = 3, outcomeName = 3)
     #resultsSchema = 'main', 

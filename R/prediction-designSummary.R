@@ -39,9 +39,8 @@ predictionDesignSummaryViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mySchema the database schema for the model results
-#' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
 #' 
 #' @return
@@ -50,9 +49,8 @@ predictionDesignSummaryViewer <- function(id) {
 #' @export
 predictionDesignSummaryServer <- function(
   id, 
-  con,
+  connectionHandler,
   mySchema,
-  targetDialect,
   myTableAppend
 ) {
   shiny::moduleServer(
@@ -60,9 +58,8 @@ predictionDesignSummaryServer <- function(
     function(input, output, session) {
       
       designSummaryTable <- getDesignSummary(
-        con = con, 
+        connectionHandler = connectionHandler, 
         mySchema = mySchema, 
-        targetDialect = targetDialect, 
         myTableAppend = myTableAppend 
       )
       
@@ -204,9 +201,12 @@ predictionDesignSummaryServer <- function(
 
 
 
-getDesignSummary <- function(con, mySchema, targetDialect, myTableAppend = '' ){
-  ParallelLogger::logInfo("getting model design summary")
-  
+getDesignSummary <- function(
+    connectionHandler, 
+    mySchema, 
+    myTableAppend = '' 
+    ){
+
   shiny::withProgress(message = 'Generating model design summary', value = 0, {
     
   sql <- "SELECT 
@@ -247,20 +247,16 @@ getDesignSummary <- function(con, mySchema, targetDialect, myTableAppend = '' ){
           tars.tar_end_day, tars.tar_end_anchor;"
   
   
-  sql <- SqlRender::render(sql = sql, 
-                           my_schema = mySchema,
-                           my_table_append = myTableAppend)
-  
   shiny::incProgress(1/3, detail = paste("Extracting data"))
   
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  
-  summaryTable <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
+  summaryTable <- connectionHandler$queryDb(
+    sql = sql, 
+    my_schema = mySchema,
+    my_table_append = myTableAppend
+  )
   
   shiny::incProgress(2/3, detail = paste("Extracted data"))
   
-  colnames(summaryTable) <- SqlRender::snakeCaseToCamelCase(colnames(summaryTable))
-
   summaryTable <- editTar(summaryTable)
   
   shiny::incProgress(3/3, detail = paste("Finished"))

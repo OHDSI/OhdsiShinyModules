@@ -39,9 +39,8 @@ predictionModelSummaryViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mySchema the database schema for the model results
-#' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
 #' @param modelDesignId a reactable id specifying the prediction model design identifier
 #' @param databaseTableAppend a string that appends the database_meta_data table
@@ -52,9 +51,8 @@ predictionModelSummaryViewer <- function(id) {
 #' @export
 predictionModelSummaryServer <- function(
   id, 
-  con,
+  connectionHandler,
   mySchema,
-  targetDialect,
   myTableAppend,
   modelDesignId,
   databaseTableAppend = myTableAppend
@@ -62,14 +60,11 @@ predictionModelSummaryServer <- function(
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      print(paste0('predictionModelSummaryServer model design: ', modelDesignId()))
-      
+
       resultTable <- shiny::reactive(
         getInternalPerformanceSummary(
-          con = con, 
+          connectionHandler = connectionHandler, 
           mySchema = mySchema, 
-          targetDialect = targetDialect, 
           myTableAppend = myTableAppend,
           modelDesignId = modelDesignId,
           databaseTableAppend = databaseTableAppend
@@ -122,7 +117,7 @@ predictionModelSummaryServer <- function(
       performanceId <- shiny::reactiveVal(value = NULL)
       developmentDatabaseId <- shiny::reactiveVal(value = NULL)
       shiny::observeEvent(input$view_details, {
-        print('perf updated')
+        #print('perf updated')
         performanceId(NULL)
         performanceId(resultTable()$performanceId[input$view_details$index])
         developmentDatabaseId(resultTable()$developmentDatabaseId[input$view_details$index])
@@ -142,9 +137,8 @@ predictionModelSummaryServer <- function(
 
 
 getInternalPerformanceSummary <- function(
-  con, 
+    connectionHandler, 
   mySchema, 
-  targetDialect, 
   myTableAppend = '',
   modelDesignId,
   databaseTableAppend
@@ -207,7 +201,8 @@ getInternalPerformanceSummary <- function(
         LEFT JOIN (SELECT performance_id, sum(value) AS outcome_count FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'outcomeCount' and evaluation in ('Test','Train') group by performance_id) AS oResult ON results.performance_id = oResult.performance_id
         LEFT JOIN (SELECT performance_id, value AS test_size FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'populationSize' and evaluation = 'Test') AS nTest ON results.performance_id = nTest.performance_id;"
   
-  sql <- SqlRender::render(
+
+  summaryTable <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     my_table_append = myTableAppend,
@@ -215,13 +210,8 @@ getInternalPerformanceSummary <- function(
     database_table_append = databaseTableAppend
   )
   
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  
-  summaryTable <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  
   shiny::incProgress(2/3, detail = paste("Data extracted"))
   
-  colnames(summaryTable) <- SqlRender::snakeCaseToCamelCase(colnames(summaryTable))
   
   summaryTable$t <- trimws(summaryTable$t)
   summaryTable$o <- trimws(summaryTable$o)

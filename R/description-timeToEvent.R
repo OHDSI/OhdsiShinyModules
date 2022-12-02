@@ -65,12 +65,10 @@ descriptionTimeToEventViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mainPanelTab the current tab 
 #' @param schema the database schema for the model results
-#' @param dbms the database management system for the model results
 #' @param tablePrefix a string that appends the tables in the result schema
-#' @param tempEmulationSchema  The temp schema (optional)
 #' @param cohortTablePrefix a string that appends the cohort table in the result schema
 #' @param databaseTable  name of the database table
 #' 
@@ -80,12 +78,10 @@ descriptionTimeToEventViewer <- function(id) {
 #' @export
 descriptionTimeToEventServer <- function(
   id, 
-  con,
+  connectionHandler,
   mainPanelTab,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema = NULL,
   cohortTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA'
 ) {
@@ -99,11 +95,9 @@ descriptionTimeToEventServer <- function(
       
       # get the possible target ids
       bothIds <- timeToEventGetIds(
-        con,
+        connectionHandler,
         schema, 
-        dbms,
         tablePrefix,
-        tempEmulationSchema,
         cohortTablePrefix
       )
 
@@ -160,11 +154,9 @@ descriptionTimeToEventServer <- function(
             getTimeToEventData(
               targetId = input$targetId,
               outcomeId = input$outcomeId,
-              con = con,
+              connectionHandler = connectionHandler,
               schema = schema, 
-              dbms = dbms,
               tablePrefix = tablePrefix,
-              tempEmulationSchema = tempEmulationSchema, 
               databaseTable = databaseTable
             )
           }, 
@@ -195,11 +187,9 @@ descriptionTimeToEventServer <- function(
 }
 
 timeToEventGetIds <- function(
-  con,
+    connectionHandler,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema,
   cohortTablePrefix
 ){
   
@@ -214,27 +204,15 @@ timeToEventGetIds <- function(
    inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION o
           on tte.OUTCOME_COHORT_DEFINITION_ID = o.COHORT_DEFINITION_ID
   ;"
-  sql <- SqlRender::render(
+
+
+  shiny::incProgress(1/4, detail = paste("Fetching ids"))
+  
+  bothIds <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
     cohort_table_prefix = cohortTablePrefix
-  )
-  
-  shiny::incProgress(1/4, detail = paste("Rendering and translating sql"))
-  
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  shiny::incProgress(2/4, detail = paste("Fetching ids"))
-  
-  bothIds <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
   )
   
   shiny::incProgress(3/4, detail = paste("Processing ids"))
@@ -278,11 +256,9 @@ timeToEventGetIds <- function(
 getTimeToEventData <- function(
   targetId,
   outcomeId,
-  con,
+  connectionHandler,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema,
   databaseTable
 ){
   
@@ -295,29 +271,16 @@ getTimeToEventData <- function(
           on tte.database_id = d.database_id
           where tte.TARGET_COHORT_DEFINITION_ID = @target_id
           and tte.OUTCOME_COHORT_DEFINITION_ID = @outcome_id;"
-  sql <- SqlRender::render(
+
+  shiny::incProgress(1/3, detail = paste("Fetching data"))
+  
+  data <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
     target_id = targetId,
     outcome_id = outcomeId,
     database_table = databaseTable
-  )
-  
-  shiny::incProgress(1/3, detail = paste("Rendering and translating sql"))
-  
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  shiny::incProgress(2/3, detail = paste("Fetching data"))
-  
-  data <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
   )
   
   shiny::incProgress(3/3, detail = paste("Finished"))

@@ -42,13 +42,13 @@ estimationSubgroupsViewer <- function(id) {
 #' @param inputParams  the selected study parameters of interest
 #' @param exposureOfInterest exposureOfInterest
 #' @param outcomeOfInterest outcomeOfInterest
-#' @param connection connection
+#' @param connectionHandler connection
 #'
 #' @return
 #' the PLE subgroup results server
 #' 
 #' @export
-estimationSubgroupsServer <- function(id, selectedRow, inputParams, exposureOfInterest, outcomeOfInterest, connection) {
+estimationSubgroupsServer <- function(id, selectedRow, inputParams, exposureOfInterest, outcomeOfInterest, connectionHandler) {
   
   shiny::moduleServer(
     id,
@@ -62,7 +62,7 @@ estimationSubgroupsServer <- function(id, selectedRow, inputParams, exposureOfIn
           targetId <- exposureOfInterest$exposureId[exposureOfInterest$exposureName == inputParams()$target]
           comparatorId <- exposureOfInterest$exposureId[exposureOfInterest$exposureName == inputParams()$comparator]
           outcomeId <- outcomeOfInterest$outcomeId[outcomeOfInterest$outcomeName == inputParams()$outcome]
-          subgroupResults <- getEstimationSubgroupResults(connection = connection,
+          subgroupResults <- getEstimationSubgroupResults(connectionHandler = connectionHandler,
                                                           targetIds = targetId,
                                                           comparatorIds = comparatorId,
                                                           outcomeIds = outcomeId,

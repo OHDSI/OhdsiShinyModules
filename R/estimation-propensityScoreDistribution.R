@@ -47,7 +47,7 @@ estimationPropensityScoreDistViewer <- function(id) {
 #' @param id the unique reference id for the module
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
-#' @param connection the connection to the PLE results database
+#' @param connectionHandler the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
 #' @param tablePrefix tablePrefix
 #' @param cohortTablePrefix cohortTablePrefix
@@ -57,7 +57,7 @@ estimationPropensityScoreDistViewer <- function(id) {
 #' the PLE propensity score distribution content server
 #' 
 #' @export
-estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, cohortTablePrefix, metaAnalysisDbIds = F) {
+estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix, metaAnalysisDbIds = F) {
   
   shiny::moduleServer(
     id,
@@ -70,7 +70,7 @@ estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, co
         } else {
           if (FALSE && row$databaseId %in% metaAnalysisDbIds) {
             #TODO: update once MA implemented
-            ps <- getEstimationPs(connection = connection,
+            ps <- getEstimationPs(connectionHandler = connectionHandler,
                                   resultsSchema = resultsSchema,
                                   tablePrefix = tablePrefix,
                                   #targetIds = row$targetId,
@@ -79,7 +79,7 @@ estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, co
                                   comparatorId = inputParams()$comparator,
                                   analysisId = row$analysisId)
           } else {
-            ps <- getEstimationPs(connection = connection,
+            ps <- getEstimationPs(connectionHandler = connectionHandler,
                                   resultsSchema = resultsSchema,
                                   tablePrefix = tablePrefix,
                                   targetId = inputParams()$target,
@@ -91,11 +91,11 @@ estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, co
             return(NULL) #TODO: handle more gracefully
           }
           
-          targetName <- getCohortNameFromId(connection = connection,
+          targetName <- getCohortNameFromId(connectionHandler = connectionHandler ,
                                             resultsSchema = resultsSchema,
                                             cohortTablePrefix = cohortTablePrefix,
                                             cohortId = inputParams()$target)
-          comparatorName <- getCohortNameFromId(connection = connection,
+          comparatorName <- getCohortNameFromId(connectionHandler  = connectionHandler ,
                                             resultsSchema = resultsSchema,
                                             cohortTablePrefix = cohortTablePrefix,
                                             cohortId = inputParams()$comparator)

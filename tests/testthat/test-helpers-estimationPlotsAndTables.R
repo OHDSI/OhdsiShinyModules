@@ -3,7 +3,7 @@ context('tests-helpers-estimationPlotsAndTables')
 test_that("Subgroup stuff", {
   
 subgroupRes <- getEstimationSubgroupResults(
-  connection = connectionEst, 
+  connectionHandler = connectionHandlerEst, 
   targetIds = 1, 
   comparatorIds = 2, 
   outcomeIds = 3, 
@@ -43,9 +43,9 @@ testthat::expect_true(nrow(res) > 0)
 test_that("CovariateBalance stuff", {
   
   balanceSummary <- getEstimationCovariateBalance(
-    connection = connectionEst,
+    connectionHandler = connectionHandlerEst,
     resultsSchema = 'main',
-    tablePrefix = estTablePrefix,
+    tablePrefix = resultDatabaseSettingsEst$tablePrefix,
     targetId = 1,
     comparatorId = 2,
     analysisId = 1,

@@ -51,9 +51,8 @@ dataDiagnosticDrillViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mySchema the database schema for the model results
-#' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
 #' 
 #' @return
@@ -62,9 +61,8 @@ dataDiagnosticDrillViewer <- function(id) {
 #' @export
 dataDiagnosticDrillServer <- function(
     id, 
-    con,
+    connectionHandler,
     mySchema,
-    targetDialect,
     myTableAppend
 ) {
   shiny::moduleServer(
@@ -72,15 +70,13 @@ dataDiagnosticDrillServer <- function(
     function(input, output, session) {
     
       analyses <- getAnalysesDataDiagnostics(
-        con = con, 
+        connectionHandler = connectionHandler, 
         mySchema = mySchema, 
-        targetDialect = targetDialect, 
         myTableAppend = myTableAppend
       )
       databases <- getDbDataDiagnostics(
-        con = con, 
+        connectionHandler = connectionHandler, 
         mySchema = mySchema, 
-        targetDialect = targetDialect, 
         myTableAppend = myTableAppend
       )
 
@@ -109,9 +105,8 @@ dataDiagnosticDrillServer <- function(
       # inital table
       resultTable <- shiny::reactiveVal(
         value = getDrugStudyFail(
-        con = con, 
+          connectionHandler = connectionHandler, 
         mySchema = mySchema, 
-        targetDialect = targetDialect, 
         myTableAppend = myTableAppend,
         analysis = analyses[[1]]
       ))
@@ -121,9 +116,8 @@ dataDiagnosticDrillServer <- function(
         if(!is.null(input$analysisSelected)){
           
           resultTableTemp <- getDrugStudyFail(
-            con = con, 
+            connectionHandler = connectionHandler, 
             mySchema = mySchema, 
-            targetDialect = targetDialect, 
             myTableAppend = myTableAppend,
             analysis = input$analysisSelected
           )
@@ -208,9 +202,8 @@ dataDiagnosticDrillServer <- function(
         output$modaltable <- reactable::renderReactable({
           reactable::reactable(
             data = getDrillDown(
-              con = con, 
+              connectionHandler = connectionHandler, 
               mySchema = mySchema, 
-              targetDialect = targetDialect, 
               myTableAppend = myTableAppend,
               analysisId = analysisId, 
               databaseId = databaseId
@@ -242,9 +235,8 @@ dataDiagnosticDrillServer <- function(
 }
 
 getDrillDown <- function(
-  con = con, 
+    connectionHandler = connectionHandler, 
   mySchema = mySchema, 
-  targetDialect = targetDialect, 
   myTableAppend = myTableAppend,
   analysisId = analysisId, 
   databaseId = databaseId
@@ -253,18 +245,13 @@ getDrillDown <- function(
   sql <- "SELECT *FROM @my_schema.@my_table_appenddata_diagnostics_output
   WHERE analysis_id = @analysis_id and database_id = '@database_id';"
   
-  sql <- SqlRender::render(
+  result <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     my_table_append = myTableAppend,
     analysis_id = analysisId,
     database_id = databaseId
   )
-  
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  
-  result <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  colnames(result) <- SqlRender::snakeCaseToCamelCase(colnames(result))
   
   result <- result %>%
     dplyr::select(-c("databaseId", "analysisId", "analysisName"))
@@ -274,56 +261,37 @@ getDrillDown <- function(
 
 
 getAnalysesDataDiagnostics <- function(
-  con = con, 
+    connectionHandler = connectionHandler, 
   mySchema = mySchema, 
-  targetDialect = targetDialect, 
   myTableAppend = myTableAppend
 ){
   
-  print('Getting Analyses')
-  
+
   sql <- "SELECT distinct analysis_id, analysis_name FROM @my_schema.@my_table_appenddata_diagnostics_summary;"
   
-  sql <- SqlRender::render(
+  result <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     my_table_append = myTableAppend
   )
-  
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  
-  analysisNames <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  colnames(analysisNames) <- SqlRender::snakeCaseToCamelCase(colnames(analysisNames))
-  
-  result <- as.list(analysisNames$analysisId)
-  names(result) <- analysisNames$analysisName
-  
-  print('Got Analyses')
   
   return(result)
   
 }
 
 getDbDataDiagnostics <- function(
-  con = con, 
+    connectionHandler = connectionHandler, 
   mySchema = mySchema, 
-  targetDialect = targetDialect, 
   myTableAppend = myTableAppend
 ){
   
   sql <- "SELECT distinct database_id FROM @my_schema.@my_table_appenddata_diagnostics_summary;"
-  
-  sql <- SqlRender::render(
+
+  dbNames <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     my_table_append = myTableAppend
   )
-  
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  
-  dbNames <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  colnames(dbNames) <- SqlRender::snakeCaseToCamelCase(colnames(dbNames))
-  
   result <- list(dbNames$databaseId)
   
   return(result)
@@ -331,9 +299,8 @@ getDbDataDiagnostics <- function(
 }
 
 getDrugStudyFail <- function(
-    con, 
+    connectionHandler, 
     mySchema, 
-    targetDialect, 
     myTableAppend = '',
     analysis = NULL
 ){
@@ -349,20 +316,14 @@ getDrugStudyFail <- function(
     sql <- "SELECT * FROM @my_schema.@my_table_appenddata_diagnostics_summary
   WHERE analysis_id = @analysis;"
     
-    sql <- SqlRender::render(
+    summaryTable <- connectionHandler$queryDb(
       sql = sql, 
       my_schema = mySchema,
       my_table_append = myTableAppend,
       analysis = analysis
     )
     
-    sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-    
-    summaryTable <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-    
     shiny::incProgress(2/3, detail = paste("Data extracted"))
-    
-    colnames(summaryTable) <- SqlRender::snakeCaseToCamelCase(colnames(summaryTable))
     
     # hide analysisId and analysisName
     

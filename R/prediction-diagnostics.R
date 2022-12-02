@@ -46,9 +46,8 @@ predictionDiagnosticsViewer <- function(id) {
 #' @param id  the unique reference id for the module
 #' @param modelDesignId the unique id for the model design
 #' @param mySchema the database schema for the model results
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param myTableAppend a string that appends the tables in the result schema
-#' @param targetDialect the database management system for the model results
 #' @param databaseTableAppend a string that appends the database_meta_data table
 #' 
 #' @return
@@ -59,9 +58,8 @@ predictionDiagnosticsServer <- function(
   id,
   modelDesignId, 
   mySchema, 
-  con,
+  connectionHandler,
   myTableAppend, 
-  targetDialect,
   databaseTableAppend
 ) {
   shiny::moduleServer(
@@ -74,9 +72,8 @@ predictionDiagnosticsServer <- function(
           diagnosticTable <- getDiagnostics(
             modelDesignId = modelDesignId(),
             mySchema, 
-            con,
+            connectionHandler = connectionHandler,
             myTableAppend, 
-            targetDialect,
             databaseTableAppend = databaseTableAppend
           )
           # input tables
@@ -202,9 +199,8 @@ predictionDiagnosticsServer <- function(
               participants <- getDiagnosticParticipants(
                 diagnosticId = diagnosticTable$diagnosticId[input$show_participants$index],
                 mySchema, 
-                con,
-                myTableAppend, 
-                targetDialect  
+                connectionHandler = connectionHandler,
+                myTableAppend
               )
               
               output$participants <- reactable::renderReactable({
@@ -253,9 +249,8 @@ predictionDiagnosticsServer <- function(
               predTable <- getDiagnosticPredictors(
                 diagnosticId = diagnosticTable$diagnosticId[input$show_predictors$index],
                 mySchema, 
-                con,
-                myTableAppend, 
-                targetDialect  
+                connectionHandler = connectionHandler,
+                myTableAppend
               )
               
               output$predictorPlot <- plotly::renderPlotly({
@@ -331,9 +326,8 @@ predictionDiagnosticsServer <- function(
               outcomeTable <- getDiagnosticOutcomes(
                 diagnosticId = diagnosticTable$diagnosticId[input$show_outcomes$index],
                 mySchema, 
-                con,
-                myTableAppend, 
-                targetDialect  
+                connectionHandler = connectionHandler,
+                myTableAppend  
               )
               
               #output$predictorPlot <-  
@@ -397,9 +391,8 @@ predictionDiagnosticsServer <- function(
 getDiagnostics <- function(
   modelDesignId,
   mySchema, 
-  con,
+  connectionHandler,
   myTableAppend, 
-  targetDialect,
   databaseTableAppend = myTableAppend,
   threshold1_2 = 0.9
 ){
@@ -435,21 +428,16 @@ getDiagnostics <- function(
           cohortO.cohort_id = design.outcome_id and
           database.database_id = diagnostics.database_id
           
-          where diagnostics.MODEL_DESIGN_ID = @model_design_id
+          where diagnostics.MODEL_DESIGN_ID = @model_design_id;
   "
   
-  sql <- SqlRender::render(
+  summaryTable <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     my_table_append = myTableAppend,
     model_design_id = modelDesignId,
     database_table_append = databaseTableAppend
   )
-  
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  
-  summaryTable <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  colnames(summaryTable) <- SqlRender::snakeCaseToCamelCase(colnames(summaryTable))
   
   if(nrow(summaryTable)==0){
     ParallelLogger::logInfo("No diagnostic summary")
@@ -483,21 +471,18 @@ getDiagnostics <- function(
 getDiagnosticParticipants <- function(
   diagnosticId,
   mySchema, 
-  con,
-  myTableAppend, 
-  targetDialect  
+  connectionHandler,
+  myTableAppend
 ){
   
-  sql <- "SELECT * FROM @my_schema.@table_name WHERE diagnostic_id = @diagnostic_id"
-  sql <- SqlRender::render(
+  sql <- "SELECT * FROM @my_schema.@table_name WHERE diagnostic_id = @diagnostic_id;"
+
+  participants <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     table_name = 'diagnostic_participants',
     diagnostic_id = diagnosticId
   )
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  participants <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  colnames(participants) <- SqlRender::snakeCaseToCamelCase(colnames(participants))
   
   participants$parameter <- unlist(
     lapply(
@@ -519,21 +504,18 @@ getDiagnosticParticipants <- function(
 getDiagnosticPredictors <- function(
   diagnosticId,
   mySchema, 
-  con,
-  myTableAppend, 
-  targetDialect  
+  connectionHandler,
+  myTableAppend
 ){
   
-  sql <- "SELECT * FROM @my_schema.@table_name WHERE diagnostic_id = @diagnostic_id"
-  sql <- SqlRender::render(
+  sql <- "SELECT * FROM @my_schema.@table_name WHERE diagnostic_id = @diagnostic_id;"
+
+  predictors <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     table_name = 'diagnostic_predictors',
     diagnostic_id = diagnosticId
   )
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  predictors <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  colnames(predictors) <- SqlRender::snakeCaseToCamelCase(colnames(predictors))
   
   return(predictors)
 }
@@ -541,21 +523,18 @@ getDiagnosticPredictors <- function(
 getDiagnosticOutcomes <- function(
   diagnosticId,
   mySchema, 
-  con,
-  myTableAppend, 
-  targetDialect  
+  connectionHandler,
+  myTableAppend 
 ){
   
-  sql <- "SELECT * FROM @my_schema.@table_name WHERE diagnostic_id = @diagnostic_id"
-  sql <- SqlRender::render(
+  sql <- "SELECT * FROM @my_schema.@table_name WHERE diagnostic_id = @diagnostic_id;"
+
+  outcomes <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     table_name = 'diagnostic_outcomes',
     diagnostic_id = diagnosticId
   )
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  outcomes <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  colnames(outcomes) <- SqlRender::snakeCaseToCamelCase(colnames(outcomes))
   
   return(outcomes)
   

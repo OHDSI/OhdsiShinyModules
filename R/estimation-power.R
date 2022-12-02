@@ -43,7 +43,7 @@ estimationPowerViewer <- function(id) {
 #' @param id the unique reference id for the module
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
-#' @param connection the connection to the PLE results database
+#' @param connectionHandler the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
 #' @param tablePrefix tablePrefix
 #' @param metaAnalysisDbIds metaAnalysisDbIds
@@ -52,7 +52,7 @@ estimationPowerViewer <- function(id) {
 #' the PLE systematic error power server
 #' 
 #' @export
-estimationPowerServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, metaAnalysisDbIds = NULL) {
+estimationPowerServer <- function(id, selectedRow, inputParams, connectionHandler, resultsSchema, tablePrefix, metaAnalysisDbIds = NULL) {
   
   shiny::moduleServer(
     id,
@@ -79,12 +79,12 @@ estimationPowerServer <- function(id, selectedRow, inputParams, connection, resu
         } else {
           #TODO: update once MA implemented
           if (FALSE && row$databaseId %in% metaAnalysisDbIds) {
-            results <- getEstimationMainResults(connection = connection,
+            results <- getEstimationMainResults(connectionHandler = connectionHandler,
                                                 targetIds = row$targetId,
                                                 comparatorIds = row$comparatorId,
                                                 outcomeIds = row$outcomeId,
                                                 analysisIds = row$analysisId)
-            table <- prepareEstimationPowerTable(results, connection, resultsSchema)
+            table <- prepareEstimationPowerTable(results, connectionHandler, resultsSchema)
             table$description <- NULL
             if (!row$unblind) {
               table$targetOutcomes  <- NA
@@ -104,7 +104,7 @@ estimationPowerServer <- function(id, selectedRow, inputParams, connection, resu
                                  "Comparator IR (per 1,000 PY)",
                                  "MDRR")
           } else {
-            table <- prepareEstimationPowerTable(row, connection, resultsSchema, tablePrefix)
+            table <- prepareEstimationPowerTable(row, connectionHandler, resultsSchema, tablePrefix)
             table$description <- NULL
             table$databaseId <- NULL
             if (!row$unblind) {
@@ -147,13 +147,13 @@ estimationPowerServer <- function(id, selectedRow, inputParams, connection, resu
           if (FALSE && row$databaseId %in% metaAnalysisDbIds) {
             # TODO: update when MA implemented
             followUpDist <- getCmFollowUpDist(#cmFollowUpDist = cmFollowUpDist,
-                                              connection = connection,
+              connectionHandler = connectionHandler,
                                               targetId = inputParams()$target,
                                               comparatorId = inputParams()$comparator,
                                               outcomeId = inputParams()$outcome,
                                               analysisId = row$analysisId)
           } else {
-            followUpDist <- getCmFollowUpDist(connection = connection,
+            followUpDist <- getCmFollowUpDist(connectionHandler = connectionHandler,
                                               resultsSchema = resultsSchema,
                                               tablePrefix = tablePrefix,
                                               targetId = inputParams()$target,

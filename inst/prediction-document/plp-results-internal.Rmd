@@ -5,9 +5,8 @@
 ```{r, echo=FALSE, results='asis'}
 
 getInternalVal <- function(
-  connection,
+  connectionHandler,
   resultSchema,
-  targetDialect,
   myTableAppend,
   modelDesignId,
   databaseTableAppend,
@@ -28,26 +27,15 @@ getInternalVal <- function(
       where d.database_id = @dev_database
       ;
     "
-    sql <- SqlRender::render(
-    sql = sql, 
+  res <- connectionHandler$queryDb(
+        sql = sql, 
     result_schema = resultSchema,
     my_table_append = myTableAppend,
     database_table_append = databaseTableAppend,
     model_design_id = modelDesignId,
     dev_database = devDatabase
   )
-    
-    sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = targetDialect, 
-    tempEmulationSchema = tempEmulationSchema
-    )
   
-  res <- DatabaseConnector::querySql(
-    connection = connection, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-    )
   if(is.null(res$performanceId)){
     return(NULL)
   }
@@ -73,34 +61,22 @@ getInternalVal <- function(
     @result_schema.@my_table_append@table_name 
     where performance_id = @performance_id 
     "
-    sql <- SqlRender::render(
-    sql = sql, 
+  
+  result[[tabName]] <- connectionHandler$queryDb(
+        sql = sql, 
     result_schema = resultSchema,
     table_name = tabName,
     my_table_append = myTableAppend,
     performance_id = res$performanceId
   )
-    
-    sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = targetDialect, 
-    tempEmulationSchema = tempEmulationSchema
-    )
-  
-  result[[tabName]] <- DatabaseConnector::querySql(
-    connection = connection, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-    )
   }
   
   return(result)
 }
 
 result <- getInternalVal(
-  connection = params$connection,
+  connectionHandler = params$connectionHandler,
   resultSchema = params$resultSchema,
-  targetDialect = params$targetDialect,
   myTableAppend = params$myTableAppend,
   databaseTableAppend = params$databaseTableAppend,
   modelDesignId = params$modelDesignIds[i],

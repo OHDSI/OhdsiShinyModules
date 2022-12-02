@@ -40,7 +40,7 @@ estimationPropensityModelViewer <- function(id) {
 #' @param id the unique reference id for the module
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
-#' @param connection the connection to the PLE results database
+#' @param connectionHandler the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
 #' @param tablePrefix tablePrefix
 #'
@@ -48,7 +48,7 @@ estimationPropensityModelViewer <- function(id) {
 #' the PLE propensity score model
 #' 
 #' @export
-estimationPropensityModelServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix) {
+estimationPropensityModelServer <- function(id, selectedRow, inputParams, connectionHandler, resultsSchema, tablePrefix) {
   
   shiny::moduleServer(
     id,
@@ -59,7 +59,7 @@ estimationPropensityModelServer <- function(id, selectedRow, inputParams, connec
         if (is.null(row)) {
           return(NULL)
         } else {
-          model <- getEstimationPropensityModel(connection = connection,
+          model <- getEstimationPropensityModel(connectionHandler = connectionHandler,
                                                 resultsSchema = resultsSchema,
                                                 tablePrefix = tablePrefix,
                                                 targetId = inputParams()$target,

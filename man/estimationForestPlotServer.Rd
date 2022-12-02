@@ -6,7 +6,7 @@
 \usage{
 estimationForestPlotServer(
   id,
-  connection,
+  connectionHandler,
   selectedRow,
   inputParams,
   metaAnalysisDbIds = NULL,
@@ -18,7 +18,7 @@ estimationForestPlotServer(
 \arguments{
 \item{id}{the unique reference id for the module}
 
-\item{connection}{connection}
+\item{connectionHandler}{connection}
 
 \item{selectedRow}{the selected row from the main results table}
 

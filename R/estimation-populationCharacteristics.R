@@ -40,7 +40,7 @@ estimationPopulationCharacteristicsViewer <- function(id) {
 #' @param id the unique reference id for the module
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
-#' @param connection the connection to the PLE results database
+#' @param connectionHandler the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
 #' @param tablePrefix tablePrefix
 #'
@@ -48,7 +48,7 @@ estimationPopulationCharacteristicsViewer <- function(id) {
 #' the PLE population characteristics content server
 #' 
 #' @export
-estimationPopulationCharacteristicsServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix) {
+estimationPopulationCharacteristicsServer <- function(id, selectedRow, inputParams, connectionHandler, resultsSchema, tablePrefix) {
   
   shiny::moduleServer(
     id,
@@ -72,7 +72,7 @@ estimationPopulationCharacteristicsServer <- function(id, selectedRow, inputPara
         if (is.null(row)) {
           return(NULL)
         } else {
-          balance <- getEstimationCovariateBalance(connection = connection,
+          balance <- getEstimationCovariateBalance(connectionHandler = connectionHandler,
                                                    resultsSchema = resultsSchema,
                                                    tablePrefix = tablePrefix,
                                                    targetId = inputParams()$target,
