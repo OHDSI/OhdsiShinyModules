@@ -6,7 +6,7 @@
 \usage{
 estimationResultsTableServer(
   id,
-  connection,
+  connectionHandler,
   inputParams,
   resultsSchema,
   tablePrefix,
@@ -16,7 +16,7 @@ estimationResultsTableServer(
 \arguments{
 \item{id}{the unique reference id for the module}
 
-\item{connection}{the connection to the PLE results database}
+\item{connectionHandler}{the connection to the PLE results database}
 
 \item{inputParams}{the selected study parameters of interest}
 

@@ -87,10 +87,9 @@ predictionCovariateSummaryViewer <- function(id) {
 #' @param modelDesignId unique id for the model design
 #' @param developmentDatabaseId  unique id for the development database
 #' @param performanceId unique id for the performance results
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param inputSingleView the current tab 
 #' @param mySchema the database schema for the model results
-#' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
 #' 
 #' @return
@@ -102,10 +101,9 @@ predictionCovariateSummaryServer <- function(
   modelDesignId,
   developmentDatabaseId,
   performanceId,
-  connnectionHandler,
+  connectionHandler,
   inputSingleView,
   mySchema, 
-  targetDialect = NULL,
   myTableAppend = ''
 ) {
   shiny::moduleServer(
@@ -118,11 +116,10 @@ predictionCovariateSummaryServer <- function(
           inputSingleView() == 'Model'
           ){
           loadCovSumFromDb(
-            performanceId, 
-            mySchema, 
-            con, 
-            myTableAppend, 
-            targetDialect
+            performanceId = performanceId, 
+            mySchema = mySchema, 
+            connectionHandler = connectionHandler, 
+            myTableAppend = myTableAppend
           )
         } else{
           NULL
@@ -138,10 +135,9 @@ predictionCovariateSummaryServer <- function(
           getIntercept(
             modelDesignId = modelDesignId,
             databaseId = developmentDatabaseId,
-            connectionHandler = connnectionHandler,
+            connectionHandler = connectionHandler,
             mySchema = mySchema,
-            myTableAppend = myTableAppend,
-            targetDialect = targetDialect
+            myTableAppend = myTableAppend
           )
         } else{
           NULL
@@ -343,7 +339,12 @@ plotCovariateSummary <- function(covariateSummary){
 
 
 # code for database covariate extract
-loadCovSumFromDb <- function(performanceId, mySchema, connectionHandler, myTableAppend = '', targetDialect = 'redshift'){
+loadCovSumFromDb <- function(
+    performanceId, 
+    mySchema, 
+    connectionHandler, 
+    myTableAppend = ''
+    ){
   ParallelLogger::logInfo("starting covsum")
   
   shiny::withProgress(message = 'Extracting covariate data', value = 0, {
@@ -352,19 +353,14 @@ loadCovSumFromDb <- function(performanceId, mySchema, connectionHandler, myTable
   
   sql <- "SELECT * FROM @my_schema.@my_table_appendcovariate_summary WHERE performance_id = @performance_id;" 
   
-  sql <- SqlRender::render(
+  shiny::incProgress(2/3, detail = paste("Data extracted"))
+
+  covariateSummary <- connectionHandler$queryDb(
     sql = sql,
     my_schema = mySchema,
     performance_id = performanceId(),
     my_table_append = myTableAppend
-  )
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  
-  shiny::incProgress(2/3, detail = paste("Data extracted"))
-  
-   covariateSummary <- DatabaseConnector::dbGetQuery(conn =  connectionHandler$con, statement = sql)
-
-  colnames(covariateSummary) <- SqlRender::snakeCaseToCamelCase(colnames(covariateSummary))
+    )
   
   # format
   for(coln in c('covariateValue','withOutcomeCovariateMean','withNoOutcomeCovariateMean','standardizedMeanDiff')){
@@ -387,17 +383,18 @@ getIntercept <- function(
   databaseId,
   connectionHandler,
   mySchema,
-  myTableAppend,
-  targetDialect
+  myTableAppend
 ){
   sql <- "SELECT intercept FROM @my_schema.@my_table_appendmodels WHERE database_id = @database_id
        and model_design_id = @model_design_id"
 
-  models <- connectionHandler$queryDb(sql = sql,
-                                      my_schema = mySchema,
-                                      database_id = databaseId(),
-                                      model_design_id = modelDesignId(),
-                                      my_table_append = myTableAppend)
+  models <- connectionHandler$queryDb(
+    sql = sql,
+    my_schema = mySchema,
+    database_id = databaseId(),
+    model_design_id = modelDesignId(),
+    my_table_append = myTableAppend
+  )
   
   intercept <- models$intercept
   

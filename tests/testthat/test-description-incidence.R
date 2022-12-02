@@ -3,12 +3,11 @@ context("description-incidence")
 shiny::testServer(
   app = descriptionIncidenceServer, 
   args = list(
-    con = connectionDesc,
-    schema = schemaTest,
-    dbms = dbmsTest,
+    connectionHandler = connectionHandlerDesc ,
+    schema = resultDatabaseSettingsDesc$schema,
     mainPanelTab = shiny::reactiveVal("Feature Comparison"),
-    incidenceTablePrefix = incidenceTablePrefix,
-    databaseTable = databaseTable
+    incidenceTablePrefix = resultDatabaseSettingsDesc$incidenceTablePrefix,
+    databaseTable = resultDatabaseSettingsDesc$databaseTable
   ), 
   expr = {
     

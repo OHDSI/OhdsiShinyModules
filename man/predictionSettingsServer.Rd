@@ -9,11 +9,10 @@ predictionSettingsServer(
   modelDesignId,
   developmentDatabaseId,
   performanceId,
-  mySchema,
-  con,
+  connectionHandler,
   inputSingleView,
+  mySchema,
   myTableAppend,
-  targetDialect,
   cohortTableAppend = myTableAppend
 )
 }
@@ -26,15 +25,13 @@ predictionSettingsServer(
 
 \item{performanceId}{unique id for the performance results}
 
-\item{mySchema}{the database schema for the model results}
-
-\item{con}{the connection to the prediction result database}
+\item{connectionHandler}{the connection to the prediction result database}
 
 \item{inputSingleView}{the current tab}
 
-\item{myTableAppend}{a string that appends the tables in the result schema}
+\item{mySchema}{the database schema for the model results}
 
-\item{targetDialect}{the database management system for the model results}
+\item{myTableAppend}{a string that appends the tables in the result schema}
 
 \item{cohortTableAppend}{a string that appends the cohort_definition table}
 }

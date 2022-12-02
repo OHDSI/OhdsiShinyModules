@@ -1,7 +1,6 @@
 createPredictionProtocol <- function(
-  con, 
+    connectionHandler, 
   mySchema, 
-  targetDialect,
   myTableAppend,
   databaseTableAppend,
   cohortTableAppend,
@@ -24,9 +23,8 @@ createPredictionProtocol <- function(
     intermediates_dir = intermediatesDir,
     output_dir = output, 
     params = list(
-      connection = con,
+      connectionHandler = connectionHandler,
       resultSchema = mySchema, 
-      targetDialect = targetDialect,
       myTableAppend = myTableAppend,
       modelDesignIds = modelDesignId,
       databaseTableAppend = databaseTableAppend,

@@ -43,7 +43,7 @@ estimationAttritionViewer <- function(id) {
 #' @param id the unique reference id for the module
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
-#' @param connection the connection to the PLE results database
+#' @param connectionHandler the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
 #' @param tablePrefix tablePrefix
 #' @param databaseTable databaseTable
@@ -52,7 +52,7 @@ estimationAttritionViewer <- function(id) {
 #' the PLE attrition results content server
 #' 
 #' @export
-estimationAttritionServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, databaseTable) {
+estimationAttritionServer <- function(id, selectedRow, inputParams, connectionHandler, resultsSchema, tablePrefix, databaseTable) {
   
   shiny::moduleServer(
     id,
@@ -64,7 +64,7 @@ estimationAttritionServer <- function(id, selectedRow, inputParams, connection, 
         if (is.null(row)) {
           return(NULL)
         } else {
-          attrition <- getEstimationAttrition(connection = connection,
+          attrition <- getEstimationAttrition(connectionHandler = connectionHandler,
                                               resultsSchema = resultsSchema,
                                               tablePrefix = tablePrefix,
                                               databaseTable = databaseTable,

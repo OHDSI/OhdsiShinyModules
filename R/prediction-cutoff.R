@@ -93,10 +93,9 @@ predictionCutoffViewer <- function(id) {
 #'
 #' @param id  the unique reference id for the module
 #' @param performanceId the performance id in the database
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param inputSingleView the current tab 
 #' @param mySchema the database schema for the model results
-#' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
 #' 
 #' @return
@@ -106,10 +105,9 @@ predictionCutoffViewer <- function(id) {
 predictionCutoffServer <- function(
   id, 
   performanceId, 
-  con,
+  connectionHandler,
   inputSingleView,
   mySchema, 
-  targetDialect,
   myTableAppend
 ) {
   shiny::moduleServer(
@@ -123,10 +121,9 @@ predictionCutoffServer <- function(
           
           value <- getPredictionResult(
             performanceId = performanceId,
-            con = con,
+            connectionHandler = connectionHandler,
             mySchema = mySchema,
-            tableName = paste0(myTableAppend, 'threshold_summary'),
-            targetDialect = targetDialect
+            tableName = paste0(myTableAppend, 'threshold_summary')
           )
           return(value)
         } else{

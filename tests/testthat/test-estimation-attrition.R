@@ -9,10 +9,10 @@ shiny::testServer(
       comparator = 2, 
       outcome = 3
       )), 
-    connection = connectionEst, 
+    connectionHandler = connectionHandlerEst, 
     resultsSchema = 'main', 
     tablePrefix = 'cm_', 
-    databaseTable = databaseTable
+    databaseTable = resultDatabaseSettingsEst$databaseTable
   ), 
   expr = {
     

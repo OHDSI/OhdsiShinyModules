@@ -63,10 +63,9 @@ predictionValidationViewer <- function(id) {
 #' @param modelDesignId identifier for the model design
 #' @param developmentDatabaseId identifier for the development database
 #' @param performanceId identifier for the performance
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param inputSingleView the current tab 
 #' @param mySchema the database schema for the model results
-#' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
 #' @param databaseTableAppend a string that appends the database_meta_data table
 #' 
@@ -79,10 +78,9 @@ predictionValidationServer <- function(
   modelDesignId, # reactive
   developmentDatabaseId, # reactive
   performanceId, # reactive
-  con, 
+  connectionHandler, 
   inputSingleView,
   mySchema,
-  targetDialect = NULL,
   myTableAppend = NULL,
   databaseTableAppend = myTableAppend
 ) {
@@ -92,38 +90,14 @@ predictionValidationServer <- function(
     id,
     function(input, output, session) {
       
-      #validationTable <- shiny::reactive({
-      #  if(
-      #    inputSingleView() == 'Validation' & 
-      #    !is.null(modelDesignId()) & 
-      #    !is.null(developmentDatabaseId())
-      #    ){
-      #    return(
-      #      getValSummary(
-      #        con, 
-      #        mySchema, 
-      #        modelDesignId = modelDesignId,
-      #        developmentDatabaseId = developmentDatabaseId,
-      #        targetDialect = targetDialect, 
-      #        myTableAppend = myTableAppend,
-      #        databaseTableAppend = databaseTableAppend
-      #      ) 
-      #    )
-      #  } else{
-      #    return(NULL)
-      #  }
-      #}
-      #)
-      
       validationTable <- shiny::eventReactive(inputSingleView(),
         {
           
           getValSummary(
-            con, 
+            connectionHandler = connectionHandler, 
             mySchema, 
             modelDesignId = modelDesignId(),
             developmentDatabaseId = developmentDatabaseId(),
-            targetDialect = targetDialect, 
             myTableAppend = myTableAppend,
             databaseTableAppend = databaseTableAppend,
             inputSingleView = inputSingleView()
@@ -158,10 +132,9 @@ predictionValidationServer <- function(
         getValidationResults(
           validationTable = validationTable,
           validationRowIds = input$validationTable_rows_selected,
-          con = con,
+          connectionHandler = connectionHandler,
           myTableAppend = myTableAppend,
-          mySchema = mySchema,
-          targetDialect = targetDialect
+          mySchema = mySchema
           )
       })
       
@@ -198,10 +171,9 @@ predictionValidationServer <- function(
 getValidationResults <- function(
   validationTable,
   validationRowIds,
-  con,
+  connectionHandler,
   myTableAppend,
-  mySchema,
-  targetDialect
+  mySchema
   ){
   
   if(!is.null(validationTable()) & !is.null(validationRowIds)){
@@ -212,17 +184,15 @@ getValidationResults <- function(
     for (i in 1:nrow(valTable)){
       thresholdSummaryList[[i]] <- getPredictionResult(
         performanceId = shiny::reactiveVal(valTable$performanceId[i]), 
-        con = con,
+        connectionHandler = connectionHandler,
         tableName = paste0(myTableAppend,'threshold_summary'), 
-        mySchema = mySchema, 
-        targetDialect = targetDialect 
+        mySchema = mySchema
       )
       calibrationSummaryList[[i]] <- getPredictionResult(
         performanceId = shiny::reactiveVal(valTable$performanceId[i]), 
-        con = con,
+        connectionHandler = connectionHandler,
         tableName = paste0(myTableAppend,'calibration_summary'), 
-        mySchema = mySchema, 
-        targetDialect = targetDialect 
+        mySchema = mySchema
       )
     }
     return(
@@ -247,17 +217,15 @@ getValidationResults <- function(
 }
 
 getValSummary <- function(
-  con, 
+    connectionHandler, 
   mySchema, 
   modelDesignId, 
   developmentDatabaseId,
-  targetDialect, 
   myTableAppend = '',
   databaseTableAppend = myTableAppend,
   inputSingleView
 ){
-  ParallelLogger::logInfo("getting Val summary")
-  
+
   if(
     inputSingleView != 'Validation' | 
     is.null(modelDesignId) |
@@ -313,17 +281,14 @@ getValSummary <- function(
     LEFT JOIN (SELECT performance_id, sum(value) AS outcome_count FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'outcomeCount' and evaluation in ('Test','Train','Validation') group by performance_id) AS oResult ON results.performance_id = oResult.performance_id
     LEFT JOIN (SELECT performance_id, value AS test_size FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'populationSize' and evaluation in ('Test','Validation')) AS nTest ON results.performance_id = nTest.performance_id;"
   
-  sql <- SqlRender::render(sql = sql, 
-                           my_schema = mySchema, 
-                           model_design_id = modelDesignId,
-                           development_database_id = developmentDatabaseId,
-                           my_table_append = myTableAppend,
-                           database_table_append = databaseTableAppend)
-  
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  
-  valTable <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  colnames(valTable) <- SqlRender::snakeCaseToCamelCase(colnames(valTable))
+  valTable <- connectionHandler$queryDb(
+    sql = sql,
+    my_schema = mySchema, 
+    model_design_id = modelDesignId,
+    development_database_id = developmentDatabaseId,
+    my_table_append = myTableAppend,
+    database_table_append = databaseTableAppend
+  )
   
   valTable$target <- trimws(valTable$target) # not needed
   valTable$outcome <- trimws(valTable$outcome) # not needed
@@ -345,8 +310,7 @@ getValSummary <- function(
   
   valTable$timeStamp <- 0
   valTable$AUROC <- paste0(valTable$AUROC, ' (', valTable$auroclb,'-',valTable$aurocub, ')')
-  ParallelLogger::logInfo("got db summary")
-  
+ 
   return(valTable[,c('Val', 'T','O', 'Population setting',
                      'TAR', 'AUROC', 'AUPRC', 'calibrationInLarge intercept',
                      'T Size', 'O Count','Val (%)', 'O Incidence (%)', 'timeStamp', 'modelDesignId', 'performanceId')])

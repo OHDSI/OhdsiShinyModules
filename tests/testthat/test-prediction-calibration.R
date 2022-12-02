@@ -4,11 +4,10 @@ shiny::testServer(
   app = predictionCalibrationServer, 
   args = list(
     performanceId = shiny::reactiveVal(1),
-    con = connectionPlp,
+    connectionHandler = connectionHandlerPlp,
     inputSingleView = shiny::reactiveVal("Calibration"),
-    mySchema = schemaTest,
-    targetDialect = dbmsTest,
-    myTableAppend = tablePrefixTest
+    mySchema = resultDatabaseSettingsPlp$schema,
+    myTableAppend = resultDatabaseSettingsPlp$tablePrefix
   ), 
   expr = {
     

@@ -69,12 +69,10 @@ descriptionDechallengeRechallengeViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mainPanelTab the current tab 
 #' @param schema the database schema for the model results
-#' @param dbms the database management system for the model results
 #' @param tablePrefix a string that appends the tables in the result schema
-#' @param tempEmulationSchema  The temp schema (optional)
 #' @param cohortTablePrefix a string that appends the cohort table in the result schema
 #' @param databaseTable  name of the database table
 #' 
@@ -84,12 +82,10 @@ descriptionDechallengeRechallengeViewer <- function(id) {
 #' @export
 descriptionDechallengeRechallengeServer <- function(
   id, 
-  con,
+  connectionHandler,
   mainPanelTab,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema = NULL,
   cohortTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA'
 ) {
@@ -103,11 +99,9 @@ descriptionDechallengeRechallengeServer <- function(
       
       # get the possible target ids
       bothIds <- dechalRechalGetIds(
-        con,
+        connectionHandler,
         schema, 
-        dbms,
         tablePrefix,
-        tempEmulationSchema,
         cohortTablePrefix
       )
 
@@ -166,11 +160,9 @@ descriptionDechallengeRechallengeServer <- function(
           allData <- getDechalRechalInputsData(
             targetId = input$targetId,
             outcomeId = input$outcomeId,
-            con = con,
+            connectionHandler = connectionHandler,
             schema = schema, 
-            dbms = dbms,
             tablePrefix = tablePrefix,
-            tempEmulationSchema = tempEmulationSchema,
             databaseTable = databaseTable
           )
           
@@ -259,11 +251,9 @@ descriptionDechallengeRechallengeServer <- function(
             databaseId = databases()[input$databaseRowId$index],
             dechallengeStopInterval = dechallengeStopInterval()[input$databaseRowId$index],
             dechallengeEvaluationWindow = dechallengeEvaluationWindow()[input$databaseRowId$index],
-            con = con,
+            connectionHandler = connectionHandler,
             schema = schema, 
-            dbms = dbms,
-            tablePrefix = tablePrefix,
-            tempEmulationSchema = tempEmulationSchema
+            tablePrefix = tablePrefix
           )
           
         # do the plots reactively
@@ -282,11 +272,9 @@ descriptionDechallengeRechallengeServer <- function(
 }
 
 dechalRechalGetIds <- function(
-  con,
+    connectionHandler,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema,
   cohortTablePrefix
 ){
   
@@ -303,27 +291,13 @@ dechalRechalGetIds <- function(
           on dr.OUTCOME_COHORT_DEFINITION_ID = o.COHORT_DEFINITION_ID
   ;"
     
-  sql <- SqlRender::render(
+  shiny::incProgress(1/4, detail = paste("Fetching ids"))
+  
+  bothIds <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
     cohort_table_prefix = cohortTablePrefix
-  )
-  
-  shiny::incProgress(1/4, detail = paste("Rendering and translating sql"))
-  
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  shiny::incProgress(2/4, detail = paste("Fetching ids"))
-  
-  bothIds <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
   )
   
   shiny::incProgress(3/4, detail = paste("Processing ids"))
@@ -367,11 +341,9 @@ dechalRechalGetIds <- function(
 getDechalRechalInputsData <- function(
   targetId,
   outcomeId,
-  con,
+  connectionHandler,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema,
   databaseTable
 ){
   
@@ -384,29 +356,17 @@ getDechalRechalInputsData <- function(
           on dr.database_id = d.database_id
           where dr.TARGET_COHORT_DEFINITION_ID = @target_id
           and dr.OUTCOME_COHORT_DEFINITION_ID = @outcome_id;"
-  sql <- SqlRender::render(
+
+  
+  shiny::incProgress(1/3, detail = paste("Fetching data"))
+  
+  data <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
     target_id = targetId,
     outcome_id = outcomeId,
     database_table = databaseTable
-  )
-  
-  shiny::incProgress(1/3, detail = paste("Rendering and translating sql"))
-  
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  shiny::incProgress(2/3, detail = paste("Fetching data"))
-  
-  data <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
   )
   
   shiny::incProgress(3/3, detail = paste("Finished"))
@@ -423,11 +383,9 @@ getDechalRechalFailData <- function(
   databaseId,
   dechallengeStopInterval,
   dechallengeEvaluationWindow,
-  con = con,
-  schema = schema, 
-  dbms = dbms,
-  tablePrefix = tablePrefix,
-  tempEmulationSchema = tempEmulationSchema
+  connectionHandler,
+  schema, 
+  tablePrefix
 ){
   
   shiny::withProgress(message = 'Extracting FAILLED DECHALLENGE_RECHALLENGE data', value = 0, {
@@ -438,7 +396,10 @@ getDechalRechalFailData <- function(
           and DATABASE_ID = '@database_id'
           and DECHALLENGE_STOP_INTERVAL = @dechallenge_stop_interval	
           and DECHALLENGE_EVALUATION_WINDOW = @dechallenge_evaluation_window;"
-    sql <- SqlRender::render(
+
+    shiny::incProgress(1/3, detail = paste("Fetching data"))
+    
+    data <- connectionHandler$queryDb(
       sql = sql, 
       result_database_schema = schema,
       table_prefix = tablePrefix,
@@ -447,22 +408,6 @@ getDechalRechalFailData <- function(
       database_id = databaseId,
       dechallenge_stop_interval = dechallengeStopInterval,
       dechallenge_evaluation_window = dechallengeEvaluationWindow
-    )
-    
-    shiny::incProgress(1/3, detail = paste("Rendering and translating sql"))
-    
-    sql <- SqlRender::translate(
-      sql = sql, 
-      targetDialect = dbms, 
-      tempEmulationSchema = tempEmulationSchema
-    )
-    
-    shiny::incProgress(2/3, detail = paste("Fetching data"))
-    
-    data <- DatabaseConnector::querySql(
-      connection = con, 
-      sql = sql, 
-      snakeCaseToCamelCase = T
     )
     
     shiny::incProgress(3/3, detail = paste("Finished"))

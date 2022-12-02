@@ -3,10 +3,9 @@ context("data-diagnostic-summary")
 shiny::testServer(
   app = dataDiagnosticSummaryServer, 
   args = list(
-    con = connectionDataDiag,
-    mySchema = schemaTest,
-    targetDialect = dbmsTest,
-    myTableAppend = ""
+    connectionHandler = connectionHandlerDataDiag,
+    mySchema = resultDatabaseSettingsDataDiag$schema,
+    myTableAppend = resultDatabaseSettingsDataDiag$tablePrefix 
   ), 
   expr = {
     

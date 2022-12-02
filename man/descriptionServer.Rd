@@ -4,12 +4,18 @@
 \alias{descriptionServer}
 \title{The module server for exploring description studies}
 \usage{
-descriptionServer(id, resultDatabaseSettings = list(port = 1))
+descriptionServer(
+  id,
+  connectionHandler,
+  resultDatabaseSettings = list(port = 1)
+)
 }
 \arguments{
 \item{id}{the unique reference id for the module}
 
-\item{resultDatabaseSettings}{a list containing the prediction result schema and connection details}
+\item{connectionHandler}{a connection to the database with the results}
+
+\item{resultDatabaseSettings}{a list containing the description result schema, dbms, tablePrefix, databaseTable and cohortTablePrefix}
 }
 \value{
 The server for the description module

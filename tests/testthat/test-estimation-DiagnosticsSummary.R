@@ -3,10 +3,10 @@ context("estimation-DiagnosticsSummary")
 shiny::testServer(
   app = estimationDiagnosticsSummaryServer, 
   args = list(
-    connection = connectionEst, 
+    connectionHandler = connectionHandlerEst, 
     resultsSchema = 'main', 
     tablePrefix = 'cm_',
-    cohortTablePrefix = cohortTablePrefix
+    cohortTablePrefix = resultDatabaseSettingsEst$cohortTablePrefix
   ), 
   expr = {
     

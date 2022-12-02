@@ -44,7 +44,7 @@ estimationKaplanMeierViewer <- function(id) {
 #' @param id the unique reference id for the module
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
-#' @param connection the connection to the PLE results database
+#' @param connectionHandler the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
 #' @param tablePrefix tablePrefix
 #' @param cohortTablePrefix cohortTablePrefix
@@ -55,7 +55,7 @@ estimationKaplanMeierViewer <- function(id) {
 #' the PLE Kaplain Meier content server
 #' 
 #' @export
-estimationKaplanMeierServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, cohortTablePrefix, databaseTable, metaAnalysisDbIds = NULL) {
+estimationKaplanMeierServer <- function(id, selectedRow, inputParams, connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix, databaseTable, metaAnalysisDbIds = NULL) {
   
   shiny::moduleServer(
     id,
@@ -76,7 +76,7 @@ estimationKaplanMeierServer <- function(id, selectedRow, inputParams, connection
         if (is.null(row)) {
           return(NULL)
         } else {
-          km <- getEstimationKaplanMeier(connection = connection,
+          km <- getEstimationKaplanMeier(connectionHandler = connectionHandler,
                                          resultsSchema = resultsSchema,
                                          tablePrefix = tablePrefix,
                                          databaseTable = databaseTable,
@@ -86,11 +86,11 @@ estimationKaplanMeierServer <- function(id, selectedRow, inputParams, connection
                                          databaseId = row$databaseId,
                                          analysisId = row$analysisId)
           
-          targetName <- getCohortNameFromId(connection = connection,
+          targetName <- getCohortNameFromId(connectionHandler = connectionHandler,
                                             resultsSchema = resultsSchema,
                                             cohortTablePrefix = cohortTablePrefix,
                                             cohortId = inputParams()$target)
-          comparatorName <- getCohortNameFromId(connection = connection,
+          comparatorName <- getCohortNameFromId(connectionHandler = connectionHandler,
                                                 resultsSchema = resultsSchema,
                                                 cohortTablePrefix = cohortTablePrefix,
                                                 cohortId = inputParams()$comparator)

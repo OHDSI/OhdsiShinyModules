@@ -1,24 +1,25 @@
 
-getCohortNameFromId <- function(connection, resultsSchema, cohortTablePrefix, cohortId) {
+getCohortNameFromId <- function(connectionHandler, resultsSchema, cohortTablePrefix, cohortId) {
   sql <- "
   SELECT
   cohort_name
   FROM
    @results_schema.@cohort_table_prefixcohort_definition cd
   WHERE
-  cd.cohort_definition_id = @cohort_id
+  cd.cohort_definition_id = @cohort_id;
   "
   return(
-    DatabaseConnector::renderTranslateQuerySql(connection, sql,
-                                               snakeCaseToCamelCase = TRUE,
-                                               results_schema = resultsSchema,
-                                               cohort_table_prefix = cohortTablePrefix,
-                                               cohort_id = cohortId)
+    connectionHandler$queryDb(
+      sql = sql,
+      results_schema = resultsSchema,
+      cohort_table_prefix = cohortTablePrefix,
+      cohort_id = cohortId
+    )
   )
 }
 
 
-getEstimationTcoChoice <- function(connection, resultsSchema, tablePrefix, cohortTablePrefix, tcoVar, sorted = TRUE) {
+getEstimationTcoChoice <- function(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix, tcoVar, sorted = TRUE) {
   sql <- "
   SELECT
   DISTINCT
@@ -30,42 +31,45 @@ FROM
   "
   
   if (sorted) {
-    sql <- paste(sql, "ORDER BY\n cd.cohort_name desc", collapse = "\n")
+    sql <- paste(sql, "ORDER BY\n cd.cohort_name desc;", collapse = "\n")
+  } else{
+    sql <- paste(sql, ';')
   }
-  
+
   return(
-    DatabaseConnector::renderTranslateQuerySql(connection, sql,
-                                               snakeCaseToCamelCase = TRUE,
-                                               results_schema = resultsSchema,
-                                               table_prefix = tablePrefix,
-                                               cohort_table_prefix = cohortTablePrefix,
-                                               tco_var = tcoVar)
+    connectionHandler$queryDb(
+      sql = sql,
+      results_schema = resultsSchema,
+      table_prefix = tablePrefix,
+      cohort_table_prefix = cohortTablePrefix,
+      tco_var = tcoVar
+    )
   )
 }
 
 
-getEstimationTargetChoices <- function(connection, resultsSchema, tablePrefix, cohortTablePrefix) {
+getEstimationTargetChoices <- function(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix) {
   return(
-    getEstimationTcoChoice(connection, resultsSchema, tablePrefix, cohortTablePrefix, "target_id")
+    getEstimationTcoChoice(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix, "target_id")
   )
 }
 
 
-getEstimationComparatorChoices <- function(connection, resultsSchema, tablePrefix, cohortTablePrefix) {
+getEstimationComparatorChoices <- function(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix) {
   return(
-    getEstimationTcoChoice(connection, resultsSchema, tablePrefix, cohortTablePrefix, "comparator_id")
+    getEstimationTcoChoice(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix, "comparator_id")
   )
 }
 
 
-getEstimationOutcomeChoices <- function(connection, resultsSchema, tablePrefix, cohortTablePrefix) {
+getEstimationOutcomeChoices <- function(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix) {
   return(
-    getEstimationTcoChoice(connection, resultsSchema, tablePrefix, cohortTablePrefix, "outcome_id")
+    getEstimationTcoChoice(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix, "outcome_id")
   )
 }
 
 
-getEstimationDatabaseChoices <- function(connection, resultsSchema, tablePrefix, databaseTable, sorted = TRUE) {
+getEstimationDatabaseChoices <- function(connectionHandler, resultsSchema, tablePrefix, databaseTable, sorted = TRUE) {
   sql <- "
 SELECT
 DISTINCT
@@ -78,19 +82,22 @@ FROM
   "
   
   if (sorted) {
-    sql <- paste(sql, "ORDER BY\n dmd.cdm_source_abbreviation desc", collapse = "\n")
+    sql <- paste(sql, "ORDER BY\n dmd.cdm_source_abbreviation desc;", collapse = "\n")
+  } else{
+    sql <- paste(sql, ';')
   }
   return(
-    DatabaseConnector::renderTranslateQuerySql(connection, sql,
-                                               snakeCaseToCamelCase = TRUE,
-                                               results_schema = resultsSchema,
-                                               table_prefix = tablePrefix,
-                                               database_table = databaseTable)
+    connectionHandler$queryDb(
+      sql = sql,
+      results_schema = resultsSchema,
+      table_prefix = tablePrefix,
+      database_table = databaseTable
+    )
   )
 }
 
 
-getCmAnalysisOptions <- function(connection, resultsSchema, tablePrefix, sorted = TRUE) {
+getCmAnalysisOptions <- function(connectionHandler, resultsSchema, tablePrefix, sorted = TRUE) {
   sql <- "
 SELECT
 DISTINCT
@@ -101,18 +108,21 @@ FROM
   "
   
   if (sorted) {
-    sql <- paste(sql, "ORDER BY\n cma.description desc", collapse = "\n")
+    sql <- paste(sql, "ORDER BY\n cma.description desc;", collapse = "\n")
+  } else{
+    sql <- paste(sql, ';')
   }
   
   return(
-    DatabaseConnector::renderTranslateQuerySql(connection, sql,
-                                               snakeCaseToCamelCase = TRUE,
-                                               results_schema = resultsSchema,
-                                               table_prefix = tablePrefix,)
+    connectionHandler$queryDb(
+      sql = sql,
+      results_schema = resultsSchema,
+      table_prefix = tablePrefix
+    )
   )
 }
 
-getAllEstimationResults <- function(connection, resultsSchema, tablePrefix, databaseTable) {
+getAllEstimationResults <- function(connectionHandler, resultsSchema, tablePrefix, databaseTable) {
   sql <- "
 SELECT
   cma.analysis_id,
@@ -142,22 +152,22 @@ FROM
   @results_schema.@table_prefixanalysis cma
   JOIN @results_schema.@table_prefixresult cmr on cmr.analysis_id = cma.analysis_id
   JOIN @results_schema.@database_table dmd on dmd.database_id = cmr.database_id
-  LEFT JOIN @results_schema.@table_prefixdiagnostics_summary cmds on cmds.analysis_id = cmr.analysis_id
+  LEFT JOIN @results_schema.@table_prefixdiagnostics_summary cmds on cmds.analysis_id = cmr.analysis_id;
   "
   
   
   return(
-    DatabaseConnector::renderTranslateQuerySql(connection, sql,
-                                               snakeCaseToCamelCase = TRUE,
-                                               warnOnMissingParameters = FALSE,
-                                               results_schema = resultsSchema,
-                                               table_prefix = tablePrefix,
-                                               database_table = databaseTable)
+    connectionHandler$queryDb(
+      sql = sql,
+      results_schema = resultsSchema,
+      table_prefix = tablePrefix,
+      database_table = databaseTable
+    )
   )
 }
 
 
-getEstimationMainResults <- function(connection,
+getEstimationMainResults <- function(connectionHandler,
                                      resultsSchema,
                                      tablePrefix,
                                      databaseTable,
@@ -228,23 +238,23 @@ FROM
   }
   sql <- paste0(sql, paste(clauses, collapse = " AND "), ";")
   return(
-    DatabaseConnector::renderTranslateQuerySql(connection, sql,
-                                               snakeCaseToCamelCase = TRUE,
-                                               warnOnMissingParameters = FALSE,
-                                               results_schema = resultsSchema,
-                                               table_prefix = tablePrefix,
-                                               database_table = databaseTable,
-                                               target_ids = paste0("'", paste(targetIds, collapse = "', '"), "'"),
-                                               comparator_ids = paste0("'", paste(comparatorIds, collapse = "', '"), "'"),
-                                               outcome_ids = paste0("'", paste(outcomeIds, collapse = "', '"), "'"),
-                                               database_ids = paste0("'", paste(databaseIds, collapse = "', '"), "'"),
-                                               analysis_ids = paste0("'", paste(analysisIds, collapse = "', '"), "'"))
+    connectionHandler$queryDb(
+      sql = sql,
+      results_schema = resultsSchema,
+      table_prefix = tablePrefix,
+      database_table = databaseTable,
+      target_ids = paste0("'", paste(targetIds, collapse = "', '"), "'"),
+      comparator_ids = paste0("'", paste(comparatorIds, collapse = "', '"), "'"),
+      outcome_ids = paste0("'", paste(outcomeIds, collapse = "', '"), "'"),
+      database_ids = paste0("'", paste(databaseIds, collapse = "', '"), "'"),
+      analysis_ids = paste0("'", paste(analysisIds, collapse = "', '"), "'")
+    )
   )
   
 }
 
 
-getCohortMethodAnalyses <- function(connection, resultsSchema, tablePrefix) {
+getCohortMethodAnalyses <- function(connectionHandler, resultsSchema, tablePrefix) {
   sql <- "
   SELECT
     cma.*
@@ -252,15 +262,16 @@ getCohortMethodAnalyses <- function(connection, resultsSchema, tablePrefix) {
     @results_schema.@table_prefixanalysis cma
   "
   return(
-    DatabaseConnector::renderTranslateQuerySql(connection, sql,
-                                               snakeCaseToCamelCase = TRUE,
-                                               results_schema = resultsSchema,
-                                               table_prefix = tablePrefix)
+    connectionHandler$queryDb(
+      sql = sql,
+      results_schema = resultsSchema,
+      table_prefix = tablePrefix
+    )
   )
 }
 
 
-getEstimationSubgroupResults <- function(connection,
+getEstimationSubgroupResults <- function(connectionHandler, # not used?
                                          targetIds = c(),
                                          comparatorIds = c(),
                                          outcomeIds = c(),
@@ -314,7 +325,7 @@ getEstimationSubgroupResults <- function(connection,
 }
 
 
-getEstimationControlResults <- function(connection, resultsSchema, tablePrefix, targetId,
+getEstimationControlResults <- function(connectionHandler, resultsSchema, tablePrefix, targetId,
                                         comparatorId, analysisId, databaseId = NULL,
                                         includePositiveControls = TRUE, emptyAsNa = TRUE) {
   
@@ -343,15 +354,15 @@ getEstimationControlResults <- function(connection, resultsSchema, tablePrefix, 
     sql <- paste(sql, paste("AND cmtco.true_effect_size = 1"), collapse = "\n")
   }
   
-  results <- DatabaseConnector::renderTranslateQuerySql(connection, sql,
-                                                            snakeCaseToCamelCase = TRUE,
-                                                            warnOnMissingParameters = FALSE,
-                                                            results_schema = resultsSchema,
-                                                            table_prefix = tablePrefix,
-                                                            target_id = targetId,
-                                                            comparator_id = comparatorId,
-                                                            analysis_id = analysisId,
-                                                            database_id = databaseId)
+  results <- connectionHandler$queryDb(
+    sql = sql,
+    results_schema = resultsSchema,
+    table_prefix = tablePrefix,
+    target_id = targetId,
+    comparator_id = comparatorId,
+    analysis_id = analysisId,
+    database_id = databaseId
+  )
   
   if (emptyAsNa) {
     results[results == ''] <- NA
@@ -361,7 +372,7 @@ getEstimationControlResults <- function(connection, resultsSchema, tablePrefix, 
 }
 
 
-getCmFollowUpDist <- function(connection,
+getCmFollowUpDist <- function(connectionHandler,
                               resultsSchema,
                               tablePrefix,
                               targetId,
@@ -385,21 +396,21 @@ getCmFollowUpDist <- function(connection,
     sql <- paste(sql, paste("AND cmfud.database_id = '@database_id'"), collapse = "\n")
   }
   return(
-    DatabaseConnector::renderTranslateQuerySql(connection, sql,
-                                               snakeCaseToCamelCase = TRUE,
-                                               warnOnMissingParameters = FALSE,
-                                               results_schema = resultsSchema,
-                                               table_prefix = tablePrefix,
-                                               target_id = targetId,
-                                               comparator_id = comparatorId,
-                                               outcome_id = outcomeId,
-                                               analysis_id = analysisId,
-                                               database_id = databaseId)
+    connectionHandler$queryDb(
+      sql = sql,
+      results_schema = resultsSchema,
+      table_prefix = tablePrefix,
+      target_id = targetId,
+      comparator_id = comparatorId,
+      outcome_id = outcomeId,
+      analysis_id = analysisId,
+      database_id = databaseId
+    )
   )
 }
 
 
-getEstimationCovariateBalance <- function(connection,
+getEstimationCovariateBalance <- function(connectionHandler,
                                           resultsSchema,
                                           tablePrefix,
                                           targetId,
@@ -461,23 +472,22 @@ getEstimationCovariateBalance <- function(connection,
   
   
   return(
-    DatabaseConnector::renderTranslateQuerySql(connection = connection,
-                                               sql = sql,
-                                               snakeCaseToCamelCase = TRUE,
-                                               warnOnMissingParameters = FALSE,
-                                               results_schema = resultsSchema,
-                                               table_prefix = tablePrefix,
-                                               target_id = targetId,
-                                               comparator_id = comparatorId,
-                                               outcome_id = outcomeId,
-                                               analysis_id = analysisId,
-                                               database_id = databaseId)
+    connectionHandler$queryDb(
+      sql = sql,
+      results_schema = resultsSchema,
+      table_prefix = tablePrefix,
+      target_id = targetId,
+      comparator_id = comparatorId,
+      outcome_id = outcomeId,
+      analysis_id = analysisId,
+      database_id = databaseId
+    )
   )
   
 }
 
 
-getEstimationPs <- function(connection, resultsSchema, tablePrefix, targetId, comparatorId, analysisId, databaseId = NULL) {
+getEstimationPs <- function(connectionHandler, resultsSchema, tablePrefix, targetId, comparatorId, analysisId, databaseId = NULL) {
   sql <- "
     SELECT
       *
@@ -493,15 +503,15 @@ getEstimationPs <- function(connection, resultsSchema, tablePrefix, targetId, co
   }
   
   
-  ps <- DatabaseConnector::renderTranslateQuerySql(connection, sql,
-                                                   snakeCaseToCamelCase = TRUE,
-                                                   warnOnMissingParameters = FALSE,
-                                                   results_schema = resultsSchema,
-                                                   table_prefix = tablePrefix,
-                                                   target_id = targetId,
-                                                   comparator_id = comparatorId,
-                                                   analysis_id = analysisId,
-                                                   database_id = databaseId)
+  ps <- connectionHandler$queryDb(
+    sql = sql,
+    results_schema = resultsSchema,
+    table_prefix = tablePrefix,
+    target_id = targetId,
+    comparator_id = comparatorId,
+    analysis_id = analysisId,
+    database_id = databaseId
+  )
   
   
   if (!is.null(databaseId)) {
@@ -511,7 +521,7 @@ getEstimationPs <- function(connection, resultsSchema, tablePrefix, targetId, co
 }
 
 
-getEstimationKaplanMeier <- function(connection, resultsSchema, tablePrefix, databaseTable, targetId, comparatorId, outcomeId, databaseId, analysisId) {
+getEstimationKaplanMeier <- function(connectionHandler, resultsSchema, tablePrefix, databaseTable, targetId, comparatorId, outcomeId, databaseId, analysisId) {
   sqlTmp <- "
   SELECT
     *
@@ -539,21 +549,22 @@ getEstimationKaplanMeier <- function(connection, resultsSchema, tablePrefix, dat
   "
   
   return(
-    DatabaseConnector::renderTranslateQuerySql(connection, sql,
-                                               snakeCaseToCamelCase = TRUE,
-                                               results_schema = resultsSchema,
-                                               table_prefix = tablePrefix,
-                                               database_table = databaseTable,
-                                               target_id = targetId,
-                                               comparator_id = comparatorId,
-                                               outcome_id = outcomeId,
-                                               analysis_id = analysisId,
-                                               database_id = databaseId)
+    connectionHandler$queryDb(
+      sql = sql,
+      results_schema = resultsSchema,
+      table_prefix = tablePrefix,
+      database_table = databaseTable,
+      target_id = targetId,
+      comparator_id = comparatorId,
+      outcome_id = outcomeId,
+      analysis_id = analysisId,
+      database_id = databaseId
+    )
   )
 }
 
 
-getEstimationAttrition <- function(connection, resultsSchema, tablePrefix, databaseTable, targetId, comparatorId, outcomeId, analysisId, databaseId) {
+getEstimationAttrition <- function(connectionHandler, resultsSchema, tablePrefix, databaseTable, targetId, comparatorId, outcomeId, analysisId, databaseId) {
   sqlTmp <- "
   SELECT
     cmat.*
@@ -579,16 +590,17 @@ getEstimationAttrition <- function(connection, resultsSchema, tablePrefix, datab
   AND cmat.analysis_id = @analysis_id
   AND cmat.database_id = '@database_id';
   "
-  result <- DatabaseConnector::renderTranslateQuerySql(connection, sql,
-                                                       snakeCaseToCamelCase = TRUE,
-                                                       results_schema = resultsSchema,
-                                                       table_prefix = tablePrefix,
-                                                       database_table = databaseTable,
-                                                       target_id = targetId,
-                                                       comparator_id = comparatorId,
-                                                       outcome_id = outcomeId,
-                                                       analysis_id = analysisId,
-                                                       database_id = databaseId)
+  result <- connectionHandler$queryDb(
+    sql = sql,
+    results_schema = resultsSchema,
+    table_prefix = tablePrefix,
+    database_table = databaseTable,
+    target_id = targetId,
+    comparator_id = comparatorId,
+    outcome_id = outcomeId,
+    analysis_id = analysisId,
+    database_id = databaseId
+  )
   targetAttrition <- result[result$exposureId == targetId, ]
   comparatorAttrition <- result[result$exposureId == comparatorId, ]
   colnames(targetAttrition)[colnames(targetAttrition) == "subjects"] <- "targetPersons"
@@ -601,25 +613,25 @@ getEstimationAttrition <- function(connection, resultsSchema, tablePrefix, datab
 }
 
 
-getEstimationStudyPeriod <- function(connection, targetId, comparatorId, databaseId) {
+getEstimationStudyPeriod <- function(connectionHandler, targetId, comparatorId, databaseId) {
   sql <- "SELECT min_date,
   max_date
   FROM comparison_summary
   WHERE target_id = @target_id
   AND comparator_id = @comparator_id
-  AND database_id = '@database_id'"
-  sql <- SqlRender::renderSql(sql,
-                              target_id = targetId,
-                              comparator_id = comparatorId,
-                              database_id = databaseId)$sql
-  sql <- SqlRender::translateSql(sql, targetDialect = connection@dbms)$sql
-  studyPeriod <- DatabaseConnector::querySql(connection, sql)
-  colnames(studyPeriod) <- SqlRender::snakeCaseToCamelCase(colnames(studyPeriod))
+  AND database_id = '@database_id';"
+
+  studyPeriod <- connectionHandler$queryDb(
+    sql = sql,
+    target_id = targetId,
+    comparator_id = comparatorId,
+    database_id = databaseId
+  )
   return(studyPeriod)
 }
 
 
-getEstimationPropensityModel <- function(connection, resultsSchema, tablePrefix, targetId, comparatorId, analysisId, databaseId) {
+getEstimationPropensityModel <- function(connectionHandler, resultsSchema, tablePrefix, targetId, comparatorId, analysisId, databaseId) {
   sqlTmp <- "
   SELECT
     cmpm.coefficient,
@@ -662,19 +674,20 @@ getEstimationPropensityModel <- function(connection, resultsSchema, tablePrefix,
     AND cmpm.database_id = '@database_id'
   "
   
-  model <- DatabaseConnector::renderTranslateQuerySql(connection, sql,
-                                                      snakeCaseToCamelCase = TRUE,
-                                                      results_schema = resultsSchema,
-                                                      table_prefix = tablePrefix,
-                                                      target_id = targetId,
-                                                      comparator_id = comparatorId,
-                                                      analysis_id = analysisId,
-                                                      database_id = databaseId)
+  model <- connectionHandler$queryDb(
+    sql = sql,
+    results_schema = resultsSchema,
+    table_prefix = tablePrefix,
+    target_id = targetId,
+    comparator_id = comparatorId,
+    analysis_id = analysisId,
+    database_id = databaseId
+  )
   return(model)
 }
 
 
-getEstimationCovariateBalanceSummary <- function(connection, 
+getEstimationCovariateBalanceSummary <- function(connectionHandler, 
                                                  resultsSchema,
                                                  tablePrefix,
                                                  databaseId,
@@ -682,7 +695,7 @@ getEstimationCovariateBalanceSummary <- function(connection,
                                                  beforeLabel = "Before matching",
                                                  afterLabel = "After matching") {
   
-  balance <- getEstimationCovariateBalance(connection = connection,
+  balance <- getEstimationCovariateBalance(connectionHandler = connectionHandler,
                                            targetId = targetId,
                                            comparatorId = comparatorId,
                                            analysisId = analysisId,
@@ -710,8 +723,8 @@ getEstimationCovariateBalanceSummary <- function(connection,
   
 }
 
-getEstimationNegativeControlEstimates <- function(cohortMethodResult, connection, targetId, comparatorId, analysisId) {
-  subset <- getEstimationControlResults(cohortMethodResult, connection, targetId, comparatorId, analysisId, includePositiveControls = FALSE)
+getEstimationNegativeControlEstimates <- function(cohortMethodResult, connectionHandler, targetId, comparatorId, analysisId) {
+  subset <- getEstimationControlResults(cohortMethodResult, connectionHandler, targetId, comparatorId, analysisId, includePositiveControls = FALSE)
   subset <- subset[, c("databaseId", "logRr", "seLogRr")]
   if(nrow(subset) == 0)
     return(NULL)
@@ -720,7 +733,7 @@ getEstimationNegativeControlEstimates <- function(cohortMethodResult, connection
 
 
 
-getDiagnosticsData <- function(connection, resultsSchema, tablePrefix, cohortTablePrefix, databaseTable) {
+getDiagnosticsData <- function(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix, databaseTable) {
   sql <- "
     SELECT
       dmd.cdm_source_abbreviation database_name,
@@ -751,11 +764,12 @@ getDiagnosticsData <- function(connection, resultsSchema, tablePrefix, cohortTab
   "
   
   return(
-    DatabaseConnector::renderTranslateQuerySql(connection, sql,
-                                               snakeCaseToCamelCase = TRUE,
-                                               results_schema = resultsSchema,
-                                               table_prefix = tablePrefix,
-                                               cohort_table_prefix = cohortTablePrefix,
-                                               database_table = databaseTable)
+    connectionHandler$queryDb(
+      sql = sql,
+      results_schema = resultsSchema,
+      table_prefix = tablePrefix,
+      cohort_table_prefix = cohortTablePrefix,
+      database_table = databaseTable
+    )
   )
 }

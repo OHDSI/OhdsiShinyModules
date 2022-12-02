@@ -3,22 +3,12 @@ context("estimation-main")
 shiny::testServer(
   app = estimationServer, 
   args = list(
-    resultDatabaseSettings = list(
-      dbms = dbmsTest,
-      server = "../resources/estDatabase/databaseFile.sqlite",
-      user = NULL,
-      password = NULL,
-      port = NULL,
-      tablePrefix = estTablePrefix,
-      cohortTablePrefix = cohortTablePrefix,
-      databaseTable = databaseTable,
-      schema = schemaTest,
-      tempEmulationSchema = NULL
-    )
+    connectionHandler = connectionHandlerEst,
+    resultDatabaseSettings = resultDatabaseSettingsEst
   ), 
   expr = {
     
- testthat::expect_true(class(connection) == 'DatabaseConnectorDbiConnection')
+    testthat::expect_true(inherits(connectionHandler,"ConnectionHandler"))
     
     
     testthat::expect_true(!is.null(output$targetWidget))

@@ -70,7 +70,8 @@ dataDiagnosticViewer <- function(id = 'dataDiag') {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param resultDatabaseSettings a list containing the data-diagnostic result schema and connection details
+#' @param connectionHandler a connection to the database with the results
+#' @param resultDatabaseSettings a list containing the data-diagnostic result schema
 #' 
 #' @return
 #' The server for the data-diagnostic module
@@ -78,33 +79,12 @@ dataDiagnosticViewer <- function(id = 'dataDiag') {
 #' @export
 dataDiagnosticServer <- function(
   id = 'dataDiag', 
+  connectionHandler,
   resultDatabaseSettings = list(port = 1)
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      # =============================
-      #   CONNECTION
-      # =============================
-
-      # old connection 
-      connectionDetails <- DatabaseConnector::createConnectionDetails(
-        dbms = resultDatabaseSettings$dbms,
-        server = resultDatabaseSettings$server,
-        user = resultDatabaseSettings$user,
-        password = resultDatabaseSettings$password,
-        port = resultDatabaseSettings$port
-      )
-      
-      con <- DatabaseConnector::connect(connectionDetails)
-      
-      shiny::onStop(function() {
-        if (DBI::dbIsValid(con)) {
-          ParallelLogger::logInfo("Closing connection pool")
-          DatabaseConnector::disconnect(con)
-        }
-      })
       
       #==========================
       #    SERVERS
@@ -112,17 +92,15 @@ dataDiagnosticServer <- function(
       
       dataDiagnosticSummaryServer(
         id = 'summary-tab', 
-        con = con, 
+        connectionHandler = connectionHandler, 
         mySchema = resultDatabaseSettings$schema, 
-        targetDialect = resultDatabaseSettings$dbms,
         myTableAppend = resultDatabaseSettings$tablePrefix
         )
       
       dataDiagnosticDrillServer(
         id = 'drill-down-tab', 
-        con = con, 
+        connectionHandler = connectionHandler, 
         mySchema = resultDatabaseSettings$schema, 
-        targetDialect = resultDatabaseSettings$dbms,
         myTableAppend = resultDatabaseSettings$tablePrefix
       )
     

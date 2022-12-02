@@ -33,8 +33,8 @@ prepareEstimationFollowUpDistTable <- function(followUpDist) {
 
 
 # used in estimation-power
-prepareEstimationPowerTable <- function(mainResults, connection, resultsSchema, tablePrefix) {
-  analyses <- getCohortMethodAnalyses(connection, resultsSchema, tablePrefix)
+prepareEstimationPowerTable <- function(mainResults, connectionHandler , resultsSchema, tablePrefix) {
+  analyses <- getCohortMethodAnalyses(connectionHandler , resultsSchema, tablePrefix)
   table <- merge(mainResults, analyses)
   alpha <- 0.05
   power <- 0.8

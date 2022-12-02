@@ -6,11 +6,10 @@ shiny::testServer(
     modelDesignId = shiny::reactiveVal(NULL),
     developmentDatabaseId = shiny::reactiveVal(1),
     performanceId = shiny::reactiveVal(1),
-    con = connectionPlp,
+    connectionHandler = connectionHandlerPlp,
     inputSingleView = shiny::reactiveVal('Design Settings'), # only works with this
-    mySchema = schemaTest,
-    targetDialect = dbmsTest,
-    myTableAppend = tablePrefixTest
+    mySchema = resultDatabaseSettingsPlp$schema,
+    myTableAppend = resultDatabaseSettingsPlp$tablePrefix
   ), 
   expr = {
     
@@ -20,11 +19,10 @@ shiny::testServer(
     
     design <- getModelDesign(
       modelDesignId = modelDesignId,
-      mySchema = schemaTest, 
-      con = connectionPlp,
-      myTableAppend = tablePrefixTest, 
-      targetDialect = dbmsTest,
-      cohortTableAppend = ''
+      mySchema = mySchema, 
+      connectionHandler = connectionHandler,
+      myTableAppend = myTableAppend, 
+      cohortTableAppend = ''  # add as input?
     )
     expect_true(class(design) == 'list')
     expect_true(!is.null(design$RestrictPlpData))

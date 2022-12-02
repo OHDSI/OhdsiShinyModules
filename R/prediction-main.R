@@ -111,6 +111,7 @@ predictionViewer <- function(id=1) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
+#' @param connectionHandler a connection to the database with the results
 #' @param resultDatabaseSettings a list containing the prediction result schema and connection details
 #' 
 #' @return
@@ -119,7 +120,7 @@ predictionViewer <- function(id=1) {
 #' @export
 predictionServer <- function(
   id, 
-  connection,
+  connectionHandler,
   resultDatabaseSettings = list(port = 1)
 ) {
   shiny::moduleServer(
@@ -171,9 +172,8 @@ predictionServer <- function(
       modelDesignId <- shiny::reactiveVal()
       designSummary <- predictionDesignSummaryServer(
         id = 'designSummaryTab',
-        con = connection, 
+        connectionHandler = connectionHandler, 
         mySchema = resultDatabaseSettings$schema, 
-        targetDialect = resultDatabaseSettings$dbms,
         myTableAppend = resultDatabaseSettings$tablePrefix
       )
       
@@ -203,9 +203,8 @@ predictionServer <- function(
       developmentDatabaseId <- shiny::reactiveVal()
       performance <- predictionModelSummaryServer(
           id = 'modelSummaryTab', 
-          con = connection, 
+          connectionHandler = connectionHandler,  
           mySchema = resultDatabaseSettings$schema, 
-          targetDialect = resultDatabaseSettings$dbms,
           myTableAppend = resultDatabaseSettings$tablePrefix,
           modelDesignId = modelDesignId,
           databaseTableAppend = ifelse(
@@ -245,9 +244,8 @@ predictionServer <- function(
         id = 'diagnostics', 
         modelDesignId = designSummary$diagnosticId, 
         mySchema = resultDatabaseSettings$schema, 
-        con = connection,
+        connectionHandler = connectionHandler, 
         myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms,
         databaseTableAppend = ifelse(
           !is.null(resultDatabaseSettings$databaseTablePrefix), 
           resultDatabaseSettings$databaseTablePrefix,
@@ -283,9 +281,8 @@ predictionServer <- function(
           }
           tryCatch(
             {createPredictionProtocol( # add database_table_append and cohort_table_append
-              con = connection, 
+              connectionHandler = connectionHandler, 
               mySchema = resultDatabaseSettings$schema, 
-              targetDialect = resultDatabaseSettings$dbms,
               myTableAppend = resultDatabaseSettings$tablePrefix,
               databaseTableAppend = ifelse(
                 !is.null(resultDatabaseSettings$databaseTablePrefix), 
@@ -348,9 +345,8 @@ predictionServer <- function(
           intermediates_dir = file.path(tempdir(), 'plp-prot'),
           output_dir = file.path(input$plpProtocolDownload, paste0('plp_report',designSummary$reportId())), 
           params = list(
-            connection = connection, 
+            connectionHandler = connectionHandler, 
             resultSchema = resultDatabaseSettings$schema, 
-            targetDialect = resultDatabaseSettings$dbms,
             myTableAppend = resultDatabaseSettings$tablePrefix,
             databaseTableAppend = ifelse(
               !is.null(resultDatabaseSettings$databaseTablePrefix), 
@@ -377,11 +373,10 @@ predictionServer <- function(
         modelDesignId = modelDesignId, # reactive
         developmentDatabaseId = developmentDatabaseId, # reactive
         performanceId = performanceId, # reactive
-        mySchema = resultDatabaseSettings$schema, 
-        connnectionHandler = connectionHandler,
+        connectionHandler = connectionHandler,
         inputSingleView = singleViewValue,
-        myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        mySchema = resultDatabaseSettings$schema, 
+        myTableAppend = resultDatabaseSettings$tablePrefix
       ) 
       
       predictionSettingsServer(
@@ -390,10 +385,9 @@ predictionServer <- function(
         developmentDatabaseId = developmentDatabaseId, # reactive
         performanceId = performanceId, # reactive
         mySchema = resultDatabaseSettings$schema, 
-        con = connection,
+        connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms,
         cohortTableAppend = ifelse(
           !is.null(resultDatabaseSettings$cohortTablePrefix), 
           resultDatabaseSettings$cohortTablePrefix,
@@ -405,40 +399,36 @@ predictionServer <- function(
         id = 'cutoff', 
         performanceId = performanceId, 
         mySchema = resultDatabaseSettings$schema, 
-        con = connection,
+        connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
-        myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        myTableAppend = resultDatabaseSettings$tablePrefix
       )
       
       predictionDiscriminationServer(
         id = 'discrimination', 
         performanceId = performanceId, 
         mySchema = resultDatabaseSettings$schema, 
-        con = connection,
+        connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
-        myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        myTableAppend = resultDatabaseSettings$tablePrefix
       )
       
       predictionCalibrationServer(
         id = 'calibration', 
         performanceId = performanceId, 
         mySchema = resultDatabaseSettings$schema, 
-        con = connection,
+        connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
-        myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        myTableAppend = resultDatabaseSettings$tablePrefix
       ) 
       
       predictionNbServer(
         id = 'netBenefit', 
         performanceId = performanceId, 
         mySchema = resultDatabaseSettings$schema, 
-        con = connection,
+        connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
-        myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        myTableAppend = resultDatabaseSettings$tablePrefix
       ) 
       
       predictionValidationServer(
@@ -446,11 +436,10 @@ predictionServer <- function(
         modelDesignId = modelDesignId, # reactive
         developmentDatabaseId = developmentDatabaseId, # reactive
         performanceId = performanceId, # reactive
-        con = connection, 
+        connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
         mySchema = resultDatabaseSettings$schema,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms,
         databaseTableAppend = ifelse(
           !is.null(resultDatabaseSettings$databaseTablePrefix), 
           resultDatabaseSettings$databaseTablePrefix,

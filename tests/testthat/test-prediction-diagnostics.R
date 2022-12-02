@@ -4,20 +4,18 @@ shiny::testServer(
   app = predictionDiagnosticsServer, 
   args = list(
     modelDesignId = shiny::reactiveVal(1),
-    con = connectionPlp,
-    mySchema = schemaTest,
-    targetDialect = dbmsTest,
-    myTableAppend = tablePrefixTest, 
-    databaseTableAppend = ''
+    connectionHandler = connectionHandlerPlp,
+    mySchema = resultDatabaseSettingsPlp$schema,
+    myTableAppend = resultDatabaseSettingsPlp$tablePrefix,
+    databaseTableAppend = resultDatabaseSettingsPlp$tablePrefix
   ), 
   expr = {
     
     diag <- getDiagnostics(
       modelDesignId = modelDesignId(),
-      mySchema = schemaTest, 
-      con = connectionPlp,
-      myTableAppend = tablePrefixTest, 
-      targetDialect = dbmsTest, 
+      mySchema = mySchema, 
+      connectionHandler = connectionHandler,
+      myTableAppend = myTableAppend, 
       databaseTableAppend = databaseTableAppend
     )
     

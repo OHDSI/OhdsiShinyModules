@@ -62,12 +62,10 @@ descriptionIncidenceViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mainPanelTab the current tab 
 #' @param schema the database schema for the model results
-#' @param dbms the database management system for the model results
 #' @param incidenceTablePrefix a string that appends the incidence table in the result schema
-#' @param tempEmulationSchema  The temp schema (optional)
 #' @param databaseTable  name of the database table
 #' 
 #' @return
@@ -76,12 +74,10 @@ descriptionIncidenceViewer <- function(id) {
 #' @export
 descriptionIncidenceServer <- function(
   id, 
-  con,
+  connectionHandler,
   mainPanelTab,
   schema, 
-  dbms,
   incidenceTablePrefix,
-  tempEmulationSchema = NULL,
   databaseTable = 'DATABASE_META_DATA'
 ) {
   shiny::moduleServer(
@@ -93,11 +89,9 @@ descriptionIncidenceServer <- function(
       #}
       
       cohorts <- getTargetOutcomes(
-        con,
+        connectionHandler,
         schema, 
-        dbms,
-        incidenceTablePrefix,
-        tempEmulationSchema
+        incidenceTablePrefix
       )
       
 
@@ -142,12 +136,10 @@ descriptionIncidenceServer <- function(
           allData <- getIncidenceData(
             targetId = input$targetId,
             outcomeId = input$outcomeId,
-            con = con,
+            connectionHandler = connectionHandler,
             schema = schema, 
-            dbms = dbms,
             incidenceTablePrefix = incidenceTablePrefix,
-            databaseTable = databaseTable,
-            tempEmulationSchema = tempEmulationSchema
+            databaseTable = databaseTable
           )
           
           # do the plots reactively
@@ -161,10 +153,6 @@ descriptionIncidenceServer <- function(
                   dplyr::relocate("personOutcomes", .after = "personDays") %>% 
                   dplyr::relocate("incidenceProportionP100p", .after = "personOutcomes") %>% 
                   dplyr::relocate("incidenceRateP100py", .after = "incidenceProportionP100p") 
-                  #dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation) %>% 
-                  #dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation) %>% 
-                  #dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation) %>% 
-                  #dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation)
                   ,
                 filterable = TRUE,
                 showPageSizeOptions = TRUE,
@@ -242,12 +230,10 @@ descriptionIncidenceServer <- function(
 getIncidenceData <- function(
   targetId,
   outcomeId,
-  con,
+  connectionHandler,
   schema, 
-  dbms,
   incidenceTablePrefix,
-  databaseTable,
-  tempEmulationSchema
+  databaseTable
 ){
   
   shiny::withProgress(message = 'Getting incidence data', value = 0, {
@@ -260,7 +246,9 @@ getIncidenceData <- function(
     and outcome_cohort_definition_id = @outcome_id
     ;'
   
-  sql <- SqlRender::render(
+  shiny::incProgress(1/2, detail = paste("Created SQL - Extracting..."))
+  
+  resultTable <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = schema,
     incidence_table_prefix = incidenceTablePrefix,
@@ -268,11 +256,6 @@ getIncidenceData <- function(
     outcome_id = outcomeId,
     database_table_name = databaseTable
   )
-  print(sql)
-  
-  shiny::incProgress(1/2, detail = paste("Created SQL - Extracting..."))
-  
-  resultTable <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   
   shiny::incProgress(2/2, detail = paste("Done..."))
   
@@ -284,40 +267,36 @@ getIncidenceData <- function(
 
 
 getTargetOutcomes <- function(
-  con,
+    connectionHandler,
   schema, 
-  dbms,
-  incidenceTablePrefix,
-  tempEmulationSchema
+  incidenceTablePrefix
 ){
   
   shiny::withProgress(message = 'Getting incidence inputs', value = 0, {
   
   sql <- 'select distinct target_cohort_definition_id, target_name 
   from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  sql <- SqlRender::render(
+  
+  shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
+
+  targets <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = schema,
     incidence_table_prefix = incidenceTablePrefix
   )
-  
-  shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
-
-  targets <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   targetIds <- targets$targetCohortDefinitionId
   names(targetIds) <- targets$targetName
   
   sql <- 'select distinct outcome_cohort_definition_id, outcome_name 
   from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  sql <- SqlRender::render(
+
+  shiny::incProgress(2/3, detail = paste("Created SQL - Extracting outcomes"))
+  
+  outcomes <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = schema,
     incidence_table_prefix = incidenceTablePrefix
   )
-  
-  shiny::incProgress(2/3, detail = paste("Created SQL - Extracting outcomes"))
-  
-  outcomes <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   
   outcomeIds <- outcomes$outcomeCohortDefinitionId
   names(outcomeIds) <- outcomes$outcomeName

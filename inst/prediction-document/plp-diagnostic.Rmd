@@ -15,26 +15,14 @@ inner join @result_schema.@database_table_appenddatabase_meta_data as dm
 on c.database_meta_data_id = dm.database_id
 where b.model_design_id = @model_design_id
 ;"  
-
-sql <- SqlRender::render(
+  
+  res <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = params$resultSchema,
     my_table_append = params$myTableAppend,
     database_table_append = params$databaseTableAppend,
     model_design_id = modelDesignId
   )
-
-sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = params$targetDialect, 
-    tempEmulationSchema = NULL
-    )
-  
-  res <- DatabaseConnector::querySql(
-    connection = params$connection, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-    )
   
   if(nrow(res) >0 ){
   # pivot to get databases as columns 
@@ -114,24 +102,12 @@ inner join @result_schema.@my_table_appenddiagnostics b
   where b.model_design_id = @model_design_id
   and a.input_type = 'populationSettings';"  
 
-sql <- SqlRender::render(
+  tempPredTable <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = params$resultSchema,
     my_table_append = params$myTableAppend,
     model_design_id = modelDesignId
   )
-
-sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = params$targetDialect, 
-    tempEmulationSchema = NULL
-    )
-  
-  tempPredTable <- DatabaseConnector::querySql(
-    connection = params$connection, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-    )
 
 
 ```

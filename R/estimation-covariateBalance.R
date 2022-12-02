@@ -61,7 +61,7 @@ estimationCovariateBalanceViewer <- function(id) {
 #' @param id the unique reference id for the module
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
-#' @param connection the connection to the PLE results database
+#' @param connectionHandler the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
 #' @param tablePrefix tablePrefix
 #' @param metaAnalysisDbIds metaAnalysisDbIds
@@ -70,7 +70,7 @@ estimationCovariateBalanceViewer <- function(id) {
 #' the PLE covariate balance content server
 #' 
 #' @export
-estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, metaAnalysisDbIds = NULL) {
+estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, connectionHandler, resultsSchema, tablePrefix, metaAnalysisDbIds = NULL) {
   
   shiny::moduleServer(
     id,
@@ -79,7 +79,7 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
       
       balance <- shiny::reactive({
         row <- selectedRow()
-        balance <- tryCatch({getEstimationCovariateBalance(connection = connection,
+        balance <- tryCatch({getEstimationCovariateBalance(connectionHandler = connectionHandler,
                                                  resultsSchema = resultsSchema,
                                                  tablePrefix = tablePrefix,
                                                  targetId = inputParams()$target,
@@ -179,7 +179,7 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
         if (is.null(row) || !(row$databaseId %in% metaAnalysisDbIds)) {
           return(NULL)
         } else {
-          balanceSummary <- getEstimationCovariateBalanceSummary(connection = connection,
+          balanceSummary <- getEstimationCovariateBalanceSummary(connectionHandler = connectionHandler,
                                                                  resultsSchema = resultsSchema,
                                                                  tablePrefix = tablePrefix,  
                                                                  targetId = inputParams()$target,

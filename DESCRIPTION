@@ -12,8 +12,6 @@ Depends:
     R (>= 3.3.0)
 VignetteBuilder: knitr
 Imports:
-    DatabaseConnector,
-    DBI,
     dplyr,
     DT,
     ggplot2,
@@ -21,18 +19,18 @@ Imports:
     htmltools,
     ParallelLogger,
     plotly,
-    pool,
     reactable,
+    ResultModelManager,
     rlang,
     rmarkdown,
     shiny, 
     shinycssloaders,
     shinydashboard, 
-    SqlRender,
     tibble,
     tidyr
 Suggests:
     CirceR,
+    DatabaseConnector,
     kableExtra,
     knitr,
     markdown,

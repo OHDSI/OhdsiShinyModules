@@ -3,12 +3,11 @@ context("prediction-modelSummary")
 shiny::testServer(
   app = predictionModelSummaryServer, 
   args = list(
-    con = connectionPlp,
-    mySchema = schemaTest,
-    targetDialect = dbmsTest,
-    myTableAppend = tablePrefixTest,
+    connectionHandler = connectionHandlerPlp,
     modelDesignId = shiny::reactiveVal(1),
-    databaseTableAppend = ''
+    mySchema = resultDatabaseSettingsPlp$schema,
+    myTableAppend = resultDatabaseSettingsPlp$tablePrefix,
+    databaseTableAppend = resultDatabaseSettingsPlp$tablePrefix
   ), 
   expr = {
     

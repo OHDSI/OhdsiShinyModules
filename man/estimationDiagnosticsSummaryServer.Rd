@@ -6,7 +6,7 @@
 \usage{
 estimationDiagnosticsSummaryServer(
   id,
-  connection,
+  connectionHandler,
   resultsSchema,
   tablePrefix,
   cohortTablePrefix,
@@ -16,7 +16,7 @@ estimationDiagnosticsSummaryServer(
 \arguments{
 \item{id}{the unique reference id for the module}
 
-\item{connection}{the connection to the PLE results database}
+\item{connectionHandler}{the connection to the PLE results database}
 
 \item{resultsSchema}{the schema with the PLE results}
 
