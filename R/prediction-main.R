@@ -144,12 +144,15 @@ predictionServer <- function(
           shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
         }
     
-          if(tempView != 'Explore Selected Model')
+        if(tempView != 'Explore Selected Model'){
           shiny::updateTabsetPanel(
             session = session,
             inputId = 'singleView',
             selected = 'Design Settings'
           )
+          
+          # 
+        }
         }
         
       )

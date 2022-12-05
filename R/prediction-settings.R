@@ -89,324 +89,327 @@ predictionSettingsServer <- function(
     id,
     function(input, output, session) {
       
-      shiny::observe({
-        if(
-          !is.null(modelDesignId()) & 
-          inputSingleView() == 'Design Settings' &
-          !is.null(developmentDatabaseId()) & 
-          !is.null(performanceId())
-          ){
+      # objects
+      
+      modelDesign <- shiny::reactive({
+        getModelDesign(
+        inputSingleView = inputSingleView,
+        modelDesignId = modelDesignId,
+        mySchema, 
+        connectionHandler = connectionHandler,
+        myTableAppend, 
+        cohortTableAppend
+      )})
+      
+      hyperParamSearch <- shiny::reactive({getHyperParamSearch(
+        inputSingleView = inputSingleView,
+        modelDesignId = modelDesignId,
+        databaseId = developmentDatabaseId,
+        mySchema, 
+        connectionHandler = connectionHandler,
+        myTableAppend
+      ) })
+      
+      attrition <- shiny::reactive({
+        getAttrition(
+        inputSingleView = inputSingleView,
+        performanceId = performanceId,
+        mySchema, 
+        connectionHandler = connectionHandler,
+        myTableAppend 
+      ) 
+      })
+      
+      
+      
+      # cohort settings
+      output$cohort <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'Cohort',
+          shiny::actionButton(session$ns("showCohort"),"View"), 
+          icon = shiny::icon("users"),
+          color = "light-blue"
+        )
+      })
+      
+      shiny::observeEvent(
+        input$showCohort, {
           
-          modelDesign <- getModelDesign(
-            modelDesignId = modelDesignId,
-            mySchema, 
-            connectionHandler = connectionHandler,
-            myTableAppend, 
-            cohortTableAppend
-          )
-          
-          hyperParamSearch <- getHyperParamSearch(
-            modelDesignId = modelDesignId,
-            databaseId = developmentDatabaseId,
-            mySchema, 
-            connectionHandler = connectionHandler,
-            myTableAppend
-          ) 
-          
-          attrition <- getAttrition(
-            performanceId = performanceId,
-            mySchema, 
-            connectionHandler = connectionHandler,
-            myTableAppend 
-          ) 
-          
-          # cohort settings
-          output$cohort <- shinydashboard::renderInfoBox({
-            shinydashboard::infoBox(
-              'Cohort',
-              shiny::actionButton(session$ns("showCohort"),"View"), 
-              icon = shiny::icon("users"),
-              color = "light-blue"
-            )
-          })
-          shiny::observeEvent(
-            input$showCohort, {
-              shiny::showModal(shiny::modalDialog(
-                title = "Cohort description",
-                shiny::p(modelDesign$cohort$cohortJson),
-                easyClose = TRUE,
-                footer = NULL
-              ))
-            }
-          )
-          
-          # outcome settings
-          output$outcome <- shinydashboard::renderInfoBox({
-            shinydashboard::infoBox(
-              'Outcome',
-              shiny::actionButton(session$ns("showOutcome"),"View"), 
-              icon = shiny::icon("heart"),
-              color = "light-blue"
-            )
-          })
-          shiny::observeEvent(
-            input$showOutcome, {
-              shiny::showModal(shiny::modalDialog(
-                title = "Cohort description",
-                shiny::p(modelDesign$outcome$cohortJson),
-                easyClose = TRUE,
-                footer = NULL
-              ))
-            }
-          )
-          
-          
-          # restrictPlpData settings
-          output$restrictPlpData <- shinydashboard::renderInfoBox({
-            shinydashboard::infoBox(
-              'RestrictPlpData',
-              shiny::actionButton(session$ns("showRestrictPlpData"),"View"), 
-              icon = shiny::icon("filter"),
-              color = "light-blue"
-            )
-          })
-          shiny::observeEvent(
-            input$showRestrictPlpData, {
-              shiny::showModal(shiny::modalDialog(
-                title = "Exclusions done during data extraction",
-                shiny::p(modelDesign$RestrictPlpData),
-                easyClose = TRUE,
-                footer = NULL
-              ))
-            }
-          )
-          
-          
-          # Population settings
-          output$population <- shinydashboard::renderInfoBox({
-            shinydashboard::infoBox(
-              'Population',
-              shiny::actionButton(session$ns("showPopulation"),"View"), 
-              icon = shiny::icon("users-slash"),
-              color = "light-blue", 
-              width = 3,
-            )
-          })
-          shiny::observeEvent(
-            input$showPopulation, {
-              shiny::showModal(shiny::modalDialog(
-                title = "Population Settings - exclusions after data extraction",
-                shiny::div(
-                  shiny::a("help", href="https://ohdsi.github.io/PatientLevelPrediction/reference/createStudyPopulation.html", target="_blank"),
-                  DT::renderDataTable(
-                    formatPopSettings(modelDesign$populationSettings)
-                  )
-                ),
-                easyClose = TRUE,
-                footer = NULL
-              ))
-            }
-          )
-          
-          # Covariate settings
-          output$covariates <- shinydashboard::renderInfoBox({
-            shinydashboard::infoBox(
-              'Covariates',
-              shiny::actionButton(session$ns("showCovariates"),"View"), 
-              icon = shiny::icon("street-view"),
-              color = "light-blue"
-            )
-          })
-          shiny::observeEvent(
-            input$showCovariates, {
-              shiny::showModal(shiny::modalDialog(
-                title = "Covariate Settings",
-                shiny::div(
-                  shiny::a("help", href="http://ohdsi.github.io/FeatureExtraction/reference/createCovariateSettings.html", target="_blank"),
-                  DT::renderDataTable(
-                    formatCovSettings(modelDesign$covariateSettings)
-                  )
-                ),
-                easyClose = TRUE,
-                footer = NULL
-              ))
-            }
-          )
-          
-          # Model settings
-          output$model <- shinydashboard::renderInfoBox({
-            shinydashboard::infoBox(
-              'Model',
-              shiny::actionButton(session$ns("showModel"),"View"), 
-              icon = shiny::icon("sliders-h"),
-              color = "light-blue"
-            )
-          })
-          shiny::observeEvent(
-            input$showModel, {
-              shiny::showModal(shiny::modalDialog(
-                title = "Model Settings",
-                shiny::div(
-                  shiny::h3('Model Settings: ',
-                            shiny::a("help", href="https://ohdsi.github.io/PatientLevelPrediction/reference/index.html", target="_blank")
-                  ),
-                  DT::renderDataTable(
-                    formatModSettings(modelDesign$modelSettings  )
-                  )
-                ),
-                easyClose = TRUE,
-                footer = NULL
-              ))
-            }
-          )
-          
-          # featureEngineering settings
-          output$featureEngineering <- shinydashboard::renderInfoBox({
-            shinydashboard::infoBox(
-              'Feature Engineering',
-              shiny::actionButton(session$ns("showFeatureEngineering"),"View"), 
-              icon = shiny::icon("lightbulb"),
-              color = "light-blue"
-            )
-          })
-          shiny::observeEvent(
-            input$showFeatureEngineering, {
-              shiny::showModal(shiny::modalDialog(
-                title = "Feature Engineering Settings",
-                shiny::div(
-                  shiny::p(modelDesign$featureEngineeringSettings)
-                ),
-                easyClose = TRUE,
-                footer = NULL
-              ))
-            }
-          )
-          
-          # preprocess settings
-          output$preprocess <- shinydashboard::renderInfoBox({
-            shinydashboard::infoBox(
-              'Preprocess',
-              shiny::actionButton(session$ns("showPreprocess"),"View"), 
-              icon = shiny::icon("chalkboard"),
-              color = "light-blue"
-            )
-          })
-          shiny::observeEvent(
-            input$showPreprocess, {
-              shiny::showModal(shiny::modalDialog(
-                title = "Preprocess Settings",
-                shiny::div(
-                  shiny::p(modelDesign$preprocessSettings)
-                ),
-                easyClose = TRUE,
-                footer = NULL
-              ))
-            }
-          )
-          
-          # split settings
-          output$split <- shinydashboard::renderInfoBox({
-            shinydashboard::infoBox(
-              'Split',
-              shiny::actionButton(session$ns("showSplit"),"View"), 
-              icon = shiny::icon("object-ungroup"),
-              color = "light-blue"
-            )
-          })
-          shiny::observeEvent(
-            input$showSplit, {
-              shiny::showModal(shiny::modalDialog(
-                title = "Split Settings",
-                shiny::div(
-                  shiny::p(modelDesign$splitSettings)
-                ),
-                easyClose = TRUE,
-                footer = NULL
-              ))
-            }
-          )
-          
-          # sample settings
-          output$sample <- shinydashboard::renderInfoBox({
-            shinydashboard::infoBox(
-              'Sample',
-              shiny::actionButton(session$ns("showSample"),"View"), 
-              icon = shiny::icon("equals"),
-              color = "light-blue"
-            )
-          })
-          shiny::observeEvent(
-            input$showSample, {
-              shiny::showModal(shiny::modalDialog(
-                title = "Sample Settings",
-                shiny::div(
-                  shiny::p(modelDesign$sampleSettings)
-                ),
-                easyClose = TRUE,
-                footer = NULL
-              ))
-            }
-          )
-          
-          # extras
-          
-          # hyper-param
-          output$hyperparameters<- shinydashboard::renderInfoBox({
-            shinydashboard::infoBox(
-              'Hyper-parameters',
-              shiny::actionButton(session$ns("showHyperparameters"),"View"), 
-              icon = shiny::icon('gear'),
-              color = "light-blue"
-            )
-          })
-          shiny::observeEvent(
-            input$showHyperparameters, {
-              shiny::showModal(shiny::modalDialog(
-                title = "Hyper-parameters",
-                shiny::div(
-                  DT::renderDataTable(
-                    DT::datatable(
-                      as.data.frame(
-                        hyperParamSearch
-                      ),
-                      options = list(scrollX = TRUE),
-                      colnames = 'Fold AUROC'
-                    )
-                  )
-                ),
-                easyClose = TRUE,
-                footer = NULL
-              ))
-            }
-          )
-          
-          # attrition
-          output$attrition <- shinydashboard::renderInfoBox({
-            shinydashboard::infoBox(
-              'Attrition',
-              shiny::actionButton(session$ns("showAttrition"),"View"), 
-              icon = shiny::icon('magnet'),
-              color = "light-blue"
-            )
-          })
-          shiny::observeEvent(
-            input$showAttrition, {
-              shiny::showModal(shiny::modalDialog(
-                title = "Attrition",
-                shiny::div(
-                  DT::renderDataTable(
-                    attrition %>% dplyr::select(-c("performanceId", "outcomeId"))
-                  )
-                ),
-                easyClose = TRUE,
-                footer = NULL
-              ))
-            }
-          )
+            shiny::showModal(shiny::modalDialog(
+              title = "Cohort description",
+              shiny::p(modelDesign()$cohort$cohortJson),
+              easyClose = TRUE,
+              footer = NULL
+            ))
+            
           
         }
-      }
       )
+      
+      # outcome settings
+      output$outcome <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'Outcome',
+          shiny::actionButton(session$ns("showOutcome"),"View"), 
+          icon = shiny::icon("heart"),
+          color = "light-blue"
+        )
+      })
+      shiny::observeEvent(
+        input$showOutcome, {
+          shiny::showModal(shiny::modalDialog(
+            title = "Cohort description",
+            shiny::p(modelDesign()$outcome$cohortJson),
+            easyClose = TRUE,
+            footer = NULL
+          ))
+        }
+      )
+      
+      
+      # restrictPlpData settings
+      output$restrictPlpData <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'RestrictPlpData',
+          shiny::actionButton(session$ns("showRestrictPlpData"),"View"), 
+          icon = shiny::icon("filter"),
+          color = "light-blue"
+        )
+      })
+      shiny::observeEvent(
+        input$showRestrictPlpData, {
+          shiny::showModal(shiny::modalDialog(
+            title = "Exclusions done during data extraction",
+            shiny::p(modelDesign()$RestrictPlpData),
+            easyClose = TRUE,
+            footer = NULL
+          ))
+        }
+      )
+      
+      
+      # Population settings
+      output$population <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'Population',
+          shiny::actionButton(session$ns("showPopulation"),"View"), 
+          icon = shiny::icon("users-slash"),
+          color = "light-blue", 
+          width = 3,
+        )
+      })
+      shiny::observeEvent(
+        input$showPopulation, {
+          shiny::showModal(shiny::modalDialog(
+            title = "Population Settings - exclusions after data extraction",
+            shiny::div(
+              shiny::a("help", href="https://ohdsi.github.io/PatientLevelPrediction/reference/createStudyPopulation.html", target="_blank"),
+              DT::renderDataTable(
+                formatPopSettings(modelDesign()$populationSettings)
+              )
+            ),
+            easyClose = TRUE,
+            footer = NULL
+          ))
+        }
+      )
+      
+      # Covariate settings
+      output$covariates <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'Covariates',
+          shiny::actionButton(session$ns("showCovariates"),"View"), 
+          icon = shiny::icon("street-view"),
+          color = "light-blue"
+        )
+      })
+      shiny::observeEvent(
+        input$showCovariates, {
+          shiny::showModal(shiny::modalDialog(
+            title = "Covariate Settings",
+            shiny::div(
+              shiny::a("help", href="http://ohdsi.github.io/FeatureExtraction/reference/createCovariateSettings.html", target="_blank"),
+              DT::renderDataTable(
+                formatCovSettings(modelDesign()$covariateSettings)
+              )
+            ),
+            easyClose = TRUE,
+            footer = NULL
+          ))
+        }
+      )
+      
+      # Model settings
+      output$model <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'Model',
+          shiny::actionButton(session$ns("showModel"),"View"), 
+          icon = shiny::icon("sliders-h"),
+          color = "light-blue"
+        )
+      })
+      shiny::observeEvent(
+        input$showModel, {
+          shiny::showModal(shiny::modalDialog(
+            title = "Model Settings",
+            shiny::div(
+              shiny::h3('Model Settings: ',
+                        shiny::a("help", href="https://ohdsi.github.io/PatientLevelPrediction/reference/index.html", target="_blank")
+              ),
+              DT::renderDataTable(
+                formatModSettings(modelDesign()$modelSettings  )
+              )
+            ),
+            easyClose = TRUE,
+            footer = NULL
+          ))
+        }
+      )
+      
+      # featureEngineering settings
+      output$featureEngineering <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'Feature Engineering',
+          shiny::actionButton(session$ns("showFeatureEngineering"),"View"), 
+          icon = shiny::icon("lightbulb"),
+          color = "light-blue"
+        )
+      })
+      shiny::observeEvent(
+        input$showFeatureEngineering, {
+          shiny::showModal(shiny::modalDialog(
+            title = "Feature Engineering Settings",
+            shiny::div(
+              shiny::p(modelDesign()$featureEngineeringSettings)
+            ),
+            easyClose = TRUE,
+            footer = NULL
+          ))
+        }
+      )
+      
+      # preprocess settings
+      output$preprocess <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'Preprocess',
+          shiny::actionButton(session$ns("showPreprocess"),"View"), 
+          icon = shiny::icon("chalkboard"),
+          color = "light-blue"
+        )
+      })
+      shiny::observeEvent(
+        input$showPreprocess, {
+          shiny::showModal(shiny::modalDialog(
+            title = "Preprocess Settings",
+            shiny::div(
+              shiny::p(modelDesign()$preprocessSettings)
+            ),
+            easyClose = TRUE,
+            footer = NULL
+          ))
+        }
+      )
+      
+      # split settings
+      output$split <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'Split',
+          shiny::actionButton(session$ns("showSplit"),"View"), 
+          icon = shiny::icon("object-ungroup"),
+          color = "light-blue"
+        )
+      })
+      shiny::observeEvent(
+        input$showSplit, {
+          shiny::showModal(shiny::modalDialog(
+            title = "Split Settings",
+            shiny::div(
+              shiny::p(modelDesign()$splitSettings)
+            ),
+            easyClose = TRUE,
+            footer = NULL
+          ))
+        }
+      )
+      
+      # sample settings
+      output$sample <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'Sample',
+          shiny::actionButton(session$ns("showSample"),"View"), 
+          icon = shiny::icon("equals"),
+          color = "light-blue"
+        )
+      })
+      shiny::observeEvent(
+        input$showSample, {
+          shiny::showModal(shiny::modalDialog(
+            title = "Sample Settings",
+            shiny::div(
+              shiny::p(modelDesign()$sampleSettings)
+            ),
+            easyClose = TRUE,
+            footer = NULL
+          ))
+        }
+      )
+      
+      # extras
+      
+      # hyper-param
+      output$hyperparameters<- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'Hyper-parameters',
+          shiny::actionButton(session$ns("showHyperparameters"),"View"), 
+          icon = shiny::icon('gear'),
+          color = "light-blue"
+        )
+      })
+      shiny::observeEvent(
+        input$showHyperparameters, {
+          shiny::showModal(shiny::modalDialog(
+            title = "Hyper-parameters",
+            shiny::div(
+              DT::renderDataTable(
+                DT::datatable(
+                  as.data.frame(
+                    hyperParamSearch()
+                  ),
+                  options = list(scrollX = TRUE),
+                  colnames = 'Fold AUROC'
+                )
+              )
+            ),
+            easyClose = TRUE,
+            footer = NULL
+          ))
+        }
+      )
+      
+      # attrition
+      output$attrition <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'Attrition',
+          shiny::actionButton(session$ns("showAttrition"),"View"), 
+          icon = shiny::icon('magnet'),
+          color = "light-blue"
+        )
+      })
+      shiny::observeEvent(
+        input$showAttrition, {
+          shiny::showModal(shiny::modalDialog(
+            title = "Attrition",
+            shiny::div(
+              DT::renderDataTable(
+                attrition() %>% dplyr::select(-c("performanceId", "outcomeId"))
+              )
+            ),
+            easyClose = TRUE,
+            footer = NULL
+          ))
+        }
+      )
+
     }
     
   )
@@ -419,15 +422,15 @@ predictionSettingsServer <- function(
 
 # get the data
 getModelDesign <- function(
+    inputSingleView,
   modelDesignId,
   mySchema, 
   connectionHandler,
   myTableAppend, 
   cohortTableAppend = myTableAppend
 ){
-  if(!is.null(modelDesignId())){
-    print(paste0('model design: ', modelDesignId()))
-    
+  if(!is.null(modelDesignId()) & inputSingleView() == 'Design Settings'){
+
     shiny::withProgress(message = 'Extracting model design', value = 0, {
       
     modelDesign <- list()
@@ -612,6 +615,7 @@ getModelDesign <- function(
 
 
 getHyperParamSearch <- function(
+    inputSingleView,
   modelDesignId,
   databaseId,
   mySchema, 
@@ -619,6 +623,7 @@ getHyperParamSearch <- function(
   myTableAppend
 ){
   
+  if(!is.null(modelDesignId()) & inputSingleView() == 'Design Settings'){
 
   sql <- "SELECT train_details FROM @my_schema.@my_table_appendmodels WHERE database_id = @database_id
        and model_design_id = @model_design_id;"
@@ -633,16 +638,20 @@ getHyperParamSearch <- function(
   trainDetails <- ParallelLogger::convertJsonToSettings(models$trainDetails)
   
   return(trainDetails$hyperParamSearch)
+  }
 }
 
 
 getAttrition <- function(
+    inputSingleView,
   performanceId,
   mySchema, 
   connectionHandler,
   myTableAppend 
 ){
 
+  if(!is.null(performanceId()) & inputSingleView() == 'Design Settings'){
+    
   sql <- "SELECT * FROM @my_schema.@my_table_appendattrition WHERE performance_id = @performance_id;"
 
   attrition  <- connectionHandler$queryDb(
@@ -653,6 +662,7 @@ getAttrition <- function(
   )
   
   return(attrition)
+  }
 }
 
 # formating

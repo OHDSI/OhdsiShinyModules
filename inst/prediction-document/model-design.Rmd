@@ -5,7 +5,7 @@ output: html_document
 ```{r, echo=FALSE, results='asis'}
 
 getModelDesign <- function(
-  connection,
+  connectionHandler,
   resultSchema,
   myTableAppend,
   cohortTableAppend,

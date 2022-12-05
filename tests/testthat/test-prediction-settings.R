@@ -16,8 +16,20 @@ shiny::testServer(
     modelDesignId(1)
     session$setInputs(showAttrition  = T) 
     expect_true(!is.null(output$attrition))
+    session$setInputs(showCohort  = T) 
+    session$setInputs(showOutcome  = T) 
+    session$setInputs(showRestrictPlpData  = T) 
+    session$setInputs(showPopulation  = T) 
+    session$setInputs(showCovariates  = T) 
+    session$setInputs(showModel = T) 
+    session$setInputs(showFeatureEngineering = T) 
+    session$setInputs(showPreprocess = T) 
+    session$setInputs(showSplit = T) 
+    session$setInputs(showSample = T) 
+    session$setInputs(showHyperparameters = T) 
     
     design <- getModelDesign(
+      inputSingleView = inputSingleView,
       modelDesignId = modelDesignId,
       mySchema = mySchema, 
       connectionHandler = connectionHandler,
