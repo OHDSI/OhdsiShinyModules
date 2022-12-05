@@ -58,6 +58,11 @@ descriptionTableViewer <- function(id) {
         selected = c("averageValue", "countValue")
       ),
       
+      shiny::downloadButton(
+        ns('downloadCohorts'), 
+        label = "Download"
+      ),
+      
       reactable::reactableOutput(ns('feTable'))
     )
     )
@@ -273,6 +278,17 @@ descriptionTableServer <- function(
             shiny::showNotification('data NULL')
           }
           
+        }
+      )
+      
+      
+      # download button
+      output$downloadCohorts <- shiny::downloadHandler(
+        filename = function() {
+          paste('cohort-data-', Sys.Date(), '.csv', sep='')
+        },
+        content = function(con) {
+          utils::write.csv(reactiveAllData(), con)
         }
       )
       

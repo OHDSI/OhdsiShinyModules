@@ -47,6 +47,11 @@ descriptionIncidenceViewer <- function(id) {
       width = 12,
       # Title can include an icon
       title = shiny::tagList(shiny::icon("gear"), "Table"),
+      
+      shiny::downloadButton(
+        ns('downloadInc'), 
+        label = "Download"
+      ),
       reactable::reactableOutput(ns('incTable'))
     )
     )
@@ -123,7 +128,7 @@ descriptionIncidenceServer <- function(
       }
       )
       
-
+      allDataDownload <- shiny::reactiveVal(data.frame())
 
       # fetch data when targetId changes
       shiny::observeEvent(
@@ -141,6 +146,8 @@ descriptionIncidenceServer <- function(
             incidenceTablePrefix = incidenceTablePrefix,
             databaseTable = databaseTable
           )
+          
+          allDataDownload(allData )
           
           # do the plots reactively
           output$incTable <- reactable::renderReactable(
@@ -217,6 +224,16 @@ descriptionIncidenceServer <- function(
             }
           )
           
+        }
+      )
+      
+      # download
+      output$downloadInc <- shiny::downloadHandler(
+        filename = function() {
+          paste('incidence-data-', Sys.Date(), '.csv', sep='')
+        },
+        content = function(con) {
+          utils::write.csv(allDataDownload(), con)
         }
       )
     
