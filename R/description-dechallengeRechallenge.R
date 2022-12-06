@@ -46,15 +46,21 @@ descriptionDechallengeRechallengeViewer <- function(id) {
     shinydashboard::tabBox(
       width = 12,
       # Title can include an icon
-      title = shiny::tagList(shiny::icon("gear"), "Plots"),
-      shiny::tabPanel(
-        "Table",
-         reactable::reactableOutput(ns('tableResults'))
+      title = shiny::tagList(shiny::icon("gear"), "Results"),
+      #shiny::tabPanel(
+      #  "Table",
+      shiny::div(
+        shiny::downloadButton(
+        ns('downloadDechall'), 
+        label = "Download"
       ),
-      shiny::tabPanel(
-        "Plot",
-        shiny::plotOutput(ns('dechalplot'))
+         reactable::reactableOutput(ns('tableResults'))
       )
+      #),
+      #shiny::tabPanel(
+     #   "Plot",
+      #  shiny::plotOutput(ns('dechalplot'))
+      #)
     )
     )
     
@@ -149,6 +155,8 @@ descriptionDechallengeRechallengeServer <- function(
       dechallengeStopInterval <- shiny::reactiveVal(c())
       dechallengeEvaluationWindow <- shiny::reactiveVal(c())
       
+      reactiveData <- shiny::reactiveVal(data.frame())
+      
       # fetch data when targetId changes
       shiny::observeEvent(
         eventExpr = input$fetchData,
@@ -165,6 +173,8 @@ descriptionDechallengeRechallengeServer <- function(
             tablePrefix = tablePrefix,
             databaseTable = databaseTable
           )
+          
+          reactiveData(allData)
           
           databases(allData$databaseId)
           dechallengeStopInterval(allData$dechallengeStopInterval)
@@ -262,7 +272,27 @@ descriptionDechallengeRechallengeServer <- function(
             dechalRechalData = failData
           )
         )
+        
+        # module to show failed plots
+        shiny::showModal(shiny::modalDialog(
+          title = paste0("Failed Plots: "),
+          shiny::plotOutput(session$ns('dechalplot')),
+          easyClose = TRUE,
+          footer = NULL
+        ))
+
+        
       })
+      
+      # download button
+      output$downloadDechall <- shiny::downloadHandler(
+        filename = function() {
+          paste('dechal-data-', Sys.Date(), '.csv', sep='')
+        },
+        content = function(con) {
+          utils::write.csv(reactiveData(), con)
+        }
+      )
     
       
       return(invisible(NULL))
