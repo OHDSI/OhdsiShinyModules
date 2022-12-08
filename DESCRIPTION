@@ -25,7 +25,8 @@ Imports:
     rmarkdown,
     shiny, 
     shinycssloaders,
-    shinydashboard, 
+    shinydashboard,
+    magrittr,
     tibble,
     tidyr
 Suggests:
