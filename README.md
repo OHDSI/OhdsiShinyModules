@@ -4,6 +4,8 @@ OhdsiShinyModules
 [![Build Status](https://github.com/OHDSI/OhdsiShinyModules/workflows/R-CMD-check/badge.svg)](https://github.com/OHDSI/OhdsiShinyModules/actions?query=workflow%3AR-CMD-check)
 [![codecov.io](https://codecov.io/github/OHDSI/OhdsiShinyModules/coverage.svg?branch=main)](https://codecov.io/github/OHDSI/OhdsiShinyModules?branch=main)
 
+OhdsiShinyModules is part of [HADES](https://ohdsi.github.io/Hades/).
+
 OhdsiShinyModules is an R package containing shiny modules that can be used within shiny result interfaces.
 
 The OHDSI tools often provide shiny interfaces for viewing and exploring results.  Many of these shiny apps have overlapping features.  To ensure consistency we have created a repository containing useful shiny modules that can be used in multiple result explorers.
