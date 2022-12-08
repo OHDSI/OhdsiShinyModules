@@ -33,14 +33,16 @@ estimationCovariateBalanceViewer <- function(id) {
     shiny::conditionalPanel(condition = "output.isMetaAnalysis == false",
                      ns = ns,
                      shiny::uiOutput(outputId = ns("hoverInfoBalanceScatter")),
-                     shiny::plotOutput(outputId = ns("balancePlot"),
-                                hover = shiny::hoverOpts(id = ns("plotHoverBalanceScatter"), delay = 100, delayType = "debounce")),
-                     shiny::uiOutput(outputId = ns("balancePlotCaption")),
-                     shiny::div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
-                                shiny::downloadButton(outputId = ns("downloadBalancePlotPng"),
-                                        label = "Download plot as PNG"),
-                                shiny::downloadButton(outputId = ns("downloadBalancePlotPdf"),
-                                        label = "Download plot as PDF"))
+                     
+                     plotly::plotlyOutput(ns("balancePlot")),
+                     #shiny::plotOutput(outputId = ns("balancePlot"),
+                     #           hover = shiny::hoverOpts(id = ns("plotHoverBalanceScatter"), delay = 100, delayType = "debounce")),
+                     shiny::uiOutput(outputId = ns("balancePlotCaption"))#,
+                     #shiny::div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
+                                #shiny::downloadButton(outputId = ns("downloadBalancePlotPng"),
+                                #        label = "Download plot as PNG"),
+                                #shiny::downloadButton(outputId = ns("downloadBalancePlotPdf"),
+                                #        label = "Download plot as PDF"))
     ),
     shiny::conditionalPanel(condition = "output.isMetaAnalysis == true",
                      ns = ns,
@@ -79,14 +81,16 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
       
       balance <- shiny::reactive({
         row <- selectedRow()
-        balance <- tryCatch({getEstimationCovariateBalance(connectionHandler = connectionHandler,
-                                                 resultsSchema = resultsSchema,
-                                                 tablePrefix = tablePrefix,
-                                                 targetId = inputParams()$target,
-                                                 comparatorId = inputParams()$comparator,
-                                                 databaseId = row$databaseId,
-                                                 analysisId = row$analysisId)},
-                            error = function(e){return(NULL)}
+        balance <- tryCatch({
+          getEstimationCovariateBalanceShared(
+          connectionHandler = connectionHandler,
+          resultsSchema = resultsSchema,
+          tablePrefix = tablePrefix,
+          targetId = inputParams()$target,
+          comparatorId = inputParams()$comparator,
+          databaseId = row$databaseId,
+          analysisId = row$analysisId)},
+          error = function(e){return(NULL)}
         )
         return(balance)
       })
@@ -105,28 +109,30 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
         if (is.null(balance()) || nrow(balance()) == 0) {
           return(NULL)
         } else {
-          plot <- plotEstimationCovariateBalanceScatterPlot(balance = balance(),
-                                                            beforeLabel = "Before propensity score adjustment",
-                                                            afterLabel = "After propensity score adjustment")
+          plot <- plotEstimationCovariateBalanceScatterPlotNew(
+            balance = balance(),
+            beforeLabel = "Before propensity score adjustment",
+            afterLabel = "After propensity score adjustment"
+          )
           return(plot)
         }
       })
       
-      output$balancePlot <- shiny::renderPlot({
+      output$balancePlot <- plotly::renderPlotly({
         return(balancePlot())
       })
       
-      output$downloadBalancePlotPng <- shiny::downloadHandler(filename = "Balance.png",
-                                                              contentType = "image/png",
-                                                              content = function(file) {
-                                                                ggplot2::ggsave(file, plot = balancePlot(), width = 4, height = 4, dpi = 400)
-                                                              })
+      #output$downloadBalancePlotPng <- shiny::downloadHandler(filename = "Balance.png",
+      #                                                        contentType = "image/png",
+      #                                                        content = function(file) {
+      #                                                          ggplot2::ggsave(file, plot = balancePlot(), width = 4, height = 4, dpi = 400)
+      #                                                        })
       
-      output$downloadBalancePlotPdf <- shiny::downloadHandler(filename = "Balance.pdf",
-                                                              contentType = "application/pdf",
-                                                              content = function(file) {
-                                                                ggplot2::ggsave(file = file, plot = balancePlot(), width = 4, height = 4)
-                                                              })
+      #output$downloadBalancePlotPdf <- shiny::downloadHandler(filename = "Balance.pdf",
+      #                                                        contentType = "application/pdf",
+      #                                                        content = function(file) {
+      #                                                          ggplot2::ggsave(file = file, plot = balancePlot(), width = 4, height = 4)
+      #                                                        })
       
       output$balancePlotCaption <- shiny::renderUI({
         if (is.null(balance()) || nrow(balance()) == 0) {
@@ -228,4 +234,139 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
       
     }
   )
+}
+
+getEstimationCovariateBalanceShared <- function(
+    connectionHandler,
+    resultsSchema,
+    tablePrefix,
+    targetId,
+    comparatorId,
+    analysisId,
+    databaseId = NULL
+) {
+  
+  shiny::withProgress(message = 'Extracting covariate balance', value = 0, {
+    
+      shiny::incProgress(1/6, detail = paste("Writing sql"))
+      sql <- "
+      SELECT
+        cmscb.database_id,
+        cmscb.covariate_id,
+        cmc.covariate_name,
+        -- cmc.covariate_analysis_id analysis_id, #TODO: once @table_prefixanalysis_id bug fixed
+        cmscb.target_mean_before before_matching_mean_treated,
+        cmscb.comparator_mean_before before_matching_mean_comparator,
+        abs(cmscb.std_diff_before) abs_before_matching_std_diff, --absBeforeMatchingStdDiff 
+        cmscb.target_mean_after after_matching_mean_treated,
+        cmscb.comparator_mean_after after_matching_mean_comparator,
+        abs(cmscb.std_diff_after) abs_after_matching_std_diff
+      FROM
+        @results_schema.@table_prefixshared_covariate_balance cmscb 
+        JOIN @results_schema.@table_prefixcovariate cmc ON cmscb.covariate_id = cmc.covariate_id AND cmscb.analysis_id = cmc.analysis_id AND cmscb.database_id = cmc.database_id -- database_id optional
+       -- JOIN @results_schema.@table_prefixcovariate_analysis cmca ON cmca.analysis_id = cmc.analysis_id  -- question: shouldn't we have a covariate_analysis_id in @table_prefixcovariate table?
+      WHERE
+        cmscb.target_id = @target_id
+        AND cmscb.comparator_id = @comparator_id
+        AND cmscb.analysis_id = @analysis_id
+        AND cmscb.database_id = '@database_id'
+    "
+    
+    shiny::incProgress(1/3, detail = paste("Extracting"))
+    result <- connectionHandler$queryDb(
+      sql = sql,
+      results_schema = resultsSchema,
+      table_prefix = tablePrefix,
+      target_id = targetId,
+      comparator_id = comparatorId,
+      analysis_id = analysisId,
+      database_id = databaseId
+    )
+    
+    shiny::incProgress(3/3, detail = paste("Done - nrows: ", nrow(result)))
+  })
+  
+  return(
+    result
+  )
+  
+}
+
+
+getEstimationCovariateBalanceSummary <- function(connectionHandler, 
+                                                 resultsSchema,
+                                                 tablePrefix,
+                                                 databaseId,
+                                                 targetId, 
+                                                 comparatorId, analysisId,
+                                                 beforeLabel = "Before matching",
+                                                 afterLabel = "After matching") {
+  
+  balance <- getEstimationCovariateBalanceShared(connectionHandler = connectionHandler,
+                                                 targetId = targetId,
+                                                 comparatorId = comparatorId,
+                                                 analysisId = analysisId,
+                                                 resultsSchema,
+                                                 tablePrefix,
+                                                 databaseId = databaseId)
+  balanceBefore <- balance %>%
+    dplyr::group_by(.data$databaseId) %>%
+    dplyr::summarise(covariateCount = dplyr::n(),
+                     qs = stats::quantile(.data$absBeforeMatchingStdDiff, c(0, 0.25, 0.5, 0.75, 1)), prob = c("ymin", "lower", "median", "upper", "ymax")) %>%
+    tidyr::spread(key = "prob", value = "qs")
+  balanceBefore[, "type"] <- beforeLabel
+  balanceAfter <-  balance %>%
+    dplyr::group_by(.data$databaseId) %>%
+    dplyr::summarise(covariateCount = dplyr::n(),
+                     qs = stats::quantile(.data$afterMatchingStdDiff, c(0, 0.25, 0.5, 0.75, 1)), prob = c("ymin", "lower", "median", "upper", "ymax")) %>%
+    tidyr::spread(key = "prob", value = "qs")
+  balanceAfter[, "type"] <- afterLabel
+  
+  balanceSummary <- rbind(balanceBefore, balanceAfter) %>%
+    dplyr::ungroup()
+  
+  return(balanceSummary)
+  
+}
+
+
+
+plotEstimationCovariateBalanceScatterPlotNew <- function(
+    balance,
+    beforeLabel = "Before propensity score adjustment",
+    afterLabel = "After propensity score adjustment"
+){
+  
+  limits <- c(min(c(balance$absBeforeMatchingStdDiff, balance$absAfterMatchingStdDiff),
+                  na.rm = TRUE),
+              max(c(balance$absBeforeMatchingStdDiff, balance$absAfterMatchingStdDiff),
+                  na.rm = TRUE))
+  
+  xyline <- function(limits, color = "grey") {
+    list(
+      type = "line", 
+      x0 = 0, 
+      x1 = limits[2], 
+      xref = "paper",
+      y0 = 0, 
+      y1 = limits[2], 
+      line = list(color = color, dash = 'dash')
+    )
+  }
+  
+  plot <- plotly::plot_ly(
+    data = balance, 
+    x = ~absBeforeMatchingStdDiff, 
+    y = ~absAfterMatchingStdDiff, 
+    text = ~paste("Name: ", covariateName, '<br>Before: ', absBeforeMatchingStdDiff, '<br>After: ', absAfterMatchingStdDiff)
+    
+  ) %>%
+    plotly::layout(
+      shapes = list(xyline(limits)),
+      plot_bgcolor = "#e5ecf6",
+      xaxis = list(title = beforeLabel, range = limits), 
+      yaxis = list(title = afterLabel, range = limits)
+    )
+  
+  return(plot)
 }

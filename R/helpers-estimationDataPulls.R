@@ -410,81 +410,6 @@ getCmFollowUpDist <- function(connectionHandler,
 }
 
 
-getEstimationCovariateBalance <- function(connectionHandler,
-                                          resultsSchema,
-                                          tablePrefix,
-                                          targetId,
-                                          comparatorId,
-                                          analysisId,
-                                          databaseId = NULL,
-                                          outcomeId = NULL) {
-  
-  
-  sql <- ""
-  if (is.null(outcomeId)) {
-    sql <- "
-      SELECT
-        cmscb.database_id,
-        cmscb.covariate_id,
-        cmc.covariate_name,
-        -- cmc.covariate_analysis_id analysis_id, #TODO: once @table_prefixanalysis_id bug fixed
-        cmscb.target_mean_before before_matching_mean_treated,
-        cmscb.comparator_mean_before before_matching_mean_comparator,
-        abs(cmscb.std_diff_before) abs_before_matching_std_diff, --absBeforeMatchingStdDiff
-        cmscb.target_mean_after after_matching_mean_treated,
-        cmscb.comparator_mean_after after_matching_mean_comparator,
-        abs(cmscb.std_diff_after) abs_after_matching_std_diff
-      FROM
-        @results_schema.@table_prefixshared_covariate_balance cmscb 
-        JOIN @results_schema.@table_prefixcovariate cmc ON cmscb.covariate_id = cmc.covariate_id AND cmscb.analysis_id = cmc.analysis_id AND cmscb.database_id = cmc.database_id -- database_id optional
-       -- JOIN @results_schema.@table_prefixcovariate_analysis cmca ON cmca.analysis_id = cmc.analysis_id  -- question: shouldn't we have a covariate_analysis_id in @table_prefixcovariate table?
-      WHERE
-        cmscb.target_id = @target_id
-        AND cmscb.comparator_id = @comparator_id
-        AND cmscb.analysis_id = @analysis_id
-        AND cmscb.database_id = '@database_id'
-    "
-  } else {
-    sql <- "
-      SELECT
-        cmcb.database_id,
-        cmcb.covariate_id,
-        cmc.covariate_name,
-        cmc.covariate_analysis_id analysis_id,
-        cmcb.target_mean_before before_matching_mean_treated,
-        cmcb.comparator_mean_before before_matching_mean_comparator,
-        abs(cmcb.std_diff_before) before_matching_std_diff,
-        cmcb.target_mean_after after_matching_mean_treated,
-        cmcb.comparator_mean_after after_matching_mean_comparator,
-        abs(cmcb.std_diff_after) after_matching_std_diff
-      FROM
-        @results_schema.@table_prefixcovariate_balance cmcb
-        JOIN @results_schema.@table_prefixcovariate cmc ON cmcb.covariate_id = cmcb.covariate_id AND cmcb.analysis_id = cmc.analysis_id AND cmcb.database_id = cmc.database_id -- database_id optional
-        JOIN @results_schema.@table_prefixcovariate_analysis cmca ON cmca.analysis_id = cmc.analysis_id AND cmca.covariate_analysis_id = cmc.covariate_analysis_id
-      WHERE
-        cmcb.target_id = @target_id
-        AND cmcb.comparator_id = @comparator_id
-        AND cmcb.outcome_id = @outcome_id
-        AND cmcb.analysis_id = @analysis_id
-        AND cmcb.database_id = '@database_id'
-    "
-  }
-  
-  
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      target_id = targetId,
-      comparator_id = comparatorId,
-      outcome_id = outcomeId,
-      analysis_id = analysisId,
-      database_id = databaseId
-    )
-  )
-  
-}
 
 
 getEstimationPs <- function(connectionHandler, resultsSchema, tablePrefix, targetId, comparatorId, analysisId, databaseId = NULL) {
@@ -687,41 +612,7 @@ getEstimationPropensityModel <- function(connectionHandler, resultsSchema, table
 }
 
 
-getEstimationCovariateBalanceSummary <- function(connectionHandler, 
-                                                 resultsSchema,
-                                                 tablePrefix,
-                                                 databaseId,
-                                                 targetId, comparatorId, analysisId,
-                                                 beforeLabel = "Before matching",
-                                                 afterLabel = "After matching") {
-  
-  balance <- getEstimationCovariateBalance(connectionHandler = connectionHandler,
-                                           targetId = targetId,
-                                           comparatorId = comparatorId,
-                                           analysisId = analysisId,
-                                           resultsSchema,
-                                           tablePrefix,
-                                           databaseId = databaseId,
-                                           outcomeId = NULL)
-  balanceBefore <- balance %>%
-    dplyr::group_by(.data$databaseId) %>%
-    dplyr::summarise(covariateCount = dplyr::n(),
-                     qs = stats::quantile(.data$absBeforeMatchingStdDiff, c(0, 0.25, 0.5, 0.75, 1)), prob = c("ymin", "lower", "median", "upper", "ymax")) %>%
-    tidyr::spread(key = "prob", value = "qs")
-  balanceBefore[, "type"] <- beforeLabel
-  balanceAfter <-  balance %>%
-    dplyr::group_by(.data$databaseId) %>%
-    dplyr::summarise(covariateCount = dplyr::n(),
-                     qs = stats::quantile(.data$afterMatchingStdDiff, c(0, 0.25, 0.5, 0.75, 1)), prob = c("ymin", "lower", "median", "upper", "ymax")) %>%
-    tidyr::spread(key = "prob", value = "qs")
-  balanceAfter[, "type"] <- afterLabel
-  
-  balanceSummary <- rbind(balanceBefore, balanceAfter) %>%
-    dplyr::ungroup()
-  
-  return(balanceSummary)
-  
-}
+
 
 getEstimationNegativeControlEstimates <- function(cohortMethodResult, connectionHandler, targetId, comparatorId, analysisId) {
   subset <- getEstimationControlResults(cohortMethodResult, connectionHandler, targetId, comparatorId, analysisId, includePositiveControls = FALSE)

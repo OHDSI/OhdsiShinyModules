@@ -99,6 +99,14 @@ estimationSystematicErrorServer <- function(id, selectedRow, inputParams, connec
                                                         analysisId = row$analysisId,
                                                         databaseId = row$databaseId)
           
+          # remove the RR zeros that replace NAs during data upload 
+          controlResults$logRr[controlResults$logRr == 0] <- NA
+          controlResults$ci95Lb[controlResults$ci95Lb == 0] <- NA
+          controlResults$ci95Ub[controlResults$ci95Ub == 0] <- NA
+          controlResults$calibratedLogRr[controlResults$calibratedLogRr == 0] <- NA
+          controlResults$calibratedCi95Lb[controlResults$calibratedCi95Lb == 0] <- NA
+          controlResults$calibratedCi95Ub[controlResults$calibratedCi95Ub == 0] <- NA
+          
           plot <- plotEstimationScatter(controlResults)
           return(plot)
         }
