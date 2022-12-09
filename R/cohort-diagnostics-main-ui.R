@@ -192,7 +192,7 @@ cohortDiagnosticsUi <- function(id = "DiagnosticsExplorer",
       },
       shinydashboard::menuItem(text = "Meta data", tabName = "databaseInformation", icon = shiny::icon("gear", verify_fa = FALSE)),
       # Conditional dropdown boxes in the side bar ------------------------------------------------------
-      cdUiControls(ns, enabledTabs)
+      cdUiControls(ns)
     )
 
   # Side bar code
