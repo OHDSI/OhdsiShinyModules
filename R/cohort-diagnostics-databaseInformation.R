@@ -1,3 +1,19 @@
+# Copyright 2022 Observational Health Data Sciences and Informatics
+#
+# This file is part of PatientLevelPrediction
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 databaseInformationView <- function(id) {
   ns <- shiny::NS(id)
 
@@ -39,11 +55,249 @@ databaseInformationView <- function(id) {
   )
 }
 
+
+getMetaDataResults <- function(dataSource, databaseId) {
+  sql <- "SELECT *
+              FROM  @results_database_schema.@metadata
+              WHERE database_id = @database_id;"
+
+  data <-
+    dataSource$connectionHandler$queryDb(
+      sql = sql,
+      metadata = dataSource$prefixTable("metadata"),
+      results_database_schema = dataSource$resultsDatabaseSchema,
+      database_id = quoteLiterals(databaseId)
+    ) %>%
+      tidyr::tibble()
+
+  return(data)
+}
+
+
+getExecutionMetadata <- function(dataSource, databaseId) {
+  databaseMetadata <-
+    getMetaDataResults(dataSource, databaseId)
+
+  if (!hasData(databaseMetadata)) {
+    return(NULL)
+  }
+  columnNames <-
+    databaseMetadata$variableField %>%
+      unique() %>%
+      sort()
+  columnNamesNoJson <-
+    columnNames[stringr::str_detect(
+      string = tolower(columnNames),
+      pattern = "json",
+      negate = TRUE
+    )]
+  columnNamesJson <-
+    columnNames[stringr::str_detect(
+      string = tolower(columnNames),
+      pattern = "json",
+      negate = FALSE
+    )]
+
+  transposeNonJsons <- databaseMetadata %>%
+    dplyr::filter(variableField %in% c(columnNamesNoJson)) %>%
+    dplyr::rename(name = "variableField") %>%
+    dplyr::group_by(databaseId, startTime, name) %>%
+    dplyr::summarise(
+      valueField = max(valueField),
+      .groups = "keep"
+    ) %>%
+    dplyr::ungroup() %>%
+    tidyr::pivot_wider(
+      names_from = name,
+      values_from = valueField
+    ) %>%
+    dplyr::mutate(startTime = stringr::str_replace(
+      string = startTime,
+      pattern = "TM_",
+      replacement = ""
+    ))
+
+  transposeNonJsons$startTime <-
+    transposeNonJsons$startTime %>% lubridate::as_datetime()
+
+  transposeJsons <- databaseMetadata %>%
+    dplyr::filter(variableField %in% c(columnNamesJson)) %>%
+    dplyr::rename(name = "variableField") %>%
+    dplyr::group_by(databaseId, startTime, name) %>%
+    dplyr::summarise(
+      valueField = max(valueField),
+      .groups = "keep"
+    ) %>%
+    dplyr::ungroup() %>%
+    tidyr::pivot_wider(
+      names_from = name,
+      values_from = valueField
+    ) %>%
+    dplyr::mutate(startTime = stringr::str_replace(
+      string = startTime,
+      pattern = "TM_",
+      replacement = ""
+    ))
+
+  transposeJsons$startTime <-
+    transposeJsons$startTime %>% lubridate::as_datetime()
+
+  transposeJsonsTemp <- list()
+  for (i in (1:nrow(transposeJsons))) {
+    transposeJsonsTemp[[i]] <- transposeJsons[i,]
+    for (j in (1:length(columnNamesJson))) {
+      transposeJsonsTemp[[i]][[columnNamesJson[[j]]]] <-
+        transposeJsonsTemp[[i]][[columnNamesJson[[j]]]] %>%
+          RJSONIO::fromJSON(digits = 23) %>%
+          RJSONIO::toJSON(digits = 23, pretty = TRUE)
+    }
+  }
+  transposeJsons <- dplyr::bind_rows(transposeJsonsTemp)
+  data <- transposeNonJsons %>%
+    dplyr::left_join(transposeJsons,
+                     by = c("databaseId", "startTime")
+    )
+  if ("observationPeriodMaxDate" %in% colnames(data)) {
+    data$observationPeriodMaxDate <-
+      tryCatch(
+        expr = lubridate::as_date(data$observationPeriodMaxDate),
+        error = data$observationPeriodMaxDate
+      )
+  }
+  if ("observationPeriodMinDate" %in% colnames(data)) {
+    data$observationPeriodMinDate <-
+      tryCatch(
+        expr = lubridate::as_date(data$observationPeriodMinDate),
+        error = data$observationPeriodMinDate
+      )
+  }
+  if ("sourceReleaseDate" %in% colnames(data)) {
+    data$sourceReleaseDate <-
+      tryCatch(
+        expr = lubridate::as_date(data$sourceReleaseDate),
+        error = data$sourceReleaseDate
+      )
+  }
+  if ("personDaysInDatasource" %in% colnames(data)) {
+    data$personDaysInDatasource <-
+      tryCatch(
+        expr = as.numeric(data$personDaysInDatasource),
+        error = data$personDaysInDatasource
+      )
+  }
+  if ("recordsInDatasource" %in% colnames(data)) {
+    data$recordsInDatasource <-
+      tryCatch(
+        expr = as.numeric(data$recordsInDatasource),
+        error = data$recordsInDatasource
+      )
+  }
+  if ("personDaysInDatasource" %in% colnames(data)) {
+    data$personDaysInDatasource <-
+      tryCatch(
+        expr = as.numeric(data$personDaysInDatasource),
+        error = data$personDaysInDatasource
+      )
+  }
+  if ("runTime" %in% colnames(data)) {
+    data$runTime <-
+      tryCatch(
+        expr = round(as.numeric(data$runTime), digits = 1),
+        error = data$runTime
+      )
+  }
+  return(data)
+}
+
+
+getDatabaseMetadata <- function(dataSource, databaseTable) {
+  data <- loadResultsTable(dataSource, "metadata", required = TRUE, tablePrefix = dataSource$tablePrefix)
+  data <- data %>%
+    tidyr::pivot_wider(
+      id_cols = c(startTime, databaseId),
+      names_from = variableField,
+      values_from = valueField
+    ) %>%
+    dplyr::mutate(
+      startTime = stringr::str_replace(
+        string = startTime,
+        pattern = stringr::fixed("TM_"),
+        replacement = ""
+      )
+    ) %>%
+    dplyr::mutate(startTime = paste0(startTime, " ", timeZone)) %>%
+    dplyr::mutate(startTime = as.POSIXct(startTime)) %>%
+    dplyr::group_by(
+      databaseId,
+      startTime
+    ) %>%
+    dplyr::arrange(databaseId, dplyr::desc(startTime), .by_group = TRUE) %>%
+    dplyr::mutate(rn = dplyr::row_number()) %>%
+    dplyr::filter(rn == 1) %>%
+    dplyr::select(-timeZone)
+
+  if ("runTime" %in% colnames(data)) {
+    data$runTime <- round(x = as.numeric(data$runTime), digits = 2)
+  }
+  if ("observationPeriodMinDate" %in% colnames(data)) {
+    data$observationPeriodMinDate <-
+      as.Date(data$observationPeriodMinDate)
+  }
+  if ("observationPeriodMaxDate" %in% colnames(data)) {
+    data$observationPeriodMaxDate <-
+      as.Date(data$observationPeriodMaxDate)
+  }
+  if ("personsInDatasource" %in% colnames(data)) {
+    data$personsInDatasource <- as.numeric(data$personsInDatasource)
+  }
+  if ("recordsInDatasource" %in% colnames(data)) {
+    data$recordsInDatasource <- as.numeric(data$recordsInDatasource)
+  }
+  if ("personDaysInDatasource" %in% colnames(data)) {
+    data$personDaysInDatasource <-
+      as.numeric(data$personDaysInDatasource)
+  }
+  colnamesOfInterest <-
+    c(
+      "startTime",
+      "databaseId",
+      "runTime",
+      "runTimeUnits",
+      "sourceReleaseDate",
+      "cdmVersion",
+      "cdmReleaseDate",
+      "observationPeriodMinDate",
+      "observationPeriodMaxDate",
+      "personsInDatasource",
+      "recordsInDatasource",
+      "personDaysInDatasource"
+    )
+
+  commonColNames <- intersect(colnames(data), colnamesOfInterest)
+
+  data <- data %>%
+    dplyr::select(dplyr::all_of(commonColNames))
+
+  databaseTable %>%
+    dplyr::distinct() %>%
+    dplyr::mutate(id = dplyr::row_number()) %>%
+    dplyr::mutate(shortName = paste0("D", id)) %>%
+    dplyr::left_join(data,
+                     by = "databaseId"
+    ) %>%
+    dplyr::relocate(id, databaseId, shortName)
+}
+
+# What this module does is incredibly simple. How it does it is not.
 databaseInformationModule <- function(id,
                                       dataSource,
                                       selectedDatabaseIds,
-                                      databaseMetadata) {
+                                      databaseTable) {
   ns <- shiny::NS(id)
+
+  ## Replace this pre-loading nonsense
+  databaseMetadata <- getDatabaseMetadata(dataSource, databaseTable)
+
   shiny::moduleServer(id, function(input, output, session) {
 
     getDatabaseInformation <- shiny::reactive(x = {

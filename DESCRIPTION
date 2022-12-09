@@ -26,12 +26,22 @@ Imports:
     shiny, 
     shinycssloaders,
     shinydashboard,
+    shinyWidgets,
+    shinyjs,
     magrittr,
     tibble,
-    tidyr
-Suggests:
+    tidyr,
+    ggh4x,
+    scales,
+    purr,
     CirceR,
     DatabaseConnector,
+    SqlRender,
+    tidyr,
+    ggiraph,
+    lubridate,
+    jsonlite
+Suggests:
     kableExtra,
     knitr,
     markdown,

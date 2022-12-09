@@ -14,19 +14,222 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+loadResultsTable <- function(dataSource, tableName, required = FALSE, tablePrefix = "") {
+  selectTableName <- paste0(tablePrefix, tableName)
+
+  resultsTablesOnServer <-
+    tolower(DatabaseConnector::dbListTables(dataSource$connectionHander$getConnection(),
+                                            schema = dataSource$resultsDatabaseSchema))
+
+  if (required || selectTableName %in% resultsTablesOnServer) {
+    if (tableIsEmpty(dataSource, selectTableName)) {
+      return(data.frame())
+    }
+
+    tryCatch(
+    {
+      table <- DatabaseConnector::dbReadTable(
+        dataSource$connection,
+        paste(dataSource$resultsDatabaseSchema, selectTableName, sep = ".")
+      )
+    },
+      error = function(err) {
+        stop(
+          "Error reading from ",
+          paste(dataSource$resultsDatabaseSchema, selectTableName, sep = "."),
+          ": ",
+          err$message
+        )
+      }
+    )
+    colnames(table) <-
+      SqlRender::snakeCaseToCamelCase(colnames(table))
+    if (nrow(table) > 0) {
+      return(dplyr::as_tibble(table))
+    }
+  }
+
+  return(data.frame())
+}
+
+# Create empty objects in memory for all other tables. This is used by the Shiny app to decide what tabs to show:
+tableIsEmpty <- function(dataSource, tableName) {
+  sql <- "SELECT * FROM @result_schema.@table LIMIT 1"
+  row <- data.frame()
+  tryCatch({
+    row <- dataSource$connectionHandler$queryDb(
+      sql,
+      result_schema = dataSource$resultsDatabaseSchema,
+      table = tableName)
+
+  }, error = function(...) {
+    message("Table not found: ", tableName)
+  })
+
+  return(nrow(row) == 0)
+}
+
+getEnabledCdReports <- function(dataSource) {
+  enabledReports <- c()
+  resultsTables <- tolower(DatabaseConnector::dbListTables(dataSource$connectionHandler$getConnection(),
+                                                           schema = dataSource$resultsDatabaseSchema))
+
+  for (table in dataSource$dataModelSpecifications$tableName %>% unique()) {
+    if (dataSource$prefixTable(table) %in% resultsTables) {
+      if (!tableIsEmpty(dataSource, dataSource$prefixTable(table))) {
+        enabledReports <- c(enabledReports, SqlRender::snakeCaseToCamelCase(table))
+      }
+    }
+  }
+  enabledReports <- c(enabledReports, "cohort", "database")
+
+  enabledReports
+}
+
+# Note - maybe make this an R6?
+createDatabaseDataSource <- function(connectionHandler,
+                                     resultsDatabaseSchema,
+                                     vocabularyDatabaseSchema = resultsDatabaseSchema,
+                                     dbms,
+                                     tablePrefix = "",
+                                     cohortTableName = "cohort",
+                                     databaseTableName = "database",
+                                     dataModelSpecificationsPath = system.file("cohort-diagnostics-ref",
+                                                                               "resultsDataModelSpecification.csv",
+                                                                               package = utils::packageName())) {
+  return(
+    list(
+      connection = connectionHandler,
+      resultsDatabaseSchema = resultsDatabaseSchema,
+      vocabularyDatabaseSchema = vocabularyDatabaseSchema,
+      dbms = dbms,
+      resultsTablesOnServer = tolower(DatabaseConnector::dbListTables(connectionHandler$getConnection(),
+                                                                      schema = resultsDatabaseSchema)),
+      tablePrefix = tablePrefix,
+      prefixTable = function(tableName) { paste0(tablePrefix, tableName) },
+      prefixVocabTable = function(tableName) {
+        # don't prexfix table if we us a dedicated vocabulary schema
+        if (vocabularyDatabaseSchema == resultsDatabaseSchema)
+          return(paste0(tablePrefix, tableName))
+
+        return(tableName)
+      },
+      cohortTableName = cohortTableName,
+      databaseTableName = databaseTableName,
+      dataModelSpecifications = read.csv(dataModelSpecificationsPath)
+    )
+  )
+}
+
+# SO much of the app requires this table in memory - it would be much better to re-write queries to not need it!
+getDatabaseTable <- function(dataSource) {
+  databaseTable <- loadResultsTable(dataSource, dataSource$databaseTableName, required = TRUE)
+
+  if (nrow(databaseTable) > 0 &
+    "vocabularyVersion" %in% colnames(databaseTable)) {
+    databaseTable <- databaseTable %>%
+      dplyr::mutate(
+        databaseIdWithVocabularyVersion = paste0(databaseId, " (", vocabularyVersion, ")")
+      )
+  }
+
+  databaseTable
+}
+
+# SO much of the app requires this table in memory - it would be much better to re-write queries to not need it!
+getCohortTable <- function(dataSource) {
+  cohortTable <- loadResultsTable(dataSource, dataSource$cohortTableName, required = TRUE)
+  if ("cohortDefinitionId" %in% names(cohortTable)) {
+    cohortTable <- cohortTable %>% dplyr::mutate(cohortId = cohortDefinitionId)
+
+    ## Note this is because the tables were labled wrong!
+    cohortTable <- cohortTable %>% dplyr::mutate(cohortId = cohortDefinitionId,
+                                                 sql = json,
+                                                 json = sqlCommand)
+  }
+
+  cohortTable <- cohortTable %>%
+    dplyr::arrange(cohortId) %>%
+    dplyr::mutate(shortName = paste0("C", cohortId)) %>%
+    dplyr::mutate(compoundName = paste0(shortName, ": ", cohortName))
+
+  cohortTable
+}
+
 #' Cohort Diagnostics Explorer main module
 #'
 #' @param connectionHandler             ResultModelManager ConnectionHander instance
 #' @param resultDatabaseSettings        results database settings
+#'
 #' @export
 cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
                                    connectionHandler,
-                                   resultDatabaseSettings) {
-
+                                   resultsDatabaseSettings,
+                                   vocabularyDatabaseSchema = resultsDatabaseSettings$resultsDatabaseSchema) {
+  ns <- shiny::NS(id)
   checkmate::assertR6(connectionHandler, "ConnectionHandler")
 
-  ns <- shiny::NS(id)
+  dataSource <-
+    createDatabaseDataSource(
+      connectionHandler = connectionHandler,
+      resultsDatabaseSchema = resultsDatabaseSettings$resultsDatabaseSchema,
+      vocabularyDatabaseSchema = vocabularyDatabaseSchema,
+      dbms = connectionHandler$connectionDetails$dbms,
+      tablePrefix = resultsDatabaseSettings$tablePrefix,
+      cohortTableName = resultsDatabaseSettings$cohortTableName,
+      databaseTableName = resultsDatabaseSettings$databaseTableName
+    )
+
+  # TODO: rewrite results queries to make these efficient
+  databaseTable <- getDatabaseTable(dataSource)
+  cohortTable <- getCohortTable(dataSource)
+  conceptSets <- loadResultsTable(dataSource, "concept_sets", tablePrefix = dataSource$tablePrefix)
+  cohortCountTable <- loadResultsTable(dataSource, "cohort_count", required = TRUE, tablePrefix = dataSource$tablePrefix)
+
+  enabledReports <- getEnabledCdReports(dataSource)
+
+  temporalAnalysisRef <- loadResultsTable(dataSource, "temporal_analysis_ref", tablePrefix = dataSource$tablePrefix)
+  temporalChoices <- NULL
+  temporalCharacterizationTimeIdChoices <- NULL
+
+  if (!is.null(temporalTimeRef)) {
+    temporalChoices <- getResultsTemporalTimeRef(dataSource = dataSource)
+    temporalCharacterizationTimeIdChoices <- temporalChoices %>%
+      dplyr::arrange(sequence)
+
+    characterizationTimeIdChoices <- temporalChoices %>%
+      dplyr::filter(isTemporal == 0) %>%
+      dplyr::filter(primaryTimeId == 1) %>%
+      dplyr::arrange(sequence)
+  }
+
+  if (!is.null(temporalAnalysisRef)) {
+    temporalAnalysisRef <- dplyr::bind_rows(
+      temporalAnalysisRef,
+      dplyr::tibble(
+        analysisId = c(-201, -301),
+        analysisName = c("CohortEraStart", "CohortEraOverlap"),
+        domainId = "Cohort",
+        isBinary = "Y",
+        missingMeansZero = "Y"
+      )
+    )
+
+    domainIdOptions <- temporalAnalysisRef %>%
+      dplyr::select(domainId) %>%
+      dplyr::pull(domainId) %>%
+      unique() %>%
+      sort()
+
+    analysisNameOptions <- temporalAnalysisRef %>%
+      dplyr::select(analysisName) %>%
+      dplyr::pull(analysisName) %>%
+      unique() %>%
+      sort()
+  }
+
   shiny::moduleServer(id, function(input, output, session) {
+
     # Reacive: targetCohortId
     targetCohortId <- shiny::reactive({
       return(cohortTable$cohortId[cohortTable$compoundName == input$targetCohort])
@@ -98,9 +301,9 @@ cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
       )
     }, handlerExpr = {
       if (isFALSE(input$timeIdChoices_open) ||
-        !is.null(input$tabs) & !is.null(envir$temporalCharacterizationTimeIdChoices)) {
+        !is.null(input$tabs) & !is.null(temporalCharacterizationTimeIdChoices)) {
         selectedTemporalTimeIds(
-          envir$temporalCharacterizationTimeIdChoices %>%
+          temporalCharacterizationTimeIdChoices %>%
             dplyr::filter(temporalChoices %in% input$timeIdChoices) %>%
             dplyr::pull(timeId) %>%
             unique() %>%
@@ -253,6 +456,7 @@ cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
     if ("orphanConcept" %in% enabledReports) {
       orphanConceptsModule("orphanConcepts",
                            dataSource = dataSource,
+                           databaseTable = databaseTable,
                            selectedCohort = selectedCohort,
                            selectedDatabaseIds = selectedDatabaseIds,
                            targetCohortId = targetCohortId,
@@ -313,20 +517,20 @@ cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
                              dataSource = dataSource,
                              cohortTable = cohortTable,
                              databaseTable = databaseTable,
-                             temporalAnalysisRef = envir$temporalAnalysisRef,
-                             analysisNameOptions = envir$analysisNameOptions,
-                             domainIdOptions = envir$domainIdOptions,
-                             characterizationTimeIdChoices = envir$characterizationTimeIdChoices)
+                             temporalAnalysisRef = temporalAnalysisRef,
+                             analysisNameOptions = analysisNameOptions,
+                             domainIdOptions = domainIdOptions,
+                             characterizationTimeIdChoices = characterizationTimeIdChoices)
 
       compareCohortCharacterizationModule("compareCohortCharacterization",
                                           dataSource = dataSource,
                                           cohortTable = cohortTable,
                                           databaseTable = databaseTable,
                                           conceptSets = conceptSets,
-                                          temporalAnalysisRef = envir$temporalAnalysisRef,
-                                          analysisNameOptions = envir$analysisNameOptions,
-                                          domainIdOptions = envir$domainIdOptions,
-                                          temporalChoices = envir$temporalChoices)
+                                          temporalAnalysisRef = temporalAnalysisRef,
+                                          analysisNameOptions = analysisNameOptions,
+                                          domainIdOptions = domainIdOptions,
+                                          temporalChoices = temporalChoices)
     }
 
     if ("incidenceRate" %in% enabledReports) {
@@ -341,7 +545,7 @@ cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
     databaseInformationModule(id = "databaseInformation",
                               dataSource = dataSource,
                               selectedDatabaseIds = selectedDatabaseIds,
-                              databaseMetadata = envir$databaseMetadata)
+                              databaseTable = databaseTable)
 
   })
 

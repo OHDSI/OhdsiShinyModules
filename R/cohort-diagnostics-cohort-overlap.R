@@ -1,3 +1,19 @@
+# Copyright 2022 Observational Health Data Sciences and Informatics
+#
+# This file is part of PatientLevelPrediction
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 ### cohort overlap plot ##############
 plotCohortOverlap <- function(data,
                               shortNameRef = NULL,
@@ -262,6 +278,166 @@ cohortOverlapView <- function(id) {
     )
   )
 }
+
+#' Returns data for use in cohort_overlap
+#'
+#' @description
+#' Returns data for use in cohort_overlap
+#'
+#' @template DataSource
+#'
+#' @param targetCohortIds A vector of cohort ids representing target cohorts
+#'
+#' @param comparatorCohortIds A vector of cohort ids representing comparator cohorts
+#'
+#' @template DatabaseIds
+#'
+#' @return
+#' Returns data for use in cohort_overlap
+#'
+getResultsCohortOverlap <- function(dataSource,
+                                    targetCohortIds = NULL,
+                                    comparatorCohortIds = NULL,
+                                    databaseIds = NULL) {
+  cohortIds <- c(targetCohortIds, comparatorCohortIds) %>% unique()
+  cohortCounts <-
+    getResultsCohortCounts(
+      dataSource = dataSource,
+      cohortIds = cohortIds,
+      databaseIds = databaseIds
+    )
+
+  if (!hasData(cohortCounts)) {
+    return(NULL)
+  }
+
+  cohortRelationship <-
+    getResultsCohortRelationships(
+      dataSource = dataSource,
+      cohortIds = cohortIds,
+      comparatorCohortIds = comparatorCohortIds,
+      databaseIds = databaseIds,
+      startDays = c(-9999, 0),
+      endDays = c(9999, 0)
+    )
+
+  # Fix relationship data so 0 overlap displays
+  allCombinations <- dplyr::tibble(databaseId = databaseIds) %>%
+        tidyr::crossing(dplyr::tibble(cohortId = cohortIds)) %>%
+        tidyr::crossing(dplyr::tibble(comparatorCohortId = comparatorCohortIds)) %>%
+        dplyr::filter(comparatorCohortId != cohortId) %>%
+        tidyr::crossing(dplyr::tibble(startDay = c(-9999, 0),
+                                      endDay = c(9999, 0)))
+
+  cohortRelationship <- allCombinations %>%
+    dplyr::left_join(cohortRelationship,
+                     by = c("databaseId", "cohortId", "comparatorCohortId", "startDay", "endDay")) %>%
+    dplyr::mutate(dplyr::across(.cols = where(is.numeric), ~tidyr::replace_na(., 0)))
+
+  fullOffSet <- cohortRelationship %>%
+    dplyr::filter(startDay == -9999) %>%
+    dplyr::filter(endDay == 9999) %>%
+    dplyr::filter(cohortId %in% c(targetCohortIds)) %>%
+    dplyr::filter(comparatorCohortId %in% c(comparatorCohortIds)) %>%
+    dplyr::select(
+      databaseId,
+      cohortId,
+      comparatorCohortId,
+      subjects
+    ) %>%
+    dplyr::inner_join(
+      cohortCounts %>%
+        dplyr::select(-cohortEntries) %>%
+        dplyr::rename(targetCohortSubjects = cohortSubjects),
+      by = c("databaseId", "cohortId")
+    ) %>%
+    dplyr::mutate(tOnlySubjects = targetCohortSubjects - subjects) %>%
+    dplyr::inner_join(
+      cohortCounts %>%
+        dplyr::select(-cohortEntries) %>%
+        dplyr::rename(
+          comparatorCohortSubjects = cohortSubjects,
+          comparatorCohortId = cohortId
+        ),
+      by = c("databaseId", "comparatorCohortId")
+    ) %>%
+    dplyr::mutate(cOnlySubjects = comparatorCohortSubjects - subjects) %>%
+    dplyr::mutate(eitherSubjects = cOnlySubjects + tOnlySubjects + subjects) %>%
+    dplyr::rename(
+      targetCohortId = cohortId,
+      bothSubjects = subjects
+    ) %>%
+    dplyr::select(
+      databaseId,
+      targetCohortId,
+      comparatorCohortId,
+      bothSubjects,
+      tOnlySubjects,
+      cOnlySubjects,
+      eitherSubjects
+    )
+
+
+  noOffset <- cohortRelationship %>%
+    dplyr::filter(comparatorCohortId %in% comparatorCohortIds) %>%
+    dplyr::filter(cohortId %in% targetCohortIds) %>%
+    dplyr::filter(startDay == 0) %>%
+    dplyr::filter(endDay == 0) %>%
+    dplyr::select(
+      databaseId,
+      cohortId,
+      comparatorCohortId,
+      subCsBeforeTs,
+      subCWithinT,
+      subCsAfterTs,
+      subCsAfterTe,
+      subCsBeforeTs,
+      subCsBeforeTe,
+      subCsOnTs,
+      subCsOnTe
+    ) %>%
+    dplyr::rename(
+      cBeforeTSubjects = subCsBeforeTs,
+      targetCohortId = cohortId,
+      cInTSubjects = subCWithinT,
+      cStartAfterTStart = subCsAfterTs,
+      cStartAfterTEnd = subCsAfterTe,
+      cStartBeforeTStart = subCsBeforeTs,
+      cStartBeforeTEnd = subCsBeforeTe,
+      cStartOnTStart = subCsOnTs,
+      cStartOnTEnd = subCsOnTe
+    )
+
+  result <- fullOffSet %>%
+    dplyr::left_join(noOffset,
+      by = c("databaseId", "targetCohortId", "comparatorCohortId")
+    ) %>%
+    dplyr::filter(targetCohortId != comparatorCohortId) %>%
+    dplyr::select(
+      databaseId,
+      # cohortId,
+      comparatorCohortId,
+      eitherSubjects,
+      tOnlySubjects,
+      cOnlySubjects,
+      bothSubjects,
+      # cBeforeTSubjects,
+      targetCohortId,
+      cInTSubjects,
+      cStartAfterTStart,
+      cStartAfterTEnd,
+      cStartBeforeTStart,
+      cStartBeforeTEnd,
+      cStartOnTStart,
+      cStartOnTEnd,
+    )
+
+  databaseNames <- cohortCounts %>% dplyr::distinct(databaseId, databaseName)
+  result <- result %>% dplyr::inner_join(databaseNames, by = "databaseId")
+
+  return(result)
+}
+
 
 #' Cohort Overlap Module
 #'

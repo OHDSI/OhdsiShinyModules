@@ -1,3 +1,19 @@
+# Copyright 2022 Observational Health Data Sciences and Informatics
+#
+# This file is part of PatientLevelPrediction
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 #' Returns list with circe generated documentation
 #'
 #' @description
@@ -13,7 +29,6 @@
 #'
 #' @return list object
 #'
-#' @export
 getCirceRenderedExpression <- function(cohortDefinition,
                                        cohortName = "Cohort Definition",
                                        includeConceptSets = FALSE) {
@@ -71,6 +86,39 @@ getCirceRenderedExpression <- function(cohortDefinition,
     )
   )
 }
+
+
+copyToClipboardButton <-
+  function(toCopyId,
+           label = "Copy to clipboard",
+           icon = shiny::icon("clipboard"),
+           ...) {
+    script <- sprintf(
+      "
+  text = document.getElementById('%s').textContent;
+  html = document.getElementById('%s').innerHTML;
+  function listener(e) {
+    e.clipboardData.setData('text/html', html);
+    e.clipboardData.setData('text/plain', text);
+    e.preventDefault();
+  }
+  document.addEventListener('copy', listener);
+  document.execCommand('copy');
+  document.removeEventListener('copy', listener);
+  return false;",
+      toCopyId,
+      toCopyId
+    )
+
+    tags$button(
+      type = "button",
+      class = "btn btn-default action-button",
+      onclick = script,
+      icon,
+      label,
+      ...
+    )
+  }
 
 
 getConceptSetDataFrameFromConceptSetExpression <-
@@ -378,6 +426,80 @@ cohortDefinitionsView <- function(id) {
   )
   ui
 }
+
+
+getCountForConceptIdInCohort <-
+  function(dataSource,
+           cohortId,
+           databaseIds) {
+    sql <- "SELECT ics.*
+            FROM  @results_database_schema.@table_name ics
+            WHERE ics.cohort_id = @cohort_id
+             AND database_id in (@database_ids);"
+    data <-
+      dataSource$connectionHandler$queryDb(
+        sql = sql,
+        results_database_schema = dataSource$resultsDatabaseSchema,
+        cohort_id = cohortId,
+        database_ids = quoteLiterals(databaseIds),
+        table_name = dataSource$prefixTable("included_source_concept"),
+        snakeCaseToCamelCase = TRUE
+      ) %>%
+        tidyr::tibble()
+
+    standardConceptId <- data %>%
+      dplyr::select(
+        databaseId,
+        conceptId,
+        conceptSubjects,
+        conceptCount
+      ) %>%
+      dplyr::group_by(
+        databaseId,
+        conceptId
+      ) %>%
+      dplyr::summarise(
+        conceptSubjects = max(conceptSubjects),
+        conceptCount = sum(conceptCount),
+        .groups = "keep"
+      ) %>%
+      dplyr::ungroup()
+
+
+    sourceConceptId <- data %>%
+      dplyr::select(
+        databaseId,
+        sourceConceptId,
+        conceptSubjects,
+        conceptCount
+      ) %>%
+      dplyr::rename(conceptId = sourceConceptId) %>%
+      dplyr::group_by(
+        databaseId,
+        conceptId
+      ) %>%
+      dplyr::summarise(
+        conceptSubjects = max(conceptSubjects),
+        conceptCount = sum(conceptCount),
+        .groups = "keep"
+      ) %>%
+      dplyr::ungroup()
+
+    data <- dplyr::bind_rows(
+      standardConceptId,
+      sourceConceptId %>%
+        dplyr::anti_join(
+          y = standardConceptId %>%
+            dplyr::select(databaseId, conceptId),
+          by = c("databaseId", "conceptId")
+        )
+    ) %>%
+      dplyr::distinct() %>%
+      dplyr::arrange(databaseId, conceptId)
+
+    return(data)
+  }
+
 
 #' Cohort Definition module
 #' @description

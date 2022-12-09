@@ -14,6 +14,72 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#' Returns data from time_distribution table of Cohort Diagnostics results data model
+#'
+#' @description
+#' Returns data from time_distribution table of Cohort Diagnostics results data model
+#'
+#' @template DataSource
+#'
+#' @template CohortIds
+#'
+#' @template DatabaseIds
+#'
+#' @return
+#' Returns a data frame (tibble).
+getTimeDistributionResult <- function(dataSource,
+                                      cohortIds,
+                                      databaseIds,
+                                      databaseTable) {
+  data <- queryResultCovariateValue(
+    dataSource = dataSource,
+    cohortIds = cohortIds,
+    databaseIds = databaseIds,
+    analysisIds = c(8, 9, 10),
+    temporalCovariateValue = FALSE,
+    temporalCovariateValueDist = TRUE
+  )
+  if (!hasData(data)) {
+    return(NULL)
+  }
+  temporalCovariateValueDist <- data$temporalCovariateValueDist
+  if (!hasData(temporalCovariateValueDist)) {
+    return(NULL)
+  }
+  data <- temporalCovariateValueDist %>%
+    dplyr::inner_join(data$temporalCovariateRef,
+      by = "covariateId"
+    ) %>%
+    dplyr::inner_join(data$temporalAnalysisRef,
+      by = "analysisId"
+    ) %>%
+    dplyr::inner_join(databaseTable,
+      by = "databaseId"
+    ) %>%
+    dplyr::rename(
+      "timeMetric" = covariateName,
+      "averageValue" = mean,
+      "standardDeviation" = sd
+    ) %>%
+    dplyr::select(
+      "cohortId",
+      "databaseId",
+      "databaseName",
+      "timeMetric",
+      "averageValue",
+      "standardDeviation",
+      "minValue",
+      "p10Value",
+      "p25Value",
+      "medianValue",
+      "p75Value",
+      "p90Value",
+      "maxValue"
+    )
+  return(data)
+}
+
+
 plotTimeDistribution <- function(data, shortNameRef = NULL) {
   errorMessage <- checkmate::makeAssertCollection()
   checkmate::assertTibble(

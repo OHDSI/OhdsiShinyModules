@@ -1,3 +1,19 @@
+# Copyright 2022 Observational Health Data Sciences and Informatics
+#
+# This file is part of PatientLevelPrediction
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 conceptsInDataSourceView <- function(id) {
   ns <- shiny::NS(id)
   shiny::tagList(
@@ -48,6 +64,63 @@ conceptsInDataSourceView <- function(id) {
     )
   )
 }
+
+
+getConceptsInCohort <-
+  function(dataSource,
+           cohortId,
+           databaseIds) {
+    sql <- "SELECT concepts.*,
+            	c.concept_name,
+            	c.vocabulary_id,
+            	c.domain_id,
+            	c.standard_concept,
+            	c.concept_code
+            FROM (
+            	SELECT isc.database_id,
+            		isc.cohort_id,
+            		isc.concept_id,
+            		0 source_concept_id,
+            		max(concept_subjects) concept_subjects,
+            		sum(concept_count) concept_count
+            	FROM @results_database_schema.@table_name isc
+            	WHERE isc.cohort_id = @cohort_id
+            		AND isc.database_id IN (@database_ids)
+            	GROUP BY isc.database_id,
+            		isc.cohort_id,
+            		isc.concept_id
+
+            	UNION
+
+            	SELECT c.database_id,
+            		c.cohort_id,
+            		c.source_concept_id as concept_id,
+            		1 source_concept_id,
+            		max(c.concept_subjects) concept_subjects,
+            		sum(c.concept_count) concept_count
+            	FROM @results_database_schema.@table_name c
+            	WHERE c.cohort_id = @cohort_id
+            		AND c.database_id IN (@database_ids)
+            	GROUP BY
+            	    c.database_id,
+            		c.cohort_id,
+            		c.source_concept_id
+            	) concepts
+            INNER JOIN @results_database_schema.@concept_table c ON concepts.concept_id = c.concept_id
+            WHERE c.invalid_reason IS NULL;"
+    data <-
+      dataSource$connectionHandler$queryDb(
+        sql = sql,
+        results_database_schema = dataSource$resultsDatabaseSchema,
+        cohort_id = cohortId,
+        database_ids = quoteLiterals(databaseIds),
+        table_name = dataSource$prefixTable("included_source_concept"),
+        concept_table = dataSource$prefixTable("concept"),
+        snakeCaseToCamelCase = TRUE
+      ) %>%
+        tidyr::tibble()
+    return(data)
+  }
 
 
 conceptsInDataSourceModule <- function(id,
@@ -214,13 +287,11 @@ conceptsInDataSourceModule <- function(id,
 
       displayTable <- getDisplayTableGroupedByDatabaseId(
         data = data,
-        cohort = cohortTable,
         databaseTable = databaseTable,
         headerCount = countsForHeader,
         keyColumns = keyColumnFields,
         countLocation = countLocation,
         dataColumns = dataColumnFields,
-        maxCount = maxCountValue,
         showDataAsPercent = showDataAsPercent,
         sort = TRUE
       )

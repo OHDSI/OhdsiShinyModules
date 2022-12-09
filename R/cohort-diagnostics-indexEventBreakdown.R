@@ -1,7 +1,19 @@
-#'
-#'
-#'
-#'
+# Copyright 2022 Observational Health Data Sciences and Informatics
+#
+# This file is part of PatientLevelPrediction
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 indexEventBreakdownView <- function(id) {
   ns <- shiny::NS(id)
 
@@ -61,6 +73,56 @@ indexEventBreakdownView <- function(id) {
       csvDownloadButton(ns, "breakdownTable")
     )
   )
+}
+
+
+getIndexEventBreakdown <- function(dataSource,
+                                   cohortIds,
+                                   databaseIds) {
+  errorMessage <- checkmate::makeAssertCollection()
+  errorMessage <-
+    checkErrorCohortIdsDatabaseIds(
+      cohortIds = cohortIds,
+      databaseIds = databaseIds,
+      errorMessage = errorMessage
+    )
+  checkmate::reportAssertions(collection = errorMessage)
+
+  sql <- "SELECT index_event_breakdown.*,
+              concept.concept_name,
+              concept.domain_id,
+              concept.vocabulary_id,
+              concept.standard_concept,
+              concept.concept_code
+            FROM  @results_database_schema.@table_name index_event_breakdown
+            INNER JOIN  @vocabulary_database_schema.@concept_table concept
+              ON index_event_breakdown.concept_id = concept.concept_id
+            WHERE database_id in (@database_id)
+              AND cohort_id in (@cohort_ids);"
+  data <-
+    dataSource$connectionHandler$queryDb(
+      sql = sql,
+      results_database_schema = dataSource$resultsDatabaseSchema,
+      vocabulary_database_schema = dataSource$vocabularyDatabaseSchema,
+      cohort_ids = cohortIds,
+      database_id = quoteLiterals(databaseIds),
+      table_name = dataSource$prefixTable("index_event_breakdown"),
+      concept_table = dataSource$prefixVocabTable("concept"),
+      snakeCaseToCamelCase = TRUE
+    ) %>%
+      tidyr::tibble()
+
+
+  data <- data %>%
+    dplyr::inner_join(cohortCount,
+                      by = c("databaseId", "cohortId")
+    ) %>%
+    dplyr::mutate(
+      subjectPercent = subjectCount / cohortSubjects,
+      conceptPercent = conceptCount / cohortEntries
+    )
+
+  return(data)
 }
 
 #'
@@ -209,13 +271,11 @@ indexEventBreakdownModule <- function(id,
 
       getDisplayTableGroupedByDatabaseId(
         data = data,
-        cohort = cohortTable,
         databaseTable = databaseTable,
         headerCount = countsForHeader,
         keyColumns = keyColumnFields,
         countLocation = countLocation,
         dataColumns = dataColumnFields,
-        maxCount = maxCountValue,
         showDataAsPercent = showDataAsPercent,
         sort = TRUE
       )

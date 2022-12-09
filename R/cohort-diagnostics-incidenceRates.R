@@ -1,3 +1,19 @@
+# Copyright 2022 Observational Health Data Sciences and Informatics
+#
+# This file is part of PatientLevelPrediction
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 plotIncidenceRate <- function(data,
                               cohortTable = NULL,
                               stratifyByAgeGroup = TRUE,
@@ -464,6 +480,154 @@ incidenceRatesView <- function(id) {
       )
     )
   )
+}
+
+
+#' Global ranges for IR values
+getIncidenceRateRanges <- function(dataSource, minPersonYears = 0) {
+  sql <- "SELECT DISTINCT age_group FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
+
+  ageGroups <- dataSource$connectionHandler$queryDb(
+    sql = sql,
+    results_database_schema = dataSource$resultsDatabaseSchema,
+    ir_table = dataSource$prefixTable("incidence_rate"),
+    person_years = minPersonYears,
+    snakeCaseToCamelCase = TRUE
+  ) %>%
+    dplyr::mutate(ageGroup = dplyr::na_if(ageGroup, ""))
+
+  sql <- "SELECT DISTINCT calendar_year FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
+
+  calendarYear <- dataSource$connectionHandler$queryDb(
+    sql = sql,
+    results_database_schema = dataSource$resultsDatabaseSchema,
+    ir_table = dataSource$prefixTable("incidence_rate"),
+    person_years = minPersonYears,
+    snakeCaseToCamelCase = TRUE
+  ) %>%
+    dplyr::mutate(
+      calendarYear = dplyr::na_if(calendarYear, "")
+    ) %>%
+    dplyr::mutate(calendarYear = as.integer(calendarYear))
+
+  sql <- "SELECT DISTINCT gender FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
+
+  gender <- dataSource$connectionHandler$queryDb(
+    sql = sql,
+    results_database_schema = dataSource$resultsDatabaseSchema,
+    ir_table = dataSource$prefixTable("incidence_rate"),
+    person_years = minPersonYears,
+    snakeCaseToCamelCase = TRUE
+  ) %>%
+    dplyr::mutate(gender = dplyr::na_if(gender, ""))
+
+
+  sql <- "SELECT
+    min(incidence_rate) as min_ir,
+    max(incidence_rate) as max_ir
+   FROM @results_database_schema.@ir_table
+   WHERE person_years >= @person_years
+   AND incidence_rate > 0.0
+   "
+
+  incidenceRate <- dataSource$connectionHandler$queryDb(
+    sql = sql,
+    results_database_schema = dataSource$resultsDatabaseSchema,
+    ir_table = dataSource$prefixTable("incidence_rate"),
+    person_years = minPersonYears,
+    snakeCaseToCamelCase = TRUE
+  )
+
+  return(list(gender = gender,
+              incidenceRate = incidenceRate,
+              calendarYear = calendarYear,
+              ageGroups = ageGroups))
+}
+
+getIncidenceRateResult <- function(dataSource,
+                                   cohortIds,
+                                   databaseIds,
+                                   stratifyByGender = c(TRUE, FALSE),
+                                   stratifyByAgeGroup = c(TRUE, FALSE),
+                                   stratifyByCalendarYear = c(TRUE, FALSE),
+                                   minPersonYears = 1000,
+                                   minSubjectCount = NA) {
+  # Perform error checks for input variables
+  errorMessage <- checkmate::makeAssertCollection()
+  errorMessage <-
+    checkErrorCohortIdsDatabaseIds(
+      cohortIds = cohortIds,
+      databaseIds = databaseIds,
+      errorMessage = errorMessage
+    )
+  checkmate::assertLogical(
+    x = stratifyByGender,
+    add = errorMessage,
+    min.len = 1,
+    max.len = 2,
+    unique = TRUE
+  )
+  checkmate::assertLogical(
+    x = stratifyByAgeGroup,
+    add = errorMessage,
+    min.len = 1,
+    max.len = 2,
+    unique = TRUE
+  )
+  checkmate::assertLogical(
+    x = stratifyByCalendarYear,
+    add = errorMessage,
+    min.len = 1,
+    max.len = 2,
+    unique = TRUE
+  )
+  checkmate::reportAssertions(collection = errorMessage)
+
+  sql <- "SELECT ir.*, dt.database_name, cc.cohort_subjects
+            FROM  @results_database_schema.@ir_table ir
+            INNER JOIN @results_database_schema.@database_table dt ON ir.database_id = dt.database_id
+            INNER JOIN @results_database_schema.@cc_table cc ON (
+              ir.database_id = cc.database_id AND ir.cohort_id = cc.cohort_id
+            )
+            WHERE ir.cohort_id in (@cohort_ids)
+           	  AND ir.database_id in (@database_ids)
+            {@gender == TRUE} ? {AND ir.gender != ''} : {  AND ir.gender = ''}
+            {@age_group == TRUE} ? {AND ir.age_group != ''} : {  AND ir.age_group = ''}
+            {@calendar_year == TRUE} ? {AND ir.calendar_year != ''} : {  AND ir.calendar_year = ''}
+              AND ir.person_years > @personYears;"
+  data <-
+    dataSource$connectionHandler$queryDb(
+      sql = sql,
+      results_database_schema = dataSource$resultsDatabaseSchema,
+      cohort_ids = cohortIds,
+      database_ids = quoteLiterals(databaseIds),
+      gender = stratifyByGender,
+      age_group = stratifyByAgeGroup,
+      calendar_year = stratifyByCalendarYear,
+      personYears = minPersonYears,
+      ir_table = dataSource$prefixTable("incidence_rate"),
+      cc_table = dataSource$prefixTable("cohort_count"),
+      database_table = dataSource$databaseTableName,
+      snakeCaseToCamelCase = TRUE
+    ) %>%
+      tidyr::tibble()
+
+  data <- data %>%
+    dplyr::mutate(
+      gender = dplyr::na_if(gender, ""),
+      ageGroup = dplyr::na_if(ageGroup, ""),
+      calendarYear = dplyr::na_if(calendarYear, "")
+    ) %>%
+    dplyr::mutate(calendarYear = as.integer(calendarYear)) %>%
+    dplyr::arrange(cohortId, databaseId)
+
+
+  if (!is.na(minSubjectCount)) {
+    data <- data %>%
+      dplyr::filter(cohortSubjects > !!minSubjectCount)
+  }
+
+  return(data)
 }
 
 incidenceRatesModule <- function(id,

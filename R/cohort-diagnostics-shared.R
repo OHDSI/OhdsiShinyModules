@@ -61,38 +61,23 @@ formatDataCellValueInDisplayTable <-
     }
   }
 
-copyToClipboardButton <-
-  function(toCopyId,
-           label = "Copy to clipboard",
-           icon = shiny::icon("clipboard"),
-           ...) {
-    script <- sprintf(
-      "
-  text = document.getElementById('%s').textContent;
-  html = document.getElementById('%s').innerHTML;
-  function listener(e) {
-    e.clipboardData.setData('text/html', html);
-    e.clipboardData.setData('text/plain', text);
-    e.preventDefault();
-  }
-  document.addEventListener('copy', listener);
-  document.execCommand('copy');
-  document.removeEventListener('copy', listener);
-  return false;",
-      toCopyId,
-      toCopyId
-    )
+getDatabaseCounts <- function(dataSource,
+                              databaseIds) {
+  sql <- "SELECT *
+              FROM  @results_database_schema.@database_table
+              WHERE database_id in (@database_ids);"
+  data <-
+    dataSource$connectionHandler$queryDb(
+      sql = sql,
+      results_database_schema = dataSource$resultsDatabaseSchema,
+      database_ids = quoteLiterals(databaseIds),
+      database_table = dataSource$databaseTableName,
+      snakeCaseToCamelCase = TRUE
+    ) %>%
+      tidyr::tibble()
 
-    tags$button(
-      type = "button",
-      class = "btn btn-default action-button",
-      onclick = script,
-      icon,
-      label,
-      ...
-    )
-  }
-
+  return(data)
+}
 
 getDisplayTableHeaderCount <-
   function(dataSource,
@@ -179,14 +164,15 @@ pallete <- function(x) {
   return(col)
 }
 
+# NOTE - this table is very messy and hard to change.
+# We should move to a model where aspects of this are reused but tables are always modifiable in a simple manner
+# Changing this function
 getDisplayTableGroupedByDatabaseId <- function(data,
-                                               cohort,
                                                databaseTable,
                                                headerCount = NULL,
                                                keyColumns,
                                                dataColumns,
                                                countLocation,
-                                               maxCount,
                                                sort = TRUE,
                                                showDataAsPercent = FALSE,
                                                excludedColumnFromPercentage = NULL,
@@ -638,6 +624,95 @@ getDisplayTableColumnMinMaxWidth <- function(data,
 }
 
 
+resolvedConceptSet <- function(dataSource,
+                               databaseIds,
+                               cohortId,
+                               conceptSetId = NULL) {
+  sqlResolved <- "SELECT DISTINCT rc.cohort_id,
+                    	rc.concept_set_id,
+                    	c.concept_id,
+                    	c.concept_name,
+                    	c.domain_id,
+                    	c.vocabulary_id,
+                    	c.concept_class_id,
+                    	c.standard_concept,
+                    	c.concept_code,
+                    	rc.database_id
+                    FROM @results_database_schema.@resolved_concepts_table rc
+                    LEFT JOIN @results_database_schema.@concept_table c
+                    ON rc.concept_id = c.concept_id
+                    WHERE rc.database_id IN (@database_ids)
+                    	AND rc.cohort_id = @cohortId
+                      {@concept_set_id != \"\"} ? { AND rc.concept_set_id IN (@concept_set_id)}
+                    ORDER BY c.concept_id;"
+  resolved <-
+    dataSource$connectionHandler$queryDb(
+      sql = sqlResolved,
+      results_database_schema = dataSource$resultsDatabaseSchema,
+      database_ids = quoteLiterals(databaseIds),
+      cohortId = cohortId,
+      concept_set_id = conceptSetId,
+      resolved_concepts_table = dataSource$prefixTable("resolved_concepts"),
+      concept_table = dataSource$prefixTable("concept"),
+      snakeCaseToCamelCase = TRUE
+    ) %>%
+      tidyr::tibble() %>%
+      dplyr::arrange(conceptId)
+
+  return(resolved)
+}
+
+mappedConceptSet <- function(dataSource,
+                             databaseIds,
+                             cohortId) {
+  sqlMapped <-
+    "WITH resolved_concepts_mapped
+    AS (
+    	SELECT concept_sets.concept_id AS resolved_concept_id,
+    		c1.concept_id,
+    		c1.concept_name,
+    		c1.domain_id,
+    		c1.vocabulary_id,
+    		c1.concept_class_id,
+    		c1.standard_concept,
+    		c1.concept_code
+    	FROM (
+    		SELECT DISTINCT concept_id
+    		FROM @results_database_schema.@resolved_concepts
+    		WHERE database_id IN (@databaseIds)
+    			AND cohort_id = @cohort_id
+    		) concept_sets
+    	INNER JOIN @results_database_schema.@concept_relationship cr ON concept_sets.concept_id = cr.concept_id_2
+    	INNER JOIN @results_database_schema.@concept c1 ON cr.concept_id_1 = c1.concept_id
+    	WHERE relationship_id = 'Maps to'
+    		AND standard_concept IS NULL
+    	)
+    SELECT
+        c.database_id,
+    	c.cohort_id,
+    	c.concept_set_id,
+    	mapped.*
+    FROM (SELECT DISTINCT concept_id, database_id, cohort_id, concept_set_id FROM @results_database_schema.@resolved_concepts) c
+    INNER JOIN resolved_concepts_mapped mapped ON c.concept_id = mapped.resolved_concept_id
+    {@cohort_id != ''} ? { WHERE c.cohort_id = @cohort_id};
+    "
+  mapped <-
+    dataSource$connectionHandler$queryDb(
+      sql = sqlMapped,
+      results_database_schema = dataSource$resultsDatabaseSchema,
+      databaseIds = quoteLiterals(databaseIds),
+      concept = dataSource$prefixTable("concept"),
+      concept_relationship = dataSource$prefixTable("concept_relationship"),
+      resolved_concepts = dataSource$prefixTable("resolved_concepts"),
+      cohort_id = cohortId,
+      snakeCaseToCamelCase = TRUE
+    ) %>%
+      tidyr::tibble() %>%
+      dplyr::arrange(resolvedConceptId)
+  return(mapped)
+}
+
+
 csvDownloadButton <- function(ns,
                               outputTableId,
                               buttonText = "Download CSV (filtered)") {
@@ -646,4 +721,55 @@ csvDownloadButton <- function(ns,
     shiny::tags$br(),
     shiny::tags$button(buttonText,
                        onclick = paste0("Reactable.downloadDataCSV('", ns(outputTableId), "')")))
+}
+
+addShortName <-
+  function(data,
+           shortNameRef = NULL,
+           cohortIdColumn = "cohortId",
+           shortNameColumn = "shortName") {
+    if (is.null(shortNameRef)) {
+      shortNameRef <- data %>%
+        dplyr::distinct(cohortId) %>%
+        dplyr::arrange(cohortId) %>%
+        dplyr::mutate(shortName = paste0("C", dplyr::row_number()))
+    }
+
+    shortNameRef <- shortNameRef %>%
+      dplyr::distinct(cohortId, shortName)
+    colnames(shortNameRef) <- c(cohortIdColumn, shortNameColumn)
+    data <- data %>%
+      dplyr::inner_join(shortNameRef, by = dplyr::all_of(cohortIdColumn))
+    return(data)
+  }
+
+
+checkErrorCohortIdsDatabaseIds <- function(errorMessage,
+                                           cohortIds,
+                                           databaseIds) {
+  checkmate::assertNumeric(
+    x = cohortIds,
+    null.ok = FALSE,
+    lower = 1,
+    upper = 2^53,
+    any.missing = FALSE,
+    add = errorMessage
+  )
+  checkmate::assertCharacter(
+    x = databaseIds,
+    min.len = 1,
+    any.missing = FALSE,
+    unique = TRUE,
+    add = errorMessage
+  )
+  checkmate::reportAssertions(collection = errorMessage)
+  return(errorMessage)
+}
+
+quoteLiterals <- function(x) {
+  if (is.null(x)) {
+    return("")
+  } else {
+    return(paste0("'", paste(x, collapse = "', '"), "'"))
+  }
 }

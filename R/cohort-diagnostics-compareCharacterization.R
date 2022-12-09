@@ -1,3 +1,88 @@
+# Copyright 2022 Observational Health Data Sciences and Informatics
+#
+# This file is part of PatientLevelPrediction
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+compareCohortCharacteristics <-
+  function(characteristics1, characteristics2) {
+    characteristics1Renamed <- characteristics1 %>%
+      dplyr::rename(
+        sumValue1 = sumValue,
+        mean1 = mean,
+        sd1 = sd,
+        cohortId1 = cohortId
+      )
+    cohortId1Value <- characteristics1Renamed$cohortId1 %>% unique()
+    if (length(cohortId1Value) > 1) {
+      stop("Can only compare one target cohort id to one comparator cohort id")
+    }
+
+    characteristics2Renamed <- characteristics2 %>%
+      dplyr::rename(
+        sumValue2 = sumValue,
+        mean2 = mean,
+        sd2 = sd,
+        cohortId2 = cohortId
+      )
+    cohortId2Value <- characteristics2Renamed$cohortId2 %>% unique()
+    if (length(cohortId2Value) > 1) {
+      stop("Can only compare one target cohort id to one comparator cohort id")
+    }
+
+    characteristics <- characteristics1Renamed %>%
+      dplyr::full_join(
+        characteristics2Renamed,
+        na_matches = c("na"),
+        by = c(
+          "timeId",
+          "startDay",
+          "endDay",
+          "temporalChoices",
+          "analysisId",
+          "covariateId",
+          "covariateName",
+          "isBinary",
+          "conceptId",
+          "analysisName",
+          "domainId"
+        )
+      ) %>%
+      dplyr::mutate(
+        mean2 = ifelse(is.na(mean2), 0, mean2),
+        sd2 = ifelse(is.na(sd2), 0, sd2),
+        sd1 = ifelse(is.na(sd1), 0, sd1),
+        mean1 = ifelse(is.na(mean1), 0, mean1),
+      ) %>%
+      dplyr::mutate(
+        sdd = sqrt(sd1^2 + sd2^2)
+      )
+
+    characteristics$stdDiff <- (characteristics$mean1 - characteristics$mean2) / characteristics$sdd
+
+    characteristics <- characteristics %>%
+      dplyr::arrange(-abs(stdDiff)) %>%
+      dplyr::mutate(stdDiff = dplyr::na_if(stdDiff, 0)) %>%
+      dplyr::mutate(
+        absStdDiff = abs(stdDiff),
+        cohortId1 = !!cohortId1Value,
+        cohortId2 = !!cohortId2Value,
+      )
+
+    return(characteristics)
+  }
+
+
 plotTemporalCompareStandardizedDifference <- function(balance,
                                                       shortNameRef = NULL,
                                                       xLimitMin = 0,

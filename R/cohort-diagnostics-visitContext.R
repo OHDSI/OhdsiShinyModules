@@ -68,6 +68,46 @@ visitContextView <- function(id) {
 }
 
 
+getVisitContextResults <- function(dataSource,
+                                   cohortIds,
+                                   databaseIds) {
+  errorMessage <- checkmate::makeAssertCollection()
+  errorMessage <-
+    checkErrorCohortIdsDatabaseIds(
+      cohortIds = cohortIds,
+      databaseIds = databaseIds,
+      errorMessage = errorMessage
+    )
+  checkmate::reportAssertions(collection = errorMessage)
+
+  sql <- "SELECT visit_context.*,
+              standard_concept.concept_name AS visit_concept_name
+            FROM  @results_database_schema.@table_name visit_context
+            INNER JOIN  @vocabulary_database_schema.@concept_table standard_concept
+              ON visit_context.visit_concept_id = standard_concept.concept_id
+            WHERE database_id in (@database_id)
+              AND cohort_id in (@cohort_ids);"
+  data <-
+    dataSource$connectionHandler$queryDb(
+      sql = sql,
+      results_database_schema = dataSource$resultsDatabaseSchema,
+      vocabulary_database_schema = dataSource$vocabularyDatabaseSchema,
+      cohort_ids = cohortIds,
+      database_id = quoteLiterals(databaseIds),
+      table_name = dataSource$prefixTable("visit_context"),
+      concept_table = dataSource$prefixVocabTable("concept"),
+      snakeCaseToCamelCase = TRUE
+    ) %>%
+      tidyr::tibble()
+
+  data <- data %>%
+    dplyr::inner_join(cohortCount,
+                      by = c("cohortId", "databaseId")
+    ) %>%
+    dplyr::mutate(subjectPercent = subjects / cohortSubjects)
+  return(data)
+}
+
 visitContextModule <- function(id,
                                dataSource,
                                selectedCohort, #this is selectedCohorts in other modules
@@ -220,13 +260,11 @@ visitContextModule <- function(id,
     
       getDisplayTableGroupedByDatabaseId(
         data = data,
-        cohort = cohortTable,
         databaseTable = databaseTable,
         headerCount = countsForHeader,
         keyColumns = keyColumnFields,
         countLocation = 1,
         dataColumns = dataColumnFields,
-        maxCount = maxCountValue,
         sort = TRUE
       )
     })
