@@ -66,13 +66,14 @@ test_that("CovariateBalance stuff", {
       type = c("Before matching","After matching")
     )
     
-  resP <- plotEstimationCovariateBalanceScatterPlotNew(
-    balance = balance,
-    beforeLabel = "Before matching",
-    afterLabel = "After matching"
-  )
-  
-  testthat::expect_true(inherits(resP, 'plotly'))
+    # added test for this in covariatebal
+  #resP <- plotEstimationCovariateBalanceScatterPlotNew(
+  #  balance = balance,
+  #  beforeLabel = "Before matching",
+  #  afterLabel = "After matching",
+  #  textsearch = shiny::reactiveVal(NULL)
+  #)
+  #testthat::expect_true(inherits(resP, 'plotly'))
   
   balanceSummary <- data.frame(
     databaseId = rep(1,2), 

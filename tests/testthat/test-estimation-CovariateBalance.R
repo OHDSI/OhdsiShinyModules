@@ -38,6 +38,7 @@ shiny::testServer(
     ##testthat::expect_true(!is.null(balanceSummaryPlot())) - doesnt work
     testthat::expect_true(!is.null(output$balanceSummaryPlotCaption))
     
-    
+    # check textsearch 
+    textSearchEstimation('heart')
     
   })

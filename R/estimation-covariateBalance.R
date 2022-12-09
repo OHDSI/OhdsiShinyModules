@@ -35,14 +35,15 @@ estimationCovariateBalanceViewer <- function(id) {
                      shiny::uiOutput(outputId = ns("hoverInfoBalanceScatter")),
                      
                      plotly::plotlyOutput(ns("balancePlot")),
-                     #shiny::plotOutput(outputId = ns("balancePlot"),
-                     #           hover = shiny::hoverOpts(id = ns("plotHoverBalanceScatter"), delay = 100, delayType = "debounce")),
-                     shiny::uiOutput(outputId = ns("balancePlotCaption"))#,
-                     #shiny::div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
-                                #shiny::downloadButton(outputId = ns("downloadBalancePlotPng"),
-                                #        label = "Download plot as PNG"),
-                                #shiny::downloadButton(outputId = ns("downloadBalancePlotPdf"),
-                                #        label = "Download plot as PDF"))
+                     shiny::uiOutput(outputId = ns("balancePlotCaption")),
+                     
+                     
+                     shiny::textInput(ns("covariateHighlight"), "Highlight covariates containing:", ),
+                     shiny::actionButton(ns("covariateHighlightButton"), "Highlight"),
+                     
+                     
+                     reactable::reactableOutput(ns("balanceTable"))
+                    
     ),
     shiny::conditionalPanel(condition = "output.isMetaAnalysis == true",
                      ns = ns,
@@ -105,6 +106,16 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
       
       shiny::outputOptions(output, "isMetaAnalysis", suspendWhenHidden = FALSE)
       
+      textSearchEstimation <- shiny::reactiveVal(NULL)
+      
+      shiny::observeEvent(
+        input$covariateHighlightButton,{
+          
+          textSearchEstimation(input$covariateHighlight)
+          
+        }
+        )
+      
       balancePlot <- shiny::reactive({
         if (is.null(balance()) || nrow(balance()) == 0) {
           return(NULL)
@@ -112,7 +123,8 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
           plot <- plotEstimationCovariateBalanceScatterPlotNew(
             balance = balance(),
             beforeLabel = "Before propensity score adjustment",
-            afterLabel = "After propensity score adjustment"
+            afterLabel = "After propensity score adjustment",
+            textsearch = textSearchEstimation
           )
           return(plot)
         }
@@ -121,18 +133,6 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
       output$balancePlot <- plotly::renderPlotly({
         return(balancePlot())
       })
-      
-      #output$downloadBalancePlotPng <- shiny::downloadHandler(filename = "Balance.png",
-      #                                                        contentType = "image/png",
-      #                                                        content = function(file) {
-      #                                                          ggplot2::ggsave(file, plot = balancePlot(), width = 4, height = 4, dpi = 400)
-      #                                                        })
-      
-      #output$downloadBalancePlotPdf <- shiny::downloadHandler(filename = "Balance.pdf",
-      #                                                        contentType = "application/pdf",
-      #                                                        content = function(file) {
-      #                                                          ggplot2::ggsave(file = file, plot = balancePlot(), width = 4, height = 4)
-      #                                                        })
       
       output$balancePlotCaption <- shiny::renderUI({
         if (is.null(balance()) || nrow(balance()) == 0) {
@@ -145,6 +145,31 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
           return(shiny::HTML(sprintf(text)))
         }
       })
+      
+      if(F){ # makes app slow
+      output$balanceTable <- reactable::renderReactable({
+        reactable::reactable(
+          data = balance() %>% 
+            dplyr::select("covariateName", "absBeforeMatchingStdDiff", "absAfterMatchingStdDiff"),
+          columns = list(
+            covariateName = reactable::colDef(
+              name = "Covariate"
+              ),
+            absBeforeMatchingStdDiff = reactable::colDef(
+              name = "Before Matching Abs Std Deff",
+              filterable = FALSE,
+              format = reactable::colFormat(digits = 4)
+              ),
+            absAfterMatchingStdDiff = reactable::colDef(
+              name = "After Matching Abs Std Deff",
+              filterable = FALSE,
+              format = reactable::colFormat(digits = 4)
+              )
+          ),
+          filterable = TRUE
+          )
+      })
+      }
       
       output$hoverInfoBalanceScatter <- shiny::renderUI({
         if (is.null(balance()) || nrow(balance()) == 0) {
@@ -334,8 +359,21 @@ getEstimationCovariateBalanceSummary <- function(connectionHandler,
 plotEstimationCovariateBalanceScatterPlotNew <- function(
     balance,
     beforeLabel = "Before propensity score adjustment",
-    afterLabel = "After propensity score adjustment"
+    afterLabel = "After propensity score adjustment",
+    textsearch = NULL
 ){
+  
+  if(is.null(textsearch())){
+    balance$highlight <- 'blue' 
+    colors <- c("blue")
+  } else if(textsearch() == ''){
+    balance$highlight <- 'blue'
+    colors <- c("blue")
+  } else{
+    balance$highlight <- 'blue'
+    balance$highlight[grep(textsearch(), balance$covariateName)] <- 'yellow'
+    colors <- c("blue", "goldenrod") 
+  }
   
   limits <- c(min(c(balance$absBeforeMatchingStdDiff, balance$absAfterMatchingStdDiff),
                   na.rm = TRUE),
@@ -358,8 +396,9 @@ plotEstimationCovariateBalanceScatterPlotNew <- function(
     data = balance, 
     x = ~absBeforeMatchingStdDiff, 
     y = ~absAfterMatchingStdDiff, 
-    text = ~paste("Name: ", covariateName, '<br>Before: ', absBeforeMatchingStdDiff, '<br>After: ', absAfterMatchingStdDiff)
-    
+    color = ~highlight, # added
+    text = ~paste("Name: ", covariateName, '<br>Before: ', absBeforeMatchingStdDiff, '<br>After: ', absAfterMatchingStdDiff),
+    colors = colors
   ) %>%
     plotly::layout(
       shapes = list(xyline(limits)),
