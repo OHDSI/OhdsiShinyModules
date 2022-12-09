@@ -16,9 +16,8 @@
 
 loadResultsTable <- function(dataSource, tableName, required = FALSE, tablePrefix = "") {
   selectTableName <- paste0(tablePrefix, tableName)
-
   resultsTablesOnServer <-
-    tolower(DatabaseConnector::dbListTables(dataSource$connectionHander$getConnection(),
+    tolower(DatabaseConnector::dbListTables(dataSource$connectionHandler$getConnection(),
                                             schema = dataSource$resultsDatabaseSchema))
 
   if (required || selectTableName %in% resultsTablesOnServer) {
@@ -29,7 +28,7 @@ loadResultsTable <- function(dataSource, tableName, required = FALSE, tablePrefi
     tryCatch(
     {
       table <- DatabaseConnector::dbReadTable(
-        dataSource$connection,
+        dataSource$connectionHandler$getConnection(),
         paste(dataSource$resultsDatabaseSchema, selectTableName, sep = ".")
       )
     },
@@ -99,7 +98,7 @@ createDatabaseDataSource <- function(connectionHandler,
                                                                                package = utils::packageName())) {
   return(
     list(
-      connection = connectionHandler,
+      connectionHandler = connectionHandler,
       resultsDatabaseSchema = resultsDatabaseSchema,
       vocabularyDatabaseSchema = vocabularyDatabaseSchema,
       dbms = dbms,
@@ -156,6 +155,70 @@ getCohortTable <- function(dataSource) {
   cohortTable
 }
 
+getResultsTemporalTimeRef <- function(dataSource) {
+  sql <- "SELECT *
+            FROM @results_database_schema.@table_name;"
+  temporalTimeRef <-
+    dataSource$connectionHandler$queryDb(
+      sql = sql,
+      results_database_schema = dataSource$resultsDatabaseSchema,
+      table_name = dataSource$prefixTable("temporal_time_ref")
+    )
+
+  if (nrow(temporalTimeRef) == 0) {
+    return(NULL)
+  }
+
+  temporalChoices <- temporalTimeRef %>%
+    dplyr::mutate(temporalChoices = paste0("T (", startDay, "d to ", endDay, "d)")) %>%
+    dplyr::arrange(startDay, endDay) %>%
+    dplyr::select(
+      timeId,
+      startDay,
+      endDay,
+      temporalChoices
+    ) %>%
+    dplyr::mutate(primaryTimeId = dplyr::if_else(
+      condition = (
+        (startDay == -365 & endDay == -31) |
+          (startDay == -30 & endDay == -1) |
+          (startDay == 0 & endDay == 0) |
+          (startDay == 1 & endDay == 30) |
+          (startDay == 31 & endDay == 365) |
+          (startDay == -365 & endDay == 0) |
+          (startDay == -30 & endDay == 0)
+      ),
+      true = 1,
+      false = 0
+    )) %>%
+    dplyr::mutate(isTemporal = dplyr::if_else(
+      condition = (
+        (endDay == 0 & startDay == -30) |
+          (endDay == 0 & startDay == -180) |
+          (endDay == 0 & startDay == -365) |
+          (endDay == 0 & startDay == -9999)
+      ),
+      true = 0,
+      false = 1
+    )) %>%
+    dplyr::arrange(startDay, timeId, endDay)
+
+  temporalChoices <- dplyr::bind_rows(
+    temporalChoices %>% dplyr::slice(0),
+    dplyr::tibble(
+      timeId = -1,
+      temporalChoices = "Time invariant",
+      primaryTimeId = 1,
+      isTemporal = 0
+    ),
+    temporalChoices
+  ) %>%
+    dplyr::mutate(sequence = dplyr::row_number())
+
+  return(temporalChoices)
+}
+
+
 #' Cohort Diagnostics Explorer main module
 #'
 #' @param connectionHandler             ResultModelManager ConnectionHander instance
@@ -189,19 +252,16 @@ cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
   enabledReports <- getEnabledCdReports(dataSource)
 
   temporalAnalysisRef <- loadResultsTable(dataSource, "temporal_analysis_ref", tablePrefix = dataSource$tablePrefix)
-  temporalChoices <- NULL
-  temporalCharacterizationTimeIdChoices <- NULL
 
-  if (!is.null(temporalTimeRef)) {
-    temporalChoices <- getResultsTemporalTimeRef(dataSource = dataSource)
-    temporalCharacterizationTimeIdChoices <- temporalChoices %>%
-      dplyr::arrange(sequence)
+  temporalChoices <- getResultsTemporalTimeRef(dataSource = dataSource)
+  temporalCharacterizationTimeIdChoices <- temporalChoices %>%
+    dplyr::arrange(sequence)
 
-    characterizationTimeIdChoices <- temporalChoices %>%
-      dplyr::filter(isTemporal == 0) %>%
-      dplyr::filter(primaryTimeId == 1) %>%
-      dplyr::arrange(sequence)
-  }
+  characterizationTimeIdChoices <- temporalChoices %>%
+    dplyr::filter(isTemporal == 0) %>%
+    dplyr::filter(primaryTimeId == 1) %>%
+    dplyr::arrange(sequence)
+
 
   if (!is.null(temporalAnalysisRef)) {
     temporalAnalysisRef <- dplyr::bind_rows(

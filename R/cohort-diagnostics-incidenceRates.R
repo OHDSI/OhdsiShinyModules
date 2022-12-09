@@ -324,7 +324,7 @@ incidenceRatesView <- function(id) {
       collapsed = TRUE,
       title = "Incidence Rates",
       width = "100%",
-      shiny::htmlTemplate(file.path("html", "incidenceRate.html"))
+      shiny::htmlTemplate(system.file("cohort-diagnostics-www",  "incidenceRate.html", package = utils::packageName()))
     ),
     shinydashboard::box(
       status = "warning",

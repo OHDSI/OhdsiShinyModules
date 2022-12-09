@@ -22,7 +22,7 @@ characterizationView <- function(id) {
       collapsed = TRUE,
       title = "Cohort Characterization",
       width = "100%",
-      shiny::htmlTemplate(file.path("html", "cohortCharacterization.html"))
+      shiny::htmlTemplate(system.file("cohort-diagnostics-www",  "cohortCharacterization.html", package = utils::packageName()))
     ),
     shinydashboard::box(
       width = NULL,

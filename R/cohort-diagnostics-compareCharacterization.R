@@ -247,7 +247,7 @@ compareCohortCharacterizationView <- function(id, title = "Compare cohort charac
       collapsed = TRUE,
       title = "Compare Cohort Characterization",
       width = "100%",
-      shiny::htmlTemplate(file.path("html", "compareCohortCharacterization.html"))
+      shiny::htmlTemplate(system.file("cohort-diagnostics-www",  "compareCohortCharacterization.html", package = utils::packageName()))
     ),
     shinydashboard::box(
       width = NULL,
