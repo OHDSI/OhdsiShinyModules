@@ -104,3 +104,43 @@ resultDatabaseSettingsDataDiag <- list(
 )
 
 # =========== Data diag End
+
+
+# =========== Cohort Diagnostics
+connectionDetailsCohortDiag <- DatabaseConnector::createConnectionDetails(
+  dbms = 'sqlite',
+  server = "../resources/cdDatabase/databaseFile.sqlite"
+)
+
+resultDatabaseSettingsCohortDiag <- list(
+  dbms = 'sqlite',
+  tablePrefix = '',
+  resultsDatabaseSchema = "main",
+  cohortTableName = "cohort",
+  databaseTableName = "database"
+)
+
+connectionHandlerCohortDiag <- ResultModelManager::ConnectionHandler$new(connectionDetailsCohortDiag)
+
+dataSourceCd <-
+  createDatabaseDataSource(
+    connectionHandler = connectionHandlerCohortDiag,
+    resultsDatabaseSchema = resultDatabaseSettingsCohortDiag$resultsDatabaseSchema,
+    vocabularyDatabaseSchema = "main",
+    dbms = "sqlite",
+    tablePrefix = "",
+    cohortTableName = "cohort",
+    databaseTableName = "database"
+  )
+
+#  ======
+
+## cleanup after tests complete
+withr::defer({
+  connectionHandlerCG$finalize()
+  connectionHandlerPlp$finalize()
+  connectionHandlerDesc$finalize()
+  connectionHandlerDataDiag$finalize()
+  connectionHandlerEst$finalize()
+  connectionHandlerCohortDiag$finalize()
+}, testthat::teardown_env())

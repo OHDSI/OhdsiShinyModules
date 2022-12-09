@@ -300,11 +300,11 @@ cohortDefinitionsView <- function(id) {
       status = "primary",
       htmltools::withTags(
         table(width = "100%",
-              tr(
-                td(align = "left",
+              tags$tr(
+                tags$td(align = "left",
                    h4("Cohort Definition")
                 ),
-                td(
+                tags$td(
                   align = "right",
                   shiny::downloadButton(
                     outputId = ns("exportAllCohortDetails"),

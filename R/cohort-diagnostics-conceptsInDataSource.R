@@ -129,7 +129,6 @@ conceptsInDataSourceModule <- function(id,
                                        selectedDatabaseIds,
                                        targetCohortId,
                                        selectedConceptSets,
-                                       cohortTable,
                                        databaseTable) {
   ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
@@ -274,12 +273,6 @@ conceptsInDataSourceModule <- function(id,
           cohortIds = targetCohortId(),
           source = "cohort",
           fields = input$conceptsInDataSourceTableColumnFilter
-        )
-
-      maxCountValue <-
-        getMaxValueForStringMatchedColumnsInDataFrame(
-          data = data,
-          string = dataColumnFields
         )
 
       showDataAsPercent <- FALSE

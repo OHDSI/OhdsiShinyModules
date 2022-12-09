@@ -61,6 +61,32 @@ formatDataCellValueInDisplayTable <-
     }
   }
 
+
+getResultsCohortCounts <- function(dataSource,
+                                   cohortIds = NULL,
+                                   databaseIds = NULL) {
+  sql <- "SELECT cc.*, db.database_name
+            FROM  @results_database_schema.@table_name cc
+            INNER JOIN @results_database_schema.@database_table db ON db.database_id = cc.database_id
+            WHERE cc.cohort_id IS NOT NULL
+            {@use_database_ids} ? { AND cc.database_id in (@database_ids)}
+            {@cohort_ids != ''} ? {  AND cc.cohort_id in (@cohort_ids)}
+            ;"
+  data <-
+    dataSource$connectionHandler$queryDb(
+      sql = sql,
+      results_database_schema = dataSource$resultsDatabaseSchema,
+      cohort_ids = cohortIds,
+      use_database_ids = !is.null(databaseIds),
+      database_ids = quoteLiterals(databaseIds),
+      table_name = dataSource$prefixTable("cohort_count"),
+      database_table = dataSource$databaseTableName
+    ) %>%
+      tidyr::tibble()
+
+  return(data)
+}
+
 getDatabaseCounts <- function(dataSource,
                               databaseIds) {
   sql <- "SELECT *
@@ -289,7 +315,7 @@ getDisplayTableGroupedByDatabaseId <- function(data,
   maxValue <- 0
   if (valueFill == 0) {
     maxValue <-
-      getMaxValueForStringMatchedColumnsInDataFrame(data = data, string = dataColumns)
+      getMaxValByString(data = data, string = dataColumns)
   }
 
   for (i in (1:length(dataColumns))) {
@@ -479,7 +505,7 @@ getDisplayTableSimple <- function(data,
 
   if (hasData(dataColumns)) {
     maxValue <-
-      getMaxValueForStringMatchedColumnsInDataFrame(data = data, string = dataColumns)
+      getMaxValByString(data = data, string = dataColumns)
 
     for (i in (1:length(dataColumns))) {
       columnName <- SqlRender::camelCaseToTitleCase(dataColumns[i])
@@ -539,7 +565,7 @@ getDisplayTableSimple <- function(data,
 }
 
 # This is bad
-getMaxValueForStringMatchedColumnsInDataFrame <-
+getMaxValByString <-
   function(data, string) {
     if (!hasData(data)) {
       return(0)
@@ -622,7 +648,6 @@ getDisplayTableColumnMinMaxWidth <- function(data,
   )
   return(data)
 }
-
 
 resolvedConceptSet <- function(dataSource,
                                databaseIds,
@@ -772,4 +797,277 @@ quoteLiterals <- function(x) {
   } else {
     return(paste0("'", paste(x, collapse = "', '"), "'"))
   }
+}
+
+queryResultCovariateValue <- function(dataSource,
+                                      cohortIds,
+                                      analysisIds = NULL,
+                                      databaseIds,
+                                      startDay = NULL,
+                                      endDay = NULL,
+                                      temporalCovariateValue = TRUE,
+                                      temporalCovariateValueDist = TRUE,
+                                      meanThreshold = 0) {
+  # Perform error checks for input variables
+  errorMessage <- checkmate::makeAssertCollection()
+  checkmate::assertIntegerish(
+    x = startDay,
+    any.missing = TRUE,
+    unique = FALSE,
+    null.ok = TRUE,
+    add = errorMessage
+  )
+  checkmate::assertIntegerish(
+    x = endDay,
+    any.missing = TRUE,
+    unique = FALSE,
+    null.ok = TRUE,
+    add = errorMessage
+  )
+
+  temporalTimeRefData <-
+    dataSource$connectionHandler$queryDb(
+      sql = "SELECT *
+             FROM @results_database_schema.@table_name
+             WHERE (time_id IS NOT NULL AND time_id != 0)
+              {@start_day != \"\"} ? { AND start_day IN (@start_day)}
+              {@end_day != \"\"} ? { AND end_day IN (@end_day)};",
+      snakeCaseToCamelCase = TRUE,
+      results_database_schema = dataSource$resultsDatabaseSchema,
+      table_name = dataSource$prefixTable("temporal_time_ref"),
+      start_day = startDay,
+      end_day = endDay
+    ) %>%
+    dplyr::tibble()
+
+  temporalTimeRefData <- dplyr::bind_rows(
+    temporalTimeRefData,
+    dplyr::tibble(timeId = -1)
+  )
+
+  temporalAnalysisRefData <-
+    dataSource$connectionHandler$queryDb(
+      sql = "SELECT *
+             FROM @results_database_schema.@table_name
+              WHERE analysis_id IS NOT NULL
+                {@analysis_ids != \"\"} ? { AND analysis_id IN (@analysis_ids)}
+              ;",
+      analysis_ids = analysisIds,
+      table_name = dataSource$prefixTable("temporal_analysis_ref"),
+      snakeCaseToCamelCase = TRUE,
+      results_database_schema = dataSource$resultsDatabaseSchema
+    ) %>%
+    dplyr::tibble()
+
+  temporalCovariateRefData <-
+    dataSource$connectionHandler$queryDb(
+      sql = "SELECT *
+             FROM @results_database_schema.@table_name
+              WHERE covariate_id IS NOT NULL
+                {@analysis_ids != \"\"} ? { AND analysis_id IN (@analysis_ids)};",
+      snakeCaseToCamelCase = TRUE,
+      analysis_ids = analysisIds,
+      table_name = dataSource$prefixTable("temporal_covariate_ref"),
+      results_database_schema = dataSource$resultsDatabaseSchema
+    ) %>%
+    dplyr::tibble()
+
+  temporalCovariateValueData <- NULL
+  if (temporalCovariateValue) {
+    temporalCovariateValueData <-
+      dataSource$connectionHandler$queryDb(
+        sql = "SELECT tcv.*
+                FROM @results_database_schema.@table_name tcv
+                INNER JOIN @results_database_schema.@ref_table_name ref ON ref.covariate_id = tcv.covariate_id
+                WHERE ref.covariate_id IS NOT NULL
+                {@analysis_ids != \"\"} ? { AND ref.analysis_id IN (@analysis_ids)}
+                {@cohort_id != \"\"} ? { AND tcv.cohort_id IN (@cohort_id)}
+                {@time_id != \"\"} ? { AND (time_id IN (@time_id) OR time_id IS NULL OR time_id = 0)}
+                {@use_database_id} ? { AND database_id IN (@database_id)}
+                {@filter_mean_threshold != \"\"} ? { AND tcv.mean > @filter_mean_threshold};",
+        snakeCaseToCamelCase = TRUE,
+        analysis_ids = analysisIds,
+        time_id = temporalTimeRefData$timeId %>% unique(),
+        use_database_id = !is.null(databaseIds),
+        database_id = quoteLiterals(databaseIds),
+        table_name = dataSource$prefixTable("temporal_covariate_value"),
+        ref_table_name = dataSource$prefixTable("temporal_covariate_ref"),
+        cohort_id = cohortIds,
+        results_database_schema = dataSource$resultsDatabaseSchema,
+        filter_mean_threshold = meanThreshold
+      ) %>%
+      dplyr::tibble() %>%
+      tidyr::replace_na(replace = list(timeId = -1))
+  }
+
+  temporalCovariateValueDistData <- NULL
+  if (temporalCovariateValueDist) {
+    temporalCovariateValueDistData <-
+      dataSource$connectionHandler$queryDb(
+        sql = "SELECT *
+             FROM @results_database_schema.@table_name tcv
+              WHERE covariate_id IS NOT NULL
+                {@covariate_id != \"\"} ? { AND covariate_id IN (@covariate_id)}
+                {@cohort_id != \"\"} ? { AND cohort_id IN (@cohort_id)}
+                {@time_id != \"\"} ? { AND (time_id IN (@time_id) OR time_id IS NULL OR time_id = 0)}
+                {@use_database_id} ? { AND database_id IN (@database_id)}
+                {@filter_mean_threshold != \"\"} ? { AND tcv.mean > @filter_mean_threshold};",
+        snakeCaseToCamelCase = TRUE,
+        covariate_id = temporalCovariateRefData$covariateId %>% unique(),
+        time_id = temporalTimeRefData$timeId %>% unique(),
+        use_database_id = !is.null(databaseIds),
+        database_id = quoteLiterals(databaseIds),
+        cohort_id = cohortIds,
+        table_name = dataSource$prefixTable("temporal_covariate_value_dist"),
+        results_database_schema = dataSource$resultsDatabaseSchema,
+        filter_mean_threshold = meanThreshold
+      ) %>%
+      dplyr::tibble() %>%
+      tidyr::replace_na(replace = list(timeId = -1))
+  }
+
+  if (hasData(temporalCovariateValueData)) {
+    temporalCovariateValueData <- temporalCovariateValueData %>%
+      dplyr::left_join(temporalTimeRefData,
+        by = "timeId"
+      )
+  }
+
+  if (hasData(temporalCovariateValueDistData)) {
+    temporalCovariateValueDistData <-
+      temporalCovariateValueDistData %>%
+      dplyr::left_join(temporalTimeRefData,
+        by = "timeId"
+      )
+  }
+
+  data <- list(
+    temporalTimeRef = temporalTimeRefData,
+    temporalAnalysisRef = temporalAnalysisRefData,
+    temporalCovariateRef = temporalCovariateRefData,
+    temporalCovariateValue = temporalCovariateValueData,
+    temporalCovariateValueDist = temporalCovariateValueDistData
+  )
+  return(data)
+}
+
+# modeId = 0 -- Events
+# modeId = 1 -- Persons
+getInclusionRuleStats <- function(dataSource,
+                                  cohortIds = NULL,
+                                  databaseIds,
+                                  modeId = 1) {
+  sql <- "SELECT *
+    FROM  @resultsDatabaseSchema.@table_name
+    WHERE database_id in (@database_id)
+    {@cohort_ids != ''} ? {  AND cohort_id in (@cohort_ids)}
+    ;"
+
+  inclusion <-
+    dataSource$connectionHandler$queryDb(
+      sql = sql,
+      resultsDatabaseSchema = dataSource$resultsDatabaseSchema,
+      cohort_ids = cohortIds,
+      database_id = quoteLiterals(databaseIds),
+      table_name = dataSource$prefixTable("cohort_inclusion"),
+      snakeCaseToCamelCase = TRUE
+    ) %>%
+      tidyr::tibble()
+
+  inclusionResults <-
+    dataSource$connectionHandler$queryDb(
+      sql = sql,
+      resultsDatabaseSchema = dataSource$resultsDatabaseSchema,
+      cohort_ids = cohortIds,
+      database_id = quoteLiterals(databaseIds),
+      table_name = dataSource$prefixTable("cohort_inc_result"),
+      snakeCaseToCamelCase = TRUE
+    ) %>%
+      tidyr::tibble()
+
+  inclusionStats <-
+    dataSource$connectionHandler$queryDb(
+      sql = sql,
+      resultsDatabaseSchema = dataSource$resultsDatabaseSchema,
+      cohort_ids = cohortIds,
+      database_id = quoteLiterals(databaseIds),
+      table_name = dataSource$prefixTable("cohort_inc_stats"),
+      snakeCaseToCamelCase = TRUE
+    ) %>%
+      tidyr::tibble()
+
+
+  if (!hasData(inclusion) || !hasData(inclusionStats)) {
+    return(NULL)
+  }
+
+  result <- inclusion %>%
+    dplyr::select(cohortId, databaseId, ruleSequence, name) %>%
+    dplyr::distinct() %>%
+    dplyr::left_join(
+      inclusionStats %>%
+        dplyr::filter(modeId == !!modeId) %>%
+        dplyr::select(
+          cohortId,
+          databaseId,
+          ruleSequence,
+          personCount,
+          gainCount,
+          personTotal
+        ),
+      by = c("cohortId", "databaseId", "ruleSequence")
+    ) %>%
+    dplyr::arrange(cohortId,
+                   databaseId,
+                   ruleSequence) %>%
+    dplyr::mutate(remain = 0)
+
+  inclusionResults <- inclusionResults %>%
+    dplyr::filter(modeId == !!modeId)
+
+  combis <- result %>%
+    dplyr::select(cohortId,
+                  databaseId) %>%
+    dplyr::distinct()
+
+  resultFinal <- c()
+  for (j in (1:nrow(combis))) {
+    combi <- combis[j,]
+    data <- result %>%
+      dplyr::inner_join(combi,
+                        by = c("cohortId", "databaseId"))
+
+    inclusionResult <- inclusionResults %>%
+      dplyr::inner_join(combi,
+                        by = c("cohortId", "databaseId"))
+    mask <- 0
+    for (ruleId in (0:(nrow(data) - 1))) {
+      mask <- bitwOr(mask, 2^ruleId) #bitwise OR operation: if both are 0, then 0; else 1
+      idx <-
+        bitwAnd(inclusionResult$inclusionRuleMask, mask) == mask
+      data$remain[data$ruleSequence == ruleId] <-
+        sum(inclusionResult$personCount[idx])
+    }
+    resultFinal[[j]] <- data
+  }
+  resultFinal <- dplyr::bind_rows(resultFinal) %>%
+    dplyr::rename(
+      "meetSubjects" = personCount,
+      "gainSubjects" = gainCount,
+      "remainSubjects" = remain,
+      "totalSubjects" = personTotal,
+      "ruleName" = name,
+      "ruleSequenceId" = ruleSequence
+    ) %>%
+    dplyr::select(
+      cohortId,
+      ruleSequenceId,
+      ruleName,
+      meetSubjects,
+      gainSubjects,
+      remainSubjects,
+      totalSubjects,
+      databaseId
+    )
+  return(resultFinal)
 }

@@ -40,8 +40,8 @@ orpahanConceptsView <- function(id) {
       htmltools::withTags(
         table(
           width = "100%",
-          tr(
-            td(
+          tags$tr(
+            tags$td(
               shiny::radioButtons(
                 inputId = ns("orphanConceptsType"),
                 label = "Filters",
@@ -50,8 +50,8 @@ orpahanConceptsView <- function(id) {
                 inline = TRUE
               )
             ),
-            td(HTML("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")),
-            td(
+            tags$td(HTML("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")),
+            tags$td(
               shiny::radioButtons(
                 inputId = ns("orphanConceptsColumFilterType"),
                 label = "Display",
@@ -236,12 +236,6 @@ orphanConceptsModule <- function(id,
           cohortIds = data$cohortId %>% unique(),
           source = "cohort",
           fields = input$orphanConceptsColumFilterType
-        )
-
-      maxCountValue <-
-        getMaxValueForStringMatchedColumnsInDataFrame(
-          data = data,
-          string = dataColumnFields
         )
 
       showDataAsPercent <- FALSE

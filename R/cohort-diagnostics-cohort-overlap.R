@@ -222,7 +222,7 @@ cohortOverlapView <- function(id) {
       collapsed = TRUE,
       title = "Cohort Overlap (subjects)",
       width = "100%",
-      shiny::htmlTemplate(system.file("cohort-diagnostics-www",  "cohortOverlap.html", package = utils::packageName()))
+      shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortOverlap.html", package = utils::packageName()))
     ),
     shinydashboard::box(
       status = "warning",
@@ -279,6 +279,57 @@ cohortOverlapView <- function(id) {
   )
 }
 
+#' Returns data from cohort_relationships table of Cohort Diagnostics results data model
+#'
+#' @description
+#' Returns data from cohort_relationships table of Cohort Diagnostics results data model
+#'
+#' @template DataSource
+#'
+#' @template CohortIds
+#'
+#' @template ComparatorCohortIds
+#'
+#' @template DatabaseIds
+#'
+#' @param startDays A vector of days in relation to cohort_start_date of target
+#'
+#' @param endDays A vector of days in relation to cohort_end_date of target
+#'
+#' @return
+#' Returns a data frame (tibble) with results that conform to cohort_relationships
+#' table in Cohort Diagnostics results data model.
+#'
+getResultsCohortRelationships <- function(dataSource,
+                                          cohortIds = NULL,
+                                          comparatorCohortIds = NULL,
+                                          databaseIds = NULL,
+                                          startDays = NULL,
+                                          endDays = NULL) {
+  data <- dataSource$connectionHandler$queryDb(
+    sql = "SELECT cr.*, db.database_name
+             FROM @results_database_schema.@table_name cr
+             INNER JOIN @results_database_schema.@database_table db ON db.database_id = cr.database_id
+             WHERE cr.cohort_id IN (@cohort_id)
+             AND cr.database_id IN (@database_id)
+              {@comparator_cohort_id != \"\"} ? { AND cr.comparator_cohort_id IN (@comparator_cohort_id)}
+              {@start_day != \"\"} ? { AND cr.start_day IN (@start_day)}
+              {@end_day != \"\"} ? { AND cr.end_day IN (@end_day)};",
+    snakeCaseToCamelCase = TRUE,
+    results_database_schema = dataSource$resultsDatabaseSchema,
+    database_id = quoteLiterals(databaseIds),
+    table_name = dataSource$prefixTable("cohort_relationships"),
+    database_table = dataSource$databaseTableName,
+    cohort_id = cohortIds,
+    comparator_cohort_id = comparatorCohortIds,
+    start_day = startDays,
+    end_day = endDays
+  ) %>%
+    dplyr::tibble()
+
+  return(data)
+}
+
 #' Returns data for use in cohort_overlap
 #'
 #' @description
@@ -317,16 +368,16 @@ getResultsCohortOverlap <- function(dataSource,
 
   # Fix relationship data so 0 overlap displays
   allCombinations <- dplyr::tibble(databaseId = databaseIds) %>%
-        tidyr::crossing(dplyr::tibble(cohortId = cohortIds)) %>%
-        tidyr::crossing(dplyr::tibble(comparatorCohortId = comparatorCohortIds)) %>%
-        dplyr::filter(comparatorCohortId != cohortId) %>%
-        tidyr::crossing(dplyr::tibble(startDay = c(-9999, 0),
-                                      endDay = c(9999, 0)))
+    tidyr::crossing(dplyr::tibble(cohortId = cohortIds)) %>%
+    tidyr::crossing(dplyr::tibble(comparatorCohortId = comparatorCohortIds)) %>%
+    dplyr::filter(comparatorCohortId != cohortId) %>%
+    tidyr::crossing(dplyr::tibble(startDay = c(-9999, 0),
+                                  endDay = c(9999, 0)))
 
   cohortRelationship <- allCombinations %>%
     dplyr::left_join(cohortRelationship,
                      by = c("databaseId", "cohortId", "comparatorCohortId", "startDay", "endDay")) %>%
-    dplyr::mutate(dplyr::across(.cols = where(is.numeric), ~tidyr::replace_na(., 0)))
+    dplyr::mutate(dplyr::across(.cols = tidyselect::where(is.numeric), ~tidyr::replace_na(., 0)))
 
   fullOffSet <- cohortRelationship %>%
     dplyr::filter(startDay == -9999) %>%
@@ -404,7 +455,7 @@ getResultsCohortOverlap <- function(dataSource,
 
   result <- fullOffSet %>%
     dplyr::left_join(noOffset,
-      by = c("databaseId", "targetCohortId", "comparatorCohortId")
+                     by = c("databaseId", "targetCohortId", "comparatorCohortId")
     ) %>%
     dplyr::filter(targetCohortId != comparatorCohortId) %>%
     dplyr::select(

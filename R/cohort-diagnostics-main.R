@@ -509,7 +509,6 @@ cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
                                  selectedDatabaseIds = selectedDatabaseIds,
                                  targetCohortId = targetCohortId,
                                  selectedConceptSets = selectedConceptSets,
-                                 cohortTable = cohortTable,
                                  databaseTable = databaseTable)
     }
 
@@ -537,7 +536,6 @@ cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
     if ("indexEventBreakdown" %in% enabledReports) {
       indexEventBreakdownModule("indexEvents",
                                 dataSource = dataSource,
-                                cohortTable = cohortTable,
                                 databaseTable = databaseTable,
                                 selectedCohort = selectedCohort,
                                 targetCohortId = targetCohortId,
@@ -550,7 +548,6 @@ cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
                          selectedCohort = selectedCohort,
                          selectedDatabaseIds = selectedDatabaseIds,
                          targetCohortId = targetCohortId,
-                         cohortTable = cohortTable,
                          databaseTable = databaseTable)
     }
 
@@ -586,7 +583,6 @@ cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
                                           dataSource = dataSource,
                                           cohortTable = cohortTable,
                                           databaseTable = databaseTable,
-                                          conceptSets = conceptSets,
                                           temporalAnalysisRef = temporalAnalysisRef,
                                           analysisNameOptions = analysisNameOptions,
                                           domainIdOptions = domainIdOptions,

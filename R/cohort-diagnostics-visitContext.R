@@ -113,7 +113,6 @@ visitContextModule <- function(id,
                                selectedCohort, #this is selectedCohorts in other modules
                                selectedDatabaseIds,
                                targetCohortId,
-                               cohortTable,
                                databaseTable) {
   ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
@@ -253,7 +252,7 @@ visitContextModule <- function(id,
       }
 
       maxCountValue <-
-        getMaxValueForStringMatchedColumnsInDataFrame(
+        getMaxValByString(
           data = data,
           string = dataColumnFields
         )

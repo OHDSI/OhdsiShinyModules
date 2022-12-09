@@ -39,8 +39,8 @@ indexEventBreakdownView <- function(id) {
       htmltools::withTags(
         table(
           width = "100%",
-          tr(
-            td(
+          tags$tr(
+            tags$td(
               shiny::radioButtons(
                 inputId = ns("indexEventBreakdownTableRadioButton"),
                 label = "Concept type",
@@ -49,8 +49,8 @@ indexEventBreakdownView <- function(id) {
                 inline = TRUE
               )
             ),
-            td(HTML("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")),
-            td(
+            tags$td(HTML("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")),
+            tags$td(
               shiny::radioButtons(
                 inputId = ns("indexEventBreakdownTableFilter"),
                 label = "Display",
@@ -59,7 +59,7 @@ indexEventBreakdownView <- function(id) {
                 inline = TRUE
               )
             ),
-            td(
+            tags$td(
               shiny::checkboxInput(
                 inputId = ns("showAsPercent"),
                 label = "Show as percentage",
@@ -130,7 +130,6 @@ getIndexEventBreakdown <- function(dataSource,
 #'
 indexEventBreakdownModule <- function(id,
                                       dataSource,
-                                      cohortTable,
                                       databaseTable,
                                       selectedCohort,
                                       targetCohortId,
@@ -261,12 +260,6 @@ indexEventBreakdownModule <- function(id,
           cohortIds = targetCohortId(),
           source = "cohort",
           fields = input$indexEventBreakdownTableFilter
-        )
-
-      maxCountValue <-
-        getMaxValueForStringMatchedColumnsInDataFrame(
-          data = data,
-          string = dataColumnFields
         )
 
       getDisplayTableGroupedByDatabaseId(

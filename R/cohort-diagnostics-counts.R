@@ -205,12 +205,6 @@ cohortCountsModule <- function(id,
 
       countsForHeader <- NULL
 
-      maxCountValue <-
-        getColumnMax(
-          data = data,
-          string = dataColumnFields
-        )
-
       displayTable <- getDisplayTableGroupedByDatabaseId(
         data = data,
         databaseTable = databaseTable,
@@ -336,12 +330,6 @@ cohortCountsModule <- function(id,
           cohortIds = getCohortIdOnCohortCountRowSelect()$cohortId,
           source = "cohort",
           fields = "Persons"
-        )
-
-      maxCountValue <-
-        getMaxValueForStringMatchedColumnsInDataFrame(
-          data = data,
-          string = dataColumnFields
         )
 
       getDisplayTableGroupedByDatabaseId(

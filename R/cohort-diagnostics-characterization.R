@@ -308,7 +308,6 @@ prepareTable1 <- function(covariates,
     dplyr::filter(!is.na(covariateName))
 
   space <- "&nbsp;"
-  resultsTable <- tidyr::tibble()
 
   # labels
   tableHeaders <-
@@ -743,11 +742,7 @@ characterizationModule <- function(id,
           source = "cohort",
           fields = "Persons"
         )
-      maxCountValue <-
-        getMaxValueForStringMatchedColumnsInDataFrame(
-          data = table,
-          string = dataColumnFields
-        )
+
       displayTable <- getDisplayTableGroupedByDatabaseId(
         data = table,
         databaseTable = databaseTable,
@@ -836,12 +831,6 @@ characterizationModule <- function(id,
           cohortIds = data$cohortId %>% unique(),
           source = "cohort",
           fields = "Persons"
-        )
-
-      maxCountValue <-
-        getMaxValueForStringMatchedColumnsInDataFrame(
-          data = data,
-          string = dataColumnFields
         )
 
       data <- data %>%

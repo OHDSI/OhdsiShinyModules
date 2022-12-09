@@ -76,7 +76,6 @@ inclusionRulesView <- function(id) {
 #'
 inclusionRulesModule <- function(id,
                                  dataSource,
-                                 cohortTable,
                                  databaseTable,
                                  selectedCohort,
                                  targetCohortId,
@@ -149,12 +148,6 @@ inclusionRulesModule <- function(id,
           cohortIds = targetCohortId(),
           source = "cohort",
           fields = "Persons"
-        )
-
-      maxCountValue <-
-        getMaxValueForStringMatchedColumnsInDataFrame(
-          data = table,
-          string = dataColumnFields
         )
 
       getDisplayTableGroupedByDatabaseId(
