@@ -33,7 +33,7 @@ Imports:
     tidyr,
     ggh4x,
     scales,
-    purr,
+    purrr,
     CirceR,
     DatabaseConnector,
     SqlRender,
