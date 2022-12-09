@@ -44,9 +44,9 @@ getColumnMax <- function(data, string) {
 #' Cohort Counts View
 #' @description
 #' Shiny view for cohort counts module
-#' @inputId cohortCountsTableColumnFilter              Column filters
-#' @outputId cohortCountsTable                         Reactable output of cohort counts for specified databases
-#' @outputId inclusionRuleStats    Reactable output of inclusion rules
+#' inputId cohortCountsTableColumnFilter              Column filters
+#' outputId cohortCountsTable                         Reactable output of cohort counts for specified databases
+#' outputId inclusionRuleStats    Reactable output of inclusion rules
 cohortCountsView <- function(id) {
   ns <- shiny::NS(id)
   shiny::tagList(
@@ -135,11 +135,11 @@ cohortCountsView <- function(id) {
 #' @description
 #' Shiny module for cohort counts. Displays reactable table of cohort counts
 #'
-#' @requiredPackage reactable
-#' @requiredPacakge shiny
-#' @requiredPacakge shinycssloaders
-#' @requiredPacakge shinydashboard
-#' @requiredPacakge dplyr
+#' @import reactable
+#' @import shiny
+#' @import shinycssloaders
+#' @import shinydashboard
+#' @import dplyr
 #'
 #' @param dataSource                Backend Data source (DatabaseConnection)
 #' @param cohortTable               data.frame of all cohorts

@@ -151,7 +151,10 @@ cdUiControls <- function(ns) {
   return(panels)
 }
 
-#'@export
+#' Cohort Diagnostics UI
+#' @param id        Namespace id "DiagnosticsExplorer"
+#' @param enabledTabs   enabled reports
+#' @export
 cohortDiagnosticsUi <- function(id = "DiagnosticsExplorer",
                                 enabledTabs) {
   ns <- shiny::NS(id)

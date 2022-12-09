@@ -19,12 +19,6 @@
 #' @description
 #' Returns data from time_distribution table of Cohort Diagnostics results data model
 #'
-#' @template DataSource
-#'
-#' @template CohortIds
-#'
-#' @template DatabaseIds
-#'
 #' @return
 #' Returns a data frame (tibble).
 getTimeDistributionResult <- function(dataSource,

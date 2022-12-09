@@ -283,15 +283,9 @@ cohortOverlapView <- function(id) {
 #'
 #' @description
 #' Returns data for use in cohort_overlap
-#'
-#' @template DataSource
-#'
 #' @param targetCohortIds A vector of cohort ids representing target cohorts
 #'
 #' @param comparatorCohortIds A vector of cohort ids representing comparator cohorts
-#'
-#' @template DatabaseIds
-#'
 #' @return
 #' Returns data for use in cohort_overlap
 #'
@@ -441,10 +435,10 @@ getResultsCohortOverlap <- function(dataSource,
 
 #' Cohort Overlap Module
 #'
-#' @requiredPackage shiny
-#' @requiredPackage shinydashboard
-#' @requiredPackage shinycssloaders
-#' @requiredPackage ggiraph
+#' @import shiny
+#' @import shinydashboard
+#' @import shinycssloaders
+#' @import ggiraph
 #'
 cohortOverlapModule <- function(id,
                                 dataSource,

@@ -503,7 +503,7 @@ getCountForConceptIdInCohort <-
 
 #' Cohort Definition module
 #' @description
-#'
+#' cohort defintion conceptsets, json etc
 #'
 #' @param id                            Namespace id
 #' @param dataSource                    DatabaseConnection
