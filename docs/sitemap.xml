@@ -16,7 +16,7 @@
     <loc>/index.html</loc>
   </url>
   <url>
-    <loc>/reference/OhdsiShinyModules.html</loc>
+    <loc>/news/index.html</loc>
   </url>
   <url>
     <loc>/reference/aboutHelperFile.html</loc>
@@ -35,6 +35,27 @@
   </url>
   <url>
     <loc>/reference/cohortGeneratorViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/dataDiagnosticDrillServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/dataDiagnosticDrillViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/dataDiagnosticHelperFile.html</loc>
+  </url>
+  <url>
+    <loc>/reference/dataDiagnosticServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/dataDiagnosticSummaryServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/dataDiagnosticSummaryViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/dataDiagnosticViewer.html</loc>
   </url>
   <url>
     <loc>/reference/descriptionAggregateFeaturesServer.html</loc>
@@ -167,6 +188,9 @@
   </url>
   <url>
     <loc>/reference/index.html</loc>
+  </url>
+  <url>
+    <loc>/reference/OhdsiShinyModules.html</loc>
   </url>
   <url>
     <loc>/reference/predictionCalibrationServer.html</loc>
