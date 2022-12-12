@@ -1,3 +1,7 @@
+OhdsiShinyModules v1.0.1
+========================
+- Preparing for HADES
+
 OhdsiShinyModules v1.0.0
 ========================
 - Version ready for release

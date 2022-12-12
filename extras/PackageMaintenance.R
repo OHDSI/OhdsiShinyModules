@@ -1,6 +1,6 @@
 # @file PackageMaintenance
 #
-# Copyright 2021 Observational Health Data Sciences and Informatics
+# Copyright 2022 Observational Health Data Sciences and Informatics
 #
 # This file is part of OhdsiShinyModules
 # 
@@ -31,7 +31,6 @@ rmarkdown::render("vignettes/AddingShinyModules.Rmd",
                                           toc = TRUE,
                                           toc_depth = 3,
                                           number_sections = TRUE))
-
 
 pkgdown::build_site()
 OhdsiRTools::fixHadesLogo()

@@ -134,3 +134,14 @@ reference:
       - estimationSystematicErrorServer
       - estimationTitlePanelViewer
       - estimationTitlePanelServer
+  - title: "Data diagnostics module"
+    desc: >
+      Modules for the DataDiagnostics package.
+    contents:
+      - dataDiagnosticDrillServer
+      - dataDiagnosticDrillViewer
+      - dataDiagnosticHelperFile
+      - dataDiagnosticServer
+      - dataDiagnosticSummaryServer
+      - dataDiagnosticSummaryViewer
+      - dataDiagnosticViewer
