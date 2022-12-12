@@ -60,6 +60,11 @@ predictionModelSummaryServer <- function(
   shiny::moduleServer(
     id,
     function(input, output, session) {
+      
+      withTooltip <- function(value, tooltip, ...) {
+        shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
+                   tippy::tippy(value, tooltip, ...))
+      }
 
       resultTable <- shiny::reactive(
         getInternalPerformanceSummary(
@@ -83,13 +88,55 @@ predictionModelSummaryServer <- function(
         reactable::reactable(
           data = cbind(
               view = rep("",nrow(resultTable())),
-              resultTable()[,!colnames(resultTable())%in% c('performanceId', 'developmentDatabaseId')]
+              resultTable()[,!colnames(resultTable())%in% c('performanceId', 'developmentDatabaseId', 'modelDevelopment', 'modelDesignId')]
             ),
           
           columns = list(
+            Dev = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Dev Db", 
+                "The database used to develop the model"
+              )),
+            Val = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Val Db", 
+                "The database used to evaluate the model"
+              )),
+            T = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Target Pop", 
+                "The patients who the risk model is applied to"
+              )),
+            O = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Outcome", 
+                "The outcome being predicted"
+              )),
+            TAR = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "TAR", 
+                "The time-at-risk when the outcome is being predicted relative to the target pop index"
+              ),
+              sortable = TRUE
+            ),
+            type = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Type", 
+                "Development contains the model and internal validation; Validation contains the external validation"
+              ),
+              sortable = TRUE
+            ),
+            
             view = reactable::colDef(
               name = "",
               sortable = FALSE,
+              filterable = FALSE,
               cell = function() htmltools::tags$button("View Result")
             )
           ),
@@ -116,17 +163,20 @@ predictionModelSummaryServer <- function(
       
       performanceId <- shiny::reactiveVal(value = NULL)
       developmentDatabaseId <- shiny::reactiveVal(value = NULL)
+      modelDevelopment <- shiny::reactiveVal(value = NULL)
       shiny::observeEvent(input$view_details, {
         #print('perf updated')
         performanceId(NULL)
         performanceId(resultTable()$performanceId[input$view_details$index])
         developmentDatabaseId(resultTable()$developmentDatabaseId[input$view_details$index])
+        modelDevelopment(resultTable()$modelDevelopment[input$view_details$index])
       })
       
       return(
         list(
           developmentDatabaseId = developmentDatabaseId,
-          performanceId = performanceId
+          performanceId = performanceId,
+          modelDevelopment = modelDevelopment
         )
       )
       
@@ -158,30 +208,28 @@ getInternalPerformanceSummary <- function(
      results.performance_id, 
      results.model_design_id, 
      results.development_database_id,
+     results.validation_database_id,
      d.database_acronym AS Dev, 
-     d.database_acronym AS Val,
+     v.database_acronym AS Val,
      targets.cohort_name AS T, 
      outcomes.cohort_name AS O,
-       models.model_type AS model, 
-       models.execution_date_time as time_stamp,
+     results.execution_date_time as time_stamp,
        tars.tar_start_day, 
        tars.tar_start_anchor, 
        tars.tar_end_day, 
        tars.tar_end_anchor,
-       ROUND(aucResult.auc, 3) as auc,
+       ROUND(aucResult.auc, 3) as auroc,
        ROUND(auprcResult.auprc,4) as auprc,
        nResult.population_size, 
        oResult.outcome_count,
        ROUND(nTest.test_size*100.0/nResult.population_size, 1) as eval_percent,
-       ROUND(oResult.outcome_count*100.0/nResult.population_size,4) as outcome_percent
+       ROUND(oResult.outcome_count*100.0/nResult.population_size,4) as outcome_percent,
+       results.model_development
        
-       FROM (select * from @my_schema.@my_table_appendperformances where model_design_id = @model_design_id and model_development = 1) AS results INNER JOIN @my_schema.@my_table_appendmodels AS models 
-          ON results.model_design_id = models.model_design_id and
-             results.development_database_id = models.database_id 
-             
-             
+       FROM (select * from @my_schema.@my_table_appendperformances where model_design_id = @model_design_id) AS results 
+  
     inner join @my_schema.@my_table_appendmodel_designs as model_designs
-    on model_designs.model_design_id = models.model_design_id and
+    on model_designs.model_design_id = results.model_design_id and
     results.target_id = model_designs.target_id and 
              results.outcome_id = model_designs.outcome_id and 
              results.tar_id = model_designs.tar_id and
@@ -194,12 +242,16 @@ getInternalPerformanceSummary <- function(
                    from @my_schema.@database_table_appenddatabase_meta_data md inner join 
                    @my_schema.@my_table_appenddatabase_details dd 
                    on md.database_id = dd.database_meta_data_id) AS d ON results.development_database_id = d.database_id 
+                   LEFT JOIN (select dd.database_id, md.cdm_source_abbreviation database_acronym 
+                   from @my_schema.@database_table_appenddatabase_meta_data md inner join 
+                   @my_schema.@my_table_appenddatabase_details dd 
+                   on md.database_id = dd.database_meta_data_id) AS v ON results.validation_database_id = v.database_id 
         LEFT JOIN @my_schema.@my_table_appendtars AS tars ON results.tar_id = tars.tar_id
         LEFT JOIN (SELECT performance_id, value AS auc FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'AUROC' and evaluation in ('Test','Validation') ) AS aucResult ON results.performance_id = aucResult.performance_id
         LEFT JOIN (SELECT performance_id, value AS auprc FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'AUPRC' and evaluation in ('Test','Validation') ) AS auprcResult ON results.performance_id = auprcResult.performance_id
-        LEFT JOIN (SELECT performance_id, sum(value) AS population_size FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'populationSize' and evaluation in ('Test','Train') group by performance_id) AS nResult ON results.performance_id = nResult.performance_id
-        LEFT JOIN (SELECT performance_id, sum(value) AS outcome_count FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'outcomeCount' and evaluation in ('Test','Train') group by performance_id) AS oResult ON results.performance_id = oResult.performance_id
-        LEFT JOIN (SELECT performance_id, value AS test_size FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'populationSize' and evaluation = 'Test') AS nTest ON results.performance_id = nTest.performance_id;"
+        LEFT JOIN (SELECT performance_id, sum(value) AS population_size FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'populationSize' and evaluation in ('Train','Test','Validation') group by performance_id) AS nResult ON results.performance_id = nResult.performance_id
+        LEFT JOIN (SELECT performance_id, sum(value) AS outcome_count FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'outcomeCount' and evaluation in ('Train','Test','Validation') group by performance_id) AS oResult ON results.performance_id = oResult.performance_id
+        LEFT JOIN (SELECT performance_id, value AS test_size FROM @my_schema.@my_table_appendevaluation_statistics where metric = 'populationSize' and evaluation in ('Test', 'Validation') ) AS nTest ON results.performance_id = nTest.performance_id;"
   
 
   summaryTable <- connectionHandler$queryDb(
@@ -225,10 +277,12 @@ getInternalPerformanceSummary <- function(
   summaryTable <- editTar(summaryTable)
   
   colnames(summaryTable) <- editColnames(cnames = colnames(summaryTable), 
-                                         edits = c('AUC','AUPRC', 'T', 'O', 'Dev','Val', 'TAR', 'Model'))
+                                         edits = c('AUROC','AUPRC', 'T', 'O', 'Dev','Val', 'TAR', 'Model'))
   
   summaryTable$T <- as.factor(summaryTable$T)
   summaryTable$O <- as.factor(summaryTable$O)
+  
+  summaryTable$type <- ifelse(summaryTable$modelDevelopment == 1, 'Development', 'Validation')
   
   shiny::incProgress(3/3, detail = paste("Finished"))
   
@@ -236,9 +290,9 @@ getInternalPerformanceSummary <- function(
   
   })
   
-  return(summaryTable[,c('Dev', 'Val', 'T','O', 'Model','modelDesignId',
-                         'TAR', 'AUC', 'AUPRC', 
-                         'T Size', 'O Count','Val (%)', 'O Incidence (%)', 'timeStamp', 'performanceId', 'developmentDatabaseId')])
+  return(summaryTable[,c('Dev', 'Val', 'T','O', 'modelDesignId',
+                         'TAR', 'AUROC', 'AUPRC', 
+                         'T Size', 'O Count','Val (%)', 'O Incidence (%)', 'timeStamp', 'performanceId', 'developmentDatabaseId', 'modelDevelopment', 'type')])
   
 }
 

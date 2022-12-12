@@ -27,7 +27,8 @@ Imports:
     shinycssloaders,
     shinydashboard, 
     tibble,
-    tidyr
+    tidyr,
+    tippy
 Suggests:
     CirceR,
     DatabaseConnector,
