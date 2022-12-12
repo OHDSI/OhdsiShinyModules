@@ -43,15 +43,22 @@ descriptionTimeToEventViewer <- function(id) {
     ),
     
     shiny::fluidRow(
-    shinydashboard::tabBox(
-      width = 12,
-      # Title can include an icon
-      title = shiny::tagList(shiny::icon("gear"), "Plots"),
-      shiny::tabPanel(
-        "Time To Event Plot",
-         shiny::plotOutput(ns('timeToEvent')) #shinycssloaders::withSpinner()
+      shinydashboard::box(
+        width = 12,
+        # Title can include an icon
+        title = shiny::tagList(shiny::icon("gear"), "Results"),
+        
+        shiny::fluidRow(
+          shiny::column(
+            width = 2,
+            shiny::uiOutput(ns('timeToEventPlotInputs'))
+          ),
+          shiny::column(
+            width = 10,
+            shiny::plotOutput(ns('timeToEvent'))
+          )
+        )
       )
-    )
     )
     
     
@@ -141,7 +148,11 @@ descriptionTimeToEventServer <- function(
       }
       )
       
-
+      
+      allData <- shiny::reactiveVal(NULL)
+      databaseNames <- shiny::reactiveVal(c('none'))
+      timespans <- shiny::reactiveVal(c('none'))
+      
       # fetch data when targetId changes
       shiny::observeEvent(
         eventExpr = input$fetchData,
@@ -150,7 +161,7 @@ descriptionTimeToEventServer <- function(
             print('Null ids value')
             return(invisible(NULL))
           }
-          allData <- tryCatch({
+          tempData <- tryCatch({
             getTimeToEventData(
               targetId = input$targetId,
               outcomeId = input$outcomeId,
@@ -163,21 +174,51 @@ descriptionTimeToEventServer <- function(
           error = function(e){shiny::showNotification(paste0('Error: ', e));return(NULL)}
           )
           
-          # TODO: create  NEW UI FOR SELECTING DATABASES
-          # find databases and set to UI
-          #databases <- unique(allData$databaseId)
-          
-          if(!is.null(allData)){
-            # do the plots reactively
-            output$timeToEvent <- shiny::renderPlot(
-              plotTimeToEvent(
-                timeToEventData = allData
-              )
-            )
+          if(is.null(tempData)){
+            shiny::showNotification('No data...')
+          } else{
+            shiny::showNotification(paste0('Data with ', nrow(tempData),' rows returned'))
           }
+          
+          allData(tempData)
+          databaseNames(unique(tempData$databaseName))  
+          timespans(unique(tempData$timeScale))  
           
         }
       )
+      
+      output$timeToEventPlotInputs <- shiny::renderUI({
+        
+        shiny::fluidPage(
+          shiny::fluidRow(
+            
+            shiny::checkboxGroupInput(
+              inputId = session$ns("databases"), 
+              label = "Databases:",
+              choiceNames = databaseNames(), 
+              choiceValues = databaseNames(),
+              selected = databaseNames()
+            ),
+            shiny::checkboxGroupInput(
+              inputId = session$ns("times"), 
+              label = "Timespan:",
+              choiceNames = timespans(), 
+              choiceValues = timespans(),
+              selected = timespans()
+            )
+            
+          )
+        )
+      }
+      )
+      
+      output$timeToEvent <- shiny::renderPlot(
+          plotTimeToEvent(
+            timeToEventData = allData,
+            databases = input$databases,
+            times = input$times
+          )
+        )
     
       
       return(invisible(NULL))
@@ -291,8 +332,24 @@ getTimeToEventData <- function(
 }
 
 plotTimeToEvent <- function(
-  timeToEventData
+  timeToEventData,
+  databases,
+  times
 ){
+  
+  if(is.null(timeToEventData())){
+    return(NULL)
+  }
+  
+  timeToEventData <- timeToEventData() %>% 
+    dplyr::filter(.data$databaseName %in% databases)
+  
+  if(is.null(timeToEventData)){
+    return(NULL)
+  }
+  
+  timeToEventData <- timeToEventData %>% 
+    dplyr::filter(.data$timeScale %in% times)
   
   if(is.null(timeToEventData)){
     return(NULL)

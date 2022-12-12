@@ -37,12 +37,13 @@ estimationCovariateBalanceViewer <- function(id) {
                      plotly::plotlyOutput(ns("balancePlot")),
                      shiny::uiOutput(outputId = ns("balancePlotCaption")),
                      
+                     shiny::downloadButton(
+                       ns('downloadCovariateBalance'), 
+                       label = "Download"
+                     ),
                      
                      shiny::textInput(ns("covariateHighlight"), "Highlight covariates containing:", ),
-                     shiny::actionButton(ns("covariateHighlightButton"), "Highlight"),
-                     
-                     
-                     reactable::reactableOutput(ns("balanceTable"))
+                     shiny::actionButton(ns("covariateHighlightButton"), "Highlight")
                     
     ),
     shiny::conditionalPanel(condition = "output.isMetaAnalysis == true",
@@ -146,30 +147,18 @@ estimationCovariateBalanceServer <- function(id, selectedRow, inputParams, conne
         }
       })
       
-      if(F){ # makes app slow
-      output$balanceTable <- reactable::renderReactable({
-        reactable::reactable(
-          data = balance() %>% 
-            dplyr::select("covariateName", "absBeforeMatchingStdDiff", "absAfterMatchingStdDiff"),
-          columns = list(
-            covariateName = reactable::colDef(
-              name = "Covariate"
-              ),
-            absBeforeMatchingStdDiff = reactable::colDef(
-              name = "Before Matching Abs Std Deff",
-              filterable = FALSE,
-              format = reactable::colFormat(digits = 4)
-              ),
-            absAfterMatchingStdDiff = reactable::colDef(
-              name = "After Matching Abs Std Deff",
-              filterable = FALSE,
-              format = reactable::colFormat(digits = 4)
-              )
-          ),
-          filterable = TRUE
-          )
-      })
-      }
+      ## download buttons
+      output$downloadCovariateBalance <- shiny::downloadHandler(
+        filename = function() {
+          paste('covariate-balance-', Sys.Date(), '.csv', sep='')
+        },
+        content = function(con) {
+          utils::write.csv(
+            balance() %>% 
+              dplyr::select("covariateName", "absBeforeMatchingStdDiff", "absAfterMatchingStdDiff")
+            , con)
+        }
+      )
       
       output$hoverInfoBalanceScatter <- shiny::renderUI({
         if (is.null(balance()) || nrow(balance()) == 0) {
