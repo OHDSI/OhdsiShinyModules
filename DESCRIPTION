@@ -21,6 +21,7 @@ Imports:
     plotly,
     reactable,
     ResultModelManager,
+    DatabaseConnector,
     rlang,
     rmarkdown,
     shiny, 
@@ -42,7 +43,6 @@ Imports:
     CirceR,
     purrr
 Suggests:
-    DatabaseConnector,
     kableExtra,
     knitr,
     markdown,
