@@ -57,6 +57,11 @@ predictionDesignSummaryServer <- function(
     id,
     function(input, output, session) {
       
+      withTooltip <- function(value, tooltip, ...) {
+        shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
+                   tippy::tippy(value, tooltip, ...))
+      }
+      
       designSummaryTable <- getDesignSummary(
         connectionHandler = connectionHandler, 
         mySchema = mySchema, 
@@ -79,50 +84,101 @@ predictionDesignSummaryServer <- function(
             # Render a "show details" button in the last column of the table.
             # This button won't do anything by itself, but will trigger the custom
             # click action on the column.
+            modelDesignId = reactable::colDef( 
+              header = withTooltip(
+                "Design ID", 
+                "A unique identifier for the model design"
+              )),
+            modelType = reactable::colDef( 
+              header = withTooltip(
+                "Model Type", 
+                "The classifier/survivial model"
+              )),
+            target = reactable::colDef( 
+              header = withTooltip(
+                "Target Pop", 
+                "The patients who the risk model is applied to"
+              )),
+            outcome = reactable::colDef( 
+              header = withTooltip(
+                "Outcome", 
+                "The outcome being predicted"
+              )),
+            TAR = reactable::colDef( 
+              header = withTooltip(
+                "TAR", 
+                "The time-at-risk when the outcome is being predicted relative to the target pop index"
+              ),
+              sortable = TRUE
+              ),
+            
             diagDatabases = reactable::colDef(
-              name = "Num. Diagnostic Databases",
+              header = withTooltip(
+                "Num. Diagnostic Dbs", 
+                "The number of databases with the model design diagnostics evaluated"
+              ),
+              filterable = FALSE,
               sortable = TRUE
             ),
             devDatabases = reactable::colDef(
-              name = "Num. Development Databases",
+              header = withTooltip(
+                "Num. Development Dbs", 
+                "The number of databases where a model was developed using the design"
+              ),
+              filterable = FALSE,
               sortable = TRUE
             ),
             minAuroc = reactable::colDef(
-              name = "min AUROC",
+              header = withTooltip(
+                "min AUROC", 
+                "The minimum AUROC across internal and external validations for this model design"
+              ),
               sortable = TRUE,
+              filterable = FALSE,
               format = reactable::colFormat(digits = 3)
               ),
             meanAuroc = reactable::colDef(
-              name = "mean AUROC",
+              header = withTooltip(
+                "mean AUROC", 
+                "The mean AUROC across internal and external validations for this model design"
+              ),
               sortable = TRUE,
+              filterable = FALSE,
               format = reactable::colFormat(digits = 3)
             ),
             maxAuroc = reactable::colDef(
-              name = "max AUROC",
+              header = withTooltip(
+                "max AUROC", 
+                "The max AUROC across internal and external validations for this model design"
+              ),
+              filterable = FALSE,
               sortable = TRUE,
               format = reactable::colFormat(digits = 3)
             ),
             valDatabases = reactable::colDef(
-              name = "Num. Validation Databases",
-              sortable = TRUE
-            ),
-            TAR = reactable::colDef(
-              name = "Time at risk",
-              sortable = TRUE
+              header = withTooltip(
+                "Num. Validation Dbs", 
+                "The number of databases where a model with the design was validated"
+              ),
+              sortable = TRUE,
+              filterable = FALSE
             ),
             diagnostic = reactable::colDef(
               name = "",
               sortable = FALSE,
+              filterable = FALSE,
               cell = function() htmltools::tags$button("View Diagnostics")
             ),
             details = reactable::colDef(
               name = "",
               sortable = FALSE,
-              cell = function() htmltools::tags$button("View Models")
+              filterable = FALSE,
+              cell = function() htmltools::tags$button("View Results")
             ),
             report = reactable::colDef(
               name = "",
               sortable = FALSE,
+              filterable = FALSE,
               cell = function() htmltools::tags$button("View Report")
             )
           ),
@@ -211,6 +267,7 @@ getDesignSummary <- function(
     
   sql <- "SELECT 
           model_designs.model_design_id, 
+          model_settings.model_type AS model_type, 
           targets.cohort_name AS target, 
           outcomes.cohort_name AS outcome,
           tars.tar_start_day, 
@@ -225,7 +282,12 @@ getDesignSummary <- function(
           COUNT(distinct v.database_id) val_databases
 
        FROM 
-          @my_schema.@my_table_appendmodel_designs as model_designs LEFT JOIN
+          @my_schema.@my_table_appendmodel_designs as model_designs 
+          inner join
+          @my_schema.@my_table_appendmodel_settings as model_settings
+          on model_designs.model_setting_id = model_settings.model_setting_id
+         
+          LEFT JOIN
           @my_schema.@my_table_appendperformances AS results
             
            on model_designs.model_design_id = results.model_design_id
@@ -257,7 +319,10 @@ getDesignSummary <- function(
   
   shiny::incProgress(2/3, detail = paste("Extracted data"))
   
-  summaryTable <- editTar(summaryTable)
+  summaryTable <- editTar(summaryTable) %>%
+    dplyr::relocate("TAR", .after = "outcome")  %>% 
+    dplyr::relocate("devDatabases", .before = "valDatabases") %>%
+    dplyr::relocate("diagDatabases", .before = "devDatabases")
   
   shiny::incProgress(3/3, detail = paste("Finished"))
   
@@ -270,7 +335,8 @@ getDesignSummary <- function(
 
 editTar <- function(summaryTable){
   
-  summaryTable <- summaryTable %>% dplyr::mutate(TAR = paste0('(',trimws(.data$tarStartAnchor),' + ',.data$tarStartDay, ') - (',trimws(.data$tarEndAnchor),' + ',.data$tarEndDay, ')' )) %>%
+  summaryTable <- summaryTable %>% 
+    dplyr::mutate(TAR = paste0('(',trimws(.data$tarStartAnchor),' + ',.data$tarStartDay, ') - (',trimws(.data$tarEndAnchor),' + ',.data$tarEndDay, ')' )) %>%
     dplyr::select(-c("tarStartAnchor", "tarStartDay", "tarEndAnchor", "tarEndDay"))
   
   return(summaryTable)

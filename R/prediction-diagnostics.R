@@ -66,6 +66,11 @@ predictionDiagnosticsServer <- function(
     id,
     function(input, output, session) {
       
+      withTooltip <- function(value, tooltip, ...) {
+        shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
+            tippy::tippy(value, tooltip, ...))
+      }
+      
       shiny::observe({
         if(!is.null(modelDesignId()) ){
           
@@ -86,7 +91,11 @@ predictionDiagnosticsServer <- function(
                 outcomes = rep("",nrow(diagnosticTable))
               ),
               columns = list(
-                '1.1' = reactable::colDef(
+                '1.1' = reactable::colDef( 
+                  header = withTooltip(
+                    "1.1", 
+                    "Participants: Were appropriate data sources used, e.g. cohort, RCT or nested case-control study data?"
+                    ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -94,6 +103,10 @@ predictionDiagnosticsServer <- function(
     }
   ")),
                 '1.2' = reactable::colDef(
+                  header = withTooltip(
+                    "1.2", 
+                    "Participants: Were all inclusions and exclusions of participants appropriate?"
+                  ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -101,6 +114,10 @@ predictionDiagnosticsServer <- function(
     }
   ")),
                 '2.1' = reactable::colDef(
+                  header = withTooltip(
+                    "2.1", 
+                    "Predictors: Were predictors defined and assessed in a similar way for all participants?"
+                  ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -108,6 +125,10 @@ predictionDiagnosticsServer <- function(
     }
   ")),   
                 '2.2' = reactable::colDef(
+                  header = withTooltip(
+                    "2.2", 
+                    "Predictors: Were predictor assessments made without knowledge of outcome data?"
+                  ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -115,6 +136,10 @@ predictionDiagnosticsServer <- function(
     }
   ")),
                 '2.3' = reactable::colDef(
+                  header = withTooltip(
+                    "2.3", 
+                    "Predictors: Are all predictors available at the time the model is intended to be used?"
+                  ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -122,6 +147,10 @@ predictionDiagnosticsServer <- function(
     }
   ")),
                 '3.4' = reactable::colDef(
+                  header = withTooltip(
+                    "3.4", 
+                    "Outcome: Was the outcome defined and determined in a similar way for all participants?"
+                  ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -129,6 +158,10 @@ predictionDiagnosticsServer <- function(
     }
   ")),
                 '3.6' = reactable::colDef(
+                  header = withTooltip(
+                    "3.6", 
+                    "Outcome: Was the time interval between predictor assessment and outcome determination appropriate?"
+                  ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -136,6 +169,10 @@ predictionDiagnosticsServer <- function(
     }
   ")),
                 '4.1' = reactable::colDef(
+                  header = withTooltip(
+                    "4.1", 
+                    "Design: Were there a reasonable number of participants with the outcome?"
+                  ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -539,4 +576,3 @@ getDiagnosticOutcomes <- function(
   return(outcomes)
   
 }
-

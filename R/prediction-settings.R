@@ -37,6 +37,8 @@ predictionSettingsViewer <- function(id) {
       width = 12,
       title = "Settings Dashboard",
       status = "info", solidHeader = TRUE,
+      shinydashboard::infoBoxOutput(ns("devDb"), width = 12),
+      shinydashboard::infoBoxOutput(ns("valDb"), width = 12),
       shinydashboard::infoBoxOutput(ns("cohort"), width = 4),
       shinydashboard::infoBoxOutput(ns("outcome"), width = 4),
       shinydashboard::infoBoxOutput(ns("restrictPlpData"), width = 4),
@@ -68,6 +70,7 @@ predictionSettingsViewer <- function(id) {
 #' @param mySchema the database schema for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
 #' @param cohortTableAppend a string that appends the cohort_definition table
+#' @param databaseTableAppend a string that appends the database_meta_data table
 #' 
 #' @return
 #' The server to the settings module
@@ -82,7 +85,8 @@ predictionSettingsServer <- function(
   inputSingleView,
   mySchema, 
   myTableAppend, 
-  cohortTableAppend = myTableAppend
+  cohortTableAppend = myTableAppend,
+  databaseTableAppend = myTableAppend
 ) {
   
   shiny::moduleServer(
@@ -120,6 +124,37 @@ predictionSettingsServer <- function(
       ) 
       })
       
+      # databases
+      databases <- shiny::reactive({
+        getPlpSettingDatabase(
+        inputSingleView = inputSingleView,
+        performanceId = performanceId,
+        mySchema = mySchema, 
+        connectionHandler = connectionHandler,
+        myTableAppend = myTableAppend, 
+        databaseTableAppend = databaseTableAppend 
+      )
+      })
+      
+      # development database
+      output$devDb <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'Development Database',
+          shiny::p(databases()$devDb), 
+          icon = shiny::icon("database"),
+          color = "black"
+        )
+      })
+      
+      # validation database
+      output$valDb <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'Validation Database',
+          shiny::p(databases()$valDb), 
+          icon = shiny::icon("database"),
+          color = "black"
+        )
+      })
       
       
       # cohort settings
@@ -418,6 +453,66 @@ predictionSettingsServer <- function(
 
 
 # helpers
+
+
+# get the databases
+
+getPlpSettingDatabase <- function(
+  inputSingleView,
+  performanceId,
+  mySchema, 
+  connectionHandler,
+  myTableAppend,
+  databaseTableAppend = myTableAppend
+){
+  
+  if(!is.null(performanceId()) & inputSingleView() == 'Design Settings'){
+    
+  sql <- "
+  
+    SELECT 
+    tempD.dev_db, 
+    tempV.val_db 
+    
+    FROM 
+    
+    (select * from @my_schema.@my_table_appendperformances
+    WHERE performance_id = @performance_id) perf
+    
+    inner join 
+    
+    (select dd.database_id, dmd.cdm_source_name as dev_db
+    from @my_schema.@my_table_appenddatabase_details as dd inner join
+    @my_schema.@database_table_appenddatabase_meta_data as dmd on 
+    dd.database_meta_data_id = dmd.database_id) tempD
+    
+    on tempD.database_id = perf.development_database_id
+    
+    inner join 
+    
+    (select dd.database_id, dmd.cdm_source_name as val_db
+    from @my_schema.@my_table_appenddatabase_details as dd inner join
+    @my_schema.@database_table_appenddatabase_meta_data dmd on 
+    dd.database_meta_data_id = dmd.database_id) tempV
+    
+    on tempV.database_id = perf.validation_database_id
+  
+  
+  ;"
+  
+  databaseNames <- connectionHandler$queryDb(
+    sql = sql,
+    my_schema = mySchema,
+    performance_id = performanceId(),
+    my_table_append = myTableAppend,
+    database_table_append = databaseTableAppend
+  )
+  
+  return(databaseNames)
+  
+  }
+  
+}
 
 
 # get the data

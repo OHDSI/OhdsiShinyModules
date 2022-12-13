@@ -55,11 +55,24 @@ predictionViewer <- function(id=1) {
     
     shiny::tabPanel(
       "Models Summary",  
+      shiny::actionButton(
+        inputId = ns("backToDesignSummary"), 
+        label = "Back To Design Summary",
+        shiny::icon("arrow-left"), 
+        style="color: #fff; background-color: #337ab7; border-color: #2e6da4"
+      ),
       predictionModelSummaryViewer(ns('modelSummaryTab'))
     ),
     
     shiny::tabPanel(
       "Explore Selected Model",
+      
+      shiny::actionButton(
+        inputId = ns("backToModelSummary"), 
+        label = "Back To Models Summary",
+        shiny::icon("arrow-left"), 
+        style="color: #fff; background-color: #337ab7; border-color: #2e6da4"
+        ),
       
       shiny::tabsetPanel(
         id = ns('singleView'),
@@ -93,10 +106,12 @@ predictionViewer <- function(id=1) {
           predictionNbViewer(ns('netBenefit'))
         ),
         
+
         shiny::tabPanel(
-          "Validation",
-          predictionValidationViewer(ns('validation'))
-        )
+            "Validation",
+            predictionValidationViewer(ns('validation'))
+          )
+    
         
       )
     )
@@ -126,8 +141,7 @@ predictionServer <- function(
   shiny::moduleServer(
     id,
     function(input, output, session) {
-
-
+      
       #   VIEW SETTINGS
       # =============================
       # initially hide the models and selected model
@@ -157,6 +171,24 @@ predictionServer <- function(
         
       )
       
+      # go back button 
+      shiny::observeEvent(input$backToModelSummary, {
+        shiny::updateTabsetPanel(
+          session = session,
+          inputId = 'allView',
+          selected = 'Models Summary'
+        )
+        shiny::showTab(inputId = "allView", session = session, target = "Models Summary")
+        shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
+            })
+      
+      shiny::observeEvent(input$backToDesignSummary, {
+        shiny::updateTabsetPanel(
+          session = session,
+          inputId = 'allView',
+          selected = 'Model Designs Summary'
+        )
+      })
       
       # keep a reactive variable tracking the active tab
       singleViewValue <- shiny::reactive({
@@ -179,6 +211,7 @@ predictionServer <- function(
         mySchema = resultDatabaseSettings$schema, 
         myTableAppend = resultDatabaseSettings$tablePrefix
       )
+      
       
       # change to model summary tab when 
       # a model design id is select that shows 
@@ -230,6 +263,14 @@ predictionServer <- function(
           shiny::updateTabsetPanel(session, "allView", selected = "Explore Selected Model")
           shiny::hideTab(inputId = "allView", session = session, target = "Models Summary")
         }
+        
+        # hide validation tab if non internal val
+        if(performance$modelDevelopment() == 1){
+          shiny::showTab(inputId = "singleView", session = session, target = "Validation")
+        } else{
+          shiny::hideTab(inputId = "singleView", session = session, target = "Validation")
+        }
+        
       })
       
       
@@ -394,6 +435,11 @@ predictionServer <- function(
         cohortTableAppend = ifelse(
           !is.null(resultDatabaseSettings$cohortTablePrefix), 
           resultDatabaseSettings$cohortTablePrefix,
+          resultDatabaseSettings$tablePrefix
+        ),
+        databaseTableAppend = ifelse(
+          !is.null(resultDatabaseSettings$databaseTablePrefix), 
+          resultDatabaseSettings$databaseTablePrefix,
           resultDatabaseSettings$tablePrefix
         )
       )

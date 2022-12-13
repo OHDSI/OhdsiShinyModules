@@ -238,6 +238,30 @@ descriptionAggregateFeaturesServer <- function(
       shiny::observeEvent(
         eventExpr = input$descAgSelect,{
           
+          binaryData(
+            data.frame(
+              covariateName = '',
+              comp1 = '',
+              comp1sd = '' ,
+              comp2 = '' ,
+              comp2sd = '', 
+              analysisName = '' ,
+              standardizedMeanDiff = ''
+            )
+          )
+          
+          continuousData(
+            data.frame(
+              covariateName = '',
+              comp1 = '',
+              comp1sd = '' ,
+              comp2 = '' ,
+              comp2sd = '', 
+              analysisName = '' ,
+              standardizedMeanDiff = ''
+            )
+          )
+          
           targetId(options$targetCohortId[input$descAgSelect$index])
           outcomeId(options$outcomeCohortId[input$descAgSelect$index])
           riskWindowStart(options$riskWindowStart[input$descAgSelect$index])
@@ -365,7 +389,7 @@ descriptionAggregateFeaturesServer <- function(
                 comp1 = reactable::colDef(
                   name = "Selection 1 mean", 
                   format = reactable::colFormat(digits = 2, percent = T)
-                ),
+                ), 
                 comp1sd = reactable::colDef(
                   name = "Selection 1 stdev", 
                   format = reactable::colFormat(digits = 2)
@@ -373,11 +397,11 @@ descriptionAggregateFeaturesServer <- function(
                 comp2 = reactable::colDef(
                   name = "Selection 2 mean",
                   format = reactable::colFormat(digits = 2, percent = T)
-                ),
+                ), 
                 comp2sd = reactable::colDef(
                   name = "Selection 2 stdev",
                   format = reactable::colFormat(digits = 2)
-                ),
+                ), 
                 analysisName = reactable::colDef(
                   filterInput = function(values, name) {
                     shiny::tags$select(

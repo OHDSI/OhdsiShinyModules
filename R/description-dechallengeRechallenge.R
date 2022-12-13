@@ -276,6 +276,7 @@ descriptionDechallengeRechallengeServer <- function(
         # module to show failed plots
         shiny::showModal(shiny::modalDialog(
           title = paste0("Failed Plots: "),
+          size = "l",
           shiny::plotOutput(session$ns('dechalplot')),
           easyClose = TRUE,
           footer = NULL
@@ -604,7 +605,7 @@ plotDechalRechal <- function(
       
       shiny::incProgress(1/2, detail = paste("Formatted data, now plotting"))
       
-      
+      labelSize <- 5
       # ggplot lays out dechallenge/rechallenge exposure eras and points for each outcome
       plot <- ggplot2::ggplot(
         data = dechallengeExposure, 
@@ -614,6 +615,7 @@ plotDechalRechal <- function(
           label = .data$eventNumber
           )
         ) +
+        #ggplot2::geom_text(size = labelSize) +
         ggplot2::geom_line(
           data = dechallengeExposure, 
           ggplot2::aes(group = .data$eventId), 
@@ -643,28 +645,28 @@ plotDechalRechal <- function(
           hjust = 1, 
           vjust = 0, 
           color = "blue", 
-          size = 2
+          size = labelSize
           ) +
         ggplot2::geom_text(
           data = rechallengeStarts, 
           hjust = 1, 
           vjust = 0, 
           color = "navyblue", 
-          size = 2
+          size = labelSize
           ) +
         ggplot2::geom_text(
           data = dechallengeOutcome, 
           color = "darkorange", 
           hjust = -.5, 
           vjust = -.5, 
-          size = 2
+          size = labelSize
           ) +
         ggplot2::geom_text(
           data = rechallengeOutcome, 
           color = "orangered", 
           hjust = -.5, 
           vjust = -.5, 
-          size = 2
+          size = labelSize
           ) +
         ggplot2::scale_y_reverse() +
         ggplot2::theme_bw() + 
@@ -674,7 +676,8 @@ plotDechalRechal <- function(
           panel.grid.minor = ggplot2::element_blank(), 
           axis.line = ggplot2::element_line(colour = "black"),
           axis.text.y = ggplot2::element_blank(),
-          axis.ticks.y = ggplot2::element_blank() 
+          axis.ticks.y = ggplot2::element_blank(),
+          text = ggplot2::element_text(size = 20) # testing
           ) +
         ggplot2::xlab("Time from first exposure") + 
         ggplot2::ylab("Each horizontal line is one person")
