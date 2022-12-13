@@ -123,11 +123,10 @@ resultDatabaseSettingsCohortDiag <- list(
 connectionHandlerCohortDiag <- ResultModelManager::ConnectionHandler$new(connectionDetailsCohortDiag)
 
 dataSourceCd <-
-  createDatabaseDataSource(
+  createCdDatabaseDataSource(
     connectionHandler = connectionHandlerCohortDiag,
     resultsDatabaseSchema = resultDatabaseSettingsCohortDiag$resultsDatabaseSchema,
     vocabularyDatabaseSchema = "main",
-    dbms = "sqlite",
     tablePrefix = "",
     cohortTableName = "cohort",
     databaseTableName = "database"

@@ -78,6 +78,7 @@ indexEventBreakdownView <- function(id) {
 
 getIndexEventBreakdown <- function(dataSource,
                                    cohortIds,
+                                   cohortCount,
                                    databaseIds) {
   errorMessage <- checkmate::makeAssertCollection()
   errorMessage <-
@@ -133,6 +134,7 @@ indexEventBreakdownModule <- function(id,
                                       databaseTable,
                                       selectedCohort,
                                       targetCohortId,
+                                      cohortCount,
                                       selectedDatabaseIds) {
   ns <- shiny::NS(id)
 
@@ -146,6 +148,7 @@ indexEventBreakdownModule <- function(id,
         length(selectedDatabaseIds()) > 0) {
         data <- getIndexEventBreakdown(
           dataSource = dataSource,
+          cohortCount = cohortCount,
           cohortIds = targetCohortId(),
           databaseIds = selectedDatabaseIds()
         )

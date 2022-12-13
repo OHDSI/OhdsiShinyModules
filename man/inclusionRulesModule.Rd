@@ -7,7 +7,6 @@
 inclusionRulesModule(
   id,
   dataSource,
-  cohortTable,
   databaseTable,
   selectedCohort,
   targetCohortId,

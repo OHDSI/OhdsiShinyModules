@@ -4,12 +4,12 @@
 \alias{cohortDiagnosticsUi}
 \title{Cohort Diagnostics UI}
 \usage{
-cohortDiagnosticsUi(id = "DiagnosticsExplorer", enabledTabs)
+cohortDiagnosticsUi(id = "DiagnosticsExplorer", enabledReports)
 }
 \arguments{
 \item{id}{Namespace id "DiagnosticsExplorer"}
 
-\item{enabledTabs}{enabled reports}
+\item{enabledReports}{enabled reports}
 }
 \description{
 Cohort Diagnostics UI

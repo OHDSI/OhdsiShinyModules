@@ -284,14 +284,6 @@ cohortOverlapView <- function(id) {
 #' @description
 #' Returns data from cohort_relationships table of Cohort Diagnostics results data model
 #'
-#' @template DataSource
-#'
-#' @template CohortIds
-#'
-#' @template ComparatorCohortIds
-#'
-#' @template DatabaseIds
-#'
 #' @param startDays A vector of days in relation to cohort_start_date of target
 #'
 #' @param endDays A vector of days in relation to cohort_end_date of target

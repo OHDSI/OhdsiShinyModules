@@ -153,10 +153,10 @@ cdUiControls <- function(ns) {
 
 #' Cohort Diagnostics UI
 #' @param id        Namespace id "DiagnosticsExplorer"
-#' @param enabledTabs   enabled reports
+#' @param enabledReports   enabled reports
 #' @export
 cohortDiagnosticsUi <- function(id = "DiagnosticsExplorer",
-                                enabledTabs) {
+                                enabledReports) {
   ns <- shiny::NS(id)
   headerContent <- tags$li(
     class = "dropdown",
@@ -174,20 +174,22 @@ cohortDiagnosticsUi <- function(id = "DiagnosticsExplorer",
       shinydashboard::menuItem(text = "Orphan Concepts", tabName = "orphanConcepts", icon = shiny::icon("notes-medical")),
       shinydashboard::menuItem(text = "Cohort Counts", tabName = "cohortCounts", icon = shiny::icon("bars")),
       shinydashboard::menuItem(text = "Incidence Rate", tabName = "incidenceRate", icon = shiny::icon("plus")),
-      shinydashboard::menuItem(text = "Time Distributions", tabName = "timeDistribution", icon = shiny::icon("clock")),
-      if ("indexEventBreakdown" %in% enabledTabs) {
+      if ("temporalCovariateValue" %in% enabledReports) {
+        shinydashboard::menuItem(text = "Time Distributions", tabName = "timeDistribution", icon = shiny::icon("clock"))
+      },
+      if ("indexEventBreakdown" %in% enabledReports) {
         shinydashboard::menuItem(text = "Index Event Breakdown", tabName = "indexEventBreakdown", icon = shiny::icon("hospital"))
       },
-      if ("visitContext" %in% enabledTabs) {
+      if ("visitContext" %in% enabledReports) {
         shinydashboard::menuItem(text = "Visit Context", tabName = "visitContext", icon = shiny::icon("building"))
       },
-      if ("relationship" %in% enabledTabs) {
+      if ("relationship" %in% enabledReports) {
         shinydashboard::menuItem(text = "Cohort Overlap", tabName = "cohortOverlap", icon = shiny::icon("circle"))
       },
-      if ("temporalCovariateValue" %in% enabledTabs) {
+      if ("temporalCovariateValue" %in% enabledReports) {
         shinydashboard::menuItem(text = "Cohort Characterization", tabName = "cohortCharacterization", icon = shiny::icon("user"))
       },
-      if ("temporalCovariateValue" %in% enabledTabs) {
+      if ("temporalCovariateValue" %in% enabledReports) {
         shinydashboard::menuItem(text = "Compare Characterization", tabName = "compareCohortCharacterization", icon = shiny::icon("users"))
       },
       shinydashboard::menuItem(text = "Meta data", tabName = "databaseInformation", icon = shiny::icon("gear", verify_fa = FALSE)),
@@ -206,7 +208,7 @@ cohortDiagnosticsUi <- function(id = "DiagnosticsExplorer",
   bodyTabItems <- shinydashboard::tabItems(
     shinydashboard::tabItem(
       tabName = "about",
-      if ("aboutText" %in% enabledTabs) {
+      if ("aboutText" %in% enabledReports) {
         HTML(aboutText)
       }
     ),

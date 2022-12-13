@@ -70,6 +70,7 @@ visitContextView <- function(id) {
 
 getVisitContextResults <- function(dataSource,
                                    cohortIds,
+                                   cohortCount,
                                    databaseIds) {
   errorMessage <- checkmate::makeAssertCollection()
   errorMessage <-
@@ -113,6 +114,7 @@ visitContextModule <- function(id,
                                selectedCohort, #this is selectedCohorts in other modules
                                selectedDatabaseIds,
                                targetCohortId,
+                               cohortCount,
                                databaseTable) {
   ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
@@ -130,6 +132,7 @@ visitContextModule <- function(id,
         getVisitContextResults(
           dataSource = dataSource,
           cohortIds = targetCohortId(),
+          cohortCount = cohortCount,
           databaseIds = selectedDatabaseIds()
         )
       if (!hasData(visitContext)) {

@@ -14,6 +14,8 @@ cohortDiagnosticsSever(
 \arguments{
 \item{connectionHandler}{ResultModelManager ConnectionHander instance}
 
+\item{vocabularyDatabaseSchema}{Optional vocabulary database schema}
+
 \item{resultDatabaseSettings}{results database settings}
 }
 \description{

@@ -68,6 +68,9 @@ tableIsEmpty <- function(dataSource, tableName) {
   return(nrow(row) == 0)
 }
 
+#' Get enable cd reports from available data
+#' @param dataSource           C
+#' @export
 getEnabledCdReports <- function(dataSource) {
   enabledReports <- c()
   resultsTables <- tolower(DatabaseConnector::dbListTables(dataSource$connectionHandler$getConnection(),
@@ -85,39 +88,67 @@ getEnabledCdReports <- function(dataSource) {
   enabledReports
 }
 
-# Note - maybe make this an R6?
-createDatabaseDataSource <- function(connectionHandler,
-                                     resultsDatabaseSchema,
-                                     vocabularyDatabaseSchema = resultsDatabaseSchema,
-                                     dbms,
-                                     tablePrefix = "",
-                                     cohortTableName = "cohort",
-                                     databaseTableName = "database",
-                                     dataModelSpecificationsPath = system.file("cohort-diagnostics-ref",
-                                                                               "resultsDataModelSpecification.csv",
-                                                                               package = utils::packageName())) {
-  return(
-    list(
-      connectionHandler = connectionHandler,
-      resultsDatabaseSchema = resultsDatabaseSchema,
-      vocabularyDatabaseSchema = vocabularyDatabaseSchema,
-      dbms = dbms,
-      resultsTablesOnServer = tolower(DatabaseConnector::dbListTables(connectionHandler$getConnection(),
-                                                                      schema = resultsDatabaseSchema)),
-      tablePrefix = tablePrefix,
-      prefixTable = function(tableName) { paste0(tablePrefix, tableName) },
-      prefixVocabTable = function(tableName) {
-        # don't prexfix table if we us a dedicated vocabulary schema
-        if (vocabularyDatabaseSchema == resultsDatabaseSchema)
-          return(paste0(tablePrefix, tableName))
+#' Create a CD data source from a database
+#'
+#' @description use this to create an interface to cohort diagnostics results data
+#' NOTE: I think this would make a good R6 class for other objects in this package so you could query them outside of
+#' a shiny app. E.g. if you wanted to make a custom R markdown template
+#'
+#' @param connectionHandler An instance of a ResultModelManager::connectionHander - manages a connection to a database.
+#' @param resultsDatabaseSchema The schema containing the results tables in the database.
+#' @param vocabularyDatabaseSchema The schema containing the vocabulary tables in the database. If not provided, defaults to `resultsDatabaseSchema`.
+#' @param tablePrefix An optional prefix to add to the table names.
+#' @param cohortTableName The name of the cohort table in the database.
+#' @param databaseTableName The name of the database table in the database.
+#' @param dataModelSpecificationsPath The path to a file containing specifications for the data model used by the database.
+#' @return An object of class `CdDataSource`.
+#' @export
+#' @examples
+#' # create a CD data source from a database
+#' createCdDatabaseDataSource(connectionHandler, resultsDatabaseSchema)
+#' @import utils
+#' @importFrom DatabaseConnector dbListTables
+createCdDatabaseDataSource <- function(connectionHandler,
+                                       resultsDatabaseSchema,
+                                       vocabularyDatabaseSchema = resultsDatabaseSchema,
+                                       tablePrefix = "",
+                                       cohortTableName = "cohort",
+                                       databaseTableName = "database",
+                                       dataModelSpecificationsPath = system.file("cohort-diagnostics-ref",
+                                                                                 "resultsDataModelSpecification.csv",
+                                                                                 package = utils::packageName())) {
 
-        return(tableName)
-      },
-      cohortTableName = cohortTableName,
-      databaseTableName = databaseTableName,
-      dataModelSpecifications = read.csv(dataModelSpecificationsPath)
-    )
+  checkmate::assertR6(connectionHandler, "ConnectionHandler")
+  checkmate::assertString(resultsDatabaseSchema)
+  checkmate::assertString(vocabularyDatabaseSchema)
+  checkmate::assertString(tablePrefix)
+  checkmate::assertString(cohortTableName)
+  checkmate::assertString(databaseTableName)
+  checkmate::assertFileExists(dataModelSpecificationsPath)
+
+  dataSource <- list(
+    connectionHandler = connectionHandler,
+    resultsDatabaseSchema = resultsDatabaseSchema,
+    vocabularyDatabaseSchema = vocabularyDatabaseSchema,
+    dbms = connectionHandler$dbms(),
+    resultsTablesOnServer = tolower(DatabaseConnector::dbListTables(connectionHandler$getConnection(),
+                                                                    schema = resultsDatabaseSchema)),
+    tablePrefix = tablePrefix,
+    prefixTable = function(tableName) { paste0(tablePrefix, tableName) },
+    prefixVocabTable = function(tableName) {
+      # don't prexfix table if we us a dedicated vocabulary schema
+      if (vocabularyDatabaseSchema == resultsDatabaseSchema)
+        return(paste0(tablePrefix, tableName))
+
+      return(tableName)
+    },
+    cohortTableName = cohortTableName,
+    databaseTableName = databaseTableName,
+    dataModelSpecifications = read.csv(dataModelSpecificationsPath)
   )
+  dataSource$enabledReports <- getEnabledCdReports(dataSource)
+  class(dataSource) <- "CdDataSource"
+  return(dataSource)
 }
 
 # SO much of the app requires this table in memory - it would be much better to re-write queries to not need it!
@@ -223,33 +254,36 @@ getResultsTemporalTimeRef <- function(dataSource) {
 #'
 #' @param connectionHandler             ResultModelManager ConnectionHander instance
 #' @param resultDatabaseSettings        results database settings
-#'
+#' @param vocabularyDatabaseSchema      Optional vocabulary database schema
 #' @export
 cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
-                                   connectionHandler,
+                                   connectionHandler = NULL,
+                                   dataSource = NULL,
                                    resultsDatabaseSettings,
                                    vocabularyDatabaseSchema = resultsDatabaseSettings$resultsDatabaseSchema) {
   ns <- shiny::NS(id)
-  checkmate::assertR6(connectionHandler, "ConnectionHandler")
 
-  dataSource <-
-    createDatabaseDataSource(
-      connectionHandler = connectionHandler,
-      resultsDatabaseSchema = resultsDatabaseSettings$resultsDatabaseSchema,
-      vocabularyDatabaseSchema = vocabularyDatabaseSchema,
-      dbms = connectionHandler$connectionDetails$dbms,
-      tablePrefix = resultsDatabaseSettings$tablePrefix,
-      cohortTableName = resultsDatabaseSettings$cohortTableName,
-      databaseTableName = resultsDatabaseSettings$databaseTableName
-    )
+  checkmate::assertClass(dataSource, "CdDataSource", null.ok = TRUE)
+  if (is.null(dataSource)) {
+    checkmate::assertR6(connectionHandler, "ConnectionHandler", null.ok = FALSE)
 
+    dataSource <-
+      createCdDatabaseDataSource(
+        connectionHandler = connectionHandler,
+        resultsDatabaseSchema = resultsDatabaseSettings$resultsDatabaseSchema,
+        vocabularyDatabaseSchema = vocabularyDatabaseSchema,
+        tablePrefix = resultsDatabaseSettings$tablePrefix,
+        cohortTableName = resultsDatabaseSettings$cohortTableName,
+        databaseTableName = resultsDatabaseSettings$databaseTableName
+      )
+  }
   # TODO: rewrite results queries to make these efficient
   databaseTable <- getDatabaseTable(dataSource)
   cohortTable <- getCohortTable(dataSource)
   conceptSets <- loadResultsTable(dataSource, "concept_sets", tablePrefix = dataSource$tablePrefix)
   cohortCountTable <- loadResultsTable(dataSource, "cohort_count", required = TRUE, tablePrefix = dataSource$tablePrefix)
 
-  enabledReports <- getEnabledCdReports(dataSource)
+  enabledReports <- dataSource$enabledReports
 
   temporalAnalysisRef <- loadResultsTable(dataSource, "temporal_analysis_ref", tablePrefix = dataSource$tablePrefix)
 
@@ -539,6 +573,7 @@ cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
                                 databaseTable = databaseTable,
                                 selectedCohort = selectedCohort,
                                 targetCohortId = targetCohortId,
+                                cohortCount = cohortCountTable,
                                 selectedDatabaseIds = selectedDatabaseIds)
     }
 
@@ -548,6 +583,7 @@ cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
                          selectedCohort = selectedCohort,
                          selectedDatabaseIds = selectedDatabaseIds,
                          targetCohortId = targetCohortId,
+                         cohortCount = cohortCountTable,
                          databaseTable = databaseTable)
     }
 

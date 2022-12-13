@@ -467,9 +467,9 @@ compareCohortCharacterizationView <- function(id, title = "Compare cohort charac
 #' @description
 #' Returns data from cohort table of Cohort Diagnostics results data model
 #'
-#' @template DataSource
+#' template DataSource
 #'
-#' @template CohortIds
+#' template CohortIds
 #'
 #' @return
 #' Returns a data frame (tibble)
@@ -496,11 +496,11 @@ getResultsCohort <- function(dataSource, cohortIds = NULL) {
 #' Returns a list object with covariateValue,
 #' covariateRef, analysisRef output of cohort as features.
 #'
-#' @template DataSource
+#' template DataSource
 #'
-#' @template CohortIds
+#' template CohortIds
 #'
-#' @template DatabaseIds
+#' template DatabaseIds
 #'
 #' @return
 #' Returns a list object with covariateValue,
