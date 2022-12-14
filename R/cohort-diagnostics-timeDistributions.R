@@ -179,6 +179,13 @@ plotTimeDistribution <- function(data, shortNameRef = NULL) {
   )
 }
 
+
+#' timeDistributions view
+#' @description
+#' Use for customizing UI
+#'
+#' @param id    Namespace Id - use namespaced id ns("imeDistributions") inside diagnosticsExplorer module
+#' @export
 timeDistributionsView <- function(id) {
   ns <- shiny::NS(id)
   selectableCols <- c(

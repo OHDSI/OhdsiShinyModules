@@ -316,6 +316,12 @@ plotIncidenceRate <- function(data,
   return(plot)
 }
 
+#' incidence Rates View
+#' @description
+#' Use for customizing UI
+#'
+#' @param id    Namespace Id - use namespaced id ns("incidenceRates") inside diagnosticsExplorer module
+#' @export
 incidenceRatesView <- function(id) {
   ns <- shiny::NS(id)
   shiny::tagList(

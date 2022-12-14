@@ -6,6 +6,9 @@
 \usage{
 cohortOverlapView(id)
 }
+\arguments{
+\item{id}{Namespace Id - use namespaced id ns("cohortOverlap") inside diagnosticsExplorer module}
+}
 \description{
-Cohort Overlap View
+Use for customizing UI
 }

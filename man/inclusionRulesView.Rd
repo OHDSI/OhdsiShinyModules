@@ -6,6 +6,9 @@
 \usage{
 inclusionRulesView(id)
 }
+\arguments{
+\item{id}{Namespace Id - use namespaced id ns("inclusionRules") inside diagnosticsExplorer module}
+}
 \description{
-inclusion Rules View
+Use for customizing UI
 }

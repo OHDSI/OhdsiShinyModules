@@ -6,9 +6,9 @@
 \usage{
 cohortCountsView(id)
 }
+\arguments{
+\item{id}{Namespace id}
+}
 \description{
 Shiny view for cohort counts module
-inputId cohortCountsTableColumnFilter              Column filters
-outputId cohortCountsTable                         Reactable output of cohort counts for specified databases
-outputId inclusionRuleStats    Reactable output of inclusion rules
 }

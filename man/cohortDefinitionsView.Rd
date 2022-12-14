@@ -6,6 +6,9 @@
 \usage{
 cohortDefinitionsView(id)
 }
+\arguments{
+\item{id}{Namespace id for module}
+}
 \description{
 Outputs cohort definitions
 }

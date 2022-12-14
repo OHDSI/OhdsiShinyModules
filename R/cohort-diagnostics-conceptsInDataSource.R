@@ -14,6 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#' concepts In DataSource View
+#' @description
+#' Use for customizing UI
+#'
+#' @param id    Namespace Id - use namespaced id ns("conceptsInDataSource") inside diagnosticsExplorer module
+#' @export
 conceptsInDataSourceView <- function(id) {
   ns <- shiny::NS(id)
   shiny::tagList(

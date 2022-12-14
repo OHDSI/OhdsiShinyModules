@@ -14,6 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#' Index event breakdown view
+#' @description
+#' Use for customizing UI
+#'
+#' @param id    Namespace Id - use namespaced id ns("indexEvents") inside diagnosticsExplorer module
+#' @export
 indexEventBreakdownView <- function(id) {
   ns <- shiny::NS(id)
 
@@ -126,9 +132,7 @@ getIndexEventBreakdown <- function(dataSource,
   return(data)
 }
 
-#'
-#'
-#'
+
 indexEventBreakdownModule <- function(id,
                                       dataSource,
                                       databaseTable,

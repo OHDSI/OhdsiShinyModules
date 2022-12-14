@@ -6,7 +6,8 @@
 \usage{
 cohortDiagnosticsSever(
   id = "DiagnosticsExplorer",
-  connectionHandler,
+  connectionHandler = NULL,
+  dataSource = NULL,
   resultsDatabaseSettings,
   vocabularyDatabaseSchema = resultsDatabaseSettings$resultsDatabaseSchema
 )

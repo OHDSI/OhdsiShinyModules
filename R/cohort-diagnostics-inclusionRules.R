@@ -15,6 +15,11 @@
 # limitations under the License.
 
 #' inclusion Rules View
+#' @description
+#' Use for customizing UI
+#'
+#' @param id    Namespace Id - use namespaced id ns("inclusionRules") inside diagnosticsExplorer module
+#' @export
 inclusionRulesView <- function(id) {
   ns <- shiny::NS(id)
   shiny::tagList(
@@ -70,10 +75,6 @@ inclusionRulesView <- function(id) {
 }
 
 #' inclusion Rules Module
-#'
-#'
-#'
-#'
 inclusionRulesModule <- function(id,
                                  dataSource,
                                  databaseTable,

@@ -14,6 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#' Visit context module view
+#' @description
+#' Use for customizing UI
+#'
+#' @param id        Namespace Id - use namespaced id ns("vistConext") inside diagnosticsExplorer module
+#' @export
 visitContextView <- function(id) {
   ns <- shiny::NS(id)
   shiny::tagList(
@@ -109,8 +115,7 @@ getVisitContextResults <- function(dataSource,
   return(data)
 }
 
-visitContextModule <- function(id,
-                               dataSource,
+visitContextModule <- function(dataSource,
                                selectedCohort, #this is selectedCohorts in other modules
                                selectedDatabaseIds,
                                targetCohortId,

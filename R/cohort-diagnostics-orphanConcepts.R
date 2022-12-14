@@ -15,7 +15,11 @@
 # limitations under the License.
 
 #' Orphan Concepts View
+#' @description
+#' Use for customizing UI
 #'
+#' @param id    Namespace Id - use namespaced id ns("orphanConcepts") inside diagnosticsExplorer module
+#' @export
 orpahanConceptsView <- function(id) {
   ns <- shiny::NS(id)
   shiny::tagList(

@@ -290,8 +290,8 @@ exportCohortDefinitionsZip <- function(cohortDefinitions,
 #' Cohort Definitions View
 #' @description
 #' Outputs cohort definitions
-#'
-#'
+#' @param id            Namespace id for module
+#' @export
 cohortDefinitionsView <- function(id) {
   ns <- shiny::NS(id)
   ui <- shiny::tagList(

@@ -6,6 +6,9 @@
 \usage{
 orpahanConceptsView(id)
 }
+\arguments{
+\item{id}{Namespace Id - use namespaced id ns("orphanConcepts") inside diagnosticsExplorer module}
+}
 \description{
-Orphan Concepts View
+Use for customizing UI
 }
