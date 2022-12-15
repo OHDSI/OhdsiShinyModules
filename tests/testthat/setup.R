@@ -125,7 +125,7 @@ connectionHandlerCohortDiag <- ResultModelManager::ConnectionHandler$new(connect
 dataSourceCd <-
   createCdDatabaseDataSource(
     connectionHandler = connectionHandlerCohortDiag,
-    resultsDatabaseSchema = resultDatabaseSettingsCohortDiag$resultsDatabaseSchema,
+    schema = resultDatabaseSettingsCohortDiag$resultsDatabaseSchema,
     vocabularyDatabaseSchema = "main",
     tablePrefix = "",
     cohortTableName = "cohort",

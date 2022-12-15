@@ -137,7 +137,32 @@ cdUiControls <- function(ns) {
   return(panels)
 }
 
-cohortDiagnosticsExplorerUi <- function(id = "DiagnosticsExplorer") {
+#' The location of the description module helper file
+#'
+#' @details
+#' Returns the location of the description helper file
+#'
+#' @return
+#' string location of the description helper file
+#'
+#' @export
+cohortDiagnosticsHelperFile <- function(){
+  fileLoc <- system.file('cohort-diagnostics-www', "cohort-diagnostics.html", package = utils::packageName())
+  return(fileLoc)
+}
+
+
+#' View for cohort diagnostics module
+#' @details
+#' The user specifies the id for the module
+#'
+#' @param id  the unique reference id for the module
+#'
+#' @return
+#' The user interface to the cohort diagnostics viewer module
+#'
+#' @export
+cohortDiagnosticsView <- function(id = "DiagnosticsExplorer") {
   ns <- shiny::NS(id)
 
   shiny::fluidPage(

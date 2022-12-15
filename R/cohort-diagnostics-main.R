@@ -97,7 +97,7 @@ getEnabledCdReports <- function(dataSource) {
 #' a shiny app. E.g. if you wanted to make a custom R markdown template
 #'
 #' @param connectionHandler An instance of a ResultModelManager::connectionHander - manages a connection to a database.
-#' @param resultsDatabaseSchema The schema containing the results tables in the database.
+#' @param schema The schema containing the results tables in the database.
 #' @param vocabularyDatabaseSchema The schema containing the vocabulary tables in the database. If not provided, defaults to `resultsDatabaseSchema`.
 #' @param tablePrefix An optional prefix to add to the table names.
 #' @param cohortTableName The name of the cohort table in the database.
@@ -111,8 +111,8 @@ getEnabledCdReports <- function(dataSource) {
 #' @import utils
 #' @importFrom DatabaseConnector dbListTables
 createCdDatabaseDataSource <- function(connectionHandler,
-                                       resultsDatabaseSchema,
-                                       vocabularyDatabaseSchema = resultsDatabaseSchema,
+                                       schema,
+                                       vocabularyDatabaseSchema = schema,
                                        tablePrefix = "",
                                        cohortTableName = "cohort",
                                        databaseTableName = "database",
@@ -121,7 +121,7 @@ createCdDatabaseDataSource <- function(connectionHandler,
                                                                                  package = utils::packageName())) {
 
   checkmate::assertR6(connectionHandler, "ConnectionHandler")
-  checkmate::assertString(resultsDatabaseSchema)
+  checkmate::assertString(schema)
   checkmate::assertString(vocabularyDatabaseSchema)
   checkmate::assertString(tablePrefix)
   checkmate::assertString(cohortTableName)
@@ -132,16 +132,16 @@ createCdDatabaseDataSource <- function(connectionHandler,
 
   dataSource <- list(
     connectionHandler = connectionHandler,
-    resultsDatabaseSchema = resultsDatabaseSchema,
+    resultsDatabaseSchema = schema,
     vocabularyDatabaseSchema = vocabularyDatabaseSchema,
     dbms = connectionHandler$dbms(),
     resultsTablesOnServer = tolower(DatabaseConnector::dbListTables(connectionHandler$getConnection(),
-                                                                    schema = resultsDatabaseSchema)),
+                                                                    schema = schema)),
     tablePrefix = tablePrefix,
     prefixTable = function(tableName) { paste0(tablePrefix, tableName) },
     prefixVocabTable = function(tableName) {
       # don't prexfix table if we us a dedicated vocabulary schema
-      if (vocabularyDatabaseSchema == resultsDatabaseSchema)
+      if (vocabularyDatabaseSchema == schema)
         return(paste0(tablePrefix, tableName))
 
       return(tableName)
@@ -307,8 +307,7 @@ getResultsTemporalTimeRef <- function(dataSource) {
 cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
                                    connectionHandler = NULL,
                                    dataSource = NULL,
-                                   resultsDatabaseSettings,
-                                   vocabularyDatabaseSchema = resultsDatabaseSettings$resultsDatabaseSchema) {
+                                   resultsDatabaseSettings) {
   ns <- shiny::NS(id)
 
   checkmate::assertClass(dataSource, "CdDataSource", null.ok = TRUE)
@@ -318,11 +317,11 @@ cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
     dataSource <-
       createCdDatabaseDataSource(
         connectionHandler = connectionHandler,
-        resultsDatabaseSchema = resultsDatabaseSettings$resultsDatabaseSchema,
-        vocabularyDatabaseSchema = vocabularyDatabaseSchema,
+        schema = resultsDatabaseSettings$schema,
+        vocabularyDatabaseSchema = resultsDatabaseSettings$vocabularyDatabaseSchema,
         tablePrefix = resultsDatabaseSettings$tablePrefix,
-        cohortTableName = resultsDatabaseSettings$cohortTableName,
-        databaseTableName = resultsDatabaseSettings$databaseTableName
+        cohortTableName = resultsDatabaseSettings$cohortTable,
+        databaseTableName = resultsDatabaseSettings$databaseTable
       )
   }
 

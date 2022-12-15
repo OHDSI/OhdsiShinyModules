@@ -53,4 +53,4 @@ Remotes:
     ohdsi/CirceR,
     ohdsi/ParallelLogger,
     ohdsi/ResultModelManager@develop
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
