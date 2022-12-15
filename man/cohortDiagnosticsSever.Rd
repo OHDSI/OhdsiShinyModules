@@ -8,16 +8,15 @@ cohortDiagnosticsSever(
   id = "DiagnosticsExplorer",
   connectionHandler = NULL,
   dataSource = NULL,
-  resultsDatabaseSettings,
-  vocabularyDatabaseSchema = resultsDatabaseSettings$resultsDatabaseSchema
+  resultsDatabaseSettings
 )
 }
 \arguments{
 \item{connectionHandler}{ResultModelManager ConnectionHander instance}
 
-\item{vocabularyDatabaseSchema}{Optional vocabulary database schema}
-
 \item{resultDatabaseSettings}{results database settings}
+
+\item{vocabularyDatabaseSchema}{Optional vocabulary database schema}
 }
 \description{
 Cohort Diagnostics Explorer main module

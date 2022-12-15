@@ -6,8 +6,8 @@
 \usage{
 createCdDatabaseDataSource(
   connectionHandler,
-  resultsDatabaseSchema,
-  vocabularyDatabaseSchema = resultsDatabaseSchema,
+  schema,
+  vocabularyDatabaseSchema = schema,
   tablePrefix = "",
   cohortTableName = "cohort",
   databaseTableName = "database",
@@ -18,7 +18,7 @@ createCdDatabaseDataSource(
 \arguments{
 \item{connectionHandler}{An instance of a ResultModelManager::connectionHander - manages a connection to a database.}
 
-\item{resultsDatabaseSchema}{The schema containing the results tables in the database.}
+\item{schema}{The schema containing the results tables in the database.}
 
 \item{vocabularyDatabaseSchema}{The schema containing the vocabulary tables in the database. If not provided, defaults to `resultsDatabaseSchema`.}
 
