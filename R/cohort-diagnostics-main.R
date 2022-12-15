@@ -14,6 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+# NOTE: here it would be nice to use dbplyr tables - this would allow lazy loading of resources
+# however, renaming the columns causes an error and its not obvious how it could be resolved
 loadResultsTable <- function(dataSource, tableName, required = FALSE, tablePrefix = "") {
   selectTableName <- paste0(tablePrefix, tableName)
   resultsTablesOnServer <-
@@ -43,9 +46,7 @@ loadResultsTable <- function(dataSource, tableName, required = FALSE, tablePrefi
     )
     colnames(table) <-
       SqlRender::snakeCaseToCamelCase(colnames(table))
-    if (nrow(table) > 0) {
-      return(dplyr::as_tibble(table))
-    }
+    return(table)
   }
 
   return(data.frame())
@@ -59,7 +60,8 @@ tableIsEmpty <- function(dataSource, tableName) {
     row <- dataSource$connectionHandler$queryDb(
       sql,
       result_schema = dataSource$resultsDatabaseSchema,
-      table = tableName)
+      table = tableName
+    )
 
   }, error = function(...) {
     message("Table not found: ", tableName)
@@ -126,6 +128,8 @@ createCdDatabaseDataSource <- function(connectionHandler,
   checkmate::assertString(databaseTableName)
   checkmate::assertFileExists(dataModelSpecificationsPath)
 
+  print("Initializing cohort diagnostics data source")
+
   dataSource <- list(
     connectionHandler = connectionHandler,
     resultsDatabaseSchema = resultsDatabaseSchema,
@@ -147,6 +151,50 @@ createCdDatabaseDataSource <- function(connectionHandler,
     dataModelSpecifications = read.csv(dataModelSpecificationsPath)
   )
   dataSource$enabledReports <- getEnabledCdReports(dataSource)
+  dataSource$databaseTable <- getDatabaseTable(dataSource)
+  dataSource$cohortTable <- getCohortTable(dataSource)
+  dataSource$conceptSets <- loadResultsTable(dataSource, "concept_sets", tablePrefix = dataSource$tablePrefix)
+  dataSource$cohortCountTable <- loadResultsTable(dataSource, "cohort_count", required = TRUE, tablePrefix = dataSource$tablePrefix)
+
+  dataSource$enabledReports <- dataSource$enabledReports
+
+  dataSource$temporalAnalysisRef <- loadResultsTable(dataSource, "temporal_analysis_ref", tablePrefix = dataSource$tablePrefix)
+
+  dataSource$temporalChoices <- getResultsTemporalTimeRef(dataSource = dataSource)
+  dataSource$temporalCharacterizationTimeIdChoices <- dataSource$temporalChoices %>%
+    dplyr::arrange(sequence)
+
+  dataSource$characterizationTimeIdChoices <- dataSource$temporalChoices %>%
+    dplyr::filter(isTemporal == 0) %>%
+    dplyr::filter(primaryTimeId == 1) %>%
+    dplyr::arrange(sequence)
+
+
+  if (!is.null(dataSource$temporalAnalysisRef)) {
+    dataSource$temporalAnalysisRef <- dplyr::bind_rows(
+      dataSource$temporalAnalysisRef,
+      dplyr::tibble(
+        analysisId = c(-201, -301),
+        analysisName = c("CohortEraStart", "CohortEraOverlap"),
+        domainId = "Cohort",
+        isBinary = "Y",
+        missingMeansZero = "Y"
+      )
+    )
+
+    dataSource$domainIdOptions <- dataSource$temporalAnalysisRef %>%
+      dplyr::select(domainId) %>%
+      dplyr::pull(domainId) %>%
+      unique() %>%
+      sort()
+
+    dataSource$analysisNameOptions <- dataSource$temporalAnalysisRef %>%
+      dplyr::select(analysisName) %>%
+      dplyr::pull(analysisName) %>%
+      unique() %>%
+      sort()
+  }
+
   class(dataSource) <- "CdDataSource"
   return(dataSource)
 }
@@ -277,58 +325,68 @@ cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
         databaseTableName = resultsDatabaseSettings$databaseTableName
       )
   }
-  # TODO: rewrite results queries to make these efficient
-  databaseTable <- getDatabaseTable(dataSource)
-  cohortTable <- getCohortTable(dataSource)
-  conceptSets <- loadResultsTable(dataSource, "concept_sets", tablePrefix = dataSource$tablePrefix)
-  cohortCountTable <- loadResultsTable(dataSource, "cohort_count", required = TRUE, tablePrefix = dataSource$tablePrefix)
-
-  enabledReports <- dataSource$enabledReports
-
-  temporalAnalysisRef <- loadResultsTable(dataSource, "temporal_analysis_ref", tablePrefix = dataSource$tablePrefix)
-
-  temporalChoices <- getResultsTemporalTimeRef(dataSource = dataSource)
-  temporalCharacterizationTimeIdChoices <- temporalChoices %>%
-    dplyr::arrange(sequence)
-
-  characterizationTimeIdChoices <- temporalChoices %>%
-    dplyr::filter(isTemporal == 0) %>%
-    dplyr::filter(primaryTimeId == 1) %>%
-    dplyr::arrange(sequence)
-
-
-  if (!is.null(temporalAnalysisRef)) {
-    temporalAnalysisRef <- dplyr::bind_rows(
-      temporalAnalysisRef,
-      dplyr::tibble(
-        analysisId = c(-201, -301),
-        analysisName = c("CohortEraStart", "CohortEraOverlap"),
-        domainId = "Cohort",
-        isBinary = "Y",
-        missingMeansZero = "Y"
-      )
-    )
-
-    domainIdOptions <- temporalAnalysisRef %>%
-      dplyr::select(domainId) %>%
-      dplyr::pull(domainId) %>%
-      unique() %>%
-      sort()
-
-    analysisNameOptions <- temporalAnalysisRef %>%
-      dplyr::select(analysisName) %>%
-      dplyr::pull(analysisName) %>%
-      unique() %>%
-      sort()
-  }
 
   shiny::moduleServer(id, function(input, output, session) {
+    databaseTable <- dataSource$databaseTable
+    cohortTable <- dataSource$cohortTable
+    conceptSets <- dataSource$conceptSets
+    cohortCountTable <- dataSource$cohortCountTable
+    enabledReports <- dataSource$enabledReports
+    temporalAnalysisRef <- dataSource$temporalAnalysisRef
+    temporalChoices <- dataSource$temporalChoices
+    temporalCharacterizationTimeIdChoices <- dataSource$temporalCharacterizationTimeIdChoices
+    characterizationTimeIdChoices <- dataSource$characterizationTimeIdChoices
+    domainIdOptions <- dataSource$domainIdOptions
+    analysisNameOptions <- dataSource$analysisNameOptions
+
+    shiny::observe({
+
+      selection <- c(
+        "Cohort Definitions" = "cohortDefinitions",
+        "Database Information" = "databaseInformation"
+      )
+      if ("cohortCount" %in% dataSource$enabledReports)
+        selection["Cohort Counts"] <- "cohortCounts"
+
+      if ("indexEvents" %in% dataSource$enabledReports)
+        selection["Index Events"] <- "indexEvents"
+
+      if ("temporalCovariateValue" %in% dataSource$enabledReports) {
+        selection["Cohort Characterization"] <- "characterization"
+        selection["Compare Cohort Characterization"] <- "compareCohortCharacterization"
+        selection["Time Distributions"] <- "timeDistributions"
+      }
+
+      if ("relationship" %in% dataSource$enabledReports)
+        selection["Cohort Overlap"] <- "cohortOverlap"
+
+      if ("cohortInclusion" %in% dataSource$enabledReports)
+        selection["Inclusion Rule Statistics"] <- "inclusionRules"
+
+      if ("incidenceRate" %in% dataSource$enabledReports)
+        selection["Incidence"] <- "incidenceRates"
+
+      if ("visitContext" %in% dataSource$enabledReports)
+        selection["Visit Context"] <- "visitContext"
+
+      if ("includedSourceConcept" %in% dataSource$enabledReports)
+        selection["Concepts In Data Source"] <- "conceptsInDataSource"
+
+      if ("orphanConcepts" %in% dataSource$enabledReports)
+        selection["Orphan Concepts"] <- "orphanConcepts"
+
+      shiny::updateSelectInput(
+        inputId = "tabs",
+        label = "Select Report",
+        choices = selection,
+        selected = c("cohortDefinitions")
+      )
+    })
 
     # Reacive: targetCohortId
     targetCohortId <- shiny::reactive({
       return(cohortTable$cohortId[cohortTable$compoundName == input$targetCohort])
     })
-
     # Reacive: cohortIds
     cohortIds <- shiny::reactive({
       cohortTable %>%
@@ -429,51 +487,6 @@ cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
         choicesOpt = list(style = rep_len("color: black;", 999)),
         choices = subset,
         selected = c(subset[1], subset[2])
-      )
-    })
-
-
-    inputCohortIds <- shiny::reactive({
-      if (input$tabs == "cohortCounts" |
-        input$tabs == "cohortOverlap" |
-        input$tabs == "incidenceRate" |
-        input$tabs == "timeDistribution") {
-        subset <- input$cohorts
-      } else {
-        subset <- input$targetCohort
-      }
-
-      return(subset)
-    })
-
-    shiny::observe({
-      shinyWidgets::updatePickerInput(
-        session = session,
-        inputId = paste0("targetCohort", input$tabs),
-        choicesOpt = list(style = rep_len("color: black;", 999)),
-        choices = inputCohortIds(),
-        selected = inputCohortIds()
-      )
-    })
-
-    shiny::observe({
-      shinyWidgets::updatePickerInput(
-        session = session,
-        inputId = paste0("database", input$tabs),
-        choicesOpt = list(style = rep_len("color: black;", 999)),
-        choices = selectedDatabaseIds(),
-        selected = selectedDatabaseIds()
-      )
-    })
-
-    shiny::observe({
-      subset <- cohortSubset()$compoundName
-      shinyWidgets::updatePickerInput(
-        session = session,
-        inputId = "comparatorCohort",
-        choicesOpt = list(style = rep_len("color: black;", 999)),
-        choices = subset,
-        selected = subset[2]
       )
     })
 
@@ -627,18 +640,29 @@ cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
 
     if ("incidenceRate" %in% enabledReports) {
       incidenceRatesModule(id = "incidenceRates",
-                           connectionHandler = dataSource,
+                           dataSource = dataSource,
                            selectedCohorts = selectedCohorts,
                            cohortIds = cohortIds,
                            selectedDatabaseIds = selectedDatabaseIds,
                            cohortTable = cohortTable)
     }
 
+    if ("cohortInclusion" %in% enabledReports) {
+      inclusionRulesModule(id = "inclusionRules",
+                           dataSource = dataSource,
+                           databaseTable = databaseTable,
+                           selectedCohort = selectedCohort,
+                           targetCohortId = targetCohortId,
+                           selectedDatabaseIds = selectedDatabaseIds)
+
+    }
     databaseInformationModule(id = "databaseInformation",
                               dataSource = dataSource,
                               selectedDatabaseIds = selectedDatabaseIds,
                               databaseTable = databaseTable)
 
-  })
+  }
+
+  )
 
 }

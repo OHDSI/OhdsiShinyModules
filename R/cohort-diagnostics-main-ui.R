@@ -17,19 +17,8 @@
 cdUiControls <- function(ns) {
   panels <- shiny::tagList(
     shiny::conditionalPanel(
-      condition = "input.tabs!='incidenceRate' &
-      input.tabs != 'timeDistribution' &
-      input.tabs != 'cohortCharacterization' &
-      input.tabs != 'cohortCounts' &
-      input.tabs != 'indexEventBreakdown' &
-      input.tabs != 'cohortDefinition' &
-      input.tabs != 'conceptsInDataSource' &
-      input.tabs != 'orphanConcepts' &
-      input.tabs != 'inclusionRuleStats' &
-      input.tabs != 'visitContext' &
-      input.tabs != 'compareCohortCharacterization' &
-      input.tabs != 'cohortCharacterization' &
-      input.tabs != 'cohortOverlap'",
+      condition = "
+      input.tabs == 'databaseInformation'",
       ns = ns,
       shinyWidgets::pickerInput(
         inputId = ns("database"),
@@ -48,13 +37,13 @@ cdUiControls <- function(ns) {
       )
     ),
     shiny::conditionalPanel(
-      condition = "input.tabs=='incidenceRate' |
+      condition = "input.tabs=='incidenceRates' |
       input.tabs == 'timeDistribution' |
       input.tabs == 'cohortCounts' |
       input.tabs == 'indexEventBreakdown' |
       input.tabs == 'conceptsInDataSource' |
       input.tabs == 'orphanConcepts' |
-      input.tabs == 'inclusionRuleStats' |
+      input.tabs == 'inclusionRules' |
       input.tabs == 'visitContext' |
       input.tabs == 'cohortOverlap'",
       ns = ns,
@@ -75,14 +64,11 @@ cdUiControls <- function(ns) {
       )
     ),
     shiny::conditionalPanel(
-      condition = "input.tabs != 'databaseInformation' &
-      input.tabs != 'cohortDefinition' &
-      input.tabs != 'cohortCounts' &
-      input.tabs != 'cohortOverlap'&
-      input.tabs != 'incidenceRate' &
-      input.tabs != 'compareCohortCharacterization' &
-      input.tabs != 'cohortCharacterization' &
-      input.tabs != 'timeDistribution'",
+      condition = "
+      input.tabs == 'conceptsInDataSource' |
+      input.tabs == 'orphanConcepts'|
+      input.tabs == 'indexEvents' |
+      input.tabs == 'visitContext'",
       ns = ns,
       shinyWidgets::pickerInput(
         inputId = ns("targetCohort"),
@@ -103,8 +89,8 @@ cdUiControls <- function(ns) {
     shiny::conditionalPanel(
       condition = "input.tabs == 'cohortCounts' |
       input.tabs == 'cohortOverlap' |
-      input.tabs == 'incidenceRate' |
-      input.tabs == 'timeDistribution'",
+      input.tabs == 'incidenceRates' |
+      input.tabs == 'timeDistributions'",
       ns = ns,
       shinyWidgets::pickerInput(
         inputId = ns("cohorts"),
@@ -151,136 +137,94 @@ cdUiControls <- function(ns) {
   return(panels)
 }
 
-#' Cohort Diagnostics UI
-#' @param id        Namespace id "DiagnosticsExplorer"
-#' @param enabledReports   enabled reports
-#' @export
-cohortDiagnosticsUi <- function(id = "DiagnosticsExplorer",
-                                enabledReports) {
+cohortDiagnosticsExplorerUi <- function(id = "DiagnosticsExplorer") {
   ns <- shiny::NS(id)
-  headerContent <- tags$li(
-    class = "dropdown",
-    style = "margin-top: 8px !important; margin-right : 5px !important"
-  )
 
-  header <-
-    shinydashboard::dashboardHeader(title = "Cohort Diagnostics", headerContent)
-
-  sidebarMenu <-
-    shinydashboard::sidebarMenu(
-      id = ns("tabs"),
-      shinydashboard::menuItem(text = "Cohort Definition", tabName = "cohortDefinition", icon = shiny::icon("code")),
-      shinydashboard::menuItem(text = "Concepts in Data Source", tabName = "conceptsInDataSource", icon = shiny::icon("table")),
-      shinydashboard::menuItem(text = "Orphan Concepts", tabName = "orphanConcepts", icon = shiny::icon("notes-medical")),
-      shinydashboard::menuItem(text = "Cohort Counts", tabName = "cohortCounts", icon = shiny::icon("bars")),
-      shinydashboard::menuItem(text = "Incidence Rate", tabName = "incidenceRate", icon = shiny::icon("plus")),
-      if ("temporalCovariateValue" %in% enabledReports) {
-        shinydashboard::menuItem(text = "Time Distributions", tabName = "timeDistribution", icon = shiny::icon("clock"))
-      },
-      if ("indexEventBreakdown" %in% enabledReports) {
-        shinydashboard::menuItem(text = "Index Event Breakdown", tabName = "indexEventBreakdown", icon = shiny::icon("hospital"))
-      },
-      if ("visitContext" %in% enabledReports) {
-        shinydashboard::menuItem(text = "Visit Context", tabName = "visitContext", icon = shiny::icon("building"))
-      },
-      if ("relationship" %in% enabledReports) {
-        shinydashboard::menuItem(text = "Cohort Overlap", tabName = "cohortOverlap", icon = shiny::icon("circle"))
-      },
-      if ("temporalCovariateValue" %in% enabledReports) {
-        shinydashboard::menuItem(text = "Cohort Characterization", tabName = "cohortCharacterization", icon = shiny::icon("user"))
-      },
-      if ("temporalCovariateValue" %in% enabledReports) {
-        shinydashboard::menuItem(text = "Compare Characterization", tabName = "compareCohortCharacterization", icon = shiny::icon("users"))
-      },
-      shinydashboard::menuItem(text = "Meta data", tabName = "databaseInformation", icon = shiny::icon("gear", verify_fa = FALSE)),
-      # Conditional dropdown boxes in the side bar ------------------------------------------------------
-      cdUiControls(ns)
-    )
-
-  # Side bar code
-  sidebar <-
-    shinydashboard::dashboardSidebar(sidebarMenu,
-                                     width = NULL,
-                                     collapsed = FALSE
-    )
-
-  # Body - items in tabs --------------------------------------------------
-  bodyTabItems <- shinydashboard::tabItems(
-    shinydashboard::tabItem(
-      tabName = "about",
-      if ("aboutText" %in% enabledReports) {
-        HTML(aboutText)
-      }
+  shiny::fluidPage(
+    shiny::div(
+      shinydashboard::box(
+        title = "Cohort Level Diagnostics",
+        width = "100%",
+        shiny::fluidRow(
+          shiny::column(
+            shiny::selectInput(inputId = ns("tabs"),
+                               label = "Select Report",
+                               choices = c(), selected = NULL),
+            width = 12
+          ),
+          shiny::column(
+            cdUiControls(ns),
+            width = 12
+          )
+        )
+      )
     ),
-    shinydashboard::tabItem(
-      tabName = "cohortDefinition",
-      cohortDefinitionsView(ns("cohortDefinitions"))
-    ),
-    shinydashboard::tabItem(
-      tabName = "cohortCounts",
-      cohortCountsView(ns("cohortCounts"))
-    ),
-    shinydashboard::tabItem(
-      tabName = "incidenceRate",
-      incidenceRatesView(ns("incidenceRates"))
-    ),
-    shinydashboard::tabItem(
-      tabName = "timeDistribution",
-      timeDistributionsView(ns("timeDistributions"))
-    ),
-    shinydashboard::tabItem(
-      tabName = "conceptsInDataSource",
-      conceptsInDataSourceView(ns("conceptsInDataSource"))
-    ),
-    shinydashboard::tabItem(
-      tabName = "orphanConcepts",
-      orpahanConceptsView(ns("orphanConcepts"))
-    ),
-    shinydashboard::tabItem(
-      tabName = "indexEventBreakdown",
-      indexEventBreakdownView(ns("indexEvents"))
-    ),
-    shinydashboard::tabItem(
-      tabName = "visitContext",
-      visitContextView(ns("visitContext"))
-    ),
-    shinydashboard::tabItem(
-      tabName = "cohortOverlap",
-      cohortOverlapView(ns("cohortOverlap"))
-    ),
-    shinydashboard::tabItem(
-      tabName = "cohortCharacterization",
-      characterizationView(ns("characterization"))
-    ),
-    shinydashboard::tabItem(
-      tabName = "compareCohortCharacterization",
-      compareCohortCharacterizationView(ns("compareCohortCharacterization"))
-    ),
-    shinydashboard::tabItem(
-      tabName = "databaseInformation",
-      databaseInformationView(ns("databaseInformation")),
+    shiny::fluidPage(
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.tabs == 'cohortDefinitions'",
+        cohortDefinitionsView(ns("cohortDefinitions"))
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.tabs == 'cohortCounts'",
+        cohortCountsView(ns("cohortCounts"))
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.tabs == 'indexEvents'",
+        indexEventBreakdownView(ns("indexEvents"))
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.tabs == 'characterization'",
+        characterizationView(ns("characterization"))
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.tabs == 'compareCohortCharacterization'",
+        compareCohortCharacterizationView(ns("compareCohortCharacterization"))
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.tabs == 'cohortOverlap'",
+        cohortOverlapView(ns("cohortOverlap"))
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.tabs == 'orphanConcepts'",
+        orpahanConceptsView(ns("orphanConcepts"))
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.tabs == 'databaseInformation'",
+        databaseInformationView(ns("databaseInformation"))
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.tabs == 'conceptsInDataSource'",
+        conceptsInDataSourceView(ns("conceptsInDataSource"))
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.tabs == 'timeDistributions'",
+        timeDistributionsView(ns("timeDistributions"))
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.tabs == 'visitContext'",
+        visitContextView(ns("visitContext"))
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.tabs == 'incidenceRates'",
+        incidenceRatesView(ns("incidenceRates"))
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.tabs == 'inclusionRules'",
+        inclusionRulesView(ns("inclusionRules"))
+      )
     )
   )
-
-  # body
-  body <- shinydashboard::dashboardBody(
-    bodyTabItems
-  )
-
-  # main
-  ui <- shinydashboard::dashboardPage(
-    tags$head(tags$style(HTML(
-      "
-        th, td {
-          padding-right: 10px;
-        }
-
-      "
-    ))),
-    header = header,
-    sidebar = sidebar,
-    body = body
-  )
-
-  return(ui)
 }

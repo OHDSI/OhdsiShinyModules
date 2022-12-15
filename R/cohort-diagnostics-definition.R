@@ -317,7 +317,7 @@ cohortDefinitionsView <- function(id) {
         )
       ),
       shiny::column(12,
-                    reactable::reactableOutput(outputId = ns("cohortDefinitionTable"))),
+                   shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("cohortDefinitionTable")))),
       shiny::column(
         12,
         shiny::conditionalPanel(
@@ -528,20 +528,23 @@ cohortDefinitionsModule <- function(id,
     # Cohort Definition ---------------------------------------------------------
     output$cohortDefinitionTable <-
       reactable::renderReactable(expr = {
-        data <- cohortDefinitionTableData() %>%
-          dplyr::mutate(cohortId = as.character(cohortId))
 
-        validate(need(hasData(data), "There is no data for this cohort."))
-        keyColumns <- c("cohortId", "cohortName")
-        dataColumns <- c()
+        shiny::withProgress({
+          data <- cohortDefinitionTableData() %>%
+            dplyr::mutate(cohortId = as.character(cohortId))
 
-        displayTable <- getDisplayTableSimple(
-          data = data,
-          databaseTable = databaseTable,
-          keyColumns = keyColumns,
-          dataColumns = dataColumns,
-          selection = "single"
-        )
+          validate(need(hasData(data), "There is no data for this cohort."))
+          keyColumns <- c("cohortId", "cohortName")
+          dataColumns <- c()
+
+          displayTable <- getDisplayTableSimple(
+            data = data,
+            databaseTable = databaseTable,
+            keyColumns = keyColumns,
+            dataColumns = dataColumns,
+            selection = "single"
+          )
+        }, message = "Loading cohort definitions")
         return(displayTable)
       })
 

@@ -482,19 +482,16 @@ compareCohortCharacterizationView <- function(id, title = "Compare cohort charac
 #' Returns a data frame (tibble)
 #'
 getResultsCohort <- function(dataSource, cohortIds = NULL) {
-  data <- renderTranslateQuerySql(
-    connection = dataSource$connection,
-    results_database_schema = dataSource$resultsDatabaseSchema,
-    dbms = dataSource$dbms,
+  data <- dataSource$connectionHandler$queryDb(
     sql = "SELECT * FROM @results_database_schema.@table_name
                                           {@cohort_id != \"\"} ? { WHERE cohort_id IN (@cohort_id)};",
+    results_database_schema = dataSource$resultsDatabaseSchema,
     cohort_id = cohortIds,
     table_name = dataSource$cohortTableName,
     snakeCaseToCamelCase = TRUE
   )
   return(data)
 }
-
 
 
 #' Returns cohort as feature characterization
@@ -516,9 +513,9 @@ getResultsCohort <- function(dataSource, cohortIds = NULL) {
 #' the output is a negative integer.
 #'
 getCohortRelationshipCharacterizationResults <-
-  function(dataSource = .GlobalEnv,
-           cohortIds = NULL,
-           databaseIds = NULL) {
+  function(dataSource,
+           cohortIds,
+           databaseIds) {
     cohortCounts <-
       getResultsCohortCounts(
         dataSource = dataSource,

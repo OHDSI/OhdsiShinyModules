@@ -637,14 +637,14 @@ getIncidenceRateResult <- function(dataSource,
 }
 
 incidenceRatesModule <- function(id,
-                                 connectionHandler,
+                                 dataSource,
                                  selectedCohorts,
                                  selectedDatabaseIds,
                                  cohortIds,
                                  cohortTable) {
   ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
-    irRanges <- getIncidenceRateRanges(connectionHandler)
+    irRanges <- getIncidenceRateRanges(dataSource)
     output$selectedCohorts <- shiny::renderUI({ selectedCohorts() })
 
     # Incidence rate ---------------------------
@@ -658,7 +658,7 @@ incidenceRatesModule <- function(id,
         "Calendar Year" %in% input$irStratification
       if (length(cohortIds()) > 0) {
         data <- getIncidenceRateResult(
-          dataSource = connectionHandler,
+          dataSource = dataSource,
           cohortIds = cohortIds(),
           databaseIds = selectedDatabaseIds(),
           stratifyByGender = stratifyByGender,

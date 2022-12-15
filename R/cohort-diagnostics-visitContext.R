@@ -115,7 +115,8 @@ getVisitContextResults <- function(dataSource,
   return(data)
 }
 
-visitContextModule <- function(dataSource,
+visitContextModule <- function(id = "visitContext",
+                               dataSource,
                                selectedCohort, #this is selectedCohorts in other modules
                                selectedDatabaseIds,
                                targetCohortId,
@@ -148,11 +149,14 @@ visitContextModule <- function(dataSource,
 
     ## getVisitContexDataEnhanced----
     getVisitContexDataEnhanced <- shiny::reactive(x = { #spelling error here missing the t in Context
-      visitContextData <- getVisitContextData() %>%
-        dplyr::rename(visitContextSubject = subjects)
+      visitContextData <- getVisitContextData()
       if (!hasData(visitContextData)) {
         return(NULL)
       }
+
+      visitContextData <- visitContextData %>%
+        dplyr::rename(visitContextSubject = subjects)
+
       visitContextData <-
         expand.grid(
           visitContext = c("Before", "During visit", "On visit start", "After"),
