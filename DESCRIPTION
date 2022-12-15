@@ -52,5 +52,5 @@ Suggests:
 Remotes:
     ohdsi/CirceR,
     ohdsi/ParallelLogger,
-    ohdsi/ResultModelManager@database_connector_v6.0.0
+    ohdsi/ResultModelManager@develop
 RoxygenNote: 7.2.1
