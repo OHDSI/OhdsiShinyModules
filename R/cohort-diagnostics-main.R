@@ -305,31 +305,9 @@ getResultsTemporalTimeRef <- function(dataSource) {
 #' @param connectionHandler             ResultModelManager ConnectionHander instance
 #' @param resultDatabaseSettings        results database settings
 #' @export
-cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
+cohortDiagnosticsSever <- function(id,
                                    connectionHandler,
-                                   resultsDatabaseSettings) {
-  .cohortDiagnosticsSever(id, connectionHandler, resultsDatabaseSettings)
-}
-
-
-#' Cohort Diagnostics Explorer main module
-#'
-#' @param id                            module Id
-#' @param connectionHandler             ResultModelManager ConnectionHander instance
-#' @param resultDatabaseSettings        results database settings
-#' @param dataSource                    cohort diagnostics data source
-#' @export
-cohortDiagnosticsSeverCd <- function(id = "DiagnosticsExplorer",
-                                     connectionHandler,
-                                     resultsDatabaseSettings,
-                                     dataSource) {
-  .cohortDiagnosticsSever(id, connectionHandler, resultsDatabaseSettings, dataSource)
-}
-
-
-.cohortDiagnosticsSever <- function(id,
-                                   connectionHandler,
-                                   resultsDatabaseSettings,
+                                   resultDatabaseSettings,
                                    dataSource = NULL) {
   ns <- shiny::NS(id)
 
@@ -340,11 +318,11 @@ cohortDiagnosticsSeverCd <- function(id = "DiagnosticsExplorer",
     dataSource <-
       createCdDatabaseDataSource(
         connectionHandler = connectionHandler,
-        schema = resultsDatabaseSettings$schema,
-        vocabularyDatabaseSchema = resultsDatabaseSettings$vocabularyDatabaseSchema,
-        tablePrefix = resultsDatabaseSettings$tablePrefix,
-        cohortTableName = resultsDatabaseSettings$cohortTable,
-        databaseTableName = resultsDatabaseSettings$databaseTable
+        schema = resultDatabaseSettings$schema,
+        vocabularyDatabaseSchema = resultDatabaseSettings$vocabularyDatabaseSchema,
+        tablePrefix = resultDatabaseSettings$tablePrefix,
+        cohortTableName = resultDatabaseSettings$cohortTable,
+        databaseTableName = resultDatabaseSettings$databaseTable
       )
   }
 

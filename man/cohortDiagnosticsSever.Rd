@@ -5,9 +5,10 @@
 \title{Cohort Diagnostics Explorer main module}
 \usage{
 cohortDiagnosticsSever(
-  id = "DiagnosticsExplorer",
+  id,
   connectionHandler,
-  resultsDatabaseSettings
+  resultDatabaseSettings,
+  dataSource = NULL
 )
 }
 \arguments{
