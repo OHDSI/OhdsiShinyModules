@@ -146,7 +146,7 @@ cdUiControls <- function(ns) {
 #' string location of the description helper file
 #'
 #' @export
-cohortDiagnosticsHelperFile <- function(){
+cohortDiagnosticsHelperFile <- function() {
   fileLoc <- system.file('cohort-diagnostics-www', "cohort-diagnostics.html", package = utils::packageName())
   return(fileLoc)
 }
@@ -166,21 +166,19 @@ cohortDiagnosticsView <- function(id = "DiagnosticsExplorer") {
   ns <- shiny::NS(id)
 
   shiny::fluidPage(
-    shiny::div(
-      shinydashboard::box(
-        title = "Cohort Level Diagnostics",
-        width = "100%",
-        shiny::fluidRow(
-          shiny::column(
-            shiny::selectInput(inputId = ns("tabs"),
-                               label = "Select Report",
-                               choices = c(), selected = NULL),
-            width = 12
-          ),
-          shiny::column(
-            cdUiControls(ns),
-            width = 12
-          )
+    shinydashboard::box(
+      title = "Cohort Level Diagnostics",
+      width = "100%",
+      shiny::fluidRow(
+        shiny::column(
+          shiny::selectInput(inputId = ns("tabs"),
+                             label = "Select Report",
+                             choices = c(), selected = NULL),
+          width = 12
+        ),
+        shiny::column(
+          cdUiControls(ns),
+          width = 12
         )
       )
     ),

@@ -114,23 +114,36 @@ createCdDatabaseDataSource <- function(connectionHandler,
                                        schema,
                                        vocabularyDatabaseSchema = schema,
                                        tablePrefix = "",
-                                       cohortTableName = "cohort",
-                                       databaseTableName = "database",
+                                       cohortTableName = paste0(tablePrefix, "cohort"),
+                                       databaseTableName = paste0(tablePrefix, "database"),
                                        dataModelSpecificationsPath = system.file("cohort-diagnostics-ref",
                                                                                  "resultsDataModelSpecification.csv",
-                                                                                 package = utils::packageName())) {
+                                                                                 package = utils::packageName()),
+                                       displayProgress = FALSE) {
 
   checkmate::assertR6(connectionHandler, "ConnectionHandler")
   checkmate::assertString(schema)
   checkmate::assertString(vocabularyDatabaseSchema, null.ok = TRUE)
-  checkmate::assertString(tablePrefix)
-  checkmate::assertString(cohortTableName)
-  checkmate::assertString(databaseTableName)
+  checkmate::assertString(tablePrefix, null.ok = TRUE)
+  checkmate::assertString(cohortTableName, null.ok = TRUE)
+  checkmate::assertString(databaseTableName, null.ok = TRUE)
   checkmate::assertFileExists(dataModelSpecificationsPath)
 
   if (is.null(vocabularyDatabaseSchema)) {
     vocabularyDatabaseSchema <- schema
   }
+  if (is.null(tablePrefix)) {
+    tablePrefix <- ""
+  }
+  if (is.null(cohortTableName)) {
+    cohortTableName <- paste0(tablePrefix, "cohort")
+  }
+  if (is.null(databaseTableName)) {
+    databaseTableName <- paste0(tablePrefix, "datatbase")
+  }
+
+  if (displayProgress)
+    shiny::setProgress(value = 0.05, message = "Getting settings")
 
   dataSource <- list(
     connectionHandler = connectionHandler,
@@ -152,13 +165,35 @@ createCdDatabaseDataSource <- function(connectionHandler,
     databaseTableName = databaseTableName,
     dataModelSpecifications = read.csv(dataModelSpecificationsPath)
   )
+
+  if (displayProgress)
+    shiny::setProgress(value = 0.05, message = "Getting enabled reports")
+
   dataSource$enabledReports <- getEnabledCdReports(dataSource)
+
+  if (displayProgress)
+    shiny::setProgress(value = 0.1, message = "Getting database information")
   dataSource$databaseTable <- getDatabaseTable(dataSource)
+
+  if (displayProgress)
+    shiny::setProgress(value = 0.2, message = "Getting cohorts")
+
   dataSource$cohortTable <- getCohortTable(dataSource)
+
+  if (displayProgress)
+    shiny::setProgress(value = 0.6, message = "Getting concept sets")
+
   dataSource$conceptSets <- loadResultsTable(dataSource, "concept_sets", tablePrefix = dataSource$tablePrefix)
+
+  if (displayProgress)
+    shiny::setProgress(value = 0.7, message = "Getting counts")
+
   dataSource$cohortCountTable <- loadResultsTable(dataSource, "cohort_count", required = TRUE, tablePrefix = dataSource$tablePrefix)
 
   dataSource$enabledReports <- dataSource$enabledReports
+
+  if (displayProgress)
+    shiny::setProgress(value = 0.7, message = "Getting Temporal References")
 
   dataSource$temporalAnalysisRef <- loadResultsTable(dataSource, "temporal_analysis_ref", tablePrefix = dataSource$tablePrefix)
 
@@ -314,7 +349,6 @@ cohortDiagnosticsSever <- function(id,
   checkmate::assertClass(dataSource, "CdDataSource", null.ok = TRUE)
   if (is.null(dataSource)) {
     checkmate::assertR6(connectionHandler, "ConnectionHandler", null.ok = FALSE)
-
     dataSource <-
       createCdDatabaseDataSource(
         connectionHandler = connectionHandler,
@@ -322,7 +356,8 @@ cohortDiagnosticsSever <- function(id,
         vocabularyDatabaseSchema = resultDatabaseSettings$vocabularyDatabaseSchema,
         tablePrefix = resultDatabaseSettings$tablePrefix,
         cohortTableName = resultDatabaseSettings$cohortTable,
-        databaseTableName = resultDatabaseSettings$databaseTable
+        databaseTableName = resultDatabaseSettings$databaseTable,
+        displayProgress = TRUE
       )
   }
 
