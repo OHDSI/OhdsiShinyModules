@@ -122,13 +122,15 @@ createCdDatabaseDataSource <- function(connectionHandler,
 
   checkmate::assertR6(connectionHandler, "ConnectionHandler")
   checkmate::assertString(schema)
-  checkmate::assertString(vocabularyDatabaseSchema)
+  checkmate::assertString(vocabularyDatabaseSchema, null.ok = TRUE)
   checkmate::assertString(tablePrefix)
   checkmate::assertString(cohortTableName)
   checkmate::assertString(databaseTableName)
   checkmate::assertFileExists(dataModelSpecificationsPath)
 
-  print("Initializing cohort diagnostics data source")
+  if (is.null(vocabularyDatabaseSchema)) {
+    vocabularyDatabaseSchema <- schema
+  }
 
   dataSource <- list(
     connectionHandler = connectionHandler,
@@ -299,15 +301,36 @@ getResultsTemporalTimeRef <- function(dataSource) {
 
 
 #' Cohort Diagnostics Explorer main module
-#'
+#' @param id                            module Id
 #' @param connectionHandler             ResultModelManager ConnectionHander instance
 #' @param resultDatabaseSettings        results database settings
-#' @param vocabularyDatabaseSchema      Optional vocabulary database schema
 #' @export
 cohortDiagnosticsSever <- function(id = "DiagnosticsExplorer",
-                                   connectionHandler = NULL,
-                                   dataSource = NULL,
+                                   connectionHandler,
                                    resultsDatabaseSettings) {
+  .cohortDiagnosticsSever(id, connectionHandler, resultsDatabaseSettings)
+}
+
+
+#' Cohort Diagnostics Explorer main module
+#'
+#' @param id                            module Id
+#' @param connectionHandler             ResultModelManager ConnectionHander instance
+#' @param resultDatabaseSettings        results database settings
+#' @param dataSource                    cohort diagnostics data source
+#' @export
+cohortDiagnosticsSeverCd <- function(id = "DiagnosticsExplorer",
+                                     connectionHandler,
+                                     resultsDatabaseSettings,
+                                     dataSource) {
+  .cohortDiagnosticsSever(id, connectionHandler, resultsDatabaseSettings, dataSource)
+}
+
+
+.cohortDiagnosticsSever <- function(id,
+                                   connectionHandler,
+                                   resultsDatabaseSettings,
+                                   dataSource = NULL) {
   ns <- shiny::NS(id)
 
   checkmate::assertClass(dataSource, "CdDataSource", null.ok = TRUE)
