@@ -3,7 +3,6 @@ context("cohort-diagnostics-cd")
 shiny::testServer(visitContextModule, args = list(
   id = "testvisitcontext", #Any string is ok?
   dataSource = dataSourceCd,
-  databaseTable = getDatabaseTable(dataSourceCd),
   selectedCohort = shiny::reactive("Any String"),
   selectedDatabaseIds = shiny::reactive("Eunomia"),
   targetCohortId = shiny::reactive({ c(14906) })

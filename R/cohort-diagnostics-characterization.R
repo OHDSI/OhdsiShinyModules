@@ -470,23 +470,14 @@ characterizationModule <- function(id,
     targetCohortId <- shiny::reactive(input$targetCohort)
 
     getCohortConceptSets <- shiny::reactive({
-      if (!hasData(input$targetCohort) || !hasData(selectedDatabaseIds())) {
+      if (!hasData(input$targetCohortId)) {
         return(NULL)
       }
 
-      jsonExpression <- cohortTable %>%
-        dplyr::filter(cohortId == input$targetCohort) %>%
-        dplyr::select(json)
-      jsonExpression <-
-        RJSONIO::fromJSON(jsonExpression$json, digits = 23)
-      expression <-
-        getConceptSetDetailsFromCohortDefinition(cohortDefinitionExpression = jsonExpression)
-      if (is.null(expression)) {
-        return(NULL)
-      }
-
-      expression <- expression$conceptSetExpression
-      return(expression)
+      dataSource$conceptSets %>%
+        dplyr::filter(cohortId == input$targetCohortId) %>%
+        dplyr::mutate(name = conceptSetName, id = conceptSetId) %>%
+        dplyr::select(id, name)
     })
 
     shiny::observe({

@@ -148,8 +148,8 @@ cohortCountsView <- function(id) {
 #' @param cohortIds                 shiny::reactive - should return cohorts selected integers or NULL
 cohortCountsModule <- function(id,
                                dataSource,
-                               cohortTable,
-                               databaseTable,
+                               cohortTable = dataSource$cohortTable,
+                               databaseTable = dataSource$databaseTable,
                                selectedCohorts,
                                selectedDatabaseIds,
                                cohortIds) {
@@ -157,7 +157,6 @@ cohortCountsModule <- function(id,
 
   serverFunction <- function(input, output, session) {
     output$selectedCohorts <- shiny::renderUI(selectedCohorts())
-
 
     # Cohort Counts ----------------------
     getResults <- shiny::reactive(x = {

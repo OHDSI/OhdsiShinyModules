@@ -21,7 +21,7 @@ connectionDetailsCG <- DatabaseConnector::createConnectionDetails(
   server = "../resources/cgDatabase/databaseFile.sqlite",
   dbms = 'sqlite'
 )
-connectionHandlerCG <- ResultModelManager::ConnectionHandler$new(connectionDetailsCG)
+connectionHandlerCG <- ResultModelManager::ConnectionHandler$new(connectionDetailsCG, loadConnection = FALSE)
 
 # =========== CG START
   
@@ -32,7 +32,7 @@ connectionDetailsPlp <- DatabaseConnector::createConnectionDetails(
   server = serverPlp
 )
 
-connectionHandlerPlp <- ResultModelManager::ConnectionHandler$new(connectionDetailsPlp)
+connectionHandlerPlp <- ResultModelManager::ConnectionHandler$new(connectionDetailsPlp, loadConnection = FALSE)
 
 resultDatabaseSettingsPlp <- list(
   dbms = 'sqlite', # should this be removed - can use connection
@@ -52,7 +52,7 @@ connectionDetailsDesc <- DatabaseConnector::createConnectionDetails(
   server = serverDesc
 )
 
-connectionHandlerDesc <- ResultModelManager::ConnectionHandler$new(connectionDetailsDesc)
+connectionHandlerDesc <- ResultModelManager::ConnectionHandler$new(connectionDetailsDesc, loadConnection = FALSE)
 
 resultDatabaseSettingsDesc <- list(
   dbms = 'sqlite', # should this be removed - can use connection
@@ -75,7 +75,7 @@ connectionDetailsEst <- DatabaseConnector::createConnectionDetails(
   server = "../resources/estDatabase/databaseFile.sqlite"
 )
 
-connectionHandlerEst  <- ResultModelManager::ConnectionHandler$new(connectionDetailsEst )
+connectionHandlerEst  <- ResultModelManager::ConnectionHandler$new(connectionDetailsEst, loadConnection = FALSE)
 
 resultDatabaseSettingsEst <- list(
   dbms = 'sqlite',
@@ -95,7 +95,7 @@ connectionDetailsDataDiag <- DatabaseConnector::createConnectionDetails(
   server = "../resources/datadiagDatabase/databaseFile.sqlite"
 )
 
-connectionHandlerDataDiag <- ResultModelManager::ConnectionHandler$new(connectionDetailsDataDiag)
+connectionHandlerDataDiag <- ResultModelManager::ConnectionHandler$new(connectionDetailsDataDiag, loadConnection = FALSE)
 
 resultDatabaseSettingsDataDiag <- list(
   dbms = 'sqlite',
@@ -115,21 +115,22 @@ connectionDetailsCohortDiag <- DatabaseConnector::createConnectionDetails(
 resultDatabaseSettingsCohortDiag <- list(
   dbms = 'sqlite',
   tablePrefix = '',
-  resultsDatabaseSchema = "main",
+  schema = "main",
   cohortTableName = "cohort",
   databaseTableName = "database"
 )
 
-connectionHandlerCohortDiag <- ResultModelManager::ConnectionHandler$new(connectionDetailsCohortDiag)
+connectionHandlerCohortDiag <- ResultModelManager::ConnectionHandler$new(connectionDetailsCohortDiag, loadConnection = FALSE)
 
 dataSourceCd <-
   createCdDatabaseDataSource(
     connectionHandler = connectionHandlerCohortDiag,
-    schema = resultDatabaseSettingsCohortDiag$resultsDatabaseSchema,
+    schema = "main",
     vocabularyDatabaseSchema = "main",
     tablePrefix = "",
     cohortTableName = "cohort",
-    databaseTableName = "database"
+    databaseTableName = "database",
+    displayProgress = FALSE
   )
 
 #  ======

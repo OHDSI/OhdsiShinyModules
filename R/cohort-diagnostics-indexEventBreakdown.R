@@ -135,11 +135,11 @@ getIndexEventBreakdown <- function(dataSource,
 
 indexEventBreakdownModule <- function(id,
                                       dataSource,
-                                      databaseTable,
                                       selectedCohort,
                                       targetCohortId,
-                                      cohortCount,
-                                      selectedDatabaseIds) {
+                                      selectedDatabaseIds,
+                                      cohortCountTable = dataSource$cohortCountTable,
+                                      databaseTable = dataSource$databaseTable) {
   ns <- shiny::NS(id)
 
   serverFunction <- function(input, output, session) {
@@ -152,7 +152,7 @@ indexEventBreakdownModule <- function(id,
         length(selectedDatabaseIds()) > 0) {
         data <- getIndexEventBreakdown(
           dataSource = dataSource,
-          cohortCount = cohortCount,
+          cohortCount = cohortCountTable,
           cohortIds = targetCohortId(),
           databaseIds = selectedDatabaseIds()
         )

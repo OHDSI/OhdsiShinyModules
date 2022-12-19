@@ -1,16 +1,11 @@
 context("cohort-diagnostics-timeDistributions")
 
-# Environment should have initialized
-expect_true()
-
 shiny::testServer(timeDistributionsModule, args = list(
   id = "testTimeDistributions", #Any string is ok?
   dataSource = dataSourceCd,
-  cohortTable = getCohortTable(dataSourceCd),
   selectedCohorts = shiny::reactive("Any String"),
   selectedDatabaseIds = shiny::reactive("Eunomia"),
-  cohortIds = shiny::reactive({ c(14906, 14907) }),
-  databaseTable = getDatabaseTable(dataSourceCd)
+  cohortIds = shiny::reactive({ c(14906, 14907) })
 ), {
   ## input tests will go here
   session$setInputs(

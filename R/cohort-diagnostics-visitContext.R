@@ -120,8 +120,8 @@ visitContextModule <- function(id = "visitContext",
                                selectedCohort, #this is selectedCohorts in other modules
                                selectedDatabaseIds,
                                targetCohortId,
-                               cohortCount,
-                               databaseTable) {
+                               cohortCountTable = dataSource$cohortCountTable,
+                               databaseTable = dataSource$databaseTable) {
   ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
     output$selectedCohorts <- shiny::renderUI(selectedCohort())
@@ -138,7 +138,7 @@ visitContextModule <- function(id = "visitContext",
         getVisitContextResults(
           dataSource = dataSource,
           cohortIds = targetCohortId(),
-          cohortCount = cohortCount,
+          cohortCount = dataSource$cohortCountTable,
           databaseIds = selectedDatabaseIds()
         )
       if (!hasData(visitContext)) {

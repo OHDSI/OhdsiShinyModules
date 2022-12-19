@@ -1,6 +1,4 @@
 context("cohort-diagnostics-incidence")
-# Environment should have initialized
-expect_true()
 
 shiny::testServer(incidenceRatesModule, args = list(
   id = "testIncidenceRates", #Any string is ok?
@@ -14,7 +12,7 @@ shiny::testServer(incidenceRatesModule, args = list(
   session$setInputs(
     irStratification = c("Age", "Calendar Year", "Sex"),
     minPersonYear = 0,
-    minSubjetCount = 0 #spelling error in the module
+    minSubjectCount = 0
   )
 
   checkmate::expect_data_frame(incidenceRateData())

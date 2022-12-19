@@ -253,14 +253,16 @@ getDatabaseTable <- function(dataSource) {
 
 # SO much of the app requires this table in memory - it would be much better to re-write queries to not need it!
 getCohortTable <- function(dataSource) {
-  cohortTable <- loadResultsTable(dataSource, dataSource$cohortTableName, required = TRUE)
+  if (tableIsEmpty(dataSource, dataSource$cohortTableName)) {
+    return(data.frame())
+  }
+  cohortTable <- dataSource$connectionHandler$queryDb("SELECT cohort_id, cohort_name FROM @schema.@table_name",
+                                                      schema = dataSource$resultsDatabaseSchema,
+                                                      table_name = dataSource$cohortTableName)
+
+  # Old label
   if ("cohortDefinitionId" %in% names(cohortTable)) {
     cohortTable <- cohortTable %>% dplyr::mutate(cohortId = cohortDefinitionId)
-
-    ## Note this is because the tables were labled wrong!
-    cohortTable <- cohortTable %>% dplyr::mutate(cohortId = cohortDefinitionId,
-                                                 sql = json,
-                                                 json = sqlCommand)
   }
 
   cohortTable <- cohortTable %>%
@@ -529,24 +531,15 @@ cohortDiagnosticsSever <- function(id,
     ## Reactive objects ----
     ### getConceptSetNameForFilter ----
     getConceptSetNameForFilter <- shiny::reactive(x = {
-      if (!hasData(targetCohortId()) || !hasData(selectedDatabaseIds())) {
+      if (!hasData(targetCohortId())) {
         return(NULL)
       }
 
-      jsonExpression <- cohortSubset() %>%
+      dataSource$conceptSets %>%
         dplyr::filter(cohortId == targetCohortId()) %>%
-        dplyr::select(json)
-      jsonExpression <-
-        RJSONIO::fromJSON(jsonExpression$json, digits = 23)
-      expression <-
-        getConceptSetDetailsFromCohortDefinition(cohortDefinitionExpression = jsonExpression)
-      if (is.null(expression)) {
-        return(NULL)
-      }
-
-      expression <- expression$conceptSetExpression %>%
+        dplyr::mutate(name = conceptSetName) %>%
         dplyr::select(name)
-      return(expression)
+
     })
 
     shiny::observe({
@@ -618,10 +611,9 @@ cohortDiagnosticsSever <- function(id,
     if ("indexEventBreakdown" %in% enabledReports) {
       indexEventBreakdownModule("indexEvents",
                                 dataSource = dataSource,
-                                databaseTable = databaseTable,
                                 selectedCohort = selectedCohort,
                                 targetCohortId = targetCohortId,
-                                cohortCount = cohortCountTable,
+                                cohortCountTable = cohortCountTable,
                                 selectedDatabaseIds = selectedDatabaseIds)
     }
 
@@ -631,7 +623,7 @@ cohortDiagnosticsSever <- function(id,
                          selectedCohort = selectedCohort,
                          selectedDatabaseIds = selectedDatabaseIds,
                          targetCohortId = targetCohortId,
-                         cohortCount = cohortCountTable,
+                         cohortCountTable = cohortCountTable,
                          databaseTable = databaseTable)
     }
 
@@ -650,9 +642,7 @@ cohortDiagnosticsSever <- function(id,
                               dataSource = dataSource,
                               selectedCohorts = selectedCohorts,
                               cohortIds = cohortIds,
-                              selectedDatabaseIds = selectedDatabaseIds,
-                              cohortTable = cohortTable,
-                              databaseTable = databaseTable)
+                              selectedDatabaseIds = selectedDatabaseIds)
 
       characterizationModule(id = "characterization",
                              dataSource = dataSource,

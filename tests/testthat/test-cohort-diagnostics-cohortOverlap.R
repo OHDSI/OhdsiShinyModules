@@ -9,10 +9,6 @@ shiny::testServer(cohortOverlapModule, args = list(
   cohortIds = shiny::reactive({ c(14906, 14907) }),
   cohortTable = getCohortTable(dataSourceCd)
 ), {
-  ## input tests will go here
-  session$setInputs(
-
-  )
 
   # Just checking to make sure all the input data is following the correct variable types
   checkmate::expect_character(cohortOverlapData()$databaseId)

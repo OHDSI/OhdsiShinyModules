@@ -444,7 +444,7 @@ incidenceRatesView <- function(id) {
         shiny::column(
           width = 3,
           shiny::numericInput(
-            inputId = ns("minSubjetCount"),
+            inputId = ns("minSubjectCount"),
             label = "Minimum subject count",
             value = NULL
           )
@@ -665,7 +665,7 @@ incidenceRatesModule <- function(id,
           stratifyByAgeGroup = stratifyByAge,
           stratifyByCalendarYear = stratifyByCalendarYear,
           minPersonYears = input$minPersonYear,
-          minSubjectCount = input$minSubjetCount
+          minSubjectCount = input$minSubjectCount
         ) %>%
           dplyr::mutate(incidenceRate = dplyr::case_when(
             incidenceRate < 0 ~ 0,
@@ -727,11 +727,15 @@ incidenceRatesModule <- function(id,
         ) %>%
         dplyr::distinct(calendarYear) %>%
         dplyr::arrange(calendarYear)
-
-      minValue <- min(calenderFilter$calendarYear)
-
-      maxValue <- max(calenderFilter$calendarYear)
-
+      
+      if (nrow(calenderFilter) > 0) {
+        minValue <- min(calenderFilter$calendarYear)
+        maxValue <- max(calenderFilter$calendarYear)
+      } else {
+        minValue <- 2010
+        maxValue <- 2030
+      }
+      
       shiny::updateSliderInput(
         session = session,
         inputId = "incidenceRateCalenderFilter",

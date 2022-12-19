@@ -208,6 +208,14 @@ getConceptSetDetailsFromCohortDefinition <-
   }
 
 
+getCohortJsonSql <- function(dataSource, cohortIds) {
+  sql <- "SELECT * FROM @results_database_schema.@cohort_table WHERE cohort_id IN (@cohort_ids)"
+  dataSource$connectionHandler$queryDb(sql = sql,
+                                       results_database_schema = dataSource$resultsDatabaseSchema,
+                                       cohort_table = dataSource$cohortTableName,
+                                       cohort_ids = cohortIds)
+}
+
 exportCohortDefinitionsZip <- function(cohortDefinitions,
                                        zipFile = NULL) {
   rootFolder <-
@@ -558,7 +566,7 @@ cohortDefinitionsModule <- function(id,
           return(NULL)
         }
         row <- subset[idx[1],]
-        return(row)
+        return(getCohortJsonSql(dataSource, row$cohortId))
       }
     })
 
