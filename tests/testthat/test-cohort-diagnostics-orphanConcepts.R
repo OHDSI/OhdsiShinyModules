@@ -1,9 +1,8 @@
 test_that("orphanConceptsModule loads", {
-
   shiny::testServer(orphanConceptsModule, args = list(
-    id = "testOrphanConcepts", #Any string is ok?
+    id = "testOrphanConcepts",
     dataSource = dataSourceCd,
-    selectedCohorts = shiny::reactive("Any String"),
+    selectedCohort = shiny::reactive("Any String"),
     selectedDatabaseIds = shiny::reactive("Eunomia"),
     targetCohortId = shiny::reactive({ c(14906) }),
     selectedConceptSets = shiny::reactiveVal(NULL),

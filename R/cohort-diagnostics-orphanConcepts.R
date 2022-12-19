@@ -112,12 +112,12 @@ getOrphanConceptResult <- function(dataSource,
 
 orphanConceptsModule <- function(id,
                                  dataSource,
-                                 databaseTable,
                                  selectedCohort,
                                  selectedDatabaseIds,
                                  targetCohortId,
                                  selectedConceptSets,
-                                 conceptSetIds) {
+                                 conceptSetIds,
+                                 databaseTable = dataSource$databaseTable) {
   ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
     output$selectedCohorts <- shiny::renderUI({ selectedCohort() })
