@@ -431,12 +431,12 @@ prepareTable1 <- function(covariates,
 
 characterizationModule <- function(id,
                                    dataSource,
-                                   cohortTable,
-                                   databaseTable,
-                                   temporalAnalysisRef,
-                                   analysisNameOptions,
-                                   domainIdOptions,
-                                   characterizationTimeIdChoices,
+                                   cohortTable = dataSource$cohortTable,
+                                   databaseTable = dataSource$databaseTable,
+                                   temporalAnalysisRef = dataSource$temporalAnalysisRef,
+                                   analysisNameOptions = dataSource$analysisNameOptions,
+                                   domainIdOptions = dataSource$domainIdOptions,
+                                   characterizationTimeIdChoices = dataSource$characterizationTimeIdChoices,
                                    table1SpecPath = system.file("cohort-diagnostics-ref", "Table1SpecsLong.csv",
                                                                  package = utils::packageName())) {
   prettyTable1Specifications <- readr::read_csv(

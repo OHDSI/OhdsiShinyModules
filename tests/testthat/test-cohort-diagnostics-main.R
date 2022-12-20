@@ -14,3 +14,10 @@ shiny::testServer(cohortDiagnosticsSever, args = list(
 
   checkmate::expect_list(selectedCohorts())
 })
+
+test_that("Test cd ui", {
+  # Test ui
+  ui <- cohortDiagnosticsView()
+  checkmate::expect_list(ui)
+  checkmate::expect_file_exists(cohortDiagnosticsHelperFile())
+})

@@ -571,10 +571,7 @@ cohortDiagnosticsSever <- function(id,
     if ("cohort" %in% enabledReports) {
       cohortDefinitionsModule(id = "cohortDefinitions",
                               dataSource = dataSource,
-                              cohortDefinitions = cohortSubset,
-                              cohortTable = cohortTable,
-                              cohortCount = cohortCountTable,
-                              databaseTable = databaseTable)
+                              cohortDefinitions = cohortSubset)
     }
 
     if ("includedSourceConcept" %in% enabledReports) {
@@ -645,22 +642,10 @@ cohortDiagnosticsSever <- function(id,
                               selectedDatabaseIds = selectedDatabaseIds)
 
       characterizationModule(id = "characterization",
-                             dataSource = dataSource,
-                             cohortTable = cohortTable,
-                             databaseTable = databaseTable,
-                             temporalAnalysisRef = temporalAnalysisRef,
-                             analysisNameOptions = analysisNameOptions,
-                             domainIdOptions = domainIdOptions,
-                             characterizationTimeIdChoices = characterizationTimeIdChoices)
+                             dataSource = dataSource)
 
-      compareCohortCharacterizationModule("compareCohortCharacterization",
-                                          dataSource = dataSource,
-                                          cohortTable = cohortTable,
-                                          databaseTable = databaseTable,
-                                          temporalAnalysisRef = temporalAnalysisRef,
-                                          analysisNameOptions = analysisNameOptions,
-                                          domainIdOptions = domainIdOptions,
-                                          temporalChoices = temporalChoices)
+      compareCohortCharacterizationModule(id = "compareCohortCharacterization",
+                                          dataSource = dataSource)
     }
 
     if ("incidenceRate" %in% enabledReports) {

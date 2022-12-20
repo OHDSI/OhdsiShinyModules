@@ -44,13 +44,6 @@ databaseInformationView <- function(id) {
             collapsible = TRUE,
             width = NULL,
             collapsed = FALSE,
-            shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("packageDependencySnapShotTable")))
-          ),
-          shinydashboard::box(
-            title = NULL,
-            collapsible = TRUE,
-            width = NULL,
-            collapsed = FALSE,
             shiny::verbatimTextOutput(outputId = ns("argumentsAtDiagnosticsInitiationJson")),
             tags$head(
               tags$style("#argumentsAtDiagnosticsInitiationJson { max-height:400px};")
@@ -299,7 +292,7 @@ getDatabaseMetadata <- function(dataSource, databaseTable) {
 databaseInformationModule <- function(id,
                                       dataSource,
                                       selectedDatabaseIds,
-                                      databaseTable) {
+                                      databaseTable = dataSource$databaseTable) {
   ns <- shiny::NS(id)
 
   ## Replace this pre-loading nonsense
@@ -430,29 +423,6 @@ databaseInformationModule <- function(id,
       )))
     })
 
-    ## output: packageDependencySnapShotTable----
-    output$packageDependencySnapShotTable <-
-      reactable::renderReactable(expr = {
-        data <- getFilteredMetadataInformation()
-        if (!hasData(data)) {
-          return(NULL)
-        }
-
-        data <- data %>%
-          dplyr::pull(packageDependencySnapShotJson)
-
-        data <- dplyr::as_tibble(RJSONIO::fromJSON(
-          content = data,
-          digits = 23
-        ))
-        keyColumns <- colnames(data)
-        getDisplayTableSimple(
-          data = data,
-          keyColumns = keyColumns,
-          dataColumns = c(),
-          pageSize = 10
-        )
-      })
 
     ## output: argumentsAtDiagnosticsInitiationJson----
     output$argumentsAtDiagnosticsInitiationJson <-

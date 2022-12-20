@@ -233,14 +233,13 @@ exportCohortDefinitionsZip <- function(cohortDefinitions,
   tempdir <- file.path(tempdir(), rootFolder)
 
   for (i in (1:nrow(cohortDefinitions))) {
-    cohortId <- cohort[i,]$cohortId
+    cohortId <- cohortDefinitions[i,]$cohortId
     dir.create(
       path = file.path(tempdir, cohortId),
       recursive = TRUE,
       showWarnings = FALSE
     )
-    cohortExpression <- cohortDefinitions[i,]$json %>%
-      RJSONIO::fromJSON(digits = 23)
+    cohortExpression <- RJSONIO::fromJSON(cohortDefinitions[i,]$json, digits = 23)
 
     details <-
       getCirceRenderedExpression(cohortDefinition = cohortExpression)
@@ -520,9 +519,9 @@ getCountForConceptIdInCohort <-
 cohortDefinitionsModule <- function(id,
                                     dataSource,
                                     cohortDefinitions,
-                                    cohortTable,
-                                    cohortCount,
-                                    databaseTable) {
+                                    cohortTable = dataSource$cohortTable,
+                                    cohortCount = dataSource$cohortCountTable,
+                                    databaseTable = dataSource$databaseTable) {
   ns <- shiny::NS(id)
 
   cohortDefinitionServer <- function(input, output, session) {
@@ -1085,8 +1084,8 @@ cohortDefinitionsModule <- function(id,
         shiny::withProgress(
           message = "Export is in progress",
         {
-
-          exportCohortDefinitionsZip(cohortTable, zipFile = file)
+          definitions <- getCohortJsonSql(dataSource, cohortTable$cohortId)
+          exportCohortDefinitionsZip(definitions, zipFile = file)
         },
           detail = "Please Wait"
         )

@@ -1,0 +1,10 @@
+context("cohort-diagnostics-dbinfo")
+
+shiny::testServer(databaseInformationModule, args = list(
+  id = "test",
+  dataSource = dataSourceCd,
+  selectedDatabaseIds = shiny::reactive({"Eunomia"})
+), {
+    getFilteredMetadataInformation()
+   checkmate::expect_data_frame(getDatabaseInformation())
+})

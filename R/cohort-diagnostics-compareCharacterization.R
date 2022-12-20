@@ -819,12 +819,12 @@ getCharacterizationOutput <- function(dataSource,
 
 compareCohortCharacterizationModule <- function(id,
                                                 dataSource,
-                                                cohortTable,
-                                                databaseTable,
-                                                temporalAnalysisRef,
-                                                analysisNameOptions,
-                                                domainIdOptions,
-                                                temporalChoices) {
+                                                cohortTable = dataSource$cohortTable,
+                                                databaseTable = dataSource$databaseTable,
+                                                temporalAnalysisRef = dataSource$temporalAnalysisRef,
+                                                analysisNameOptions = dataSource$analysisNameOptions,
+                                                domainIdOptions = dataSource$domainIdOptions,
+                                                temporalChoices = dataSource$temporalChoices) {
 
 
   shiny::moduleServer(id, function(input, output, session) {
