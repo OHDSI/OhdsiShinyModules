@@ -41,7 +41,9 @@ Imports:
     ggh4x,
     scales,
     CirceR,
-    purrr
+    purrr,
+    checkmate,
+    RJSONIO
 Suggests:
     kableExtra,
     knitr,
