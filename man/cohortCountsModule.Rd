@@ -15,6 +15,8 @@ cohortCountsModule(
 )
 }
 \arguments{
+\item{id}{namespace id}
+
 \item{dataSource}{Backend Data source (DatabaseConnection)}
 
 \item{cohortTable}{data.frame of all cohorts}

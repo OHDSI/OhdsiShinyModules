@@ -113,6 +113,7 @@ cohortCountsView <- function(id) {
 #' @import shinydashboard
 #' @import dplyr
 #'
+#' @param id                        namespace id
 #' @param dataSource                Backend Data source (DatabaseConnection)
 #' @param cohortTable               data.frame of all cohorts
 #' @param databaseTable             data.frame of all databases
