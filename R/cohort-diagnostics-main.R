@@ -104,12 +104,10 @@ getEnabledCdReports <- function(dataSource) {
 #' @param databaseTableName The name of the database table in the database.
 #' @param dataModelSpecificationsPath The path to a file containing specifications for the data model used by the database.
 #' @return An object of class `CdDataSource`.
-#' @export
-#' @examples
-#' # create a CD data source from a database
-#' createCdDatabaseDataSource(connectionHandler, resultsDatabaseSchema)
+#'
 #' @import utils
 #' @importFrom DatabaseConnector dbListTables
+#' #' @export
 createCdDatabaseDataSource <- function(connectionHandler,
                                        schema,
                                        vocabularyDatabaseSchema = schema,
