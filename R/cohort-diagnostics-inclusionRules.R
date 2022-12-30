@@ -77,7 +77,7 @@ inclusionRulesView <- function(id) {
 #' inclusion Rules Module
 inclusionRulesModule <- function(id,
                                  dataSource,
-                                 databaseTable,
+                                 databaseTable = dataSource$databaseTable,
                                  selectedCohort,
                                  targetCohortId,
                                  selectedDatabaseIds) {
