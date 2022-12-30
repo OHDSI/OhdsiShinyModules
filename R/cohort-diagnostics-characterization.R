@@ -470,12 +470,12 @@ characterizationModule <- function(id,
     targetCohortId <- shiny::reactive(input$targetCohort)
 
     getCohortConceptSets <- shiny::reactive({
-      if (!hasData(input$targetCohortId)) {
+      if (!hasData(input$targetCohort)) {
         return(NULL)
       }
 
       dataSource$conceptSets %>%
-        dplyr::filter(cohortId == input$targetCohortId) %>%
+        dplyr::filter(cohortId == input$targetCohort) %>%
         dplyr::mutate(name = conceptSetName, id = conceptSetId) %>%
         dplyr::select(id, name)
     })
@@ -884,7 +884,9 @@ characterizationModule <- function(id,
 
 
     rawTableTimeIdReactable <- shiny::reactive({
+
       data <- cohortCharacterizationDataFiltered()
+
       if (is.null(data)) {
         return(NULL)
       }

@@ -14,33 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#' getColumnMax
-#'
-#' @description
-#' Get Max Value For String Matched Columns
-#'
-getColumnMax <- function(data, string) {
-  if (!hasData(data)) {
-    return(0)
-  }
-  string <- intersect(
-    string,
-    colnames(data)
-  )
-  data <- data %>%
-    dplyr::select(dplyr::all_of(string)) %>%
-    tidyr::pivot_longer(values_to = "value", cols = dplyr::everything()) %>%
-    dplyr::filter(!is.na(value)) %>%
-    dplyr::pull(value)
-
-  if (!hasData(data)) {
-    return(0)
-  } else {
-    return(max(data, na.rm = TRUE))
-  }
-}
-
-
 #' Cohort Counts View
 #' @description
 #' Shiny view for cohort counts module
@@ -192,7 +165,6 @@ cohortCountsModule <- function(id,
         )
 
       dataColumnFields <- c("persons", "records")
-
       if (input$cohortCountsTableColumnFilter == "Persons") {
         dataColumnFields <- "persons"
       } else if (input$cohortCountsTableColumnFilter == "Records") {

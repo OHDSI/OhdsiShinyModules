@@ -981,6 +981,7 @@ compareCohortCharacterizationModule <- function(id,
       )
 
       data <- compareCharacterizationOutput()
+
       if (!hasData(data)) {
         return(NULL)
       }
@@ -1006,6 +1007,7 @@ compareCohortCharacterizationModule <- function(id,
     ## compareCohortCharacterizationBalanceData ----------------------------------------
     compareCohortCharacterizationBalanceData <- shiny::reactive({
       data <- compareCohortCharacterizationDataFiltered()
+
       if (!hasData(data)) {
         return(NULL)
       }

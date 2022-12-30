@@ -5,12 +5,14 @@ shiny::testServer(timeDistributionsModule, args = list(
   dataSource = dataSourceCd,
   selectedCohorts = shiny::reactive("Any String"),
   selectedDatabaseIds = shiny::reactive("Eunomia"),
-  cohortIds = shiny::reactive({ c(14906, 14907) })
+  cohortIds = shiny::reactive({ c(18347) })
 ), {
-  ## input tests will go here
-  session$setInputs(
 
-  )
+  session$setInputs(selecatableTimeMeasures = c(
+    "observation time (days) prior to index",
+    "observation time (days) after index",
+    "time (days) between cohort start and end"
+  ))
   # Checking data type of each column of output matches what it should be
   checkmate::expect_numeric(timeDistributionData()$cohortId)
   checkmate::expect_character(timeDistributionData()$databaseId)
@@ -25,4 +27,6 @@ shiny::testServer(timeDistributionsModule, args = list(
   checkmate::expect_numeric(timeDistributionData()$p90Value)
   checkmate::expect_numeric(timeDistributionData()$maxValue)
 
+  checkmate::expect_class(output$timeDistributionTable, "json")
+  checkmate::expect_class(output$timeDistributionPlot, "json")
 })

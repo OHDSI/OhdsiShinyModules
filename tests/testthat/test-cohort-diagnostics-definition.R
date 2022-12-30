@@ -19,4 +19,10 @@ shiny::testServer(cohortDefinitionsModule, args = list(
 
   exportCohortDefinitionsZip(defs, testfile)
   checkmate::expect_file_exists(testfile)
+
+  checkmate::expect_data_frame(getCountForConceptIdInCohort(
+    dataSource = dataSourceCd,
+    databaseIds = dataSourceCd$databaseTable$databaseId,
+    cohortId = 14906
+  ))
 })

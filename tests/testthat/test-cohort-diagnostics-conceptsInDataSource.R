@@ -14,4 +14,5 @@ shiny::testServer(conceptsInDataSourceModule, args = list(
   getMappedConcepts()
 
   checkmate::expect_data_frame(getDisplayTableHeaderCount(dataSourceCd, 14096, "Eunomia"))
+  expect_error(output$conceptsInDataSourceTable)
 })
