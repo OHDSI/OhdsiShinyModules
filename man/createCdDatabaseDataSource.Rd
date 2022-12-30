@@ -9,10 +9,11 @@ createCdDatabaseDataSource(
   schema,
   vocabularyDatabaseSchema = schema,
   tablePrefix = "",
-  cohortTableName = "cohort",
-  databaseTableName = "database",
+  cohortTableName = paste0(tablePrefix, "cohort"),
+  databaseTableName = paste0(tablePrefix, "database"),
   dataModelSpecificationsPath = system.file("cohort-diagnostics-ref",
-    "resultsDataModelSpecification.csv", package = utils::packageName())
+    "resultsDataModelSpecification.csv", package = utils::packageName()),
+  displayProgress = FALSE
 )
 }
 \arguments{

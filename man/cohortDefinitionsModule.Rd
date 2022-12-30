@@ -8,9 +8,9 @@ cohortDefinitionsModule(
   id,
   dataSource,
   cohortDefinitions,
-  cohortTable,
-  cohortCount,
-  databaseTable
+  cohortTable = dataSource$cohortTable,
+  cohortCount = dataSource$cohortCountTable,
+  databaseTable = dataSource$databaseTable
 )
 }
 \arguments{

@@ -7,7 +7,7 @@
 inclusionRulesModule(
   id,
   dataSource,
-  databaseTable,
+  databaseTable = dataSource$databaseTable,
   selectedCohort,
   targetCohortId,
   selectedDatabaseIds
