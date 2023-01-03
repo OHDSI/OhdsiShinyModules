@@ -14,13 +14,7 @@ data# Copyright 2022 Observational Health Data Sciences and Informatics
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#' Returns data from time_distribution table of Cohort Diagnostics results data model
-#'
-#' @description
-#' Returns data from time_distribution table of Cohort Diagnostics results data model
-#'
-#' @return
-#' Returns a data frame (tibble).
+# Returns data from time_distribution table of Cohort Diagnostics results data model
 getTimeDistributionResult <- function(dataSource,
                                       cohortIds,
                                       databaseIds,

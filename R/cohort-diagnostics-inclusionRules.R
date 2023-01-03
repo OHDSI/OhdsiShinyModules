@@ -74,7 +74,7 @@ inclusionRulesView <- function(id) {
   )
 }
 
-#' inclusion Rules Module
+# inclusion Rules Module
 inclusionRulesModule <- function(id,
                                  dataSource,
                                  databaseTable = dataSource$databaseTable,

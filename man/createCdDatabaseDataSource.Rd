@@ -30,6 +30,8 @@ createCdDatabaseDataSource(
 \item{databaseTableName}{The name of the database table in the database.}
 
 \item{dataModelSpecificationsPath}{The path to a file containing specifications for the data model used by the database.}
+
+\item{displayProgress}{display a progress messaage (can only be used inside a shiny reactive context)}
 }
 \value{
 An object of class `CdDataSource`.
@@ -38,8 +40,4 @@ An object of class `CdDataSource`.
 use this to create an interface to cohort diagnostics results data
 NOTE: I think this would make a good R6 class for other objects in this package so you could query them outside of
 a shiny app. E.g. if you wanted to make a custom R markdown template
-}
-\examples{
-# create a CD data source from a database
-createCdDatabaseDataSource(connectionHandler, resultsDatabaseSchema)
 }

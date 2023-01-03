@@ -11,6 +11,8 @@ compareCohortCharacterizationView(
 }
 \arguments{
 \item{id}{Namespace Id - use namespaced id ns("compareCohortCharacterization") inside diagnosticsExplorer module}
+
+\item{title}{Optional string title field}
 }
 \description{
 Use for customizing UI

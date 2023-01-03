@@ -103,6 +103,7 @@ getEnabledCdReports <- function(dataSource) {
 #' @param cohortTableName The name of the cohort table in the database.
 #' @param databaseTableName The name of the database table in the database.
 #' @param dataModelSpecificationsPath The path to a file containing specifications for the data model used by the database.
+#' @param displayProgress display a progress messaage (can only be used inside a shiny reactive context)
 #' @return An object of class `CdDataSource`.
 #'
 #' @import utils
@@ -339,6 +340,7 @@ getResultsTemporalTimeRef <- function(dataSource) {
 #' @param id                            module Id
 #' @param connectionHandler             ResultModelManager ConnectionHander instance
 #' @param resultDatabaseSettings        results database settings
+#' @param dataSource                    dataSource optionally created with createCdDatabaseDataSource
 #' @export
 cohortDiagnosticsSever <- function(id,
                                    connectionHandler,
@@ -367,12 +369,8 @@ cohortDiagnosticsSever <- function(id,
     conceptSets <- dataSource$conceptSets
     cohortCountTable <- dataSource$cohortCountTable
     enabledReports <- dataSource$enabledReports
-    temporalAnalysisRef <- dataSource$temporalAnalysisRef
     temporalChoices <- dataSource$temporalChoices
     temporalCharacterizationTimeIdChoices <- dataSource$temporalCharacterizationTimeIdChoices
-    characterizationTimeIdChoices <- dataSource$characterizationTimeIdChoices
-    domainIdOptions <- dataSource$domainIdOptions
-    analysisNameOptions <- dataSource$analysisNameOptions
 
     shiny::observe({
 

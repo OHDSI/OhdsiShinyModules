@@ -9,7 +9,7 @@ cohortDefinitionsModule(
   dataSource,
   cohortDefinitions,
   cohortTable = dataSource$cohortTable,
-  cohortCount = dataSource$cohortCountTable,
+  cohortCountTable = dataSource$cohortCountTable,
   databaseTable = dataSource$databaseTable
 )
 }
@@ -20,7 +20,11 @@ cohortDefinitionsModule(
 
 \item{cohortDefinitions}{reactive of cohort definitions to display}
 
-\item{databaseTable}{data.frame of databasese}
+\item{cohortTable}{data.frame of cohorts, cohortId, cohortName}
+
+\item{cohortCountTable}{data.frame of cohortCounts, cohortId, subjects records}
+
+\item{databaseTable}{data.frame of databasese, databaseId, name}
 }
 \description{
 cohort defintion conceptsets, json etc

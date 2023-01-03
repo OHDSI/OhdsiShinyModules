@@ -515,12 +515,14 @@ getCountForConceptIdInCohort <-
 #' @param id                            Namespace id
 #' @param dataSource                    DatabaseConnection
 #' @param cohortDefinitions             reactive of cohort definitions to display
-#' @param databaseTable                 data.frame of databasese
+#' @param databaseTable                 data.frame of databasese, databaseId, name
+#' @param cohortTable                   data.frame of cohorts, cohortId, cohortName
+#' @param cohortCountTable              data.frame of cohortCounts, cohortId, subjects records
 cohortDefinitionsModule <- function(id,
                                     dataSource,
                                     cohortDefinitions,
                                     cohortTable = dataSource$cohortTable,
-                                    cohortCount = dataSource$cohortCountTable,
+                                    cohortCountTable = dataSource$cohortCountTable,
                                     databaseTable = dataSource$databaseTable) {
   ns <- shiny::NS(id)
 
@@ -606,7 +608,7 @@ cohortDefinitionsModule <- function(id,
         if (is.null(selectedCohortDefinitionRow())) {
           return(NULL)
         }
-        data <- cohortCount
+        data <- cohortCountTable
         if (!hasData(data)) {
           return(NULL)
         }
@@ -840,7 +842,7 @@ cohortDefinitionsModule <- function(id,
       if (is.null(row) || length(getDatabaseIdInCohortConceptSet()) == 0) {
         return(NULL)
       } else {
-        data <- cohortCount %>%
+        data <- cohortCountTable %>%
           dplyr::filter(cohortId == row$cohortId) %>%
           dplyr::filter(databaseId == getDatabaseIdInCohortConceptSet()) %>%
           dplyr::select(cohortSubjects, cohortEntries)

@@ -283,19 +283,7 @@ cohortOverlapView <- function(id) {
   )
 }
 
-#' Returns data from cohort_relationships table of Cohort Diagnostics results data model
-#'
-#' @description
-#' Returns data from cohort_relationships table of Cohort Diagnostics results data model
-#'
-#' @param startDays A vector of days in relation to cohort_start_date of target
-#'
-#' @param endDays A vector of days in relation to cohort_end_date of target
-#'
-#' @return
-#' Returns a data frame (tibble) with results that conform to cohort_relationships
-#' table in Cohort Diagnostics results data model.
-#'
+# Returns data from cohort_relationships table of Cohort Diagnostics results data model
 getResultsCohortRelationships <- function(dataSource,
                                           cohortIds = NULL,
                                           comparatorCohortIds = NULL,
@@ -326,16 +314,7 @@ getResultsCohortRelationships <- function(dataSource,
   return(data)
 }
 
-#' Returns data for use in cohort_overlap
-#'
-#' @description
-#' Returns data for use in cohort_overlap
-#' @param targetCohortIds A vector of cohort ids representing target cohorts
-#'
-#' @param comparatorCohortIds A vector of cohort ids representing comparator cohorts
-#' @return
-#' Returns data for use in cohort_overlap
-#'
+# Returns data for use in cohort_overlap
 getResultsCohortOverlap <- function(dataSource,
                                     targetCohortIds = NULL,
                                     comparatorCohortIds = NULL,
@@ -480,13 +459,6 @@ getResultsCohortOverlap <- function(dataSource,
 }
 
 
-#' Cohort Overlap Module
-#'
-#' @import shiny
-#' @import shinydashboard
-#' @import shinycssloaders
-#' @import ggiraph
-#'
 cohortOverlapModule <- function(id,
                                 dataSource,
                                 selectedCohorts,

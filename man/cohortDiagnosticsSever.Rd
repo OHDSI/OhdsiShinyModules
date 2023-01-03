@@ -17,6 +17,8 @@ cohortDiagnosticsSever(
 \item{connectionHandler}{ResultModelManager ConnectionHander instance}
 
 \item{resultDatabaseSettings}{results database settings}
+
+\item{dataSource}{dataSource optionally created with createCdDatabaseDataSource}
 }
 \description{
 Cohort Diagnostics Explorer main module

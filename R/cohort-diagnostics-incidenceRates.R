@@ -489,7 +489,7 @@ incidenceRatesView <- function(id) {
 }
 
 
-#' Global ranges for IR values
+# Global ranges for IR values
 getIncidenceRateRanges <- function(dataSource, minPersonYears = 0) {
   sql <- "SELECT DISTINCT age_group FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
 

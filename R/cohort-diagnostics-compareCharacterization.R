@@ -234,6 +234,7 @@ plotTemporalCompareStandardizedDifference <- function(balance,
 #' Use for customizing UI
 #'
 #' @param id    Namespace Id - use namespaced id ns("compareCohortCharacterization") inside diagnosticsExplorer module
+#' @param title     Optional string title field
 #' @export
 compareCohortCharacterizationView <- function(id, title = "Compare cohort characterization") {
   ns <- shiny::NS(id)
@@ -468,19 +469,7 @@ compareCohortCharacterizationView <- function(id, title = "Compare cohort charac
   )
 }
 
-# Cohort ----
-#' Returns data from cohort table of Cohort Diagnostics results data model
-#'
-#' @description
-#' Returns data from cohort table of Cohort Diagnostics results data model
-#'
-#' template DataSource
-#'
-#' template CohortIds
-#'
-#' @return
-#' Returns a data frame (tibble)
-#'
+# Returns data from cohort table of Cohort Diagnostics results data model
 getResultsCohort <- function(dataSource, cohortIds = NULL) {
   data <- dataSource$connectionHandler$queryDb(
     sql = "SELECT * FROM @results_database_schema.@table_name
@@ -494,24 +483,7 @@ getResultsCohort <- function(dataSource, cohortIds = NULL) {
 }
 
 
-#' Returns cohort as feature characterization
-#'
-#' @description
-#' Returns a list object with covariateValue,
-#' covariateRef, analysisRef output of cohort as features.
-#'
-#' template DataSource
-#'
-#' template CohortIds
-#'
-#' template DatabaseIds
-#'
-#' @return
-#' Returns a list object with covariateValue,
-#' covariateRef, analysisRef output of cohort as features. To avoid clash
-#' with covaraiteId and conceptId returned from Feature Extraction
-#' the output is a negative integer.
-#'
+# Returns cohort as feature characterization
 getCohortRelationshipCharacterizationResults <-
   function(dataSource,
            cohortIds,
