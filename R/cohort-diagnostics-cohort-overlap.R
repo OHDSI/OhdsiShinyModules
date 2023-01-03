@@ -315,6 +315,7 @@ getResultsCohortRelationships <- function(dataSource,
 }
 
 # Returns data for use in cohort_overlap
+#' @importFrom tidyselect where
 getResultsCohortOverlap <- function(dataSource,
                                     targetCohortIds = NULL,
                                     comparatorCohortIds = NULL,

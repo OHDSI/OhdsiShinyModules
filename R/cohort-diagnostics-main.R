@@ -107,8 +107,8 @@ getEnabledCdReports <- function(dataSource) {
 #' @return An object of class `CdDataSource`.
 #'
 #' @import utils
-#' @importFrom DatabaseConnector dbListTables
-#' #' @export
+#' @import DatabaseConnector
+#' @export
 createCdDatabaseDataSource <- function(connectionHandler,
                                        schema,
                                        vocabularyDatabaseSchema = schema,

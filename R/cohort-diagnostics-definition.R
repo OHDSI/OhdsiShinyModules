@@ -216,6 +216,7 @@ getCohortJsonSql <- function(dataSource, cohortIds) {
                                        cohort_ids = cohortIds)
 }
 
+#' @importFrom stringr str_replace_all str_replace
 exportCohortDefinitionsZip <- function(cohortDefinitions,
                                        zipFile = NULL) {
   rootFolder <-

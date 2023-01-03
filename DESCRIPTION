@@ -43,7 +43,9 @@ Imports:
     CirceR,
     purrr,
     checkmate,
-    RJSONIO
+    RJSONIO,
+    jsonlite,
+    shinyjs
 Suggests:
     kableExtra,
     knitr,
