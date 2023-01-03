@@ -13,6 +13,7 @@ shiny::testServer(characterizationModule, args = list(
     selectedConceptSet = "",
     proportionOrContinuous = "Proportion",
     generateRaw = 1,
+    generateReport = 1,
     characterizationDomainIdFilter = domainIdOptions,
     characterizationAnalysisNameFilter = analysisNameOptions,
     timeIdChoices =  tids$temporalChoices,
@@ -41,4 +42,5 @@ shiny::testServer(characterizationModule, args = list(
   )
   rawTableTimeIdReactable()
   rawTableReactable()
+  cohortCharacterizationPrettyTable()
 })

@@ -8,6 +8,9 @@ shiny::testServer(databaseInformationModule, args = list(
   getFilteredMetadataInformation()
   checkmate::expect_data_frame(getDatabaseInformation())
 
-
   checkmate::expect_class(output$databaseInformationTable, "json")
+
+  res <- getExecutionMetadata(dataSourceCd, "Eunomia")
+  checkmate::expect_data_frame(res)
+
 })

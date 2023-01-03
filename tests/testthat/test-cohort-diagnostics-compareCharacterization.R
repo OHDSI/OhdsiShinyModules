@@ -1,4 +1,4 @@
-context("cohort-diagnostics-compateCharacterization")
+context("cohort-diagnostics-compare characterization")
 
 shiny::testServer(compareCohortCharacterizationModule, args = list(
   id = "compareCharacterization",

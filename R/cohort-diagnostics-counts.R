@@ -27,7 +27,7 @@ cohortCountsView <- function(id) {
       collapsed = TRUE,
       title = "Cohort Counts",
       width = "100%",
-      shiny::htmlTemplate(system.file("cohort-diagnostics-www",   "cohortCounts.html", package = utils::packageName()))
+      shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
     ),
     shinydashboard::box(
       status = "warning",
@@ -100,6 +100,85 @@ cohortCountsView <- function(id) {
         )
       )
     )
+  )
+}
+
+getInclusionRulesTable <- function(dataSource, cohortIds, databaseIds, mode, showAsPercentage) {
+
+  data <- getInclusionRuleStats(
+    dataSource = dataSource,
+    cohortIds = cohortIds,
+    databaseIds = databaseIds,
+    mode = mode # modeId = 1 - best event, i.e. person
+  )
+
+  validate(need(
+    (nrow(data) > 0),
+    "There is no data for the selected combination."
+  ))
+
+  if (all(hasData(showAsPercentage), showAsPercentage)) {
+    data <- data %>%
+      dplyr::mutate(
+        Meet = meetSubjects / totalSubjects,
+        Gain = gainSubjects / totalSubjects,
+        Remain = remainSubjects / totalSubjects,
+        id = ruleSequenceId
+      )
+  } else {
+    data <- data %>%
+      dplyr::mutate(
+        Meet = meetSubjects,
+        Gain = gainSubjects,
+        Remain = remainSubjects,
+        Total = totalSubjects,
+        id = ruleSequenceId
+      )
+  }
+
+  data <- data %>%
+    dplyr::arrange(cohortId,
+                   databaseId,
+                   id)
+
+  validate(need(
+    (nrow(data) > 0),
+    "There is no data for the selected combination."
+  ))
+
+  keyColumnFields <-
+    c("id", "ruleName")
+  countLocation <- 1
+
+  if (any(!hasData(input$cohortCountInclusionRuleTableFilters),
+          input$cohortCountInclusionRuleTableFilters == "All")) {
+    dataColumnFields <- c("Meet", "Gain", "Remain")
+  } else {
+    dataColumnFields <- c(input$cohortCountInclusionRuleTableFilters)
+  }
+
+  if (all(hasData(showAsPercentage), !showAsPercentage)) {
+    dataColumnFields <- c(dataColumnFields, "Total")
+  }
+
+  countsForHeader <-
+    getDisplayTableHeaderCount(
+      dataSource = dataSource,
+      databaseIds = selectedDatabaseIds(),
+      cohortIds = getCohortIdOnCohortCountRowSelect()$cohortId,
+      source = "cohort",
+      fields = "Persons"
+    )
+
+  getDisplayTableGroupedByDatabaseId(
+    data = data,
+    databaseTable = databaseTable,
+    headerCount = countsForHeader,
+    keyColumns = keyColumnFields,
+    countLocation = countLocation,
+    dataColumns = dataColumnFields,
+    showDataAsPercent = showAsPercentage,
+    sort = TRUE
   )
 }
 
@@ -217,7 +296,7 @@ cohortCountsModule <- function(id,
                   "cohortCountRowIsSelected",
                   suspendWhenHidden = FALSE)
 
-    output$inclusionRuleStats <- reactable::renderReactable(expr = {
+    output$inclusionRuleStats <- reactable::renderReactable({
       validate(need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
       validate(need(
         nrow(getCohortIdOnCohortCountRowSelect()) > 0,
@@ -235,84 +314,12 @@ cohortCountsModule <- function(id,
       } else {
         mode <- 0
       }
-      
-      data <- getInclusionRuleStats(
-          dataSource = dataSource,
-          cohortIds = getCohortIdOnCohortCountRowSelect()$cohortId,
-          databaseIds = selectedDatabaseIds(),
-          mode = mode # modeId = 1 - best event, i.e. person
-        )
 
-      showDataAsPercent <- input$showAsPercent
-
-      validate(need(
-        (nrow(data) > 0),
-        "There is no data for the selected combination."
-      ))
-
-      if (all(hasData(showDataAsPercent), showDataAsPercent)) {
-        data <- data %>%
-          dplyr::mutate(
-            Meet = meetSubjects / totalSubjects,
-            Gain = gainSubjects / totalSubjects,
-            Remain = remainSubjects / totalSubjects,
-            id = ruleSequenceId
-          )
-      } else {
-        data <- data %>%
-          dplyr::mutate(
-            Meet = meetSubjects,
-            Gain = gainSubjects,
-            Remain = remainSubjects,
-            Total = totalSubjects,
-            id = ruleSequenceId
-          )
-      }
-
-      data <- data %>%
-        dplyr::arrange(cohortId,
-                       databaseId,
-                       id)
-
-      validate(need(
-        (nrow(data) > 0),
-        "There is no data for the selected combination."
-      ))
-
-      keyColumnFields <-
-        c("id", "ruleName")
-      countLocation <- 1
-
-      if (any(!hasData(input$cohortCountInclusionRuleTableFilters),
-              input$cohortCountInclusionRuleTableFilters == "All")) {
-        dataColumnFields <- c("Meet", "Gain", "Remain")
-      } else {
-        dataColumnFields <- c(input$cohortCountInclusionRuleTableFilters)
-      }
-
-      if (all(hasData(showDataAsPercent), !showDataAsPercent)) {
-        dataColumnFields <- c(dataColumnFields, "Total")
-      }
-
-      countsForHeader <-
-        getDisplayTableHeaderCount(
-          dataSource = dataSource,
-          databaseIds = selectedDatabaseIds(),
-          cohortIds = getCohortIdOnCohortCountRowSelect()$cohortId,
-          source = "cohort",
-          fields = "Persons"
-        )
-
-      getDisplayTableGroupedByDatabaseId(
-        data = data,
-        databaseTable = databaseTable,
-        headerCount = countsForHeader,
-        keyColumns = keyColumnFields,
-        countLocation = countLocation,
-        dataColumns = dataColumnFields,
-        showDataAsPercent = showDataAsPercent,
-        sort = TRUE
-      )
+      getInclusionRulesTable(dataSource,
+                             getCohortIdOnCohortCountRowSelect()$cohortId,
+                             selectedDatabaseIds(),
+                             mode,
+                             input$showAsPercent)
     })
   }
 
