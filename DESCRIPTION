@@ -45,7 +45,10 @@ Imports:
     checkmate,
     RJSONIO,
     jsonlite,
-    shinyjs
+    shinyjs,
+    readr,
+    stringr,
+    tidyselect
 Suggests:
     kableExtra,
     knitr,
