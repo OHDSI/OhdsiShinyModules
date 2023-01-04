@@ -28,9 +28,10 @@ shiny::testServer(incidenceRatesModule, args = list(
     irStratification = c("Age", "Calendar Year", "Sex"),
     minPersonYear = 0,
     minSubjectCount = 0,
-    generatePlot = 1
+    generatePlot = 1,
+    incidenceRateCalenderFilter = c(2010, 2019)
   )
-
+    
   checkmate::expect_data_frame(incidenceRateData())
-  incidenceRateCalenderFilter()
+  checkmate::expect_integerish(incidenceRateCalenderFilter())
 })

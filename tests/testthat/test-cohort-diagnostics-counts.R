@@ -27,5 +27,8 @@ shiny::testServer(cohortCountsModule, args = list(
     cohortCountsTableColumnFilter = "Records"
   )
   checkmate::expect_class(output$cohortCountsTable, "json")
+
+  res <- getInclusionRulesTable(dataSourceCd, 18350, "Eunomia",  c("Meet", "Gain", "Remain"), 0, TRUE)
+  checkmate::expect_class(res, "reactable")
 })
 

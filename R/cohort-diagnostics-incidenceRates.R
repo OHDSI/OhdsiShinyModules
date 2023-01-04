@@ -767,6 +767,7 @@ incidenceRatesModule <- function(id,
         ) %>%
         dplyr::distinct(calendarYear) %>%
         dplyr::arrange(calendarYear)
+
       calenderFilter <-
         calenderFilter[calenderFilter$calendarYear >= input$incidenceRateCalenderFilter[1] &
                          calenderFilter$calendarYear <= input$incidenceRateCalenderFilter[2], , drop = FALSE] %>%

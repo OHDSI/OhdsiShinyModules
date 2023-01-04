@@ -103,7 +103,7 @@ cohortCountsView <- function(id) {
   )
 }
 
-getInclusionRulesTable <- function(dataSource, cohortIds, databaseIds, mode, showAsPercentage) {
+getInclusionRulesTable <- function(dataSource, cohortIds, databaseIds, dataColumnFields, mode, showAsPercentage) {
 
   data <- getInclusionRuleStats(
     dataSource = dataSource,
@@ -146,17 +146,6 @@ getInclusionRulesTable <- function(dataSource, cohortIds, databaseIds, mode, sho
     "There is no data for the selected combination."
   ))
 
-  keyColumnFields <-
-    c("id", "ruleName")
-  countLocation <- 1
-
-  if (any(!hasData(input$cohortCountInclusionRuleTableFilters),
-          input$cohortCountInclusionRuleTableFilters == "All")) {
-    dataColumnFields <- c("Meet", "Gain", "Remain")
-  } else {
-    dataColumnFields <- c(input$cohortCountInclusionRuleTableFilters)
-  }
-
   if (all(hasData(showAsPercentage), !showAsPercentage)) {
     dataColumnFields <- c(dataColumnFields, "Total")
   }
@@ -164,18 +153,18 @@ getInclusionRulesTable <- function(dataSource, cohortIds, databaseIds, mode, sho
   countsForHeader <-
     getDisplayTableHeaderCount(
       dataSource = dataSource,
-      databaseIds = selectedDatabaseIds(),
-      cohortIds = getCohortIdOnCohortCountRowSelect()$cohortId,
+      databaseIds = databaseIds,
+      cohortIds = cohortIds,
       source = "cohort",
       fields = "Persons"
     )
 
   getDisplayTableGroupedByDatabaseId(
     data = data,
-    databaseTable = databaseTable,
+    databaseTable = dataSource$databaseTable,
     headerCount = countsForHeader,
-    keyColumns = keyColumnFields,
-    countLocation = countLocation,
+    keyColumns = c("id", "ruleName"),
+    countLocation = 1,
     dataColumns = dataColumnFields,
     showDataAsPercent = showAsPercentage,
     sort = TRUE
@@ -315,9 +304,17 @@ cohortCountsModule <- function(id,
         mode <- 0
       }
 
+      if (any(!hasData(input$cohortCountInclusionRuleTableFilters),
+              input$cohortCountInclusionRuleTableFilters == "All")) {
+        dataColumnFields <- c("Meet", "Gain", "Remain")
+      } else {
+        dataColumnFields <- c(input$cohortCountInclusionRuleTableFilters)
+      }
+
       getInclusionRulesTable(dataSource,
                              getCohortIdOnCohortCountRowSelect()$cohortId,
                              selectedDatabaseIds(),
+                             dataColumnFields,
                              mode,
                              input$showAsPercent)
     })
