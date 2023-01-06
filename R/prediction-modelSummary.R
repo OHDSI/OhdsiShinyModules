@@ -67,7 +67,7 @@ predictionModelSummaryServer <- function(
       }
 
       resultTable <- shiny::reactive(
-        getInternalPerformanceSummary(
+        getModelDesignPerformanceSummary(
           connectionHandler = connectionHandler, 
           mySchema = mySchema, 
           myTableAppend = myTableAppend,
@@ -186,7 +186,7 @@ predictionModelSummaryServer <- function(
 
 
 
-getInternalPerformanceSummary <- function(
+getModelDesignPerformanceSummary <- function(
     connectionHandler, 
   mySchema, 
   myTableAppend = '',
@@ -229,11 +229,11 @@ getInternalPerformanceSummary <- function(
        FROM (select * from @my_schema.@my_table_appendperformances where model_design_id = @model_design_id) AS results 
   
     inner join @my_schema.@my_table_appendmodel_designs as model_designs
-    on model_designs.model_design_id = results.model_design_id and
-    results.target_id = model_designs.target_id and 
-             results.outcome_id = model_designs.outcome_id and 
-             results.tar_id = model_designs.tar_id and
-             results.population_setting_id = model_designs.population_setting_id
+    on model_designs.model_design_id = results.model_design_id
+    -- and results.target_id = model_designs.target_id 
+             -- and results.outcome_id = model_designs.outcome_id and 
+             -- results.tar_id = model_designs.tar_id and
+             -- results.population_setting_id = model_designs.population_setting_id
              -- and results.plp_data_setting_id = model_designs.plp_data_setting_id
              
         LEFT JOIN (SELECT cohort_id, cohort_name FROM @my_schema.@my_table_appendcohorts) AS targets ON results.target_id = targets.cohort_id
