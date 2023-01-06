@@ -175,12 +175,6 @@ getInclusionRulesTable <- function(dataSource, cohortIds, databaseIds, dataColum
 #' @description
 #' Shiny module for cohort counts. Displays reactable table of cohort counts
 #'
-#' @import reactable
-#' @import shiny
-#' @import shinycssloaders
-#' @import shinydashboard
-#' @import dplyr
-#'
 #' @param id                        namespace id
 #' @param dataSource                Backend Data source (DatabaseConnection)
 #' @param cohortTable               data.frame of all cohorts

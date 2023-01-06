@@ -106,8 +106,6 @@ getEnabledCdReports <- function(dataSource) {
 #' @param displayProgress display a progress messaage (can only be used inside a shiny reactive context)
 #' @return An object of class `CdDataSource`.
 #'
-#' @import utils
-#' @import DatabaseConnector
 #' @export
 createCdDatabaseDataSource <- function(connectionHandler,
                                        schema,

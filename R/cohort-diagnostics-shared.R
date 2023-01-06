@@ -591,7 +591,6 @@ getMaxValByString <-
     }
   }
 
-#' @importFrom stringr str_replace_all str_replace
 getDisplayTableColumnMinMaxWidth <- function(data,
                                              columnName,
                                              pixelMultipler = 10,

@@ -234,9 +234,6 @@ characterizationView <- function(id) {
   )
 }
 
-
-#' @import magrittr
-#' @importFrom stringr str_replace_all str_replace
 prepareTable1 <- function(covariates,
                           prettyTable1Specifications,
                           cohort) {
@@ -429,7 +426,6 @@ prepareTable1 <- function(covariates,
   return(table)
 }
 
-#'@importFrom readr cols read_csv
 characterizationModule <- function(id,
                                    dataSource,
                                    cohortTable = dataSource$cohortTable,
