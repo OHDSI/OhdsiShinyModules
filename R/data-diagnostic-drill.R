@@ -314,7 +314,7 @@ getDrugStudyFail <- function(
     shiny::incProgress(1/3, detail = paste("Extracting data"))
     
     sql <- "SELECT * FROM @my_schema.@my_table_appenddata_diagnostics_summary
-  WHERE analysis_id = @analysis;"
+  WHERE analysis_id in (@analysis);"
     
     summaryTable <- connectionHandler$queryDb(
       sql = sql, 
