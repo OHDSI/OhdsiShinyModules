@@ -515,12 +515,13 @@ getDiagnosticParticipants <- function(
   myTableAppend
 ){
   
-  sql <- "SELECT * FROM @my_schema.@table_name WHERE diagnostic_id = @diagnostic_id;"
+  sql <- "SELECT * FROM @my_schema.@my_table_append@table_name WHERE diagnostic_id = @diagnostic_id;"
 
   participants <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     table_name = 'diagnostic_participants',
+    my_table_append = myTableAppend,
     diagnostic_id = diagnosticId
   )
   
@@ -548,12 +549,13 @@ getDiagnosticPredictors <- function(
   myTableAppend
 ){
   
-  sql <- "SELECT * FROM @my_schema.@table_name WHERE diagnostic_id = @diagnostic_id;"
+  sql <- "SELECT * FROM @my_schema.@my_table_append@table_name WHERE diagnostic_id = @diagnostic_id;"
 
   predictors <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     table_name = 'diagnostic_predictors',
+    my_table_append = myTableAppend,
     diagnostic_id = diagnosticId
   )
   
@@ -567,12 +569,13 @@ getDiagnosticOutcomes <- function(
   myTableAppend 
 ){
   
-  sql <- "SELECT * FROM @my_schema.@table_name WHERE diagnostic_id = @diagnostic_id;"
+  sql <- "SELECT * FROM @my_schema.@my_table_append@table_name WHERE diagnostic_id = @diagnostic_id;"
 
   outcomes <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     table_name = 'diagnostic_outcomes',
+    my_table_append = myTableAppend,
     diagnostic_id = diagnosticId
   )
   
