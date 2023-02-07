@@ -34,7 +34,7 @@
 
 .algolia-autocomplete .ds-dropdown-menu [class^=ds-dataset-] {
   padding: 0;
-  background-color: grDevices::rgb(255,255,255);
+  background-color: rgb(255,255,255);
   border: 0;
   max-height: 80vh;
 }

@@ -145,3 +145,29 @@ reference:
       - dataDiagnosticSummaryServer
       - dataDiagnosticSummaryViewer
       - dataDiagnosticViewer
+  - title: "Cohort Diagnostic module"
+    desc: >
+      Modules for the CohortDiagnostics package.
+    contents:
+      - cohortDiagnosticsSever 
+      - cohortDiagnosticsView
+      - cohortDiagnosticsHelperFile      
+      - characterizationView
+      - cohortCountsModule
+      - cohortCountsView
+      - cohortDefinitionsModule
+      - cohortDefinitionsView
+      - cohortOverlapView
+      - compareCohortCharacterizationView
+      - conceptsInDataSourceView
+      - createCdDatabaseDataSource
+      - databaseInformationView
+      - getCirceRenderedExpression
+      - getEnabledCdReports
+      - incidenceRatesView
+      - indexEventBreakdownView
+      - orpahanConceptsView
+      - timeDistributionsView
+      - visitContextView
+      - inclusionRulesView
+      
