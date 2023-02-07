@@ -34,7 +34,7 @@ indexEventBreakdownView <- function(id) {
     shinydashboard::box(
       status = "warning",
       width = "100%",
-      tags$div(
+      shiny::tags$div(
         style = "max-height: 100px; overflow-y: auto",
         shiny::uiOutput(outputId = ns("selectedCohort"))
       )
@@ -45,8 +45,8 @@ indexEventBreakdownView <- function(id) {
       htmltools::withTags(
         table(
           width = "100%",
-          tags$tr(
-            tags$td(
+          shiny::tags$tr(
+            shiny::tags$td(
               shiny::radioButtons(
                 inputId = ns("indexEventBreakdownTableRadioButton"),
                 label = "Concept type",
@@ -55,8 +55,8 @@ indexEventBreakdownView <- function(id) {
                 inline = TRUE
               )
             ),
-            tags$td(HTML("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")),
-            tags$td(
+            shiny::tags$td(shiny::HTML("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")),
+            shiny::tags$td(
               shiny::radioButtons(
                 inputId = ns("indexEventBreakdownTableFilter"),
                 label = "Display",
@@ -65,7 +65,7 @@ indexEventBreakdownView <- function(id) {
                 inline = TRUE
               )
             ),
-            tags$td(
+            shiny::tags$td(
               shiny::checkboxInput(
                 inputId = ns("showAsPercent"),
                 label = "Show as percentage",
@@ -125,8 +125,8 @@ getIndexEventBreakdown <- function(dataSource,
                       by = c("databaseId", "cohortId")
     ) %>%
     dplyr::mutate(
-      subjectPercent = subjectCount / cohortSubjects,
-      conceptPercent = conceptCount / cohortEntries
+      subjectPercent = .data$subjectCount / .data$cohortSubjects,
+      conceptPercent = .data$conceptCount / .data$cohortEntries
     )
 
   return(data)
@@ -185,9 +185,9 @@ indexEventBreakdownModule <- function(id,
           if (input$indexEventBreakdownTableRadioButton == "All") {
             return(data)
           } else if (input$indexEventBreakdownTableRadioButton == "Standard concepts") {
-            return(data %>% dplyr::filter(standardConcept == "S"))
+            return(data %>% dplyr::filter(.data$standardConcept == "S"))
           } else {
-            return(data %>% dplyr::filter(is.na(standardConcept)))
+            return(data %>% dplyr::filter(is.na(.data$standardConcept)))
           }
         } else {
           return(NULL)
@@ -195,50 +195,50 @@ indexEventBreakdownModule <- function(id,
       })
 
     output$breakdownTable <- reactable::renderReactable(expr = {
-      validate(need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
-      validate(need(length(targetCohortId()) > 0, "No cohorts chosen chosen"))
+      shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
+      shiny::validate(shiny::need(length(targetCohortId()) > 0, "No cohorts chosen chosen"))
 
       showDataAsPercent <- input$showAsPercent
       data <- indexEventBreakDownDataFilteredByRadioButton()
 
-      validate(need(
+      shiny::validate(shiny::need(
         all(!is.null(data), nrow(data) > 0),
         "There is no data for the selected combination."
       ))
 
-      validate(need(
+      shiny::validate(shiny::need(
         nrow(data) > 0,
         "No data available for selected combination."
       ))
 
       data <- data %>%
-        dplyr::arrange(databaseId) %>%
+        dplyr::arrange(.data$databaseId) %>%
         dplyr::select(
-          conceptId,
-          conceptName,
-          domainField,
-          databaseId,
-          vocabularyId,
-          conceptCode,
-          conceptCount,
-          subjectCount,
-          subjectPercent,
-          conceptPercent
+          "conceptId",
+          "conceptName",
+          "domainField",
+          "databaseId",
+          "vocabularyId",
+          "conceptCode",
+          "conceptCount",
+          "subjectCount",
+          "subjectPercent",
+          "conceptPercent"
         ) %>%
-        dplyr::filter(conceptId > 0) %>%
+        dplyr::filter(.data$conceptId > 0) %>%
         dplyr::distinct()
 
       if (showDataAsPercent) {
         data <- data %>%
           dplyr::rename(
-            persons = subjectPercent,
-            records = conceptPercent
+            "persons" = "subjectPercent",
+            "records" = "conceptPercent"
           )
       } else {
         data <- data %>%
           dplyr::rename(
-            persons = subjectCount,
-            records = conceptCount
+            "persons" = "subjectCount",
+            "records" = "conceptCount"
           )
       }
 

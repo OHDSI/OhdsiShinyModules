@@ -33,7 +33,7 @@ orpahanConceptsView <- function(id) {
     shinydashboard::box(
       status = "warning",
       width = "100%",
-      tags$div(
+      shiny::tags$div(
         style = "max-height: 100px; overflow-y: auto",
         shiny::uiOutput(outputId = ns("selectedCohorts"))
       )
@@ -44,8 +44,8 @@ orpahanConceptsView <- function(id) {
       htmltools::withTags(
         table(
           width = "100%",
-          tags$tr(
-            tags$td(
+          shiny::tags$tr(
+            shiny::tags$td(
               shiny::radioButtons(
                 inputId = ns("orphanConceptsType"),
                 label = "Filters",
@@ -54,8 +54,8 @@ orpahanConceptsView <- function(id) {
                 inline = TRUE
               )
             ),
-            tags$td(HTML("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")),
-            tags$td(
+            shiny::tags$td(shiny::HTML("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")),
+            shiny::tags$td(
               shiny::radioButtons(
                 inputId = ns("orphanConceptsColumFilterType"),
                 label = "Display",
@@ -125,7 +125,7 @@ orphanConceptsModule <- function(id,
 
     # Orphan concepts table --------------------
     orphanConceptsDataReactive <- shiny::reactive(x = {
-      validate(need(length(targetCohortId()) > 0, "No cohorts chosen"))
+      shiny::validate(shiny::need(length(targetCohortId()) > 0, "No cohorts chosen"))
       data <- getOrphanConceptResult(
         dataSource = dataSource,
         cohortId = targetCohortId(),
@@ -136,7 +136,7 @@ orphanConceptsModule <- function(id,
         return(NULL)
       }
       data <- data %>%
-        dplyr::arrange(dplyr::desc(conceptCount))
+        dplyr::arrange(dplyr::desc(.data$conceptCount))
       return(data)
     })
     
@@ -144,14 +144,14 @@ orphanConceptsModule <- function(id,
     # Focuses on filtering the standard vs. non-standard codes
     filteringStandardConceptsReactive <- shiny::reactive(x = {
       data <- orphanConceptsDataReactive()
-      validate(need(hasData(data), "There is no data for the selected combination."))
+      shiny::validate(shiny::need(hasData(data), "There is no data for the selected combination."))
       
       
       if (hasData(selectedConceptSets())) {
         if (!is.null(selectedConceptSets())) {
           if (length(conceptSetIds()) > 0) {
             data <- data %>%
-              dplyr::filter(conceptSetId %in% conceptSetIds())
+              dplyr::filter(.data$conceptSetId %in% conceptSetIds())
           } else {
             data <- data[0,]
           }
@@ -160,12 +160,12 @@ orphanConceptsModule <- function(id,
 
       if (input$orphanConceptsType == "Standard Only") {
         data <- data %>%
-          dplyr::filter(standardConcept == "S")
+          dplyr::filter(.data$standardConcept == "S")
       } else if (input$orphanConceptsType == "Non Standard Only") {
         data <- data %>%
-          dplyr::filter(is.na(standardConcept) |
+          dplyr::filter(is.na(.data$standardConcept) |
                           (
-                            all(!is.na(standardConcept), standardConcept != "S")
+                            all(!is.na(.data$standardConcept), .data$standardConcept != "S")
                           ))
       }
       
@@ -175,47 +175,47 @@ orphanConceptsModule <- function(id,
 
     output$orphanConceptsTable <- reactable::renderReactable(expr = {
       data <- filteringStandardConceptsReactive()
-      validate(need(hasData(data), "There is no data for the selected combination."))
+      shiny::validate(shiny::need(hasData(data), "There is no data for the selected combination."))
     
 
       data <- data %>%
         dplyr::select(
-          databaseId,
-          cohortId,
-          conceptId,
-          conceptSubjects,
-          conceptCount
+          "databaseId",
+          "cohortId",
+          "conceptId",
+          "conceptSubjects",
+          "conceptCount"
         ) %>%
         dplyr::group_by(
-          databaseId,
-          cohortId,
-          conceptId
+          .data$databaseId,
+          .data$cohortId,
+          .data$conceptId
         ) %>%
         dplyr::summarise(
-          conceptSubjects = sum(conceptSubjects),
-          conceptCount = sum(conceptCount),
+          conceptSubjects = sum(.data$conceptSubjects),
+          conceptCount = sum(.data$conceptCount),
           .groups = "keep"
         ) %>%
         dplyr::ungroup() %>%
         dplyr::arrange(
-          databaseId,
-          cohortId
+          .data$databaseId,
+          .data$cohortId
         ) %>%
         dplyr::inner_join(
           data %>%
             dplyr::select(
-              conceptId,
-              databaseId,
-              cohortId,
-              conceptName,
-              vocabularyId,
-              conceptCode
+              "conceptId",
+              "databaseId",
+              "cohortId",
+              "conceptName",
+              "vocabularyId",
+              "conceptCode"
             ),
           by = c("databaseId", "cohortId", "conceptId")
         ) %>%
         dplyr::rename(
-          persons = conceptSubjects,
-          records = conceptCount
+          "persons" = "conceptSubjects",
+          "records" = "conceptCount"
         ) %>%
         dplyr::arrange(dplyr::desc(abs(dplyr::across(
           c("records", "persons")

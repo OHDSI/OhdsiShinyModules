@@ -124,19 +124,19 @@ getDisplayTableHeaderCount <-
           databaseIds = databaseIds
         ) %>%
           dplyr::rename(
-            records = cohortEntries,
-            persons = cohortSubjects
+            "records" = "cohortEntries",
+            "persons" = "cohortSubjects"
           )
     }
 
     if (fields %in% c("Persons")) {
       countsForHeader <- countsForHeader %>%
-        dplyr::select(-records) %>%
-        dplyr::rename(count = persons)
+        dplyr::select(-"records") %>%
+        dplyr::rename("count" = "persons")
     } else if (fields %in% c("Events", "Records")) {
       countsForHeader <- countsForHeader %>%
-        dplyr::select(-persons) %>%
-        dplyr::rename(count = records)
+        dplyr::select(-"persons") %>%
+        dplyr::rename("count" = "records")
     }
     return(countsForHeader)
   }
@@ -177,14 +177,14 @@ prepDataForDisplay <- function(data,
 }
 
 pallete <- function(x) {
-  cr <- colorRamp(c("white", "#9ccee7"))
+  cr <- grDevices::colorRamp(c("white", "#9ccee7"))
   col <- "#ffffff"
   tryCatch({
     if (x > 1.0) {
       x <- 1
     }
 
-    col <- rgb(cr(x), maxColorValue = 255)
+    col <- grDevices::rgb(cr(x), maxColorValue = 255)
   }, error = function(...) {
   })
   return(col)
@@ -221,25 +221,25 @@ getDisplayTableGroupedByDatabaseId <- function(data,
 
   data <- data %>%
     dplyr::inner_join(databaseTable %>%
-                        dplyr::select(databaseId, databaseName),
+                        dplyr::select("databaseId", "databaseName"),
                       by = "databaseId")
 
   if (isTemporal) {
     data <- data %>%
       dplyr::mutate(type = paste0(
-        databaseId,
+        .data$databaseId,
         "-",
-        temporalChoices,
+        .data$temporalChoices,
         "_sep_",
-        type
+        .data$type
       ))
     distinctColumnGroups <- data$temporalChoices %>% unique()
   } else {
     data <- data %>%
       dplyr::mutate(type = paste0(
-        databaseId,
+        .data$databaseId,
         "_sep_",
-        type
+        .data$type
       ))
     distinctColumnGroups <- data$databaseId %>% unique()
   }
@@ -289,9 +289,9 @@ getDisplayTableGroupedByDatabaseId <- function(data,
       columnTotalMinWidth + displayTableColumnMinMaxWidth$minValue
     columnTotalMaxWidth <-
       columnTotalMaxWidth + displayTableColumnMinMaxWidth$maxValue
-    if (class(data[[keyColumns[[i]]]]) == "logical") {
+    if (inherits(data[[keyColumns[[i]]]], "logical")) {
       data[[keyColumns[[i]]]] <- ifelse(data[[keyColumns[[i]]]],
-                                        as.character(icon("check")), ""
+                                        as.character(shiny::icon("check")), ""
       )
     }
 
@@ -333,7 +333,7 @@ getDisplayTableGroupedByDatabaseId <- function(data,
     if (!is.null(headerCount)) {
       if (countLocation == 2) {
         filteredHeaderCount <- headerCount %>%
-          dplyr::filter(databaseId == columnNameWithDatabaseAndCount[1])
+          dplyr::filter(.data$databaseId == columnNameWithDatabaseAndCount[1])
         columnCount <- filteredHeaderCount[[columnName]]
         columnName <-
           paste0(columnName, " (", scales::comma(columnCount), ")")
@@ -401,14 +401,14 @@ getDisplayTableGroupedByDatabaseId <- function(data,
     if (!is.null(headerCount)) {
       if (countLocation == 1) {
         columnName <- headerCount %>%
-          dplyr::filter(databaseId == distinctColumnGroups[i]) %>%
+          dplyr::filter(.data$databaseId == distinctColumnGroups[i]) %>%
           dplyr::mutate(count = paste0(
-            databaseName,
+            .data$databaseName,
             " (",
-            scales::comma(count),
+            scales::comma(.data$count),
             ")"
           )) %>%
-          dplyr::pull(count)
+          dplyr::pull("count")
       }
     }
     columnGroups[[i]] <-
@@ -577,8 +577,8 @@ getMaxValByString <-
     data <- data %>%
       dplyr::select(dplyr::all_of(string)) %>%
       tidyr::pivot_longer(values_to = "value", cols = dplyr::everything()) %>%
-      dplyr::filter(!is.na(value)) %>%
-      dplyr::pull(value)
+      dplyr::filter(!is.na(.data$value)) %>%
+      dplyr::pull("value")
 
     if (is.list(data)) {
       data <- data %>% unlist()
@@ -681,7 +681,7 @@ resolvedConceptSet <- function(dataSource,
       snakeCaseToCamelCase = TRUE
     ) %>%
       tidyr::tibble() %>%
-      dplyr::arrange(conceptId)
+      dplyr::arrange(.data$conceptId)
 
   return(resolved)
 }
@@ -732,7 +732,7 @@ mappedConceptSet <- function(dataSource,
       snakeCaseToCamelCase = TRUE
     ) %>%
       tidyr::tibble() %>%
-      dplyr::arrange(resolvedConceptId)
+      dplyr::arrange(.data$resolvedConceptId)
   return(mapped)
 }
 
@@ -754,13 +754,13 @@ addShortName <-
            shortNameColumn = "shortName") {
     if (is.null(shortNameRef)) {
       shortNameRef <- data %>%
-        dplyr::distinct(cohortId) %>%
-        dplyr::arrange(cohortId) %>%
+        dplyr::distinct(.data$cohortId) %>%
+        dplyr::arrange(.data$cohortId) %>%
         dplyr::mutate(shortName = paste0("C", dplyr::row_number()))
     }
 
     shortNameRef <- shortNameRef %>%
-      dplyr::distinct(cohortId, shortName)
+      dplyr::distinct(.data$cohortId, .data$shortName)
     colnames(shortNameRef) <- c(cohortIdColumn, shortNameColumn)
     data <- data %>%
       dplyr::inner_join(shortNameRef, by = dplyr::all_of(cohortIdColumn))
@@ -1001,32 +1001,32 @@ getInclusionRuleStats <- function(dataSource,
   }
 
   result <- inclusion %>%
-    dplyr::select(cohortId, databaseId, ruleSequence, name) %>%
+    dplyr::select("cohortId", "databaseId", "ruleSequence", "name") %>%
     dplyr::distinct() %>%
     dplyr::left_join(
       inclusionStats %>%
-        dplyr::filter(modeId == !!modeId) %>%
+        dplyr::filter(.data$modeId == !!modeId) %>%
         dplyr::select(
-          cohortId,
-          databaseId,
-          ruleSequence,
-          personCount,
-          gainCount,
-          personTotal
+          "cohortId",
+          "databaseId",
+          "ruleSequence",
+          "personCount",
+          "gainCount",
+          "personTotal"
         ),
       by = c("cohortId", "databaseId", "ruleSequence")
     ) %>%
-    dplyr::arrange(cohortId,
-                   databaseId,
-                   ruleSequence) %>%
+    dplyr::arrange(.data$cohortId,
+                   .data$databaseId,
+                   .data$ruleSequence) %>%
     dplyr::mutate(remain = 0)
 
   inclusionResults <- inclusionResults %>%
-    dplyr::filter(modeId == !!modeId)
+    dplyr::filter(.data$modeId == !!modeId)
 
   combis <- result %>%
-    dplyr::select(cohortId,
-                  databaseId) %>%
+    dplyr::select("cohortId",
+                  "databaseId") %>%
     dplyr::distinct()
 
   resultFinal <- c()
@@ -1051,22 +1051,22 @@ getInclusionRuleStats <- function(dataSource,
   }
   resultFinal <- dplyr::bind_rows(resultFinal) %>%
     dplyr::rename(
-      "meetSubjects" = personCount,
-      "gainSubjects" = gainCount,
-      "remainSubjects" = remain,
-      "totalSubjects" = personTotal,
-      "ruleName" = name,
-      "ruleSequenceId" = ruleSequence
+      "meetSubjects" = "personCount",
+      "gainSubjects" = "gainCount",
+      "remainSubjects" = "remain",
+      "totalSubjects" = "personTotal",
+      "ruleName" = "name",
+      "ruleSequenceId" = "ruleSequence"
     ) %>%
     dplyr::select(
-      cohortId,
-      ruleSequenceId,
-      ruleName,
-      meetSubjects,
-      gainSubjects,
-      remainSubjects,
-      totalSubjects,
-      databaseId
+      "cohortId",
+      "ruleSequenceId",
+      "ruleName",
+      "meetSubjects",
+      "gainSubjects",
+      "remainSubjects",
+      "totalSubjects",
+      "databaseId"
     )
   return(resultFinal)
 }

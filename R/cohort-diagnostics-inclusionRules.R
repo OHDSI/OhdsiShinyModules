@@ -33,7 +33,7 @@ inclusionRulesView <- function(id) {
     shinydashboard::box(
       status = "warning",
       width = "100%",
-      tags$div(
+      shiny::tags$div(
         style = "max-height: 100px; overflow-y: auto",
         shiny::uiOutput(outputId = ns("selectedCohort"))
       )
@@ -44,8 +44,8 @@ inclusionRulesView <- function(id) {
       htmltools::withTags(
         table(
           width = "100%",
-          tr(
-            td(
+          shiny::tags$tr(  # TODO where is this from?
+            shiny::tags$td( # TODO where is this from?
               align = "left",
               shiny::radioButtons(
                 inputId = ns("inclusionRuleTableFilters"),
@@ -55,14 +55,14 @@ inclusionRulesView <- function(id) {
                 inline = TRUE
               )
             ),
-            tags$td(
+            shiny::tags$td(
               shiny::checkboxInput(
                 inputId = ns("inclusionRulesShowAsPercent"),
                 label = "Show as percent",
                 value = TRUE
               )
             ),
-            td(
+            shiny::tags$td(
               align = "right",
             )
           )
@@ -87,42 +87,42 @@ inclusionRulesModule <- function(id,
 
     # Inclusion rules table ------------------
     output$inclusionRuleTable <- reactable::renderReactable(expr = {
-      validate(need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
+      shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
       table <- getInclusionRuleStats(
         dataSource = dataSource,
         cohortIds = targetCohortId(),
         databaseIds = selectedDatabaseIds(),
-        mode = 0
+        modeId = 0
       )
-      validate(need(hasData(table), "There is no data for the selected combination."))
+      shiny::validate(shiny::need(hasData(table), "There is no data for the selected combination."))
 
       showDataAsPercent <- input$inclusionRulesShowAsPercent
 
       if (showDataAsPercent) {
         table <- table %>%
           dplyr::mutate(
-            Meet = meetSubjects / totalSubjects,
-            Gain = gainSubjects / totalSubjects,
-            Remain = remainSubjects / totalSubjects,
-            id = ruleSequenceId
+            Meet = .data$meetSubjects / .data$totalSubjects,
+            Gain = .data$gainSubjects / .data$totalSubjects,
+            Remain = .data$remainSubjects / .data$totalSubjects,
+            id = .data$ruleSequenceId
           )
       } else {
         table <- table %>%
           dplyr::mutate(
-            Meet = meetSubjects,
-            Gain = gainSubjects,
-            Remain = remainSubjects,
-            Total = totalSubjects,
-            id = ruleSequenceId
+            Meet = .data$meetSubjects,
+            Gain = .data$gainSubjects,
+            Remain = .data$remainSubjects,
+            Total = .data$totalSubjects,
+            id = .data$ruleSequenceId
           )
       }
 
       table <- table %>%
-        dplyr::arrange(cohortId,
-                       databaseId,
-                       id)
+        dplyr::arrange(.data$cohortId,
+                       .data$databaseId,
+                       .data$id)
 
-      validate(need(
+      shiny::validate(shiny::need(
         (nrow(table) > 0),
         "There is no data for the selected combination."
       ))

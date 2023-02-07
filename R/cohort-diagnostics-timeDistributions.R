@@ -1,4 +1,4 @@
-data# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2022 Observational Health Data Sciences and Informatics
 #
 # This file is part of PatientLevelPrediction
 #
@@ -45,9 +45,9 @@ getTimeDistributionResult <- function(dataSource,
       by = "databaseId"
     ) %>%
     dplyr::rename(
-      "timeMetric" = covariateName,
-      "averageValue" = mean,
-      "standardDeviation" = sd
+      "timeMetric" = "covariateName",
+      "averageValue" = "mean",
+      "standardDeviation" = "sd"
     ) %>%
     dplyr::select(
       "cohortId",
@@ -117,16 +117,16 @@ plotTimeDistribution <- function(data, shortNameRef = NULL) {
   )
 
   sortShortName <- plotData %>%
-    dplyr::select(shortName) %>%
+    dplyr::select("shortName") %>%
     dplyr::distinct() %>%
     dplyr::arrange(-as.integer(sub(
-      pattern = "^C", "", x = shortName
+      pattern = "^C", "", x = .data$shortName
     )))
 
   plotData <- plotData %>%
     dplyr::arrange(
-      shortName = factor(shortName, levels = sortShortName$shortName),
-      shortName
+      shortName = factor(.data$shortName, levels = sortShortName$shortName),
+      .data$shortName
     )
 
   plotData$shortName <- factor(plotData$shortName,
@@ -135,19 +135,19 @@ plotTimeDistribution <- function(data, shortNameRef = NULL) {
 
   plot <- ggplot2::ggplot(data = plotData) +
     ggplot2::aes(
-      x = shortName,
-      ymin = minValue,
-      lower = p25Value,
-      middle = medianValue,
-      upper = p75Value,
-      ymax = maxValue,
-      average = averageValue
+      x = .data$shortName,
+      ymin = .data$minValue,
+      lower = .data$p25Value,
+      middle = .data$medianValue,
+      upper = .data$p75Value,
+      ymax = .data$maxValue,
+      average = .data$averageValue
     ) +
     ggplot2::geom_errorbar(size = 0.5) +
     ggiraph::geom_boxplot_interactive(
-      ggplot2::aes(tooltip = tooltip),
+      ggplot2::aes(tooltip = .data$tooltip),
       stat = "identity",
-      fill = rgb(0, 0, 0.8, alpha = 0.25),
+      fill = grDevices::rgb(0, 0, 0.8, alpha = 0.25),
       size = 0.2
     ) +
     ggplot2::facet_grid(databaseName ~ timeMetric, scales = "free") +
@@ -161,7 +161,7 @@ plotTimeDistribution <- function(data, shortNameRef = NULL) {
       strip.text.y = ggplot2::element_text(size = 5)
     )
   height <-
-    1.5 + 0.4 * nrow(dplyr::distinct(plotData, databaseId, shortName))
+    1.5 + 0.4 * nrow(dplyr::distinct(.data = plotData, .data$databaseId, .data$shortName))
   plot <- ggiraph::girafe(
     ggobj = plot,
     options = list(
@@ -211,7 +211,7 @@ timeDistributionsView <- function(id) {
     shinydashboard::box(
       status = "warning",
       width = "100%",
-      tags$div(
+      shiny::tags$div(
         style = "max-height: 100px; overflow-y: auto",
         shiny::uiOutput(outputId = ns("selectedCohorts"))
       )
@@ -284,7 +284,7 @@ timeDistributionsView <- function(id) {
       shiny::conditionalPanel(
         condition = "input.timeDistributionType=='Plot'",
         ns = ns,
-        tags$br(),
+        shiny::tags$br(),
         shinycssloaders::withSpinner(ggiraph::ggiraphOutput(ns("timeDistributionPlot"), width = "100%", height = "100%"))
       )
     )
@@ -305,8 +305,8 @@ timeDistributionsModule <- function(id,
     # Time distribution -----
     ## timeDistributionData -----
     timeDistributionData <- shiny::reactive({
-      validate(need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
-      validate(need(length(cohortIds()) > 0, "No cohorts chosen"))
+      shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
+      shiny::validate(shiny::need(length(cohortIds()) > 0, "No cohorts chosen"))
 
       data <- getTimeDistributionResult(
         dataSource = dataSource,
@@ -316,7 +316,7 @@ timeDistributionsModule <- function(id,
       )
 
       if (hasData(data)) {
-        data <- data %>% dplyr::filter(timeMetric %in% input$selecatableTimeMeasures)
+        data <- data %>% dplyr::filter(.data$timeMetric %in% input$selecatableTimeMeasures)
       }
 
       return(data)
@@ -325,7 +325,7 @@ timeDistributionsModule <- function(id,
     ## output: timeDistributionPlot -----
     output$timeDistributionPlot <- ggiraph::renderggiraph(expr = {
       data <- timeDistributionData()
-      validate(need(hasData(data), "No data for this combination"))
+      shiny::validate(shiny::need(hasData(data), "No data for this combination"))
       plot <- plotTimeDistribution(data = data, shortNameRef = cohortTable)
       return(plot)
     })
@@ -333,29 +333,29 @@ timeDistributionsModule <- function(id,
     ## output: timeDistributionTable -----
     output$timeDistributionTable <- reactable::renderReactable(expr = {
       data <- timeDistributionData()
-      validate(need(hasData(data), "No data for this combination"))
+      shiny::validate(shiny::need(hasData(data), "No data for this combination"))
 
       data <- data %>%
-        dplyr::inner_join(cohortTable %>% dplyr::select(cohortName, cohortId), by = "cohortId") %>%
-        dplyr::arrange(databaseId, cohortId) %>%
+        dplyr::inner_join(cohortTable %>% dplyr::select("cohortName", "cohortId"), by = "cohortId") %>%
+        dplyr::arrange(.data$databaseId, .data$cohortId) %>%
         dplyr::select(
-          cohortId,
-          Database = databaseName,
-          Cohort = cohortName,
-          TimeMeasure = timeMetric,
-          Average = averageValue,
-          SD = standardDeviation,
-          Min = minValue,
-          P10 = p10Value,
-          P25 = p25Value,
-          Median = medianValue,
-          P75 = p75Value,
-          P90 = p90Value,
-          Max = maxValue
+          "cohortId",
+          "Database" = "databaseName",
+          "Cohort" = "cohortName",
+          "TimeMeasure" = "timeMetric",
+          "Average" = "averageValue",
+          "SD" = "standardDeviation",
+          "Min" = "minValue",
+          "P10" = "p10Value",
+          "P25" = "p25Value",
+          "Median" = "medianValue",
+          "P75" = "p75Value",
+          "P90" = "p90Value",
+          "Max" = "maxValue"
         ) %>%
-        dplyr::select(all_of(c("Database", "cohortId", "Cohort", "TimeMeasure", input$selecatableCols)))
+        dplyr::select(dplyr::all_of(c("Database", "cohortId", "Cohort", "TimeMeasure", input$selecatableCols)))
 
-      validate(need(hasData(data), "No data for this combination"))
+      shiny::validate(shiny::need(hasData(data), "No data for this combination"))
 
       keyColumns <- c(
         "Database",

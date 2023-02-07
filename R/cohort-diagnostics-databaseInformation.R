@@ -28,7 +28,7 @@ databaseInformationView <- function(id) {
     shinydashboard::box(
       width = NULL,
       title = "Execution meta-data",
-      tags$p("Each entry relates to execution on a given cdm. Results are merged between executions incrementally"),
+      shiny::tags$p("Each entry relates to execution on a given cdm. Results are merged between executions incrementally"),
       shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("databaseInformationTable"))),
       shiny::conditionalPanel(
         "output.databaseInformationTableIsSelected == true",
@@ -45,8 +45,8 @@ databaseInformationView <- function(id) {
             width = NULL,
             collapsed = FALSE,
             shiny::verbatimTextOutput(outputId = ns("argumentsAtDiagnosticsInitiationJson")),
-            tags$head(
-              tags$style("#argumentsAtDiagnosticsInitiationJson { max-height:400px};")
+            shiny::tags$head(
+              shiny::tags$style("#argumentsAtDiagnosticsInitiationJson { max-height:400px};")
             )
           )
         )
@@ -99,20 +99,20 @@ getExecutionMetadata <- function(dataSource, databaseId) {
     )]
 
   transposeNonJsons <- databaseMetadata %>%
-    dplyr::filter(variableField %in% c(columnNamesNoJson)) %>%
+    dplyr::filter(.data$variableField %in% c(columnNamesNoJson)) %>%
     dplyr::rename(name = "variableField") %>%
-    dplyr::group_by(databaseId, startTime, name) %>%
+    dplyr::group_by(.data$databaseId, .data$startTime, .data$name) %>%
     dplyr::summarise(
-      valueField = max(valueField),
+      valueField = max(.data$valueField),
       .groups = "keep"
     ) %>%
     dplyr::ungroup() %>%
     tidyr::pivot_wider(
-      names_from = name,
-      values_from = valueField
+      names_from = "name",
+      values_from = "valueField"
     ) %>%
     dplyr::mutate(startTime = stringr::str_replace(
-      string = startTime,
+      string = .data$startTime,
       pattern = "TM_",
       replacement = ""
     ))
@@ -121,20 +121,20 @@ getExecutionMetadata <- function(dataSource, databaseId) {
     transposeNonJsons$startTime %>% lubridate::as_datetime()
 
   transposeJsons <- databaseMetadata %>%
-    dplyr::filter(variableField %in% c(columnNamesJson)) %>%
+    dplyr::filter(.data$variableField %in% c(columnNamesJson)) %>%
     dplyr::rename(name = "variableField") %>%
-    dplyr::group_by(databaseId, startTime, name) %>%
+    dplyr::group_by(.data$databaseId, .data$startTime, .data$name) %>%
     dplyr::summarise(
-      valueField = max(valueField),
+      valueField = max(.data$valueField),
       .groups = "keep"
     ) %>%
     dplyr::ungroup() %>%
     tidyr::pivot_wider(
-      names_from = name,
-      values_from = valueField
+      names_from = "name",
+      values_from = "valueField"
     ) %>%
     dplyr::mutate(startTime = stringr::str_replace(
-      string = startTime,
+      string = .data$startTime,
       pattern = "TM_",
       replacement = ""
     ))
@@ -214,27 +214,27 @@ getDatabaseMetadata <- function(dataSource, databaseTable) {
   data <- loadResultsTable(dataSource, "metadata", required = TRUE, tablePrefix = dataSource$tablePrefix)
   data <- data %>%
     tidyr::pivot_wider(
-      id_cols = c(startTime, databaseId),
-      names_from = variableField,
-      values_from = valueField
+      id_cols = c("startTime", "databaseId"),
+      names_from = "variableField",
+      values_from = "valueField"
     ) %>%
     dplyr::mutate(
       startTime = stringr::str_replace(
-        string = startTime,
+        string = .data$startTime,
         pattern = stringr::fixed("TM_"),
         replacement = ""
       )
     ) %>%
-    dplyr::mutate(startTime = paste0(startTime, " ", timeZone)) %>%
-    dplyr::mutate(startTime = as.POSIXct(startTime)) %>%
+    dplyr::mutate(startTime = paste0(.data$startTime, " ", .data$timeZone)) %>%
+    dplyr::mutate(startTime = as.POSIXct(.data$startTime)) %>%
     dplyr::group_by(
-      databaseId,
-      startTime
+      .data$databaseId,
+      .data$startTime
     ) %>%
-    dplyr::arrange(databaseId, dplyr::desc(startTime), .by_group = TRUE) %>%
+    dplyr::arrange(.data$databaseId, dplyr::desc(.data$startTime), .by_group = TRUE) %>%
     dplyr::mutate(rn = dplyr::row_number()) %>%
-    dplyr::filter(rn == 1) %>%
-    dplyr::select(-timeZone)
+    dplyr::filter(.data$rn == 1) %>%
+    dplyr::select(-"timeZone")
 
   if ("runTime" %in% colnames(data)) {
     data$runTime <- round(x = as.numeric(data$runTime), digits = 2)
@@ -281,11 +281,11 @@ getDatabaseMetadata <- function(dataSource, databaseTable) {
   databaseTable %>%
     dplyr::distinct() %>%
     dplyr::mutate(id = dplyr::row_number()) %>%
-    dplyr::mutate(shortName = paste0("D", id)) %>%
+    dplyr::mutate(shortName = paste0("D", .data$id)) %>%
     dplyr::left_join(data,
                      by = "databaseId"
     ) %>%
-    dplyr::relocate(id, databaseId, shortName)
+    dplyr::relocate("id", "databaseId", "shortName")
 }
 
 # What this module does is incredibly simple. How it does it is not.
@@ -301,13 +301,13 @@ databaseInformationModule <- function(id,
   shiny::moduleServer(id, function(input, output, session) {
 
     getDatabaseInformation <- shiny::reactive(x = {
-      return(databaseMetadata %>% dplyr::filter(databaseId %in% selectedDatabaseIds()))
+      return(databaseMetadata %>% dplyr::filter(.data$databaseId %in% selectedDatabaseIds()))
     })
 
     # Output: databaseInformationTable ------------------------
     output$databaseInformationTable <- reactable::renderReactable(expr = {
       data <- getDatabaseInformation()
-      validate(need(
+      shiny::validate(shiny::need(
         all(!is.null(data), nrow(data) > 0),
         "No data available for selected combination."
       ))
@@ -379,10 +379,10 @@ databaseInformationModule <- function(id,
 
       # The meta-data data structure needs to be taken out!
       data <- data %>%
-        dplyr::mutate(startTime = paste0(startTime)) %>%
-        dplyr::mutate(startTime = as.POSIXct(startTime))
+        dplyr::mutate(startTime = paste0(.data$startTime)) %>%
+        dplyr::mutate(startTime = as.POSIXct(.data$startTime))
 
-      data <- data %>% dplyr::filter(startTime == dbInfo$startTime)
+      data <- data %>% dplyr::filter(.data$startTime == dbInfo$startTime)
       return(data)
     })
 
@@ -392,7 +392,7 @@ databaseInformationModule <- function(id,
       if (!hasData(data)) {
         return(NULL)
       }
-      tags$p(paste(
+      shiny::tags$p(paste(
         "Run on ",
         data$databaseId,
         "on ",
@@ -409,7 +409,7 @@ databaseInformationModule <- function(id,
       if (!hasData(data)) {
         return(NULL)
       }
-      tags$table(tags$tr(tags$td(
+      shiny::tags$table(shiny::tags$tr(shiny::tags$td(
         paste(
           "Ran for ",
           data$runTime,
@@ -432,7 +432,7 @@ databaseInformationModule <- function(id,
           return(NULL)
         }
         data <- data %>%
-          dplyr::pull(argumentsAtDiagnosticsInitiationJson) %>%
+          dplyr::pull("argumentsAtDiagnosticsInitiationJson") %>%
           RJSONIO::fromJSON(digits = 23) %>%
           RJSONIO::toJSON(
             digits = 23,

@@ -160,7 +160,7 @@ createCdDatabaseDataSource <- function(connectionHandler,
     },
     cohortTableName = cohortTableName,
     databaseTableName = databaseTableName,
-    dataModelSpecifications = read.csv(dataModelSpecificationsPath)
+    dataModelSpecifications = utils::read.csv(dataModelSpecificationsPath)
   )
 
   if (displayProgress)
@@ -199,9 +199,9 @@ createCdDatabaseDataSource <- function(connectionHandler,
     dplyr::arrange(sequence)
 
   dataSource$characterizationTimeIdChoices <- dataSource$temporalChoices %>%
-    dplyr::filter(isTemporal == 0) %>%
-    dplyr::filter(primaryTimeId == 1) %>%
-    dplyr::arrange(sequence)
+    dplyr::filter(.data$isTemporal == 0) %>%
+    dplyr::filter(.data$primaryTimeId == 1) %>%
+    dplyr::arrange(.data$sequence)
 
 
   if (!is.null(dataSource$temporalAnalysisRef)) {
@@ -217,14 +217,14 @@ createCdDatabaseDataSource <- function(connectionHandler,
     )
 
     dataSource$domainIdOptions <- dataSource$temporalAnalysisRef %>%
-      dplyr::select(domainId) %>%
-      dplyr::pull(domainId) %>%
+      dplyr::select("domainId") %>%
+      dplyr::pull("domainId") %>%
       unique() %>%
       sort()
 
     dataSource$analysisNameOptions <- dataSource$temporalAnalysisRef %>%
-      dplyr::select(analysisName) %>%
-      dplyr::pull(analysisName) %>%
+      dplyr::select("analysisName") %>%
+      dplyr::pull("analysisName") %>%
       unique() %>%
       sort()
   }
@@ -241,7 +241,7 @@ getDatabaseTable <- function(dataSource) {
     "vocabularyVersion" %in% colnames(databaseTable)) {
     databaseTable <- databaseTable %>%
       dplyr::mutate(
-        databaseIdWithVocabularyVersion = paste0(databaseId, " (", vocabularyVersion, ")")
+        databaseIdWithVocabularyVersion = paste0(.data$databaseId, " (", .data$vocabularyVersion, ")")
       )
   }
 
@@ -259,13 +259,13 @@ getCohortTable <- function(dataSource) {
 
   # Old label
   if ("cohortDefinitionId" %in% names(cohortTable)) {
-    cohortTable <- cohortTable %>% dplyr::mutate(cohortId = cohortDefinitionId)
+    cohortTable <- cohortTable %>% dplyr::mutate(cohortId = .data$cohortDefinitionId)
   }
 
   cohortTable <- cohortTable %>%
-    dplyr::arrange(cohortId) %>%
-    dplyr::mutate(shortName = paste0("C", cohortId)) %>%
-    dplyr::mutate(compoundName = paste0(shortName, ": ", cohortName))
+    dplyr::arrange(.data$cohortId) %>%
+    dplyr::mutate(shortName = paste0("C", .data$cohortId)) %>%
+    dplyr::mutate(compoundName = paste0(.data$shortName, ": ", .data$cohortName))
 
   cohortTable
 }
@@ -285,38 +285,38 @@ getResultsTemporalTimeRef <- function(dataSource) {
   }
 
   temporalChoices <- temporalTimeRef %>%
-    dplyr::mutate(temporalChoices = paste0("T (", startDay, "d to ", endDay, "d)")) %>%
-    dplyr::arrange(startDay, endDay) %>%
+    dplyr::mutate(temporalChoices = paste0("T (", .data$startDay, "d to ", .data$endDay, "d)")) %>%
+    dplyr::arrange(.data$startDay, .data$endDay) %>%
     dplyr::select(
-      timeId,
-      startDay,
-      endDay,
-      temporalChoices
+      "timeId",
+      "startDay",
+      "endDay",
+      "temporalChoices"
     ) %>%
     dplyr::mutate(primaryTimeId = dplyr::if_else(
       condition = (
-        (startDay == -365 & endDay == -31) |
-          (startDay == -30 & endDay == -1) |
-          (startDay == 0 & endDay == 0) |
-          (startDay == 1 & endDay == 30) |
-          (startDay == 31 & endDay == 365) |
-          (startDay == -365 & endDay == 0) |
-          (startDay == -30 & endDay == 0)
+        (.data$startDay == -365 & .data$endDay == -31) |
+          (.data$startDay == -30 & .data$endDay == -1) |
+          (.data$startDay == 0 & .data$endDay == 0) |
+          (.data$startDay == 1 & .data$endDay == 30) |
+          (.data$startDay == 31 & .data$endDay == 365) |
+          (.data$startDay == -365 & .data$endDay == 0) |
+          (.data$startDay == -30 & .data$endDay == 0)
       ),
       true = 1,
       false = 0
     )) %>%
     dplyr::mutate(isTemporal = dplyr::if_else(
       condition = (
-        (endDay == 0 & startDay == -30) |
-          (endDay == 0 & startDay == -180) |
-          (endDay == 0 & startDay == -365) |
-          (endDay == 0 & startDay == -9999)
+        (.data$endDay == 0 & .data$startDay == -30) |
+          (.data$endDay == 0 & .data$startDay == -180) |
+          (.data$endDay == 0 & .data$startDay == -365) |
+          (.data$endDay == 0 & .data$startDay == -9999)
       ),
       true = 0,
       false = 1
     )) %>%
-    dplyr::arrange(startDay, timeId, endDay)
+    dplyr::arrange(.data$startDay, .data$timeId, .data$endDay)
 
   temporalChoices <- dplyr::bind_rows(
     temporalChoices %>% dplyr::slice(0),
@@ -421,8 +421,8 @@ cohortDiagnosticsSever <- function(id,
     # Reacive: cohortIds
     cohortIds <- shiny::reactive({
       cohortTable %>%
-        dplyr::filter(compoundName %in% input$cohorts) %>%
-        dplyr::select(cohortId) %>%
+        dplyr::filter(.data$compoundName %in% input$cohorts) %>%
+        dplyr::select("cohortId") %>%
         dplyr::pull()
     })
 
@@ -433,9 +433,9 @@ cohortDiagnosticsSever <- function(id,
     # conceptSetIds ----
     conceptSetIds <- shiny::reactive(x = {
       conceptSetsFiltered <- conceptSets %>%
-        dplyr::filter(conceptSetName %in% selectedConceptSets()) %>%
-        dplyr::filter(cohortId %in% targetCohortId()) %>%
-        dplyr::select(conceptSetId) %>%
+        dplyr::filter(.data$conceptSetName %in% selectedConceptSets()) %>%
+        dplyr::filter(.data$cohortId %in% targetCohortId()) %>%
+        dplyr::select("conceptSetId") %>%
         dplyr::pull() %>%
         unique()
       return(conceptSetsFiltered)
@@ -475,7 +475,7 @@ cohortDiagnosticsSever <- function(id,
     })
 
     ## ReactiveValue: selectedTemporalTimeIds ----
-    selectedTemporalTimeIds <- reactiveVal(NULL)
+    selectedTemporalTimeIds <- shiny::reactiveVal(NULL)
     shiny::observeEvent(eventExpr = {
       list(
         input$timeIdChoices_open,
@@ -487,8 +487,8 @@ cohortDiagnosticsSever <- function(id,
         !is.null(input$tabs) & !is.null(temporalCharacterizationTimeIdChoices)) {
         selectedTemporalTimeIds(
           temporalCharacterizationTimeIdChoices %>%
-            dplyr::filter(temporalChoices %in% input$timeIdChoices) %>%
-            dplyr::pull(timeId) %>%
+            dplyr::filter(.data$temporalChoices %in% input$timeIdChoices) %>%
+            dplyr::pull("timeId") %>%
             unique() %>%
             sort()
         )
@@ -497,7 +497,7 @@ cohortDiagnosticsSever <- function(id,
 
     cohortSubset <- shiny::reactive({
       return(cohortTable %>%
-               dplyr::arrange(cohortId))
+               dplyr::arrange(.data$cohortId))
     })
 
     shiny::observe({
@@ -530,9 +530,9 @@ cohortDiagnosticsSever <- function(id,
       }
 
       dataSource$conceptSets %>%
-        dplyr::filter(cohortId == targetCohortId()) %>%
-        dplyr::mutate(name = conceptSetName) %>%
-        dplyr::select(name)
+        dplyr::filter(.data$cohortId == targetCohortId()) %>%
+        dplyr::mutate(name = .data$conceptSetName) %>%
+        dplyr::select("name")
 
     })
 
@@ -550,11 +550,11 @@ cohortDiagnosticsSever <- function(id,
 
     selectedCohorts <- shiny::reactive({
       cohorts <- cohortSubset() %>%
-        dplyr::filter(cohortId %in% cohortIds()) %>%
-        dplyr::arrange(cohortId) %>%
-        dplyr::select(compoundName)
+        dplyr::filter(.data$cohortId %in% cohortIds()) %>%
+        dplyr::arrange(.data$cohortId) %>%
+        dplyr::select("compoundName")
       return(apply(cohorts, 1, function(x) {
-        tags$tr(lapply(x, tags$td))
+        shiny::tags$tr(lapply(x, shiny::tags$td))
       }))
     })
 
