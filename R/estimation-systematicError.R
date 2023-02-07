@@ -59,7 +59,7 @@ estimationSystematicErrorViewer <- function(id) {
 #' @param id the unique reference id for the module
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
-#' @param connection the connection to the PLE results database
+#' @param connectionHandler the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
 #' @param tablePrefix tablePrefix
 #' @param metaAnalysisDbIds metaAnalysisDbIds
@@ -68,7 +68,7 @@ estimationSystematicErrorViewer <- function(id) {
 #' the PLE systematic error content server
 #' 
 #' @export
-estimationSystematicErrorServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, metaAnalysisDbIds = NULL) {
+estimationSystematicErrorServer <- function(id, selectedRow, inputParams, connectionHandler, resultsSchema, tablePrefix, metaAnalysisDbIds = NULL) {
   
   shiny::moduleServer(
     id,
@@ -91,13 +91,21 @@ estimationSystematicErrorServer <- function(id, selectedRow, inputParams, connec
         if (is.null(row)) {
           return(NULL)
         } else {
-          controlResults <- getEstimationControlResults(connection = connection,
+          controlResults <- getEstimationControlResults(connectionHandler = connectionHandler,
                                                         resultsSchema = resultsSchema,
                                                         tablePrefix = tablePrefix,
                                                         targetId = inputParams()$target,
                                                         comparatorId = inputParams()$comparator,
                                                         analysisId = row$analysisId,
                                                         databaseId = row$databaseId)
+          
+          # remove the RR zeros that replace NAs during data upload 
+          controlResults$logRr[controlResults$logRr == 0] <- NA
+          controlResults$ci95Lb[controlResults$ci95Lb == 0] <- NA
+          controlResults$ci95Ub[controlResults$ci95Ub == 0] <- NA
+          controlResults$calibratedLogRr[controlResults$calibratedLogRr == 0] <- NA
+          controlResults$calibratedCi95Lb[controlResults$calibratedCi95Lb == 0] <- NA
+          controlResults$calibratedCi95Ub[controlResults$calibratedCi95Ub == 0] <- NA
           
           plot <- plotEstimationScatter(controlResults)
           return(plot)

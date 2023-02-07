@@ -3,19 +3,12 @@ context("data-diagnostic-main")
 shiny::testServer(
   app = dataDiagnosticServer, 
   args = list(
-    resultDatabaseSettings = list(
-      dbms = dbmsTest,
-      server = '../resources/datadiagDatabase/databaseFile.sqlite',
-      user = NULL,
-      password = NULL,
-      port = NULL,
-      tablePrefix = "",
-      schema = schemaTest
-    )
+    connectionHandler = connectionHandlerDataDiag,
+    resultDatabaseSettings = resultDatabaseSettingsDataDiag
   ), 
   expr = {
     
-    testthat::expect_true(class(con) == 'DatabaseConnectorDbiConnection')
+    testthat::expect_true(inherits(connectionHandler,"ConnectionHandler"))
     
     # check tabs dont cause errors
     session$setInputs(main_tabs = 'Drill-Down')

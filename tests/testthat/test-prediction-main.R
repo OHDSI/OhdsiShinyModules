@@ -3,17 +3,8 @@ context("prediction-main")
 shiny::testServer(
   app = predictionServer, 
   args = list(
-    resultDatabaseSettings = list(
-      dbms = dbmsTest,
-      server = serverPlp,
-      user = NULL,
-      password = NULL,
-      port = NULL,
-      tablePrefix = tablePrefixTest,
-      cohortTablePrefix = tablePrefixTest,
-      databaseTablePrefix = tablePrefixTest,
-      schema = schemaTest
-    )
+    connectionHandler = connectionHandlerPlp,
+    resultDatabaseSettings = resultDatabaseSettingsPlp
   ), 
   expr = {
     

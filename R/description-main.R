@@ -82,7 +82,8 @@ descriptionViewer <- function(id=1) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param resultDatabaseSettings a list containing the prediction result schema and connection details
+#' @param connectionHandler a connection to the database with the results
+#' @param resultDatabaseSettings a list containing the description result schema, dbms, tablePrefix, databaseTable and cohortTablePrefix
 #' 
 #' @return
 #' The server for the description module
@@ -90,58 +91,12 @@ descriptionViewer <- function(id=1) {
 #' @export
 descriptionServer <- function(
   id, 
+  connectionHandler,
   resultDatabaseSettings = list(port = 1)
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      # =============================
-      #   CONNECTION
-      # =============================
-      if(F){
-        if(resultDatabaseSettings$port != ""){
-          ParallelLogger::logInfo('Port')
-          ParallelLogger::logInfo(paste(resultDatabaseSettings$port))
-          con <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
-                              dbms = resultDatabaseSettings$dbms,
-                              server = resultDatabaseSettings$server,
-                              user = resultDatabaseSettings$user,
-                              password = resultDatabaseSettings$password,
-                              port = resultDatabaseSettings$port)
-          
-        } else{
-          ParallelLogger::logInfo('No Port')
-          con <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
-                              dbms = resultDatabaseSettings$dbms,
-                              server = resultDatabaseSettings$server,
-                              user = resultDatabaseSettings$user,
-                              password = resultDatabaseSettings$password
-          )
-          
-        }
-      }
-      
-      # old connection 
-      connectionDetails <- DatabaseConnector::createConnectionDetails(
-        dbms = resultDatabaseSettings$dbms,
-        server = resultDatabaseSettings$server,
-        user = resultDatabaseSettings$user,
-        password = resultDatabaseSettings$password,
-        port = resultDatabaseSettings$port
-        #pathToDriver =  '/Users/jreps/Documents/drivers'
-      )
-      
-      
-      con <- DatabaseConnector::connect(connectionDetails)
-      
-      
-      shiny::onStop(function() {
-        if (DBI::dbIsValid(con)) {
-          ParallelLogger::logInfo("Closing connection pool")
-          DatabaseConnector::disconnect(con)
-        }
-      })
       
       mainPanelTab <- shiny::reactiveVal(input$mainPanel)
       shiny::observeEvent(
@@ -156,12 +111,10 @@ descriptionServer <- function(
       # =============================
       descriptionTableServer(
         id = 'descriptiveTableTab',
-        con = con, 
+        connectionHandler = connectionHandler, 
         mainPanelTab = mainPanelTab,
         schema = resultDatabaseSettings$schema, 
-        dbms = resultDatabaseSettings$dbms,
         tablePrefix = resultDatabaseSettings$tablePrefix,
-        tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema, 
         cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
         databaseTable = resultDatabaseSettings$databaseTable
         )
@@ -173,12 +126,10 @@ descriptionServer <- function(
       
       descriptionAggregateFeaturesServer(
         id = 'aggregateFeaturesTab',
-        con = con, 
+        connectionHandler = connectionHandler, 
         mainPanelTab = mainPanelTab,
         schema = resultDatabaseSettings$schema, 
-        dbms = resultDatabaseSettings$dbms,
         tablePrefix = resultDatabaseSettings$tablePrefix,
-        tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema, 
         cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
         databaseTable = resultDatabaseSettings$databaseTable
       )
@@ -188,12 +139,10 @@ descriptionServer <- function(
       # =============================
       descriptionIncidenceServer(
         id = 'incidenceTab',
-        con = con, 
+        connectionHandler = connectionHandler, 
         mainPanelTab = mainPanelTab,
         schema = resultDatabaseSettings$schema, 
-        dbms = resultDatabaseSettings$dbms,
         incidenceTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
-        tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema,
         databaseTable = resultDatabaseSettings$databaseTable
         )
 
@@ -204,12 +153,10 @@ descriptionServer <- function(
       
       descriptionTimeToEventServer(
           id = 'timeToEventTab', 
-          con = con, 
+          connectionHandler = connectionHandler, 
           mainPanelTab = mainPanelTab,
           schema = resultDatabaseSettings$schema, 
-          dbms = resultDatabaseSettings$dbms,
           tablePrefix = resultDatabaseSettings$tablePrefix,
-          tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema,
           cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
           databaseTable = resultDatabaseSettings$databaseTable
         )
@@ -221,12 +168,10 @@ descriptionServer <- function(
       
       descriptionDechallengeRechallengeServer(
         id = 'dechallengeRechallengeTab', 
-        con = con, 
+        connectionHandler = connectionHandler, 
         mainPanelTab = mainPanelTab,
         schema = resultDatabaseSettings$schema, 
-        dbms = resultDatabaseSettings$dbms,
         tablePrefix = resultDatabaseSettings$tablePrefix,
-        tempEmulationSchema = resultDatabaseSettings$tempEmulationSchema,
         cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
         databaseTable = resultDatabaseSettings$databaseTable
       )

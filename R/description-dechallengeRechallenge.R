@@ -46,15 +46,21 @@ descriptionDechallengeRechallengeViewer <- function(id) {
     shinydashboard::tabBox(
       width = 12,
       # Title can include an icon
-      title = shiny::tagList(shiny::icon("gear"), "Plots"),
-      shiny::tabPanel(
-        "Table",
-         reactable::reactableOutput(ns('tableResults'))
+      title = shiny::tagList(shiny::icon("gear"), "Results"),
+      #shiny::tabPanel(
+      #  "Table",
+      shiny::div(
+        shiny::downloadButton(
+        ns('downloadDechall'), 
+        label = "Download"
       ),
-      shiny::tabPanel(
-        "Plot",
-        shiny::plotOutput(ns('dechalplot'))
+         reactable::reactableOutput(ns('tableResults'))
       )
+      #),
+      #shiny::tabPanel(
+     #   "Plot",
+      #  shiny::plotOutput(ns('dechalplot'))
+      #)
     )
     )
     
@@ -69,12 +75,10 @@ descriptionDechallengeRechallengeViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mainPanelTab the current tab 
 #' @param schema the database schema for the model results
-#' @param dbms the database management system for the model results
 #' @param tablePrefix a string that appends the tables in the result schema
-#' @param tempEmulationSchema  The temp schema (optional)
 #' @param cohortTablePrefix a string that appends the cohort table in the result schema
 #' @param databaseTable  name of the database table
 #' 
@@ -84,12 +88,10 @@ descriptionDechallengeRechallengeViewer <- function(id) {
 #' @export
 descriptionDechallengeRechallengeServer <- function(
   id, 
-  con,
+  connectionHandler,
   mainPanelTab,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema = NULL,
   cohortTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA'
 ) {
@@ -103,11 +105,9 @@ descriptionDechallengeRechallengeServer <- function(
       
       # get the possible target ids
       bothIds <- dechalRechalGetIds(
-        con,
+        connectionHandler,
         schema, 
-        dbms,
         tablePrefix,
-        tempEmulationSchema,
         cohortTablePrefix
       )
 
@@ -155,6 +155,8 @@ descriptionDechallengeRechallengeServer <- function(
       dechallengeStopInterval <- shiny::reactiveVal(c())
       dechallengeEvaluationWindow <- shiny::reactiveVal(c())
       
+      reactiveData <- shiny::reactiveVal(data.frame())
+      
       # fetch data when targetId changes
       shiny::observeEvent(
         eventExpr = input$fetchData,
@@ -166,13 +168,13 @@ descriptionDechallengeRechallengeServer <- function(
           allData <- getDechalRechalInputsData(
             targetId = input$targetId,
             outcomeId = input$outcomeId,
-            con = con,
+            connectionHandler = connectionHandler,
             schema = schema, 
-            dbms = dbms,
             tablePrefix = tablePrefix,
-            tempEmulationSchema = tempEmulationSchema,
             databaseTable = databaseTable
           )
+          
+          reactiveData(allData)
           
           databases(allData$databaseId)
           dechallengeStopInterval(allData$dechallengeStopInterval)
@@ -259,11 +261,9 @@ descriptionDechallengeRechallengeServer <- function(
             databaseId = databases()[input$databaseRowId$index],
             dechallengeStopInterval = dechallengeStopInterval()[input$databaseRowId$index],
             dechallengeEvaluationWindow = dechallengeEvaluationWindow()[input$databaseRowId$index],
-            con = con,
+            connectionHandler = connectionHandler,
             schema = schema, 
-            dbms = dbms,
-            tablePrefix = tablePrefix,
-            tempEmulationSchema = tempEmulationSchema
+            tablePrefix = tablePrefix
           )
           
         # do the plots reactively
@@ -272,7 +272,28 @@ descriptionDechallengeRechallengeServer <- function(
             dechalRechalData = failData
           )
         )
+        
+        # module to show failed plots
+        shiny::showModal(shiny::modalDialog(
+          title = paste0("Failed Plots: "),
+          size = "l",
+          shiny::plotOutput(session$ns('dechalplot')),
+          easyClose = TRUE,
+          footer = NULL
+        ))
+
+        
       })
+      
+      # download button
+      output$downloadDechall <- shiny::downloadHandler(
+        filename = function() {
+          paste('dechal-data-', Sys.Date(), '.csv', sep='')
+        },
+        content = function(con) {
+          utils::write.csv(reactiveData(), con)
+        }
+      )
     
       
       return(invisible(NULL))
@@ -282,11 +303,9 @@ descriptionDechallengeRechallengeServer <- function(
 }
 
 dechalRechalGetIds <- function(
-  con,
+    connectionHandler,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema,
   cohortTablePrefix
 ){
   
@@ -303,27 +322,13 @@ dechalRechalGetIds <- function(
           on dr.OUTCOME_COHORT_DEFINITION_ID = o.COHORT_DEFINITION_ID
   ;"
     
-  sql <- SqlRender::render(
+  shiny::incProgress(1/4, detail = paste("Fetching ids"))
+  
+  bothIds <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
     cohort_table_prefix = cohortTablePrefix
-  )
-  
-  shiny::incProgress(1/4, detail = paste("Rendering and translating sql"))
-  
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  shiny::incProgress(2/4, detail = paste("Fetching ids"))
-  
-  bothIds <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
   )
   
   shiny::incProgress(3/4, detail = paste("Processing ids"))
@@ -367,11 +372,9 @@ dechalRechalGetIds <- function(
 getDechalRechalInputsData <- function(
   targetId,
   outcomeId,
-  con,
+  connectionHandler,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema,
   databaseTable
 ){
   
@@ -384,29 +387,17 @@ getDechalRechalInputsData <- function(
           on dr.database_id = d.database_id
           where dr.TARGET_COHORT_DEFINITION_ID = @target_id
           and dr.OUTCOME_COHORT_DEFINITION_ID = @outcome_id;"
-  sql <- SqlRender::render(
+
+  
+  shiny::incProgress(1/3, detail = paste("Fetching data"))
+  
+  data <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
     target_id = targetId,
     outcome_id = outcomeId,
     database_table = databaseTable
-  )
-  
-  shiny::incProgress(1/3, detail = paste("Rendering and translating sql"))
-  
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  shiny::incProgress(2/3, detail = paste("Fetching data"))
-  
-  data <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
   )
   
   shiny::incProgress(3/3, detail = paste("Finished"))
@@ -423,11 +414,9 @@ getDechalRechalFailData <- function(
   databaseId,
   dechallengeStopInterval,
   dechallengeEvaluationWindow,
-  con = con,
-  schema = schema, 
-  dbms = dbms,
-  tablePrefix = tablePrefix,
-  tempEmulationSchema = tempEmulationSchema
+  connectionHandler,
+  schema, 
+  tablePrefix
 ){
   
   shiny::withProgress(message = 'Extracting FAILLED DECHALLENGE_RECHALLENGE data', value = 0, {
@@ -438,7 +427,10 @@ getDechalRechalFailData <- function(
           and DATABASE_ID = '@database_id'
           and DECHALLENGE_STOP_INTERVAL = @dechallenge_stop_interval	
           and DECHALLENGE_EVALUATION_WINDOW = @dechallenge_evaluation_window;"
-    sql <- SqlRender::render(
+
+    shiny::incProgress(1/3, detail = paste("Fetching data"))
+    
+    data <- connectionHandler$queryDb(
       sql = sql, 
       result_database_schema = schema,
       table_prefix = tablePrefix,
@@ -447,22 +439,6 @@ getDechalRechalFailData <- function(
       database_id = databaseId,
       dechallenge_stop_interval = dechallengeStopInterval,
       dechallenge_evaluation_window = dechallengeEvaluationWindow
-    )
-    
-    shiny::incProgress(1/3, detail = paste("Rendering and translating sql"))
-    
-    sql <- SqlRender::translate(
-      sql = sql, 
-      targetDialect = dbms, 
-      tempEmulationSchema = tempEmulationSchema
-    )
-    
-    shiny::incProgress(2/3, detail = paste("Fetching data"))
-    
-    data <- DatabaseConnector::querySql(
-      connection = con, 
-      sql = sql, 
-      snakeCaseToCamelCase = T
     )
     
     shiny::incProgress(3/3, detail = paste("Finished"))
@@ -629,7 +605,7 @@ plotDechalRechal <- function(
       
       shiny::incProgress(1/2, detail = paste("Formatted data, now plotting"))
       
-      
+      labelSize <- 5
       # ggplot lays out dechallenge/rechallenge exposure eras and points for each outcome
       plot <- ggplot2::ggplot(
         data = dechallengeExposure, 
@@ -639,6 +615,7 @@ plotDechalRechal <- function(
           label = .data$eventNumber
           )
         ) +
+        #ggplot2::geom_text(size = labelSize) +
         ggplot2::geom_line(
           data = dechallengeExposure, 
           ggplot2::aes(group = .data$eventId), 
@@ -668,28 +645,28 @@ plotDechalRechal <- function(
           hjust = 1, 
           vjust = 0, 
           color = "blue", 
-          size = 2
+          size = labelSize
           ) +
         ggplot2::geom_text(
           data = rechallengeStarts, 
           hjust = 1, 
           vjust = 0, 
           color = "navyblue", 
-          size = 2
+          size = labelSize
           ) +
         ggplot2::geom_text(
           data = dechallengeOutcome, 
           color = "darkorange", 
           hjust = -.5, 
           vjust = -.5, 
-          size = 2
+          size = labelSize
           ) +
         ggplot2::geom_text(
           data = rechallengeOutcome, 
           color = "orangered", 
           hjust = -.5, 
           vjust = -.5, 
-          size = 2
+          size = labelSize
           ) +
         ggplot2::scale_y_reverse() +
         ggplot2::theme_bw() + 
@@ -699,7 +676,8 @@ plotDechalRechal <- function(
           panel.grid.minor = ggplot2::element_blank(), 
           axis.line = ggplot2::element_line(colour = "black"),
           axis.text.y = ggplot2::element_blank(),
-          axis.ticks.y = ggplot2::element_blank() 
+          axis.ticks.y = ggplot2::element_blank(),
+          text = ggplot2::element_text(size = 20) # testing
           ) +
         ggplot2::xlab("Time from first exposure") + 
         ggplot2::ylab("Each horizontal line is one person")

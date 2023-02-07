@@ -5,9 +5,8 @@ output: html_document
 ```{r, echo=FALSE, results='asis'}
 
 getModelDesign <- function(
-  connection,
+  connectionHandler,
   resultSchema,
-  targetDialect,
   myTableAppend,
   cohortTableAppend,
   modelDesignId,
@@ -56,7 +55,8 @@ getModelDesign <- function(
   
   result <- lapply(
     X = 1:nrow(ref), FUN = function(j){
-  sql <- SqlRender::render(
+
+  res <- connectionHandler$queryDb(
     sql = sqlStart, 
     result_schema = resultSchema,
     my_table_append = myTableAppend,
@@ -67,17 +67,6 @@ getModelDesign <- function(
     extract_name = ref$extractName[j]
   )
   
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = targetDialect, 
-    tempEmulationSchema = tempEmulationSchema
-    )
-  
-  res <- DatabaseConnector::querySql(
-    connection = connection, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-    )
 res <- ParallelLogger::convertJsonToSettings(res$value)
   return(res)
   
@@ -95,7 +84,7 @@ res <- ParallelLogger::convertJsonToSettings(res$value)
   on b.@cohort_type = c.cohort_id
   where b.model_design_id = @model_design_id;"
   
-  sql <- SqlRender::render(
+  res <- connectionHandler$queryDb(
     sql = sqlStart, 
     result_schema = resultSchema,
     my_table_append = myTableAppend,
@@ -104,17 +93,6 @@ res <- ParallelLogger::convertJsonToSettings(res$value)
     cohort_type = c('target_id','outcome_id')[tind]
   )
   
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = targetDialect, 
-    tempEmulationSchema = tempEmulationSchema
-    )
-  
-  res <- DatabaseConnector::querySql(
-    connection = connection, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-    )
 result[[length(result)+1]] <- ParallelLogger::convertJsonToSettings(res$value)
     
   }
@@ -125,9 +103,8 @@ result[[length(result)+1]] <- ParallelLogger::convertJsonToSettings(res$value)
 
 
 modelDesign <- getModelDesign( # need to create this
-  connection = params$connection,
+  connectionHandler = params$connectionHandler,
   resultSchema = params$resultSchema,
-  targetDialect = params$targetDialect,
   myTableAppend = params$myTableAppend,
   cohortTableAppend = params$cohortTableAppend,
   modelDesignId = params$modelDesignIds[i]

@@ -39,9 +39,8 @@ dataDiagnosticSummaryViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mySchema the database schema for the model results
-#' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
 #' 
 #' @return
@@ -50,9 +49,8 @@ dataDiagnosticSummaryViewer <- function(id) {
 #' @export
 dataDiagnosticSummaryServer <- function(
     id, 
-    con,
+    connectionHandler,
     mySchema,
-    targetDialect,
     myTableAppend
 ) {
   shiny::moduleServer(
@@ -61,9 +59,8 @@ dataDiagnosticSummaryServer <- function(
       
       resultTable <- shiny::reactive(
         getDrugStudyFailSummary(
-          con = con, 
+          connectionHandler = connectionHandler, 
           mySchema = mySchema, 
-          targetDialect = targetDialect, 
           myTableAppend = myTableAppend
         )
       )
@@ -110,9 +107,8 @@ dataDiagnosticSummaryServer <- function(
 
 
 getDrugStudyFailSummary <- function(
-    con, 
+    connectionHandler, 
     mySchema, 
-    targetDialect, 
     myTableAppend = ''
 ){
   
@@ -128,19 +124,14 @@ getDrugStudyFailSummary <- function(
     
     FROM @my_schema.@my_table_appenddata_diagnostics_summary as sum;"
     
-    sql <- SqlRender::render(
+    summaryTable <- connectionHandler$queryDb(
       sql = sql, 
       my_schema = mySchema,
       my_table_append = myTableAppend
     )
     
-    sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-    
-    summaryTable <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-    
     shiny::incProgress(2/3, detail = paste("Data extracted"))
-    
-    colnames(summaryTable) <- SqlRender::snakeCaseToCamelCase(colnames(summaryTable))
+  
     
     summaryTable <- tidyr::pivot_wider(
       data = summaryTable, 

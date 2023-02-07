@@ -48,7 +48,8 @@ descriptionAggregateFeaturesViewer <- function(id) {
     
     # COV: RUN_ID	DATABASE_ID	COHORT_DEFINITION_ID	COVARIATE_ID	SUM_VALUE	AVERAGE_VALUE
     # COV REF: RUN_ID	DATABASE_ID	COVARIATE_ID	COVARIATE_NAME	ANALYSIS_ID	CONCEPT_ID
-    # settings: RUN_ID	DATABASE_ID	COVARIATE_SETTING_JSON	RISK_WINDOW_START	START_ANCHOR	RISK_WINDOW_END	END_ANCHOR	COMBINED_COHORT_ID	TARGET_COHORT_ID	OUTCOME_COHORT_ID	COHORT_TYPE
+    # settings: RUN_ID	DATABASE_ID	COVARIATE_SETTING_JSON	RISK_WINDOW_START	START_ANCHOR	RISK_WINDOW_END	END_ANCHOR	
+    # cohort_details: RUN_ID	DATABASE_ID COHORT_DEFINITION_ID	TARGET_COHORT_ID	OUTCOME_COHORT_ID	COHORT_TYPE
     # analysis_ref: RUN_ID	DATABASE_ID	ANALYSIS_ID	ANALYSIS_NAME	DOMAIN_ID	START_DAY	END_DAY	IS_BINARY	MISSING_MEANS_ZERO
     # cov cont: RUN_ID	DATABASE_ID	COHORT_DEFINITION_ID	COVARIATE_ID	COUNT_VALUE	MIN_VALUE	MAX_VALUE	AVERAGE_VALUE	STANDARD_DEVIATION	MEDIAN_VALUE	P_10_VALUE	P_25_VALUE	P_75_VALUE	P_90_VALUE
     
@@ -105,12 +106,10 @@ descriptionAggregateFeaturesViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mainPanelTab the current tab 
 #' @param schema the database schema for the model results
-#' @param dbms the database management system for the model results
 #' @param tablePrefix a string that appends the tables in the result schema
-#' @param tempEmulationSchema  The temp schema (optional)
 #' @param cohortTablePrefix a string that appends the COHORT_DEFINITION table in the result schema
 #' @param databaseTable The database table name
 #' 
@@ -120,12 +119,10 @@ descriptionAggregateFeaturesViewer <- function(id) {
 #' @export
 descriptionAggregateFeaturesServer <- function(
   id, 
-  con,
+  connectionHandler,
   mainPanelTab,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema = NULL,
   cohortTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA'
 ) {
@@ -164,11 +161,9 @@ descriptionAggregateFeaturesServer <- function(
       
       # get the possible options
       options <- getAggregateFeatureOptions(
-        con = con ,
+        connectionHandler = connectionHandler,
         schema = schema, 
-        dbms = dbms,
         tablePrefix = tablePrefix,
-        tempEmulationSchema = tempEmulationSchema,
         cohortTablePrefix = cohortTablePrefix
       )
       
@@ -244,6 +239,30 @@ descriptionAggregateFeaturesServer <- function(
       shiny::observeEvent(
         eventExpr = input$descAgSelect,{
           
+          binaryData(
+            data.frame(
+              covariateName = '',
+              comp1 = '',
+              comp1sd = '' ,
+              comp2 = '' ,
+              comp2sd = '', 
+              analysisName = '' ,
+              standardizedMeanDiff = ''
+            )
+          )
+          
+          continuousData(
+            data.frame(
+              covariateName = '',
+              comp1 = '',
+              comp1sd = '' ,
+              comp2 = '' ,
+              comp2sd = '', 
+              analysisName = '' ,
+              standardizedMeanDiff = ''
+            )
+          )
+          
           targetId(options$targetCohortId[input$descAgSelect$index])
           outcomeId(options$outcomeCohortId[input$descAgSelect$index])
           riskWindowStart(options$riskWindowStart[input$descAgSelect$index])
@@ -252,11 +271,9 @@ descriptionAggregateFeaturesServer <- function(
           endAnchor(options$endAnchor[input$descAgSelect$index])
           
           databases <- getAggregateFeatureDatabases(
-            con,
-            schema, 
-            dbms,
-            tablePrefix,
-            tempEmulationSchema,
+            connectionHandler = connectionHandler,
+            schema = schema, 
+            tablePrefix = tablePrefix,
             targetId = targetId(),
             outcomeId = outcomeId(),
             riskWindowStart = riskWindowStart(),
@@ -322,11 +339,9 @@ descriptionAggregateFeaturesServer <- function(
         {
           
           allData <- descriptiveGetAggregateData(
-            con = con,
+            connectionHandler = connectionHandler,
             schema = schema, 
-            dbms = dbms,
             tablePrefix = tablePrefix,
-            tempEmulationSchema = tempEmulationSchema,
             targetId = targetId(),
             outcomeId = outcomeId(),
             riskWindowStart = riskWindowStart(),
@@ -375,7 +390,7 @@ descriptionAggregateFeaturesServer <- function(
                 comp1 = reactable::colDef(
                   name = "Selection 1 mean", 
                   format = reactable::colFormat(digits = 2, percent = T)
-                ),
+                ), 
                 comp1sd = reactable::colDef(
                   name = "Selection 1 stdev", 
                   format = reactable::colFormat(digits = 2)
@@ -383,11 +398,11 @@ descriptionAggregateFeaturesServer <- function(
                 comp2 = reactable::colDef(
                   name = "Selection 2 mean",
                   format = reactable::colFormat(digits = 2, percent = T)
-                ),
+                ), 
                 comp2sd = reactable::colDef(
                   name = "Selection 2 stdev",
                   format = reactable::colFormat(digits = 2)
-                ),
+                ), 
                 analysisName = reactable::colDef(
                   filterInput = function(values, name) {
                     shiny::tags$select(
@@ -494,51 +509,37 @@ descriptionAggregateFeaturesServer <- function(
 }
 
 getAggregateFeatureOptions <- function(
-  con,
+  connectionHandler,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema = NULL,
   cohortTablePrefix
 ){
   
  
   shiny::withProgress(message = 'Getting feature comparison options', value = 0, {
   
-  sql <- "SELECT DISTINCT t.COHORT_NAME as TARGET, s.TARGET_COHORT_ID, 
-            o.COHORT_NAME as outcome, s.OUTCOME_COHORT_ID, 
+  sql <- "SELECT DISTINCT t.COHORT_NAME as TARGET, cd.TARGET_COHORT_ID, 
+            o.COHORT_NAME as outcome, cd.OUTCOME_COHORT_ID, 
             s.RISK_WINDOW_START,	s.START_ANCHOR,	s.RISK_WINDOW_END,	s.END_ANCHOR  
-          FROM @result_database_schema.@table_prefixSETTINGS s
+          FROM @result_database_schema.@table_prefixCOHORT_DETAILS cd
+          inner join @result_database_schema.@table_prefixSETTINGS s
+          on cd.run_id = s.run_id and cd.database_id = s.database_id
           inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION t
-          on s.TARGET_COHORT_ID = t.COHORT_DEFINITION_ID
+          on cd.TARGET_COHORT_ID = t.COHORT_DEFINITION_ID
           inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION o
-          on s.OUTCOME_COHORT_ID = o.COHORT_DEFINITION_ID
-          WHERE s.TARGET_COHORT_ID != 0 AND s.OUTCOME_COHORT_ID != 0;"
+          on cd.OUTCOME_COHORT_ID = o.COHORT_DEFINITION_ID
+          WHERE cd.TARGET_COHORT_ID != 0 AND cd.OUTCOME_COHORT_ID != 0;"
+
+  shiny::incProgress(1/2, detail = paste("Extracting options"))
   
-  sql <- SqlRender::render(
+  options <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
     cohort_table_prefix = cohortTablePrefix
   )
   
-  shiny::incProgress(1/3, detail = paste("Rendering and translating sql"))
-  
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  shiny::incProgress(2/3, detail = paste("Extracting options"))
-  
-  options <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-  )
-  
-  shiny::incProgress(3/3, detail = paste("Finished"))
+  shiny::incProgress(2/2, detail = paste("Finished"))
   
   })
   
@@ -549,11 +550,9 @@ getAggregateFeatureOptions <- function(
 
 
 getAggregateFeatureDatabases <- function(
-  con,
+    connectionHandler,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema,
   targetId,
   outcomeId,
   riskWindowStart,
@@ -565,14 +564,20 @@ getAggregateFeatureDatabases <- function(
   
   shiny::withProgress(message = 'Finding databases with data', value = 0, {
   sql <- "SELECT DISTINCT s.DATABASE_ID, d.CDM_SOURCE_ABBREVIATION as database_name  
-          FROM @result_database_schema.@table_prefixSETTINGS s
+          FROM @result_database_schema.@table_prefixCOHORT_DETAILS cd
           inner join @result_database_schema.@database_table d
+          on cd.database_id = d.database_id
+          inner join @result_database_schema.@table_prefixSETTINGS s
           on s.database_id = d.database_id
-          WHERE s.TARGET_COHORT_ID = @target_id and s.OUTCOME_COHORT_ID = @outcome_id
+          and s.run_id = cd.run_id
+          WHERE cd.TARGET_COHORT_ID = @target_id and cd.OUTCOME_COHORT_ID = @outcome_id
           and s.RISK_WINDOW_START = @risk_window_start and s.START_ANCHOR = '@start_anchor'
           and s.RISK_WINDOW_END = @risk_window_end and	s.END_ANCHOR = '@end_anchor';"
   
-  sql <- SqlRender::render(
+  shiny::incProgress(1/2, detail = paste("Extracting databases"))
+  
+  
+  databases <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
@@ -584,23 +589,8 @@ getAggregateFeatureDatabases <- function(
     end_anchor = endAnchor,
     database_table = databaseTable
   )
-  shiny::incProgress(1/3, detail = paste("Rendering and translating sql"))
   
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  shiny::incProgress(2/3, detail = paste("Extracting databases"))
-  
-  databases <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-  )
-  
-  shiny::incProgress(3/3, detail = paste("Finished"))
+  shiny::incProgress(2/2, detail = paste("Finished"))
   
   }
   )
@@ -624,11 +614,9 @@ return(0)
 
 # pulls all data for a target and outcome
 descriptiveGetAggregateData <- function(
-  con = con,
-  schema = schema, 
-  dbms = dbms,
-  tablePrefix = tablePrefix,
-  tempEmulationSchema = tempEmulationSchema,
+    connectionHandler,
+  schema, 
+  tablePrefix,
   targetId,
   outcomeId,
   riskWindowStart,
@@ -642,13 +630,18 @@ descriptiveGetAggregateData <- function(
 ){
   
   shiny::withProgress(message = 'Getting Feature Comparison Data', value = 0, {
-  sql <- "SELECT RUN_ID
-          FROM @result_database_schema.@table_prefixSETTINGS
-          WHERE TARGET_COHORT_ID = @target_id and OUTCOME_COHORT_ID = @outcome_id
-          and RISK_WINDOW_START = @risk_window_start and START_ANCHOR = '@start_anchor'
-          and RISK_WINDOW_END = @risk_window_end and	END_ANCHOR = '@end_anchor'
-          and DATABASE_ID  = '@database_id' and COHORT_TYPE = '@type';"
-  sql <- SqlRender::render(
+  sql <- "SELECT s.RUN_ID, cd.COHORT_DEFINITION_ID
+          FROM @result_database_schema.@table_prefixSETTINGS s
+          inner join 
+          @result_database_schema.@table_prefixCOHORT_DETAILS cd
+          on cd.database_id = s.database_id and
+          cd.run_id = s.run_id
+          WHERE cd.TARGET_COHORT_ID = @target_id and cd.OUTCOME_COHORT_ID = @outcome_id
+          and s.RISK_WINDOW_START = @risk_window_start and s.START_ANCHOR = '@start_anchor'
+          and s.RISK_WINDOW_END = @risk_window_end and	s.END_ANCHOR = '@end_anchor'
+          and s.DATABASE_ID  = '@database_id' and cd.COHORT_TYPE = '@type';"
+
+  settingsFirst <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
@@ -662,28 +655,22 @@ descriptiveGetAggregateData <- function(
     type = type1
   )
   
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  runId1 <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-  )$runId
-  
-  shiny::incProgress(1/5, detail = paste("Got first runIds"))
+  shiny::incProgress(1/5, detail = paste("Got first runId and cohortId"))
   
   
-  sql <- "SELECT RUN_ID
-          FROM @result_database_schema.@table_prefixSETTINGS
-          WHERE TARGET_COHORT_ID = @target_id and OUTCOME_COHORT_ID = @outcome_id
-          and RISK_WINDOW_START = @risk_window_start and START_ANCHOR = '@start_anchor'
-          and RISK_WINDOW_END = @risk_window_end and	END_ANCHOR = '@end_anchor'
-          and DATABASE_ID  = '@database_id' and COHORT_TYPE = '@type';"
-  sql <- SqlRender::render(
+  sql <- "SELECT s.RUN_ID, cd.COHORT_DEFINITION_ID
+          FROM @result_database_schema.@table_prefixSETTINGS s
+          inner join 
+          @result_database_schema.@table_prefixCOHORT_DETAILS cd
+          on cd.database_id = s.database_id and
+          cd.run_id = s.run_id
+          WHERE cd.TARGET_COHORT_ID = @target_id and cd.OUTCOME_COHORT_ID = @outcome_id
+          and s.RISK_WINDOW_START = @risk_window_start and s.START_ANCHOR = '@start_anchor'
+          and s.RISK_WINDOW_END = @risk_window_end and	s.END_ANCHOR = '@end_anchor'
+          and s.DATABASE_ID  = '@database_id' and cd.COHORT_TYPE = '@type';"
+  
+
+  settingsSecond <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
@@ -697,19 +684,7 @@ descriptiveGetAggregateData <- function(
     type = type2
   )
   
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  runId2 <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-  )$runId
-  
-  shiny::incProgress(2/5, detail = paste("Got second runIds"))
+  shiny::incProgress(2/5, detail = paste("Got second runId and CohortId"))
   
   sql <- "SELECT cov.*, cov_ref.COVARIATE_NAME, an_ref.ANALYSIS_NAME,
   case when (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1)) then 'comp1' else 'comp2' end as label
@@ -730,29 +705,19 @@ descriptiveGetAggregateData <- function(
           OR
           (cov.DATABASE_ID  = '@database_id2' and cov.COHORT_DEFINITION_ID = @cohortDef2 and cov.RUN_ID in (@run_id2))
           );"
-  sql <- SqlRender::render(
+
+  shiny::incProgress(3/5, detail = paste("Getting binary data"))
+  
+  binary <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
-    cohortDef1 = ifelse(type1 == 'O', outcomeId, targetId)*100000 +ifelse(type1 %in% c('T','O'), 0, outcomeId)*10 + addTypeEnd(type1),
-    cohortDef2 = ifelse(type2 == 'O', outcomeId, targetId)*100000 +ifelse(type2 %in% c('T','O'), 0, outcomeId)*10 + addTypeEnd(type2),
+    cohortDef1 = settingsFirst$cohortDefinitionId[1],
+    cohortDef2 = settingsSecond$cohortDefinitionId[1],
     database_id1 = database1,
     database_id2 = database2,
-    run_id1 = paste(runId1, collapse = ','),
-    run_id2 = paste(runId2, collapse = ',')
-  )
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  shiny::incProgress(3/5, detail = paste("Getting binary data"))
-  
-  binary <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
+    run_id1 = paste(settingsFirst$runId, collapse = ','),
+    run_id2 = paste(settingsSecond$runId, collapse = ',')
   )
   
   shiny::incProgress(4/5, detail = paste("Getting continuous data"))
@@ -776,31 +741,19 @@ descriptiveGetAggregateData <- function(
           OR
           (cov.DATABASE_ID  = '@database_id2' and cov.COHORT_DEFINITION_ID = @cohortDef2 and cov.RUN_ID in (@run_id2))
           );"
-  sql <- SqlRender::render(
+
+  continuous <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
-    #cohortDef1 = ifelse(type1 == 'O', 0, targetId)*100000 +ifelse(type1 == 'T', 0, outcomeId)*10 + addTypeEnd(type1),
-    #cohortDef2 = ifelse(type2 == 'O', 0, targetId)*100000 +ifelse(type2 == 'T', 0, outcomeId)*10 + addTypeEnd(type2),
-    cohortDef1 = ifelse(type1 == 'O', outcomeId, targetId)*100000 +ifelse(type1 %in% c('T','O'), 0, outcomeId)*10 + addTypeEnd(type1),
-    cohortDef2 = ifelse(type2 == 'O', outcomeId, targetId)*100000 +ifelse(type2 %in% c('T','O'), 0, outcomeId)*10 + addTypeEnd(type2),
+    cohortDef1 = settingsFirst$cohortDefinitionId[1],
+    cohortDef2 = settingsSecond$cohortDefinitionId[1],
     database_id1 = database1,
     database_id2 = database2,
-    run_id1 = paste(runId1, collapse = ','),
-    run_id2 = paste(runId2, collapse = ',')
+    run_id1 = paste(settingsFirst$runId, collapse =  ','),
+    run_id2 = paste(settingsSecond$runId, collapse =  ',')
   )
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  continuous <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-  )
-  
+
   shiny::incProgress(5/5, detail = paste("Finished"))
   }
   )

@@ -38,7 +38,7 @@ estimationDiagnosticsSummaryViewer <- function(id) {
 #' The module server for rendering the PLE diagnostics summary
 #'
 #' @param id the unique reference id for the module
-#' @param connection the connection to the PLE results database
+#' @param connectionHandler the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
 #' @param tablePrefix tablePrefix
 #' @param cohortTablePrefix cohortTablePrefix
@@ -49,7 +49,7 @@ estimationDiagnosticsSummaryViewer <- function(id) {
 #' 
 #' @export
 estimationDiagnosticsSummaryServer <- function(id,
-                                               connection,
+                                               connectionHandler,
                                                resultsSchema,
                                                tablePrefix,
                                                cohortTablePrefix,
@@ -60,7 +60,7 @@ estimationDiagnosticsSummaryServer <- function(id,
     function(input, output, session) {
       
       output$diagnosticsTable <- reactable::renderReactable({
-        data <- getDiagnosticsData(connection,
+        data <- getDiagnosticsData(connectionHandler,
                                    resultsSchema,
                                    tablePrefix,
                                    cohortTablePrefix,

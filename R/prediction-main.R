@@ -55,11 +55,24 @@ predictionViewer <- function(id=1) {
     
     shiny::tabPanel(
       "Models Summary",  
+      shiny::actionButton(
+        inputId = ns("backToDesignSummary"), 
+        label = "Back To Design Summary",
+        shiny::icon("arrow-left"), 
+        style="color: #fff; background-color: #337ab7; border-color: #2e6da4"
+      ),
       predictionModelSummaryViewer(ns('modelSummaryTab'))
     ),
     
     shiny::tabPanel(
       "Explore Selected Model",
+      
+      shiny::actionButton(
+        inputId = ns("backToModelSummary"), 
+        label = "Back To Models Summary",
+        shiny::icon("arrow-left"), 
+        style="color: #fff; background-color: #337ab7; border-color: #2e6da4"
+        ),
       
       shiny::tabsetPanel(
         id = ns('singleView'),
@@ -93,10 +106,12 @@ predictionViewer <- function(id=1) {
           predictionNbViewer(ns('netBenefit'))
         ),
         
+
         shiny::tabPanel(
-          "Validation",
-          predictionValidationViewer(ns('validation'))
-        )
+            "Validation",
+            predictionValidationViewer(ns('validation'))
+          )
+    
         
       )
     )
@@ -111,6 +126,7 @@ predictionViewer <- function(id=1) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
+#' @param connectionHandler a connection to the database with the results
 #' @param resultDatabaseSettings a list containing the prediction result schema and connection details
 #' 
 #' @return
@@ -119,58 +135,13 @@ predictionViewer <- function(id=1) {
 #' @export
 predictionServer <- function(
   id, 
+  connectionHandler,
   resultDatabaseSettings = list(port = 1)
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      # =============================
-      #   CONNECTION
-      # =============================
-      if(F){
-        if(resultDatabaseSettings$port != ""){
-          ParallelLogger::logInfo('Port')
-          ParallelLogger::logInfo(paste(resultDatabaseSettings$port))
-          con <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
-                              dbms = resultDatabaseSettings$dbms,
-                              server = resultDatabaseSettings$server,
-                              user = resultDatabaseSettings$user,
-                              password = resultDatabaseSettings$password,
-                              port = resultDatabaseSettings$port)
-          
-        } else{
-          ParallelLogger::logInfo('No Port')
-          con <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
-                              dbms = resultDatabaseSettings$dbms,
-                              server = resultDatabaseSettings$server,
-                              user = resultDatabaseSettings$user,
-                              password = resultDatabaseSettings$password
-          )
-          
-        }
-      }
-      
-      # old connection 
-      connectionDetails <- DatabaseConnector::createConnectionDetails(
-        dbms = resultDatabaseSettings$dbms,
-        server = resultDatabaseSettings$server,
-        user = resultDatabaseSettings$user,
-        password = resultDatabaseSettings$password,
-        port = resultDatabaseSettings$port
-        #pathToDriver =  '/Users/jreps/Documents/drivers'
-      )
-      
-      con <- DatabaseConnector::connect(connectionDetails)
-      
-      shiny::onStop(function() {
-        if (DBI::dbIsValid(con)) {
-          ParallelLogger::logInfo("Closing connection pool")
-          DatabaseConnector::disconnect(con)
-        }
-      })
-      
-      # =============================
       #   VIEW SETTINGS
       # =============================
       # initially hide the models and selected model
@@ -187,16 +158,37 @@ predictionServer <- function(
           shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
         }
     
-          if(tempView != 'Explore Selected Model')
+        if(tempView != 'Explore Selected Model'){
           shiny::updateTabsetPanel(
             session = session,
             inputId = 'singleView',
             selected = 'Design Settings'
           )
+          
+          # 
+        }
         }
         
       )
       
+      # go back button 
+      shiny::observeEvent(input$backToModelSummary, {
+        shiny::updateTabsetPanel(
+          session = session,
+          inputId = 'allView',
+          selected = 'Models Summary'
+        )
+        shiny::showTab(inputId = "allView", session = session, target = "Models Summary")
+        shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
+            })
+      
+      shiny::observeEvent(input$backToDesignSummary, {
+        shiny::updateTabsetPanel(
+          session = session,
+          inputId = 'allView',
+          selected = 'Model Designs Summary'
+        )
+      })
       
       # keep a reactive variable tracking the active tab
       singleViewValue <- shiny::reactive({
@@ -215,11 +207,11 @@ predictionServer <- function(
       modelDesignId <- shiny::reactiveVal()
       designSummary <- predictionDesignSummaryServer(
         id = 'designSummaryTab',
-        con = con, 
+        connectionHandler = connectionHandler, 
         mySchema = resultDatabaseSettings$schema, 
-        targetDialect = resultDatabaseSettings$dbms,
         myTableAppend = resultDatabaseSettings$tablePrefix
       )
+      
       
       # change to model summary tab when 
       # a model design id is select that shows 
@@ -247,9 +239,8 @@ predictionServer <- function(
       developmentDatabaseId <- shiny::reactiveVal()
       performance <- predictionModelSummaryServer(
           id = 'modelSummaryTab', 
-          con = con, 
+          connectionHandler = connectionHandler,  
           mySchema = resultDatabaseSettings$schema, 
-          targetDialect = resultDatabaseSettings$dbms,
           myTableAppend = resultDatabaseSettings$tablePrefix,
           modelDesignId = modelDesignId,
           databaseTableAppend = ifelse(
@@ -272,6 +263,14 @@ predictionServer <- function(
           shiny::updateTabsetPanel(session, "allView", selected = "Explore Selected Model")
           shiny::hideTab(inputId = "allView", session = session, target = "Models Summary")
         }
+        
+        # hide validation tab if non internal val
+        if(performance$modelDevelopment() == 1){
+          shiny::showTab(inputId = "singleView", session = session, target = "Validation")
+        } else{
+          shiny::hideTab(inputId = "singleView", session = session, target = "Validation")
+        }
+        
       })
       
       
@@ -289,9 +288,8 @@ predictionServer <- function(
         id = 'diagnostics', 
         modelDesignId = designSummary$diagnosticId, 
         mySchema = resultDatabaseSettings$schema, 
-        con = con,
+        connectionHandler = connectionHandler, 
         myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms,
         databaseTableAppend = ifelse(
           !is.null(resultDatabaseSettings$databaseTablePrefix), 
           resultDatabaseSettings$databaseTablePrefix,
@@ -327,9 +325,8 @@ predictionServer <- function(
           }
           tryCatch(
             {createPredictionProtocol( # add database_table_append and cohort_table_append
-              con = con, 
+              connectionHandler = connectionHandler, 
               mySchema = resultDatabaseSettings$schema, 
-              targetDialect = resultDatabaseSettings$dbms,
               myTableAppend = resultDatabaseSettings$tablePrefix,
               databaseTableAppend = ifelse(
                 !is.null(resultDatabaseSettings$databaseTablePrefix), 
@@ -392,9 +389,8 @@ predictionServer <- function(
           intermediates_dir = file.path(tempdir(), 'plp-prot'),
           output_dir = file.path(input$plpProtocolDownload, paste0('plp_report',designSummary$reportId())), 
           params = list(
-            connection = con, 
+            connectionHandler = connectionHandler, 
             resultSchema = resultDatabaseSettings$schema, 
-            targetDialect = resultDatabaseSettings$dbms,
             myTableAppend = resultDatabaseSettings$tablePrefix,
             databaseTableAppend = ifelse(
               !is.null(resultDatabaseSettings$databaseTablePrefix), 
@@ -421,11 +417,10 @@ predictionServer <- function(
         modelDesignId = modelDesignId, # reactive
         developmentDatabaseId = developmentDatabaseId, # reactive
         performanceId = performanceId, # reactive
-        mySchema = resultDatabaseSettings$schema, 
-        con = con,
+        connectionHandler = connectionHandler,
         inputSingleView = singleViewValue,
-        myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        mySchema = resultDatabaseSettings$schema, 
+        myTableAppend = resultDatabaseSettings$tablePrefix
       ) 
       
       predictionSettingsServer(
@@ -434,13 +429,17 @@ predictionServer <- function(
         developmentDatabaseId = developmentDatabaseId, # reactive
         performanceId = performanceId, # reactive
         mySchema = resultDatabaseSettings$schema, 
-        con = con,
+        connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms,
         cohortTableAppend = ifelse(
           !is.null(resultDatabaseSettings$cohortTablePrefix), 
           resultDatabaseSettings$cohortTablePrefix,
+          resultDatabaseSettings$tablePrefix
+        ),
+        databaseTableAppend = ifelse(
+          !is.null(resultDatabaseSettings$databaseTablePrefix), 
+          resultDatabaseSettings$databaseTablePrefix,
           resultDatabaseSettings$tablePrefix
         )
       )
@@ -449,40 +448,36 @@ predictionServer <- function(
         id = 'cutoff', 
         performanceId = performanceId, 
         mySchema = resultDatabaseSettings$schema, 
-        con = con,
+        connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
-        myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        myTableAppend = resultDatabaseSettings$tablePrefix
       )
       
       predictionDiscriminationServer(
         id = 'discrimination', 
         performanceId = performanceId, 
         mySchema = resultDatabaseSettings$schema, 
-        con = con,
+        connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
-        myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        myTableAppend = resultDatabaseSettings$tablePrefix
       )
       
       predictionCalibrationServer(
         id = 'calibration', 
         performanceId = performanceId, 
         mySchema = resultDatabaseSettings$schema, 
-        con = con,
+        connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
-        myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        myTableAppend = resultDatabaseSettings$tablePrefix
       ) 
       
       predictionNbServer(
         id = 'netBenefit', 
         performanceId = performanceId, 
         mySchema = resultDatabaseSettings$schema, 
-        con = con,
+        connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
-        myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms
+        myTableAppend = resultDatabaseSettings$tablePrefix
       ) 
       
       predictionValidationServer(
@@ -490,11 +485,10 @@ predictionServer <- function(
         modelDesignId = modelDesignId, # reactive
         developmentDatabaseId = developmentDatabaseId, # reactive
         performanceId = performanceId, # reactive
-        con = con, 
+        connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
         mySchema = resultDatabaseSettings$schema,
         myTableAppend = resultDatabaseSettings$tablePrefix, 
-        targetDialect = resultDatabaseSettings$dbms,
         databaseTableAppend = ifelse(
           !is.null(resultDatabaseSettings$databaseTablePrefix), 
           resultDatabaseSettings$databaseTablePrefix,

@@ -4,11 +4,10 @@ shiny::testServer(
   app = predictionCutoffServer, 
   args = list(
     performanceId = shiny::reactiveVal(1),
-    con = connectionPlp,
+    connectionHandler = connectionHandlerPlp,
     inputSingleView = shiny::reactiveVal("Threshold Dependant"),
-    mySchema = schemaTest,
-    targetDialect = dbmsTest,
-    myTableAppend = tablePrefixTest
+    mySchema = resultDatabaseSettingsPlp$schema,
+    myTableAppend = resultDatabaseSettingsPlp$tablePrefix
   ), 
   expr = {
     

@@ -6,11 +6,10 @@ shiny::testServer(
     modelDesignId = shiny::reactiveVal(1),
     developmentDatabaseId = shiny::reactiveVal(1),
     performanceId = shiny::reactiveVal(NULL),
-    con = connectionPlp,
+    connectionHandler = connectionHandlerPlp,
     inputSingleView = shiny::reactiveVal("Discrimination"),
-    mySchema = schemaTest,
-    targetDialect = dbmsTest,
-    myTableAppend = tablePrefixTest
+    mySchema = resultDatabaseSettingsPlp$schema,
+    myTableAppend = resultDatabaseSettingsPlp$tablePrefix
   ), 
   expr = {
     expect_true(is.null(covariateSummary()))

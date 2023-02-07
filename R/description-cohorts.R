@@ -58,6 +58,11 @@ descriptionTableViewer <- function(id) {
         selected = c("averageValue", "countValue")
       ),
       
+      shiny::downloadButton(
+        ns('downloadCohorts'), 
+        label = "Download"
+      ),
+      
       reactable::reactableOutput(ns('feTable'))
     )
     )
@@ -73,13 +78,11 @@ descriptionTableViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mainPanelTab the current tab 
 #' @param schema the database schema for the model results
-#' @param dbms the database management system for the model results
 #' @param tablePrefix a string that appends the tables in the result schema
 #' @param cohortTablePrefix a string that appends the cohort table in the result schema
-#' @param tempEmulationSchema  The temp schema (optional)
 #' @param databaseTable  name of the database table
 #' 
 #' @return
@@ -88,13 +91,11 @@ descriptionTableViewer <- function(id) {
 #' @export
 descriptionTableServer <- function(
   id, 
-  con,
+  connectionHandler,
   mainPanelTab,
   schema, 
-  dbms,
   tablePrefix,
   cohortTablePrefix,
-  tempEmulationSchema = NULL,
   databaseTable = 'DATABASE_META_DATA'
 ) {
   shiny::moduleServer(
@@ -106,13 +107,11 @@ descriptionTableServer <- function(
       #}
       
       inputVals <- getDecCohortsInputs(
-        con,
+        connectionHandler,
         schema, 
-        dbms,
         tablePrefix,
         cohortTablePrefix,
-        databaseTable,
-        tempEmulationSchema
+        databaseTable
       )
       
       # update UI
@@ -164,12 +163,10 @@ descriptionTableServer <- function(
             getDesFEData(
               targetIds = input$targetIds,
               databaseId = input$databaseId,
-              con = con,
+              connectionHandler = connectionHandler,
               schema = schema, 
-              dbms = dbms,
               tablePrefix = tablePrefix,
-              cohortTablePrefix = cohortTablePrefix,
-              tempEmulationSchema = tempEmulationSchema
+              cohortTablePrefix = cohortTablePrefix
             )}, 
             error = function(e){
               shiny::showNotification(paste0('Error: ', e)); return(NULL)
@@ -284,6 +281,17 @@ descriptionTableServer <- function(
         }
       )
       
+      
+      # download button
+      output$downloadCohorts <- shiny::downloadHandler(
+        filename = function() {
+          paste('cohort-data-', Sys.Date(), '.csv', sep='')
+        },
+        content = function(con) {
+          utils::write.csv(reactiveAllData(), con)
+        }
+      )
+      
     
       return(invisible(NULL))
       
@@ -295,12 +303,10 @@ descriptionTableServer <- function(
 getDesFEData <- function(
   targetIds,
   databaseId,
-  con,
+  connectionHandler,
   schema, 
-  dbms,
   tablePrefix,
-  cohortTablePrefix,
-  tempEmulationSchema
+  cohortTablePrefix
 ){
   
   
@@ -331,8 +337,10 @@ getDesFEData <- function(
   on c.cohort_definition_id = covs.COHORT_DEFINITION_ID/100000
   ;
   "
-
-  sql <- SqlRender::render(
+  
+  shiny::incProgress(1/3, detail = paste("Created SQL - Extracting..."))
+  
+  resultTable <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = schema,
     table_prefix = tablePrefix,
@@ -340,10 +348,6 @@ getDesFEData <- function(
     cohort_ids = paste(as.double(targetIds)*100000, collapse = ','),
     database_id = databaseId
   )
-  
-  shiny::incProgress(1/3, detail = paste("Created SQL - Extracting..."))
-  
-  resultTable <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   
   shiny::incProgress(2/3, detail = paste("Formating"))
   
@@ -368,13 +372,11 @@ getDesFEData <- function(
 
 
 getDecCohortsInputs <- function(
-  con,
-  schema, 
-  dbms,
-  tablePrefix,
-  cohortTablePrefix,
-  databaseTable,
-  tempEmulationSchema
+    connectionHandler,
+    schema, 
+    tablePrefix,
+    cohortTablePrefix,
+    databaseTable
 ){
   
   
@@ -385,21 +387,19 @@ getDecCohortsInputs <- function(
   @result_schema.@cohort_table_prefixcohort_definition c
   inner join
   (select distinct TARGET_COHORT_ID as id
-  from @result_schema.@table_prefixsettings
+  from @result_schema.@table_prefixcohort_details
   ) ids
   on ids.id = c.cohort_definition_id
   ;'
-  
-  sql <- SqlRender::render(
+
+  shiny::incProgress(1/4, detail = paste("Extracting targetIds"))
+
+  idVals <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = schema,
     table_prefix = tablePrefix,
     cohort_table_prefix = cohortTablePrefix
   )
-  
-  shiny::incProgress(1/4, detail = paste("Extracting targetIds"))
-
-  idVals <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   ids <- idVals$cohortDefinitionId
   names(ids) <- idVals$cohortName
   
@@ -409,15 +409,13 @@ getDecCohortsInputs <- function(
   sql <- 'select d.database_id, d.cdm_source_abbreviation as database_name
   from @result_schema.@database_table d;'
   
-  sql <- SqlRender::render(
+  shiny::incProgress(3/4, detail = paste("Extracting databaseIds"))
+  
+  database <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = schema,
     database_table = databaseTable
   )
-  
-  shiny::incProgress(3/4, detail = paste("Extracting databaseIds"))
-  
-  database <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   databaseIds <- database$databaseId
   names(databaseIds) <- database$databaseName
   

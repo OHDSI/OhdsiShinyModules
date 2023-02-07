@@ -140,10 +140,9 @@ predictionDiscriminationViewer <- function(id) {
 #'
 #' @param id  the unique reference id for the module
 #' @param performanceId the performance id in the database
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param inputSingleView the current tab 
 #' @param mySchema the database schema for the model results
-#' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
 #' 
 #' @return
@@ -153,10 +152,9 @@ predictionDiscriminationViewer <- function(id) {
 predictionDiscriminationServer <- function(
   id, 
   performanceId, 
-  con,
+  connectionHandler,
   inputSingleView,
   mySchema, 
-  targetDialect,
   myTableAppend
 ) {
   shiny::moduleServer(
@@ -168,10 +166,9 @@ predictionDiscriminationServer <- function(
           print('Discrimination started')
           data <- getPredictionResult(
             performanceId = performanceId, 
-            con = con,
+            connectionHandler = connectionHandler,
             tableName = paste0(myTableAppend,'evaluation_statistics'), 
-            mySchema = mySchema, 
-            targetDialect = targetDialect 
+            mySchema = mySchema
           )
           print('Discrimination ended')
         } else{
@@ -255,19 +252,17 @@ predictionDiscriminationServer <- function(
           if(!is.null(performanceId()) & inputSingleView() == 'Discrimination'){
             value <- getPredictionResult(
               performanceId = performanceId, 
-              con = con,
+              connectionHandler = connectionHandler,
               tableName = paste0(myTableAppend,'prediction_distribution'), 
-              mySchema = mySchema, 
-              targetDialect = targetDialect 
+              mySchema = mySchema
             )
             predictionDistribution(value)
             
             value <- getPredictionResult(
               performanceId = performanceId, 
-              con = con,
+              connectionHandler = connectionHandler,
               tableName = paste0(myTableAppend,'threshold_summary'), 
-              mySchema = mySchema, 
-              targetDialect = targetDialect 
+              mySchema = mySchema
             )
             thresholdSummary(value)
           }

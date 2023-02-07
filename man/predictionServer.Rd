@@ -4,10 +4,16 @@
 \alias{predictionServer}
 \title{The module server for exploring PatientLevelPrediction}
 \usage{
-predictionServer(id, resultDatabaseSettings = list(port = 1))
+predictionServer(
+  id,
+  connectionHandler,
+  resultDatabaseSettings = list(port = 1)
+)
 }
 \arguments{
 \item{id}{the unique reference id for the module}
+
+\item{connectionHandler}{a connection to the database with the results}
 
 \item{resultDatabaseSettings}{a list containing the prediction result schema and connection details}
 }

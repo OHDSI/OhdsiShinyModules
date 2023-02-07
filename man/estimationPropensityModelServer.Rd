@@ -8,7 +8,7 @@ estimationPropensityModelServer(
   id,
   selectedRow,
   inputParams,
-  connection,
+  connectionHandler,
   resultsSchema,
   tablePrefix
 )
@@ -20,7 +20,7 @@ estimationPropensityModelServer(
 
 \item{inputParams}{the selected study parameters of interest}
 
-\item{connection}{the connection to the PLE results database}
+\item{connectionHandler}{the connection to the PLE results database}
 
 \item{resultsSchema}{the schema with the PLE results}
 

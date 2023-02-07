@@ -6,12 +6,11 @@ shiny::testServer(
     modelDesignId = shiny::reactiveVal(1),
     developmentDatabaseId = shiny::reactiveVal(1),
     performanceId = shiny::reactiveVal(1),
-    con = connectionPlp,
+    connectionHandler = connectionHandlerPlp,
     inputSingleView = shiny::reactiveVal('No Validation'),
-    mySchema = schemaTest,
-    targetDialect = dbmsTest,
-    myTableAppend = tablePrefixTest,
-    databaseTableAppend = tablePrefixTest
+    mySchema = resultDatabaseSettingsPlp$schema,
+    myTableAppend = resultDatabaseSettingsPlp$tablePrefix,
+    databaseTableAppend = resultDatabaseSettingsPlp$tablePrefix
     ), 
   expr = {
     
