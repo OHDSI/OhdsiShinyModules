@@ -187,7 +187,7 @@ for(table in tables){
     connection = sqliteCon,
     databaseSchema = 'main', 
     tableName = gsub('.csv','',table), 
-    data = read.csv(file.path(outputFolder, 'export', table)), 
+    data = utils::read.csv(file.path(outputFolder, 'export', table)), 
     createTable = T, 
     dropTableIfExists = T, 
     camelCaseToSnakeCase = F
