@@ -27,23 +27,23 @@ convertToEndDate <- function(year, month) {
 plotTimeTrend <- function(timeTrend) {
 
   timeTrend <- timeTrend %>%
-    mutate(
+    dplyr::mutate(
       monthStartDate = convertToStartDate(calendarYear, calendarMonth),
       monthEndDate = convertToEndDate(calendarYear, calendarMonth),
       outcomeRate = pmax(0, outcomeRate),
       observedSubjects = pmax(0, observedSubjects),
       adjustedRate = pmax(0, adjustedRate))
 
-  plotData <- bind_rows(
-    select(timeTrend, "monthStartDate", "monthEndDate", value = "outcomeRate") %>%
-      mutate(type = "Outcomes per person",
-             stable = "Stable"),
-    select(timeTrend, "monthStartDate", "monthEndDate", value = "observedSubjects") %>%
-      mutate(type = "Observed persons",
-             stable = "Stable"),
-    select(timeTrend, "monthStartDate", "monthEndDate", value = "adjustedRate", "stable") %>%
-      mutate(type = "Adj. outcomes per person",
-             stable = ifelse(stable == 1, "Stable", "Unstable"))
+  plotData <- dplyr::bind_rows(
+    dplyr::select(timeTrend, "monthStartDate", "monthEndDate", value = "outcomeRate") %>%
+      dplyr::mutate(type = "Outcomes per person",
+                    stable = "Stable"),
+    dplyr::select(timeTrend, "monthStartDate", "monthEndDate", value = "observedSubjects") %>%
+      dplyr::mutate(type = "Observed persons",
+                    stable = "Stable"),
+    dplyr::select(timeTrend, "monthStartDate", "monthEndDate", value = "adjustedRate", "stable") %>%
+      dplyr::mutate(type = "Adj. outcomes per person",
+                    stable = ifelse(stable == 1, "Stable", "Unstable"))
   )
 
   levels <- c("Observed persons", "Outcomes per person", "Adj. outcomes per person")
@@ -57,7 +57,7 @@ plotTimeTrend <- function(timeTrend) {
                        linewidth = 0) +
     ggplot2::scale_x_date("Calendar time") +
     ggplot2::scale_y_continuous("Count", limits = c(0, NA)) +
-    ggplot2::scale_fill_manual(breaks = c("Stable", "Unstable") ,
+    ggplot2::scale_fill_manual(breaks = c("Stable", "Unstable"),
                                values = c(rgb(0, 0, 0.8, alpha = 0.6), rgb(0.8, 0, 0, alpha = 0.6))) +
     ggplot2::facet_grid(.data$type ~ ., scales = "free_y") +
     ggplot2::theme(
@@ -80,22 +80,22 @@ plotTimeTrend <- function(timeTrend) {
 plotTimeToEvent <- function(timeToEvent) {
 
   events <- timeToEvent %>%
-    transmute(.data$week,
-              type = "Events",
-              count = .data$outcomes
+    dplyr::transmute(.data$week,
+                     type = "Events",
+                     count = .data$outcomes
     )
 
   observed <- timeToEvent %>%
-    transmute(.data$week,
-              type = "Subjects under observation",
-              count = .data$observedSubjects
+    dplyr::transmute(.data$week,
+                     type = "Subjects under observation",
+                     count = .data$observedSubjects
     )
 
-  data <- bind_rows(events, observed) %>%
-    mutate(count = pmax(0, .data$count),
-           day = 3.5 + .data$week * 7)
+  data <- dplyr::bind_rows(events, observed) %>%
+    dplyr::mutate(count = pmax(0, .data$count),
+                  day = 3.5 + .data$week * 7)
 
-  pLabel <- tibble(
+  pLabel <- dplyr::tibble(
     text = sprintf("P for pre-exposure gain = %0.2f", timeToEvent$p[1]),
     day = -178,
     count = max(events$count),
@@ -130,9 +130,11 @@ plotTimeToEvent <- function(timeToEvent) {
 }
 
 drawAttritionDiagram <- function(attrition) {
+
   formatNumber <- function(x) {
     return(formatC(x, big.mark = ","))
   }
+
   addStep <- function(data, attrition, row) {
     data$leftBoxText[length(data$leftBoxText) + 1] <- paste(attrition$description[row],
                                                             "\n",
@@ -152,6 +154,7 @@ drawAttritionDiagram <- function(attrition) {
     data$currentOutcomes <- attrition$outcomeEvents[row]
     return(data)
   }
+
   data <- list(leftBoxText = c(paste("All outcomes occurrences:\n",
                                      "Cases: ",
                                      formatNumber(attrition$outcomeSubjects[1]),
@@ -170,21 +173,23 @@ drawAttritionDiagram <- function(attrition) {
   rightBoxText <- data$rightBoxText
   nSteps <- length(leftBoxText)
 
-  boxHeight <- (1/nSteps) - 0.05
+  boxHeight <- (1 / nSteps) - 0.05
   boxWidth <- 0.45
   shadowOffset <- 0.01
   arrowLength <- 0.01
+
   x <- function(x) {
-    return(0.25 + ((x - 1)/2))
+    return(0.25 + ((x - 1) / 2))
   }
+
   y <- function(y) {
-    return(1 - (y - 0.5) * (1/nSteps))
+    return(1 - (y - 0.5) * (1 / nSteps))
   }
 
   downArrow <- function(p, x1, y1, x2, y2) {
     p <- p + ggplot2::geom_segment(ggplot2::aes(x = !!x1, y = !!y1, xend = !!x2, yend = !!y2))
     p <- p + ggplot2::geom_segment(ggplot2::aes(x = !!x2,
-                                                y =!! y2,
+                                                y = !!y2,
                                                 xend = !!x2 + arrowLength,
                                                 yend = !!y2 + arrowLength))
     p <- p + ggplot2::geom_segment(ggplot2::aes(x = !!x2,
@@ -193,6 +198,7 @@ drawAttritionDiagram <- function(attrition) {
                                                 yend = !!y2 + arrowLength))
     return(p)
   }
+
   rightArrow <- function(p, x1, y1, x2, y2) {
     p <- p + ggplot2::geom_segment(ggplot2::aes(x = !!x1, y = !!y1, xend = !!x2, yend = !!y2))
     p <- p + ggplot2::geom_segment(ggplot2::aes(x = !!x2,
@@ -205,15 +211,17 @@ drawAttritionDiagram <- function(attrition) {
                                                 yend = !!y2 - arrowLength))
     return(p)
   }
+
   box <- function(p, x, y) {
-    p <- p + ggplot2::geom_rect(ggplot2::aes(xmin = !!x - (boxWidth/2),
-                                             ymin = !!y - (boxHeight/2),
-                                             xmax = !!x + (boxWidth/2),
-                                             ymax = !!y + (boxHeight/2)),
+    p <- p + ggplot2::geom_rect(ggplot2::aes(xmin = !!x - (boxWidth / 2),
+                                             ymin = !!y - (boxHeight / 2),
+                                             xmax = !!x + (boxWidth / 2),
+                                             ymax = !!y + (boxHeight / 2)),
                                 color = rgb(0, 0, 0.8, alpha = 1),
                                 fill = rgb(0, 0, 0.8, alpha = 0.1))
     return(p)
   }
+
   label <- function(p, x, y, text, hjust = 0) {
     p <- p + ggplot2::geom_text(ggplot2::aes(x = !!x, y = !!y, label = !!text),
                                 hjust = hjust,
@@ -223,18 +231,18 @@ drawAttritionDiagram <- function(attrition) {
 
   p <- ggplot2::ggplot()
   for (i in 2:nSteps - 1) {
-    p <- downArrow(p, x(1), y(i) - (boxHeight/2), x(1), y(i + 1) + (boxHeight/2))
+    p <- downArrow(p, x(1), y(i) - (boxHeight / 2), x(1), y(i + 1) + (boxHeight / 2))
   }
   for (i in 2:(nSteps)) {
-    p <- rightArrow(p, x(1), y(i-0.5), x(2) - boxWidth/2, y(i-0.5))
+    p <- rightArrow(p, x(1), y(i - 0.5), x(2) - boxWidth / 2, y(i - 0.5))
   }
   for (i in 1:nSteps) {
     p <- box(p, x(1), y(i))
-    p <- label(p, x(1) - boxWidth/2 + 0.02, y(i), text = leftBoxText[i])
+    p <- label(p, x(1) - boxWidth / 2 + 0.02, y(i), text = leftBoxText[i])
   }
-  for (i in 2:(nSteps )) {
-    p <- box(p, x(2), y(i-0.5))
-    p <- label(p, x(2) - boxWidth/2 + 0.02, y(i-0.5), text = rightBoxText[i])
+  for (i in 2:(nSteps)) {
+    p <- box(p, x(2), y(i - 0.5))
+    p <- label(p, x(2) - boxWidth / 2 + 0.02, y(i - 0.5), text = rightBoxText[i])
   }
   p <- p + ggplot2::theme(legend.position = "none",
                           plot.background = ggplot2::element_blank(),
@@ -251,8 +259,8 @@ drawAttritionDiagram <- function(attrition) {
 
 plotEventDepObservation <- function(eventDepObservation, maxMonths = 12) {
   eventDepObservation <- eventDepObservation %>%
-    filter(.data$monthsToEnd <= maxMonths) %>%
-    mutate(
+    dplyr::filter(.data$monthsToEnd <= maxMonths) %>%
+    dplyr::mutate(
       outcomes = pmax(0, .data$outcomes),
       censoring = ifelse(.data$censored == 1, "Censored", "Uncensored")
     )
@@ -286,20 +294,20 @@ plotEventDepObservation <- function(eventDepObservation, maxMonths = 12) {
 
 plotSpanning <- function(spanning, type = "age") {
   if (type == "age") {
-    spanning <- spanning  %>%
-      mutate(x = .data$ageMonth)
+    spanning <- spanning %>%
+      dplyr::mutate(x = .data$ageMonth)
     labels <- seq(ceiling(min(spanning$ageMonth) / 12), floor(max(spanning$ageMonth) / 12))
-    breaks <- labels*12
+    breaks <- labels * 12
     if (length(labels) > 10) {
       labels <- seq(ceiling(min(spanning$ageMonth) / 120), floor(max(spanning$ageMonth) / 120)) * 10
-      breaks <- labels*12
+      breaks <- labels * 12
     }
     xLabel <- "Age in years"
   } else {
-    spanning <- spanning  %>%
-      mutate(x = .data$calendarYear * 12 + .data$calendarMonth)
+    spanning <- spanning %>%
+      dplyr::mutate(x = .data$calendarYear * 12 + .data$calendarMonth)
     labels <- seq(ceiling(min(spanning$x) / 12), floor(max(spanning$x) / 12))
-    breaks <- labels*12
+    breaks <- labels * 12
     xLabel <- "Calendar time"
   }
   theme <- ggplot2::element_text(colour = "#000000", size = 14)
@@ -476,7 +484,7 @@ cyclicSplineDesign <- function(x, knots, ord = 4) {
   x[ind] <- x[ind] - max(knots) + k1
   if (sum(ind)) {
     X2 <- splines::splineDesign(knots, x[ind], ord, outer.ok = TRUE)
-    X1[ind, ] <- X1[ind, ] + X2
+    X1[ind,] <- X1[ind,] + X2
   }
   X1
 }
@@ -484,21 +492,21 @@ cyclicSplineDesign <- function(x, knots, ord = 4) {
 plotControlEstimates <- function(controlEstimates) {
   size <- 2
   labelY <- 0.7
-  d <- rbind(data.frame(yGroup = "Uncalibrated",
-                        logRr = controlEstimates$logRr,
-                        seLogRr = controlEstimates$seLogRr,
-                        ci95Lb = controlEstimates$ci95Lb,
-                        ci95Ub = controlEstimates$ci95Ub,
-                        trueRr = controlEstimates$trueEffectSize),
-             data.frame(yGroup = "Calibrated",
-                        logRr = controlEstimates$calibratedLogRr,
-                        seLogRr = controlEstimates$calibratedSeLogRr,
-                        ci95Lb = controlEstimates$calibratedCi95Lb,
-                        ci95Ub = controlEstimates$calibratedCi95Ub,
-                        trueRr = controlEstimates$trueEffectSize))
-  d <- d[!is.na(d$logRr), ]
-  d <- d[!is.na(d$ci95Lb), ]
-  d <- d[!is.na(d$ci95Ub), ]
+  d <- dplyr::rbind(data.frame(yGroup = "Uncalibrated",
+                               logRr = controlEstimates$logRr,
+                               seLogRr = controlEstimates$seLogRr,
+                               ci95Lb = controlEstimates$ci95Lb,
+                               ci95Ub = controlEstimates$ci95Ub,
+                               trueRr = controlEstimates$trueEffectSize),
+                    data.frame(yGroup = "Calibrated",
+                               logRr = controlEstimates$calibratedLogRr,
+                               seLogRr = controlEstimates$calibratedSeLogRr,
+                               ci95Lb = controlEstimates$calibratedCi95Lb,
+                               ci95Ub = controlEstimates$calibratedCi95Ub,
+                               trueRr = controlEstimates$trueEffectSize))
+  d <- d[!is.na(d$logRr),]
+  d <- d[!is.na(d$ci95Lb),]
+  d <- d[!is.na(d$ci95Ub),]
   if (nrow(d) == 0) {
     return(NULL)
   }
@@ -523,16 +531,16 @@ plotControlEstimates <- function(controlEstimates) {
 
   d$Group <- paste("True hazard ratio =", d$Group)
   dd$Group <- paste("True hazard ratio =", dd$Group)
-  alpha <- 1 - min(0.95 * (nrow(d)/nrow(dd)/50000)^0.1, 0.95)
+  alpha <- 1 - min(0.95 * (nrow(d) / nrow(dd) / 50000)^0.1, 0.95)
   plot <- ggplot2::ggplot(d, ggplot2::aes(x = logRr, y = seLogRr), environment = environment()) +
     ggplot2::geom_vline(xintercept = log(breaks), colour = "#AAAAAA", lty = 1, size = 0.5) +
-    ggplot2::geom_abline(ggplot2::aes(intercept = (-log(tes))/qnorm(0.025), slope = 1/qnorm(0.025)),
+    ggplot2::geom_abline(ggplot2::aes(intercept = (-log(tes)) / qnorm(0.025), slope = 1 / qnorm(0.025)),
                          colour = rgb(0.8, 0, 0),
                          linetype = "dashed",
                          size = 1,
                          alpha = 0.5,
                          data = dd) +
-    ggplot2::geom_abline(ggplot2::aes(intercept = (-log(tes))/qnorm(0.975), slope = 1/qnorm(0.975)),
+    ggplot2::geom_abline(ggplot2::aes(intercept = (-log(tes)) / qnorm(0.975), slope = 1 / qnorm(0.975)),
                          colour = rgb(0.8, 0, 0),
                          linetype = "dashed",
                          size = 1,
@@ -579,7 +587,7 @@ plotControlEstimates <- function(controlEstimates) {
 }
 
 renderDiagnosticsSummary <- function(diagnosticsSummary) {
-  tibble(
+  dplyr::tibble(
     Diagnostic = c("Minimum detectable relative risk (MDRR)", "Time trend P", "Pre-exposure gain P", "Expected absolute systematic error (EASE)"),
     Value = c(sprintf("%0.2f", diagnosticsSummary$mdrr), sprintf("%0.2f", diagnosticsSummary$timeTrendP), sprintf("%0.2f", diagnosticsSummary$preExposureP), sprintf("%0.2f", diagnosticsSummary$ease)),
     Status = c(diagnosticsSummary$mdrrDiagnostic, diagnosticsSummary$timeTrendDiagnostic, diagnosticsSummary$preExposureDiagnostic, diagnosticsSummary$easeDiagnostic)

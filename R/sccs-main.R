@@ -17,12 +17,11 @@ sccsServer <- function(
   resultDatabaseSettings = list(port = 1)
 ) {
   ns <- shiny::NS(id)
-
-  exposuresOutcomeSets <- getExposuresOutcomes(connectionHandler, resultDatabaseSettings$schema)
+  exposuresOutcomeSets <- getSccsExposuresOutcomes(connectionHandler, resultDatabaseSettings)
   exposuresOutcomeNames <- exposuresOutcomeSets %>%
-    group_by(exposuresOutcomeSetId, outcomeName) %>%
-    summarise(exposures = paste(exposureName, collapse = ", "), .groups = "drop") %>%
-    mutate(name = sprintf("%s - %s", exposures, outcomeName))
+    dplyr::group_by(.data$exposuresOutcomeSetId, .data$outcomeName) %>%
+    dplyr::summarise(exposures = paste(.data$exposureName, collapse = ", "), .groups = "drop") %>%
+    dplyr::mutate(name = sprintf("%s - %s", .data$exposures, .data$outcomeName))
 
   sccsAnalyses <- connectionHandler$tbl("sccs_analysis", databaseSchema = resultDatabaseSettings$schema) %>%
     dplyr::collect() %>%
@@ -52,7 +51,7 @@ sccsServer <- function(
         databaseIds <- "none"
       }
       results <- getSccsResults(connectionHandler = connectionHandler,
-                                resultsDatabaseSchema = resultDatabaseSettings$schema,
+                                resultDatabaseSettings = resultDatabaseSettings,
                                 exposuresOutcomeSetId = exposuresOutcomeSetId,
                                 databaseIds = databaseIds,
                                 analysisIds = analysisIds)
@@ -76,7 +75,7 @@ sccsServer <- function(
       return(results)
     })
 
-    output$mainTable <- renderDataTable({
+    output$mainTable <- DT::renderDataTable({
       table <- resultSubset()
       if (is.null(table) || nrow(table) == 0) {
         return(NULL)
@@ -128,7 +127,12 @@ sccsServer <- function(
     })
 
     selectedRow <- shiny::reactive({
-      idx <- input$mainTable_rows_selected
+      if (getOption("shiny-test-env-enabled", default = FALSE)) {
+        idx <- input$mainTableRowInput
+      } else {
+        idx <- input$mainTable_rows_selected
+      }
+      
       if (is.null(idx)) {
         return(NULL)
       } else {
@@ -146,7 +150,7 @@ sccsServer <- function(
     })
     outputOptions(output, "rowIsSelected", suspendWhenHidden = FALSE)
 
-    output$powerTable <- renderTable({
+    output$powerTable <- shiny::renderTable({
       row <- selectedRow()
       if (is.null(row)) {
         return(NULL)
@@ -399,7 +403,7 @@ sccsServer <- function(
 #' Load the ui for the sccs module
 #' @param id        id for module
 #' @export
-sccsUi <- function(id = "sccs-module") {
+sccsView <- function(id = "sccs-module") {
   ns <- shiny::NS(id)
   tags <- shiny::tags
   shiny::fluidPage(
@@ -429,7 +433,7 @@ sccsUi <- function(id = "sccs-module") {
     shiny::fluidRow(
       shiny::column(
         3,
-        shiny::selectInput(ns("exposuresOutcome"), "Exposures-outcome"),
+        shiny::selectInput(ns("exposuresOutcome"), "Exposures-outcome", choices = c()),
         shiny::checkboxGroupInput(ns("database"), "Data source"),
         shiny::checkboxGroupInput(ns("analysis"), "Analysis")
       ),
@@ -528,4 +532,18 @@ sccsUi <- function(id = "sccs-module") {
       )
     )
   )
+}
+
+#' The location of the description module helper file
+#'
+#' @details
+#' Returns the location of the description helper file
+#'
+#' @return
+#' string location of the description helper file
+#'
+#' @export
+sccsHelperFile <- function() {
+  fileLoc <- system.file('sccs-www', "sccs.html", package = utils::packageName())
+  return(fileLoc)
 }
