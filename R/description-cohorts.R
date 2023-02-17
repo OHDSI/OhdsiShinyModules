@@ -373,10 +373,10 @@ getDesFEData <- function(
 
 getDecCohortsInputs <- function(
     connectionHandler,
-  schema, 
-  tablePrefix,
-  cohortTablePrefix,
-  databaseTable
+    schema, 
+    tablePrefix,
+    cohortTablePrefix,
+    databaseTable
 ){
   
   
@@ -387,7 +387,7 @@ getDecCohortsInputs <- function(
   @result_schema.@cohort_table_prefixcohort_definition c
   inner join
   (select distinct TARGET_COHORT_ID as id
-  from @result_schema.@table_prefixsettings
+  from @result_schema.@table_prefixcohort_details
   ) ids
   on ids.id = c.cohort_definition_id
   ;'

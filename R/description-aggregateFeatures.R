@@ -48,7 +48,8 @@ descriptionAggregateFeaturesViewer <- function(id) {
     
     # COV: RUN_ID	DATABASE_ID	COHORT_DEFINITION_ID	COVARIATE_ID	SUM_VALUE	AVERAGE_VALUE
     # COV REF: RUN_ID	DATABASE_ID	COVARIATE_ID	COVARIATE_NAME	ANALYSIS_ID	CONCEPT_ID
-    # settings: RUN_ID	DATABASE_ID	COVARIATE_SETTING_JSON	RISK_WINDOW_START	START_ANCHOR	RISK_WINDOW_END	END_ANCHOR	COMBINED_COHORT_ID	TARGET_COHORT_ID	OUTCOME_COHORT_ID	COHORT_TYPE
+    # settings: RUN_ID	DATABASE_ID	COVARIATE_SETTING_JSON	RISK_WINDOW_START	START_ANCHOR	RISK_WINDOW_END	END_ANCHOR	
+    # cohort_details: RUN_ID	DATABASE_ID COHORT_DEFINITION_ID	TARGET_COHORT_ID	OUTCOME_COHORT_ID	COHORT_TYPE
     # analysis_ref: RUN_ID	DATABASE_ID	ANALYSIS_ID	ANALYSIS_NAME	DOMAIN_ID	START_DAY	END_DAY	IS_BINARY	MISSING_MEANS_ZERO
     # cov cont: RUN_ID	DATABASE_ID	COHORT_DEFINITION_ID	COVARIATE_ID	COUNT_VALUE	MIN_VALUE	MAX_VALUE	AVERAGE_VALUE	STANDARD_DEVIATION	MEDIAN_VALUE	P_10_VALUE	P_25_VALUE	P_75_VALUE	P_90_VALUE
     
@@ -517,15 +518,17 @@ getAggregateFeatureOptions <- function(
  
   shiny::withProgress(message = 'Getting feature comparison options', value = 0, {
   
-  sql <- "SELECT DISTINCT t.COHORT_NAME as TARGET, s.TARGET_COHORT_ID, 
-            o.COHORT_NAME as outcome, s.OUTCOME_COHORT_ID, 
+  sql <- "SELECT DISTINCT t.COHORT_NAME as TARGET, cd.TARGET_COHORT_ID, 
+            o.COHORT_NAME as outcome, cd.OUTCOME_COHORT_ID, 
             s.RISK_WINDOW_START,	s.START_ANCHOR,	s.RISK_WINDOW_END,	s.END_ANCHOR  
-          FROM @result_database_schema.@table_prefixSETTINGS s
+          FROM @result_database_schema.@table_prefixCOHORT_DETAILS cd
+          inner join @result_database_schema.@table_prefixSETTINGS s
+          on cd.run_id = s.run_id and cd.database_id = s.database_id
           inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION t
-          on s.TARGET_COHORT_ID = t.COHORT_DEFINITION_ID
+          on cd.TARGET_COHORT_ID = t.COHORT_DEFINITION_ID
           inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION o
-          on s.OUTCOME_COHORT_ID = o.COHORT_DEFINITION_ID
-          WHERE s.TARGET_COHORT_ID != 0 AND s.OUTCOME_COHORT_ID != 0;"
+          on cd.OUTCOME_COHORT_ID = o.COHORT_DEFINITION_ID
+          WHERE cd.TARGET_COHORT_ID != 0 AND cd.OUTCOME_COHORT_ID != 0;"
 
   shiny::incProgress(1/2, detail = paste("Extracting options"))
   
@@ -561,10 +564,13 @@ getAggregateFeatureDatabases <- function(
   
   shiny::withProgress(message = 'Finding databases with data', value = 0, {
   sql <- "SELECT DISTINCT s.DATABASE_ID, d.CDM_SOURCE_ABBREVIATION as database_name  
-          FROM @result_database_schema.@table_prefixSETTINGS s
+          FROM @result_database_schema.@table_prefixCOHORT_DETAILS cd
           inner join @result_database_schema.@database_table d
+          on cd.database_id = d.database_id
+          inner join @result_database_schema.@table_prefixSETTINGS s
           on s.database_id = d.database_id
-          WHERE s.TARGET_COHORT_ID = @target_id and s.OUTCOME_COHORT_ID = @outcome_id
+          and s.run_id = cd.run_id
+          WHERE cd.TARGET_COHORT_ID = @target_id and cd.OUTCOME_COHORT_ID = @outcome_id
           and s.RISK_WINDOW_START = @risk_window_start and s.START_ANCHOR = '@start_anchor'
           and s.RISK_WINDOW_END = @risk_window_end and	s.END_ANCHOR = '@end_anchor';"
   
@@ -624,14 +630,18 @@ descriptiveGetAggregateData <- function(
 ){
   
   shiny::withProgress(message = 'Getting Feature Comparison Data', value = 0, {
-  sql <- "SELECT RUN_ID
-          FROM @result_database_schema.@table_prefixSETTINGS
-          WHERE TARGET_COHORT_ID = @target_id and OUTCOME_COHORT_ID = @outcome_id
-          and RISK_WINDOW_START = @risk_window_start and START_ANCHOR = '@start_anchor'
-          and RISK_WINDOW_END = @risk_window_end and	END_ANCHOR = '@end_anchor'
-          and DATABASE_ID  = '@database_id' and COHORT_TYPE = '@type';"
+  sql <- "SELECT s.RUN_ID, cd.COHORT_DEFINITION_ID
+          FROM @result_database_schema.@table_prefixSETTINGS s
+          inner join 
+          @result_database_schema.@table_prefixCOHORT_DETAILS cd
+          on cd.database_id = s.database_id and
+          cd.run_id = s.run_id
+          WHERE cd.TARGET_COHORT_ID = @target_id and cd.OUTCOME_COHORT_ID = @outcome_id
+          and s.RISK_WINDOW_START = @risk_window_start and s.START_ANCHOR = '@start_anchor'
+          and s.RISK_WINDOW_END = @risk_window_end and	s.END_ANCHOR = '@end_anchor'
+          and s.DATABASE_ID  = '@database_id' and cd.COHORT_TYPE = '@type';"
 
-  runId1 <- connectionHandler$queryDb(
+  settingsFirst <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
@@ -643,19 +653,24 @@ descriptiveGetAggregateData <- function(
     end_anchor = endAnchor,
     database_id = database1,
     type = type1
-  )$runId
+  )
   
-  shiny::incProgress(1/5, detail = paste("Got first runIds"))
+  shiny::incProgress(1/5, detail = paste("Got first runId and cohortId"))
   
   
-  sql <- "SELECT RUN_ID
-          FROM @result_database_schema.@table_prefixSETTINGS
-          WHERE TARGET_COHORT_ID = @target_id and OUTCOME_COHORT_ID = @outcome_id
-          and RISK_WINDOW_START = @risk_window_start and START_ANCHOR = '@start_anchor'
-          and RISK_WINDOW_END = @risk_window_end and	END_ANCHOR = '@end_anchor'
-          and DATABASE_ID  = '@database_id' and COHORT_TYPE = '@type';"
+  sql <- "SELECT s.RUN_ID, cd.COHORT_DEFINITION_ID
+          FROM @result_database_schema.@table_prefixSETTINGS s
+          inner join 
+          @result_database_schema.@table_prefixCOHORT_DETAILS cd
+          on cd.database_id = s.database_id and
+          cd.run_id = s.run_id
+          WHERE cd.TARGET_COHORT_ID = @target_id and cd.OUTCOME_COHORT_ID = @outcome_id
+          and s.RISK_WINDOW_START = @risk_window_start and s.START_ANCHOR = '@start_anchor'
+          and s.RISK_WINDOW_END = @risk_window_end and	s.END_ANCHOR = '@end_anchor'
+          and s.DATABASE_ID  = '@database_id' and cd.COHORT_TYPE = '@type';"
+  
 
-  runId2 <- connectionHandler$queryDb(
+  settingsSecond <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
@@ -667,9 +682,9 @@ descriptiveGetAggregateData <- function(
     end_anchor = endAnchor,
     database_id = database2,
     type = type2
-  )$runId
+  )
   
-  shiny::incProgress(2/5, detail = paste("Got second runIds"))
+  shiny::incProgress(2/5, detail = paste("Got second runId and CohortId"))
   
   sql <- "SELECT cov.*, cov_ref.COVARIATE_NAME, an_ref.ANALYSIS_NAME,
   case when (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1)) then 'comp1' else 'comp2' end as label
@@ -697,12 +712,12 @@ descriptiveGetAggregateData <- function(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
-    cohortDef1 = ifelse(type1 == 'O', outcomeId, targetId)*100000 +ifelse(type1 %in% c('T','O'), 0, outcomeId)*10 + addTypeEnd(type1),
-    cohortDef2 = ifelse(type2 == 'O', outcomeId, targetId)*100000 +ifelse(type2 %in% c('T','O'), 0, outcomeId)*10 + addTypeEnd(type2),
+    cohortDef1 = settingsFirst$cohortDefinitionId[1],
+    cohortDef2 = settingsSecond$cohortDefinitionId[1],
     database_id1 = database1,
     database_id2 = database2,
-    run_id1 = paste(runId1, collapse = ','),
-    run_id2 = paste(runId2, collapse = ',')
+    run_id1 = paste(settingsFirst$runId, collapse = ','),
+    run_id2 = paste(settingsSecond$runId, collapse = ',')
   )
   
   shiny::incProgress(4/5, detail = paste("Getting continuous data"))
@@ -731,14 +746,14 @@ descriptiveGetAggregateData <- function(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
-    cohortDef1 = ifelse(type1 == 'O', outcomeId, targetId)*100000 +ifelse(type1 %in% c('T','O'), 0, outcomeId)*10 + addTypeEnd(type1),
-    cohortDef2 = ifelse(type2 == 'O', outcomeId, targetId)*100000 +ifelse(type2 %in% c('T','O'), 0, outcomeId)*10 + addTypeEnd(type2),
+    cohortDef1 = settingsFirst$cohortDefinitionId[1],
+    cohortDef2 = settingsSecond$cohortDefinitionId[1],
     database_id1 = database1,
     database_id2 = database2,
-    run_id1 = paste(runId1, collapse = ','),
-    run_id2 = paste(runId2, collapse = ',')
+    run_id1 = paste(settingsFirst$runId, collapse =  ','),
+    run_id2 = paste(settingsSecond$runId, collapse =  ',')
   )
-  
+
   shiny::incProgress(5/5, detail = paste("Finished"))
   }
   )

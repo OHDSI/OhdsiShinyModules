@@ -33,7 +33,7 @@ conceptsInDataSourceView <- function(id) {
     shinydashboard::box(
       status = "warning",
       width = "100%",
-      tags$div(
+      shiny::tags$div(
         style = "max-height: 100px; overflow-y: auto",
         shiny::uiOutput(outputId = ns("selectedCohorts"))
       )
@@ -41,10 +41,10 @@ conceptsInDataSourceView <- function(id) {
     shinydashboard::box(
       title = NULL,
       width = NULL,
-      tags$table(
+      shiny::tags$table(
         width = "100%",
-        tags$tr(
-          tags$td(
+        shiny::tags$tr(
+          shiny::tags$td(
             shiny::radioButtons(
               inputId = ns("includedType"),
               label = "",
@@ -53,7 +53,7 @@ conceptsInDataSourceView <- function(id) {
               inline = TRUE
             )
           ),
-          tags$td(
+          shiny::tags$td(
             shiny::radioButtons(
               inputId = ns("conceptsInDataSourceTableColumnFilter"),
               label = "",
@@ -141,11 +141,11 @@ conceptsInDataSourceModule <- function(id,
     output$selectedCohorts <- shiny::renderUI({ selectedCohort() })
     # Concepts in data source------
     conceptsInDataSourceReactive <- shiny::reactive(x = {
-      validate(need(
+      shiny::validate(shiny::need(
         all(!is.null(selectedDatabaseIds()), length(selectedDatabaseIds()) > 0),
         "No data sources chosen"
       ))
-      validate(need(
+      shiny::validate(shiny::need(
         all(!is.null(targetCohortId()), length(targetCohortId()) > 0),
         "No cohort chosen"
       ))
@@ -188,24 +188,24 @@ conceptsInDataSourceModule <- function(id,
     })
 
     getFilteredConceptIds <- shiny::reactive({
-      validate(need(hasData(selectedDatabaseIds()), "No data sources chosen"))
-      validate(need(hasData(targetCohortId()), "No cohort chosen"))
-      validate(need(hasData(conceptSetIds()), "No concept set id chosen"))
+      shiny::validate(shiny::need(hasData(selectedDatabaseIds()), "No data sources chosen"))
+      shiny::validate(shiny::need(hasData(targetCohortId()), "No cohort chosen"))
+      shiny::validate(shiny::need(hasData(conceptSetIds()), "No concept set id chosen"))
       resolved <- getResolvedConcepts()
       mapped <- getMappedConcepts()
       output <- c()
       if (hasData(resolved)) {
         resolved <- resolved %>%
-          dplyr::filter(databaseId %in% selectedDatabaseIds()) %>%
-          dplyr::filter(cohortId %in% targetCohortId()) %>%
-          dplyr::filter(conceptSetId %in% conceptSetIds())
+          dplyr::filter(.data$databaseId %in% selectedDatabaseIds()) %>%
+          dplyr::filter(.data$cohortId %in% targetCohortId()) %>%
+          dplyr::filter(.data$conceptSetId %in% conceptSetIds())
         output <- c(output, resolved$conceptId) %>% unique()
       }
       if (hasData(mapped)) {
         mapped <- mapped %>%
-          dplyr::filter(databaseId %in% selectedDatabaseIds()) %>%
-          dplyr::filter(cohortId %in% targetCohortId()) %>%
-          dplyr::filter(conceptSetId %in% conceptSetIds())
+          dplyr::filter(.data$databaseId %in% selectedDatabaseIds()) %>%
+          dplyr::filter(.data$cohortId %in% targetCohortId()) %>%
+          dplyr::filter(.data$conceptSetId %in% conceptSetIds())
         output <- c(output, mapped$conceptId) %>% unique()
       }
 
@@ -217,47 +217,47 @@ conceptsInDataSourceModule <- function(id,
     })
 
     output$conceptsInDataSourceTable <- reactable::renderReactable(expr = {
-      validate(need(hasData(selectedDatabaseIds()), "No cohort chosen"))
-      validate(need(hasData(targetCohortId()), "No cohort chosen"))
+      shiny::validate(shiny::need(hasData(selectedDatabaseIds()), "No cohort chosen"))
+      shiny::validate(shiny::need(hasData(targetCohortId()), "No cohort chosen"))
 
       data <- conceptsInDataSourceReactive()
-      validate(need(
+      shiny::validate(shiny::need(
         hasData(data),
         "No data available for selected combination"
       ))
       if (hasData(selectedConceptSets())) {
         if (length(getFilteredConceptIds()) > 0) {
           data <- data %>%
-            dplyr::filter(conceptId %in% getFilteredConceptIds())
+            dplyr::filter(.data$conceptId %in% getFilteredConceptIds())
         }
       }
-      validate(need(
+      shiny::validate(shiny::need(
         hasData(data),
         "No data available for selected combination"
       ))
 
       if (input$includedType == "Source fields") {
         data <- data %>%
-          dplyr::filter(conceptId > 0) %>%
-          dplyr::filter(sourceConceptId == 1) %>%
-          dplyr::rename(standard = standardConcept)
+          dplyr::filter(.data$conceptId > 0) %>%
+          dplyr::filter(.data$sourceConceptId == 1) %>%
+          dplyr::rename("standard" = "standardConcept")
         keyColumnFields <-
           c("conceptId", "conceptName", "vocabularyId", "conceptCode")
       }
       if (input$includedType == "Standard fields") {
         data <- data %>%
-          dplyr::filter(conceptId > 0) %>%
-          dplyr::filter(sourceConceptId == 0) %>%
-          dplyr::rename(standard = standardConcept)
+          dplyr::filter(.data$conceptId > 0) %>%
+          dplyr::filter(.data$sourceConceptId == 0) %>%
+          dplyr::rename("standard" = "standardConcept")
         keyColumnFields <-
           c("conceptId", "conceptName", "vocabularyId")
       }
 
-      validate(need(hasData(data), "No data available for selected combination"))
+      shiny::validate(shiny::need(hasData(data), "No data available for selected combination"))
       data <- data %>%
         dplyr::rename(
-          persons = conceptSubjects,
-          records = conceptCount
+          "persons" = "conceptSubjects",
+          "records" = "conceptCount"
         ) %>%
         dplyr::arrange(dplyr::desc(abs(dplyr::across(c("records", "persons")))))
 

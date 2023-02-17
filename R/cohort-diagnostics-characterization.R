@@ -183,7 +183,7 @@ characterizationView <- function(id) {
               selected = "All",
               inline = TRUE
             ),
-            p("Percentage displayed where only proportional data is selected")
+            shiny::p("Percentage displayed where only proportional data is selected")
           ),
           shiny::column(
             width = 4,
@@ -245,54 +245,54 @@ prepareTable1 <- function(covariates,
   }
   keyColumns <- prettyTable1Specifications %>%
     dplyr::select(
-      labelOrder,
-      label,
-      covariateId,
-      analysisId,
-      sequence
+     "labelOrder",
+      "label",
+      "covariateId",
+      "analysisId",
+      "sequence"
     ) %>%
     dplyr::distinct() %>%
     dplyr::left_join(
       covariates %>%
         dplyr::select(
-          covariateId,
-          covariateName
+          "covariateId",
+          "covariateName"
         ) %>%
         dplyr::distinct(),
       by = c("covariateId")
     ) %>%
-    dplyr::filter(!is.na(covariateName)) %>%
+    dplyr::filter(!is.na(.data$covariateName)) %>%
     tidyr::crossing(
       covariates %>%
         dplyr::select(
-          cohortId,
-          databaseId
+          "cohortId",
+          "databaseId"
         ) %>%
         dplyr::distinct()
     ) %>%
     dplyr::arrange(
-      cohortId,
-      databaseId,
-      analysisId,
-      covariateId
+      .data$cohortId,
+      .data$databaseId,
+      .data$analysisId,
+      .data$covariateId
     ) %>%
     dplyr::mutate(
       covariateName = stringr::str_replace(
-        string = covariateName,
+        string = .data$covariateName,
         pattern = "black or african american",
         replacement = "Black or African American"
       )
     ) %>%
     dplyr::mutate(
       covariateName = stringr::str_replace(
-        string = covariateName,
+        string = .data$covariateName,
         pattern = "white",
         replacement = "White"
       )
     ) %>%
     dplyr::mutate(
       covariateName = stringr::str_replace(
-        string = covariateName,
+        string = .data$covariateName,
         pattern = "asian",
         replacement = "Asian"
       )
@@ -301,7 +301,7 @@ prepareTable1 <- function(covariates,
   covariates <- keyColumns %>%
     dplyr::left_join(
       covariates %>%
-        dplyr::select(-covariateName),
+        dplyr::select(-"covariateName"),
       by = c(
         "cohortId",
         "databaseId",
@@ -309,7 +309,7 @@ prepareTable1 <- function(covariates,
         "analysisId"
       )
     ) %>%
-    dplyr::filter(!is.na(covariateName))
+    dplyr::filter(!is.na(.data$covariateName))
 
   space <- "&nbsp;"
 
@@ -317,39 +317,39 @@ prepareTable1 <- function(covariates,
   tableHeaders <-
     covariates %>%
     dplyr::select(
-      cohortId,
-      databaseId,
-      label,
-      labelOrder,
-      sequence
+      "cohortId",
+      "databaseId",
+      "label",
+      "labelOrder",
+      "sequence"
     ) %>%
     dplyr::distinct() %>%
     dplyr::group_by(
-      cohortId,
-      databaseId,
-      label,
-      labelOrder
+      .data$cohortId,
+      .data$databaseId,
+      .data$label,
+      .data$labelOrder
     ) %>%
     dplyr::summarise(
-      sequence = min(sequence),
+      sequence = min(.data$sequence),
       .groups = "keep"
     ) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(
       characteristic = paste0(
         "<strong>",
-        label,
+        .data$label,
         "</strong>"
       ),
       header = 1
     ) %>%
     dplyr::select(
-      cohortId,
-      databaseId,
-      sequence,
-      header,
-      labelOrder,
-      characteristic
+      "cohortId",
+      "databaseId",
+      "sequence",
+      "header",
+      "labelOrder",
+      "characteristic"
     ) %>%
     dplyr::distinct()
 
@@ -361,62 +361,62 @@ prepareTable1 <- function(covariates,
         space,
         space,
         space,
-        covariateName
+        .data$covariateName
       ),
       header = 0,
-      valueCount = sumValue
+      valueCount = .data$sumValue
     ) %>%
     dplyr::select(
-      cohortId,
-      databaseId,
-      covariateId,
-      analysisId,
-      sequence,
-      header,
-      labelOrder,
-      characteristic,
-      valueCount
+      "cohortId",
+      "databaseId",
+      "covariateId",
+      "analysisId",
+      "sequence",
+      "header",
+      "labelOrder",
+      "characteristic",
+      "valueCount"
     )
 
   table <- dplyr::bind_rows(tableHeaders, tableValues) %>%
-    dplyr::mutate(sequence = sequence - header) %>%
-    dplyr::arrange(sequence) %>%
+    dplyr::mutate(sequence = .data$sequence - .data$header) %>%
+    dplyr::arrange(.data$sequence) %>%
     dplyr::select(
-      cohortId,
-      databaseId,
-      sequence,
-      characteristic,
-      valueCount
+      "cohortId",
+      "databaseId",
+      "sequence",
+      "characteristic",
+      "valueCount"
     ) %>%
-    dplyr::rename(count = valueCount) %>%
+    dplyr::rename("count" = "valueCount") %>%
     dplyr::inner_join(cohort %>%
       dplyr::select(
-        cohortId,
-        shortName
+        "cohortId",
+        "shortName"
       ),
     by = "cohortId"
     ) %>%
     dplyr::group_by(
-      databaseId,
-      characteristic,
-      shortName
+      .data$databaseId,
+      .data$characteristic,
+      .data$shortName
     ) %>%
     dplyr::summarise(
-      sequence = min(sequence),
-      count = min(count),
+      sequence = min(.data$sequence),
+      count = min(.data$count),
       .groups = "keep"
     ) %>%
     dplyr::ungroup() %>%
     tidyr::pivot_wider(
       id_cols = c(
-        databaseId,
-        characteristic,
-        sequence
+        "databaseId",
+        "characteristic",
+        "sequence"
       ),
-      values_from = count,
-      names_from = shortName
+      values_from = "count",
+      names_from = "shortName"
     ) %>%
-    dplyr::arrange(sequence)
+    dplyr::arrange(.data$sequence)
 
 
 
@@ -426,16 +426,18 @@ prepareTable1 <- function(covariates,
   return(table)
 }
 
-characterizationModule <- function(id,
-                                   dataSource,
-                                   cohortTable = dataSource$cohortTable,
-                                   databaseTable = dataSource$databaseTable,
-                                   temporalAnalysisRef = dataSource$temporalAnalysisRef,
-                                   analysisNameOptions = dataSource$analysisNameOptions,
-                                   domainIdOptions = dataSource$domainIdOptions,
-                                   characterizationTimeIdChoices = dataSource$characterizationTimeIdChoices,
-                                   table1SpecPath = system.file("cohort-diagnostics-ref", "Table1SpecsLong.csv",
-                                                                 package = utils::packageName())) {
+characterizationModule <- function(
+    id,
+    dataSource,
+    cohortTable = dataSource$cohortTable,
+    databaseTable = dataSource$databaseTable,
+    temporalAnalysisRef = dataSource$temporalAnalysisRef,
+    analysisNameOptions = dataSource$analysisNameOptions,
+    domainIdOptions = dataSource$domainIdOptions,
+    characterizationTimeIdChoices = dataSource$characterizationTimeIdChoices,
+    table1SpecPath = system.file("cohort-diagnostics-ref", "Table1SpecsLong.csv",
+                                 package = utils::packageName())
+) {
   prettyTable1Specifications <- readr::read_csv(
     file = table1SpecPath,
     col_types = readr::cols(),
@@ -454,12 +456,12 @@ characterizationModule <- function(id,
   shiny::moduleServer(id, function(input, output, session) {
 
     timeIdOptions <- getResultsTemporalTimeRef(dataSource = dataSource) %>%
-      dplyr::arrange(sequence)
+      dplyr::arrange(.data$sequence)
 
     selectedTimeIds <- shiny::reactive({
       timeIdOptions %>%
-        dplyr::filter(temporalChoices %in% input$timeIdChoices) %>%
-        dplyr::select(timeId) %>%
+        dplyr::filter(.data$temporalChoices %in% input$timeIdChoices) %>%
+        dplyr::select("timeId") %>%
         dplyr::pull()
     })
 
@@ -472,17 +474,17 @@ characterizationModule <- function(id,
       }
 
       dataSource$conceptSets %>%
-        dplyr::filter(cohortId == input$targetCohort) %>%
-        dplyr::mutate(name = conceptSetName, id = conceptSetId) %>%
-        dplyr::select(id, name)
+        dplyr::filter(.data$cohortId == input$targetCohort) %>%
+        dplyr::mutate(name = .data$conceptSetName, id = .data$conceptSetId) %>%
+        dplyr::select("id", "name")
     })
 
     shiny::observe({
       # Default time windows
       selectedTimeWindows <- timeIdOptions %>%
-        dplyr::filter(primaryTimeId == 1) %>%
-        dplyr::filter(isTemporal == 1) %>%
-        dplyr::arrange(sequence) %>%
+        dplyr::filter(.data$primaryTimeId == 1) %>%
+        dplyr::filter(.data$isTemporal == 1) %>%
+        dplyr::arrange(.data$sequence) %>%
         dplyr::pull("temporalChoices")
 
       shinyWidgets::updatePickerInput(session,
@@ -539,24 +541,24 @@ characterizationModule <- function(id,
     })
 
     getFilteredConceptIds <- shiny::reactive({
-      validate(need(hasData(selectedDatabaseIds()), "No data sources chosen"))
-      validate(need(hasData(targetCohortId()), "No cohort chosen"))
-      validate(need(hasData(conceptSetIds()), "No concept set id chosen"))
+      shiny::validate(shiny::need(hasData(selectedDatabaseIds()), "No data sources chosen"))
+      shiny::validate(shiny::need(hasData(targetCohortId()), "No cohort chosen"))
+      shiny::validate(shiny::need(hasData(conceptSetIds()), "No concept set id chosen"))
       resolved <- getResolvedConcepts()
       mapped <- getMappedConcepts()
       output <- c()
       if (hasData(resolved)) {
         resolved <- resolved %>%
-          dplyr::filter(databaseId %in% selectedDatabaseIds()) %>%
-          dplyr::filter(cohortId %in% targetCohortId()) %>%
-          dplyr::filter(conceptSetId %in% conceptSetIds())
+          dplyr::filter(.data$databaseId %in% selectedDatabaseIds()) %>%
+          dplyr::filter(.data$cohortId %in% targetCohortId()) %>%
+          dplyr::filter(.data$conceptSetId %in% conceptSetIds())
         output <- c(output, resolved$conceptId) %>% unique()
       }
       if (hasData(mapped)) {
         mapped <- mapped %>%
-          dplyr::filter(databaseId %in% selectedDatabaseIds()) %>%
-          dplyr::filter(cohortId %in% targetCohortId()) %>%
-          dplyr::filter(conceptSetId %in% conceptSetIds())
+          dplyr::filter(.data$databaseId %in% selectedDatabaseIds()) %>%
+          dplyr::filter(.data$cohortId %in% targetCohortId()) %>%
+          dplyr::filter(.data$conceptSetId %in% conceptSetIds())
         output <- c(output, mapped$conceptId) %>% unique()
       }
 
@@ -576,19 +578,19 @@ characterizationModule <- function(id,
         shiny::fluidRow(
           shiny::column(
             width = 4,
-            tags$b("Cohort :"),
+            shiny::tags$b("Cohort :"),
             paste(cohortTable %>%
-                    dplyr::filter(cohortId %in% targetCohortId()) %>%
-                    dplyr::select(cohortName) %>%
+                    dplyr::filter(.data$cohortId %in% targetCohortId()) %>%
+                    dplyr::select("cohortName") %>%
                     dplyr::pull(),
                   collapse = ", ")
           ),
           shiny::column(
             width = 8,
-            tags$b("Database(s) :"),
+            shiny::tags$b("Database(s) :"),
             paste(databaseTable %>%
-                    dplyr::filter(databaseId %in% selectedDatabaseIds()) %>%
-                    dplyr::select(databaseName) %>%
+                    dplyr::filter(.data$databaseId %in% selectedDatabaseIds()) %>%
+                    dplyr::select("databaseName") %>%
                     dplyr::pull(),
                   collapse = ", ")
           )
@@ -610,8 +612,8 @@ characterizationModule <- function(id,
 
     # Temporal characterization ------------
     characterizationOutput <- shiny::reactive({
-      validate(need(length(selectedDatabaseIds()) > 0, "At least one data source must be selected"))
-      validate(need(length(targetCohortId()) == 1, "One target cohort must be selected"))
+      shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "At least one data source must be selected"))
+      shiny::validate(shiny::need(length(targetCohortId()) == 1, "One target cohort must be selected"))
 
       progress <- shiny::Progress$new()
       on.exit(progress$close())
@@ -641,7 +643,7 @@ characterizationModule <- function(id,
       if (hasData(temporalAnalysisRef)) {
         characterizationAnalysisOptionsUniverse <- analysisNameOptions
         charcterizationAnalysisOptionsSelected <- temporalAnalysisRef %>%
-          dplyr::pull(analysisName) %>%
+          dplyr::pull("analysisName") %>%
           unique()
       }
 
@@ -662,7 +664,7 @@ characterizationModule <- function(id,
       if (hasData(temporalAnalysisRef)) {
         characterizationDomainOptionsUniverse <- domainIdOptions
         charcterizationDomainOptionsSelected <- temporalAnalysisRef %>%
-          dplyr::pull(domainId) %>%
+          dplyr::pull("domainId") %>%
           unique()
       }
 
@@ -695,22 +697,22 @@ characterizationModule <- function(id,
       }
 
       data <- data %>%
-        dplyr::filter(analysisId %in% analysisIdInCohortCharacterization) %>%
-        dplyr::filter(timeId %in% c(characterizationTimeIdChoices$timeId %>% unique(), NA))
+        dplyr::filter(.data$analysisId %in% analysisIdInCohortCharacterization) %>%
+        dplyr::filter(.data$timeId %in% c(characterizationTimeIdChoices$timeId %>% unique(), NA))
       if (!hasData(data)) {
         return(NULL)
       }
 
       data <- data %>%
         dplyr::select(
-          cohortId,
-          databaseId,
-          analysisId,
-          covariateId,
-          covariateName,
-          mean
+          "cohortId",
+          "databaseId",
+          "analysisId",
+          "covariateId",
+          "covariateName",
+          "mean"
         ) %>%
-        dplyr::rename(sumValue = mean)
+        dplyr::rename("sumValue" = "mean")
 
 
       table <- data %>%
@@ -754,7 +756,7 @@ characterizationModule <- function(id,
     ## Output: characterizationTable ----
     output$characterizationTable <- reactable::renderReactable(expr = {
       data <- cohortCharacterizationPrettyTable()
-      validate(need(hasData(data), "No data for selected combination"))
+      shiny::validate(shiny::need(hasData(data), "No data for selected combination"))
       return(data)
     })
 
@@ -780,9 +782,9 @@ characterizationModule <- function(id,
       }
 
       data <- data %>%
-        dplyr::filter(timeId %in% selectedTimeIds()) %>%
-        dplyr::filter(analysisName %in% input$characterizationAnalysisNameFilter) %>%
-        dplyr::filter(domainId %in% input$characterizationDomainIdFilter)
+        dplyr::filter(.data$timeId %in% selectedTimeIds()) %>%
+        dplyr::filter(.data$analysisName %in% input$characterizationAnalysisNameFilter) %>%
+        dplyr::filter(.data$domainId %in% input$characterizationDomainIdFilter)
 
       if (!hasData(data)) {
         return(NULL)
@@ -829,36 +831,36 @@ characterizationModule <- function(id,
 
       data <- data %>%
         dplyr::select(
-          covariateName,
-          analysisName,
-          startDay,
-          endDay,
-          conceptId,
-          isBinary,
-          mean,
-          sd,
-          cohortId,
-          databaseId,
-          temporalChoices
+          "covariateName",
+          "analysisName",
+          "startDay",
+          "endDay",
+          "conceptId",
+          "isBinary",
+          "mean",
+          "sd",
+          "cohortId",
+          "databaseId",
+          "temporalChoices"
         )
       showAsPercentage <- any(input$proportionOrContinuous == "Proportion", all(data$isBinary == "Y"))
       if (input$proportionOrContinuous == "Proportion") {
         data <- data %>%
-          dplyr::filter(isBinary == "Y") %>%
-          dplyr::select(-isBinary)
+          dplyr::filter(.data$isBinary == "Y") %>%
+          dplyr::select(-"isBinary")
       } else if (input$proportionOrContinuous == "Continuous") {
         data <- data %>%
-          dplyr::filter(isBinary == "N") %>%
-          dplyr::select(-isBinary)
+          dplyr::filter(.data$isBinary == "N") %>%
+          dplyr::select(-"isBinary")
       }
 
       if (hasData(selectedConceptSets())) {
         if (hasData(conceptSetIds())) {
           data <- data %>%
-            dplyr::filter(conceptId %in% getFilteredConceptIds())
+            dplyr::filter(.data$conceptId %in% getFilteredConceptIds())
         }
       }
-      validate(need(hasData(data), "No data for selected combination"))
+      shiny::validate(shiny::need(hasData(data), "No data for selected combination"))
 
       getDisplayTableGroupedByDatabaseId(
         data = data,
@@ -875,7 +877,7 @@ characterizationModule <- function(id,
 
     output$characterizationTableRaw <- reactable::renderReactable(expr = {
       data <- rawTableReactable()
-      validate(need(hasData(data), "No data for selected combination"))
+      shiny::validate(shiny::need(hasData(data), "No data for selected combination"))
       return(data)
     })
 
@@ -898,38 +900,38 @@ characterizationModule <- function(id,
       showAsPercentage <- any(input$proportionOrContinuous == "Proportion", all(data$isBinary == "Y"))
       if (input$proportionOrContinuous == "Proportion") {
         data <- data %>%
-          dplyr::filter(isBinary == "Y") %>%
-          dplyr::select(-isBinary)
+          dplyr::filter(.data$isBinary == "Y") %>%
+          dplyr::select(-"isBinary")
       } else if (input$proportionOrContinuous == "Continuous") {
         data <- data %>%
-          dplyr::filter(isBinary == "N") %>%
-          dplyr::select(-isBinary)
+          dplyr::filter(.data$isBinary == "N") %>%
+          dplyr::select(-"isBinary")
       }
 
       temporalChoicesVar <- data$temporalChoices %>% unique()
 
       data <-
         data %>% dplyr::inner_join(databaseTable %>%
-                                     dplyr::select(databaseId, databaseName),
+                                     dplyr::select("databaseId", "databaseName"),
                                    by = "databaseId")
 
       if (hasData(selectedConceptSets())) {
         if (hasData(conceptSetIds())) {
           data <- data %>%
-            dplyr::filter(conceptId %in% getFilteredConceptIds())
+            dplyr::filter(.data$conceptId %in% getFilteredConceptIds())
         }
       }
 
       keyColumns <- c("covariateName", "analysisName", "conceptId", "databaseName")
       data <- data %>%
         dplyr::select(
-          covariateName,
-          analysisName,
-          databaseName,
-          temporalChoices,
-          conceptId,
-          mean,
-          sd
+          "covariateName",
+          "analysisName",
+          "databaseName",
+          "temporalChoices",
+          "conceptId",
+          "mean",
+          "sd"
         ) %>%
         tidyr::pivot_wider(
           id_cols = dplyr::all_of(keyColumns),
@@ -964,7 +966,7 @@ characterizationModule <- function(id,
 
     output$characterizationTableRawGroupedByTime <- reactable::renderReactable(expr = {
       data <- rawTableTimeIdReactable()
-      validate(need(hasData(data), "No data for selected combination"))
+      shiny::validate(shiny::need(hasData(data), "No data for selected combination"))
       return(data)
     })
   })

@@ -446,26 +446,29 @@ getDiagnostics <- function(
           summary.RESULT_VALUE
           
           from 
-          @my_schema.@my_table_appendDIAGNOSTICS diagnostics inner join
-          @my_schema.@my_table_appendMODEL_DESIGNS design inner join
-          @my_schema.@my_table_appendDIAGNOSTIC_SUMMARY summary inner join
+          (select * from @my_schema.@my_table_appendDIAGNOSTICS where MODEL_DESIGN_ID = @model_design_id) as diagnostics 
+          inner join
+          @my_schema.@my_table_appendMODEL_DESIGNS design 
+          on diagnostics.MODEL_DESIGN_ID = design.MODEL_DESIGN_ID 
           
+          inner join
+          @my_schema.@my_table_appendDIAGNOSTIC_SUMMARY summary 
+          on diagnostics.DIAGNOSTIC_ID = summary.DIAGNOSTIC_ID 
+
+          inner join      
           (select dd.database_id, md.cdm_source_abbreviation as database_name
                    from @my_schema.@database_table_appenddatabase_meta_data md inner join 
                    @my_schema.@my_table_appenddatabase_details dd 
-                   on md.database_id = dd.database_meta_data_id) 
-          as database inner join
-          
-          @my_schema.@my_table_appendCOHORTS cohortT inner join
+                   on md.database_id = dd.database_meta_data_id) as database 
+          on database.database_id = diagnostics.database_id
+
+         inner join  
+          @my_schema.@my_table_appendCOHORTS cohortT 
+         on cohortT.cohort_id = design.target_id 
+
+          inner join
           @my_schema.@my_table_appendCOHORTS cohortO 
-          
-          on diagnostics.DIAGNOSTIC_ID = summary.DIAGNOSTIC_ID and
-          diagnostics.MODEL_DESIGN_ID = design.MODEL_DESIGN_ID and
-          cohortT.cohort_id = design.target_id and
-          cohortO.cohort_id = design.outcome_id and
-          database.database_id = diagnostics.database_id
-          
-          where diagnostics.MODEL_DESIGN_ID = @model_design_id;
+          on cohortO.cohort_id = design.outcome_id;
   "
   
   summaryTable <- connectionHandler$queryDb(
@@ -512,12 +515,13 @@ getDiagnosticParticipants <- function(
   myTableAppend
 ){
   
-  sql <- "SELECT * FROM @my_schema.@table_name WHERE diagnostic_id = @diagnostic_id;"
+  sql <- "SELECT * FROM @my_schema.@my_table_append@table_name WHERE diagnostic_id = @diagnostic_id;"
 
   participants <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     table_name = 'diagnostic_participants',
+    my_table_append = myTableAppend,
     diagnostic_id = diagnosticId
   )
   
@@ -545,12 +549,13 @@ getDiagnosticPredictors <- function(
   myTableAppend
 ){
   
-  sql <- "SELECT * FROM @my_schema.@table_name WHERE diagnostic_id = @diagnostic_id;"
+  sql <- "SELECT * FROM @my_schema.@my_table_append@table_name WHERE diagnostic_id = @diagnostic_id;"
 
   predictors <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     table_name = 'diagnostic_predictors',
+    my_table_append = myTableAppend,
     diagnostic_id = diagnosticId
   )
   
@@ -564,12 +569,13 @@ getDiagnosticOutcomes <- function(
   myTableAppend 
 ){
   
-  sql <- "SELECT * FROM @my_schema.@table_name WHERE diagnostic_id = @diagnostic_id;"
+  sql <- "SELECT * FROM @my_schema.@my_table_append@table_name WHERE diagnostic_id = @diagnostic_id;"
 
   outcomes <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     table_name = 'diagnostic_outcomes',
+    my_table_append = myTableAppend,
     diagnostic_id = diagnosticId
   )
   

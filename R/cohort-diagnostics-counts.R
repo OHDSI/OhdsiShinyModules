@@ -40,9 +40,9 @@ cohortCountsView <- function(id) {
     shinydashboard::box(
       width = "100%",
       shiny::tagList(
-        tags$table(
-          tags$tr(
-            tags$td(
+        shiny::tags$table(
+          shiny::tags$tr(
+            shiny::tags$td(
               shiny::radioButtons(
                 inputId = ns("cohortCountsTableColumnFilter"),
                 label = "Display",
@@ -61,7 +61,7 @@ cohortCountsView <- function(id) {
         shiny::conditionalPanel(
           condition = "output.cohortCountRowIsSelected == true",
           ns = ns,
-          tags$h4("Inclusion Rule Statistics"),
+          shiny::tags$h4("Inclusion Rule Statistics"),
 
           shiny::fluidRow(
             shiny::column(
@@ -103,16 +103,23 @@ cohortCountsView <- function(id) {
   )
 }
 
-getInclusionRulesTable <- function(dataSource, cohortIds, databaseIds, dataColumnFields, mode, showAsPercentage) {
+getInclusionRulesTable <- function(
+    dataSource, 
+    cohortIds, 
+    databaseIds, 
+    dataColumnFields, 
+    mode, 
+    showAsPercentage
+    ) {
 
   data <- getInclusionRuleStats(
     dataSource = dataSource,
     cohortIds = cohortIds,
     databaseIds = databaseIds,
-    mode = mode # modeId = 1 - best event, i.e. person
+    modeId = mode # modeId = 1 - best event, i.e. person
   )
 
-  validate(need(
+  shiny::validate(shiny::need(
     (nrow(data) > 0),
     "There is no data for the selected combination."
   ))
@@ -120,28 +127,30 @@ getInclusionRulesTable <- function(dataSource, cohortIds, databaseIds, dataColum
   if (all(hasData(showAsPercentage), showAsPercentage)) {
     data <- data %>%
       dplyr::mutate(
-        Meet = meetSubjects / totalSubjects,
-        Gain = gainSubjects / totalSubjects,
-        Remain = remainSubjects / totalSubjects,
-        id = ruleSequenceId
+        Meet = .data$meetSubjects / .data$totalSubjects,
+        Gain = .data$gainSubjects / .data$totalSubjects,
+        Remain = .data$remainSubjects / .data$totalSubjects,
+        id = .data$ruleSequenceId
       )
   } else {
     data <- data %>%
       dplyr::mutate(
-        Meet = meetSubjects,
-        Gain = gainSubjects,
-        Remain = remainSubjects,
-        Total = totalSubjects,
-        id = ruleSequenceId
+        Meet = .data$meetSubjects,
+        Gain = .data$gainSubjects,
+        Remain = .data$remainSubjects,
+        Total = .data$totalSubjects,
+        id = .data$ruleSequenceId
       )
   }
 
   data <- data %>%
-    dplyr::arrange(cohortId,
-                   databaseId,
-                   id)
+    dplyr::arrange(
+      .data$cohortId,
+      .data$databaseId,
+      .data$id
+    )
 
-  validate(need(
+  shiny::validate(shiny::need(
     (nrow(data) > 0),
     "There is no data for the selected combination."
   ))
@@ -196,8 +205,8 @@ cohortCountsModule <- function(id,
 
     # Cohort Counts ----------------------
     getResults <- shiny::reactive(x = {
-      validate(need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
-      validate(need(length(cohortIds()) > 0, "No cohorts chosen"))
+      shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
+      shiny::validate(shiny::need(length(cohortIds()) > 0, "No cohorts chosen"))
       data <- getResultsCohortCounts(
         dataSource = dataSource,
         databaseIds = selectedDatabaseIds(),
@@ -208,23 +217,23 @@ cohortCountsModule <- function(id,
       }
 
       data <- data %>%
-        dplyr::inner_join(cohortTable %>% dplyr::select(cohortName, cohortId), by = "cohortId") %>%
-        dplyr::arrange(cohortId, databaseId)
+        dplyr::inner_join(cohortTable %>% dplyr::select("cohortName", "cohortId"), by = "cohortId") %>%
+        dplyr::arrange(.data$cohortId, .data$databaseId)
 
       return(data)
     })
 
     output$cohortCountsTable <- reactable::renderReactable(expr = {
-      validate(need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
-      validate(need(length(cohortIds()) > 0, "No cohorts chosen"))
+      shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
+      shiny::validate(shiny::need(length(cohortIds()) > 0, "No cohorts chosen"))
 
       data <- getResults()
-      validate(need(hasData(data), "There is no data on any cohort"))
+      shiny::validate(shiny::need(hasData(data), "There is no data on any cohort"))
 
       data <- getResults() %>%
         dplyr::rename(
-          persons = cohortSubjects,
-          records = cohortEntries
+          "persons" = "cohortSubjects",
+          "records" = "cohortEntries"
         )
 
       dataColumnFields <- c("persons", "records")
@@ -260,7 +269,7 @@ cohortCountsModule <- function(id,
         if (hasData(getResults())) {
           subset <- getResults() %>%
             dplyr::select(
-              cohortId
+              "cohortId"
             ) %>%
             dplyr::distinct()
           subset <- subset[idx,]
@@ -271,17 +280,18 @@ cohortCountsModule <- function(id,
       }
     })
 
-    output$cohortCountRowIsSelected <- reactive({
+    output$cohortCountRowIsSelected <- shiny::reactive({
       return(!is.null(getCohortIdOnCohortCountRowSelect()))
     })
 
-    outputOptions(output,
+    # Check note: where is this function from?
+    shiny::outputOptions(output,
                   "cohortCountRowIsSelected",
                   suspendWhenHidden = FALSE)
 
     output$inclusionRuleStats <- reactable::renderReactable({
-      validate(need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
-      validate(need(
+      shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
+      shiny::validate(shiny::need(
         nrow(getCohortIdOnCohortCountRowSelect()) > 0,
         "No cohorts chosen"
       ))

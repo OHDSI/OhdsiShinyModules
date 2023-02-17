@@ -33,7 +33,7 @@ visitContextView <- function(id) {
     shinydashboard::box(
       status = "warning",
       width = "100%",
-      tags$div(
+      shiny::tags$div(
         style = "max-height: 100px; overflow-y: auto",
         shiny::uiOutput(outputId = ns("selectedCohorts"))
       )
@@ -41,10 +41,10 @@ visitContextView <- function(id) {
     shinydashboard::box(
       width = NULL,
       title = NULL,
-      tags$table(
+      shiny::tags$table(
         width = "100%",
-        tags$tr(
-          tags$td(
+        shiny::tags$tr(
+          shiny::tags$td(
             shiny::radioButtons(
               inputId = ns("visitContextTableFilters"),
               label = "Display",
@@ -53,7 +53,7 @@ visitContextView <- function(id) {
               inline = TRUE
             )
           ),
-          tags$td(
+          shiny::tags$td(
             shiny::radioButtons(
               inputId = ns("visitContextPersonOrRecords"),
               label = "Display",
@@ -62,7 +62,7 @@ visitContextView <- function(id) {
               inline = TRUE
             )
           ),
-          tags$td(
+          shiny::tags$td(
             align = "right"
           )
         )
@@ -111,7 +111,7 @@ getVisitContextResults <- function(dataSource,
     dplyr::inner_join(cohortCount,
                       by = c("cohortId", "databaseId")
     ) %>%
-    dplyr::mutate(subjectPercent = subjects / cohortSubjects)
+    dplyr::mutate(subjectPercent = .data$subjects / .data$cohortSubjects)
   return(data)
 }
 
@@ -131,7 +131,7 @@ visitContextModule <- function(id = "visitContext",
       if (!hasData(selectedDatabaseIds())) {
         return(NULL)
       }
-      if (all(is(dataSource, "environment"), !exists("visitContext"))) {
+      if (all(methods::is(dataSource, "environment"), !exists("visitContext"))) {
         return(NULL)
       }
       visitContext <-
@@ -155,7 +155,7 @@ visitContextModule <- function(id = "visitContext",
       }
 
       visitContextData <- visitContextData %>%
-        dplyr::rename(visitContextSubject = subjects)
+        dplyr::rename("visitContextSubject" = "subjects")
 
       visitContextData <-
         expand.grid(
@@ -175,17 +175,17 @@ visitContextModule <- function(id = "visitContext",
             )
           ) %>%
           dplyr::rename(
-            subjects = cohortSubjects,
-            records = cohortEntries
+            "subjects" = "cohortSubjects",
+            "records" = "cohortEntries"
           ) %>%
           dplyr::select(
-            databaseId,
-            cohortId,
-            visitConceptName,
-            visitContext,
-            subjects,
-            records,
-            visitContextSubject
+            "databaseId",
+            "cohortId",
+            "visitConceptName",
+            "visitContext",
+            "subjects",
+            "records",
+            "visitContextSubject"
           ) %>%
           dplyr::mutate(
             visitContext = dplyr::case_when(
@@ -199,16 +199,16 @@ visitContextModule <- function(id = "visitContext",
 
       if (input$visitContextTableFilters == "Before") {
         visitContextData <- visitContextData %>%
-          dplyr::filter(visitContext == "Before")
+          dplyr::filter(.data$visitContext == "Before")
       } else if (input$visitContextTableFilters == "During") {
         visitContextData <- visitContextData %>%
-          dplyr::filter(visitContext == "During")
+          dplyr::filter(.data$visitContext == "During")
       } else if (input$visitContextTableFilters == "Simultaneous") {
         visitContextData <- visitContextData %>%
-          dplyr::filter(visitContext == "Simultaneous")
+          dplyr::filter(.data$visitContext == "Simultaneous")
       } else if (input$visitContextTableFilters == "After") {
         visitContextData <- visitContextData %>%
-          dplyr::filter(visitContext == "After")
+          dplyr::filter(.data$visitContext == "After")
       }
       if (!hasData(visitContextData)) {
         return(NULL)
@@ -224,10 +224,10 @@ visitContextModule <- function(id = "visitContext",
     })
 
     output$visitContextTable <- reactable::renderReactable(expr = {
-      validate(need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
-      validate(need(length(targetCohortId()) > 0, "No cohorts chosen"))
+      shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
+      shiny::validate(shiny::need(length(targetCohortId()) > 0, "No cohorts chosen"))
       data <- getVisitContexDataEnhanced()
-      validate(need(
+      shiny::validate(shiny::need(
         nrow(data) > 0,
         "No data available for selected combination."
       ))

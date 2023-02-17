@@ -304,7 +304,7 @@ getDesignSummary <- function(
         
         LEFT JOIN @my_schema.@my_table_appenddiagnostics AS diag ON results.development_database_id = diag.database_id 
         
-        GROUP BY model_designs.model_design_id, targets.cohort_name, 
+        GROUP BY model_designs.model_design_id, model_settings.model_type, targets.cohort_name, 
           outcomes.cohort_name, tars.tar_start_day, tars.tar_start_anchor, 
           tars.tar_end_day, tars.tar_end_anchor;"
   

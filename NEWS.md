@@ -1,3 +1,13 @@
+OhdsiShinyModules v1.0.2
+========================
+- Added Cohort Diagnostics module
+- Changed module input to have connectionHandler
+- cleaned check notes
+
+OhdsiShinyModules v1.0.1
+========================
+- Preparing for HADES
+
 OhdsiShinyModules v1.0.0
 ========================
 - Version ready for release
