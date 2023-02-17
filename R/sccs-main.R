@@ -23,7 +23,7 @@ sccsServer <- function(
     dplyr::summarise(exposures = paste(.data$exposureName, collapse = ", "), .groups = "drop") %>%
     dplyr::mutate(name = sprintf("%s - %s", .data$exposures, .data$outcomeName))
 
-  sccsAnalyses <- connectionHandler$tbl("sccs_analysis", databaseSchema = resultDatabaseSettings$schema) %>%
+  sccsAnalyses <- connectionHandler$tbl(paste0(resultDatabaseSettings$tablePrefix,"analysis"), databaseSchema = resultDatabaseSettings$schema) %>%
     dplyr::collect() %>%
     SqlRender::snakeCaseToCamelCaseNames()
 
@@ -447,7 +447,7 @@ sccsView <- function(id = "sccs-module") {
             id = ns("detailsTabsetPanel"),
             shiny::tabPanel(
               "Power",
-              shiny::div(strong("Table 1."), "For each variable of interest: the number of cases (people with at least one outcome), the number of years those people were observed, the number of outcomes, the number of subjects with at least one exposure, the number of patient-years exposed, the number of outcomes while exposed, and the minimum detectable relative risk (MDRR)."),
+              shiny::div(shiny::strong("Table 1."), "For each variable of interest: the number of cases (people with at least one outcome), the number of years those people were observed, the number of outcomes, the number of subjects with at least one exposure, the number of patient-years exposed, the number of outcomes while exposed, and the minimum detectable relative risk (MDRR)."),
               shiny::tableOutput(ns("powerTable"))
             ),
             shiny::tabPanel(
@@ -464,7 +464,7 @@ sccsView <- function(id = "sccs-module") {
                 shiny::tabPanel(
                   "Model coefficients",
                   shiny::div(
-                    strong("Table 2."),
+                    shiny::strong("Table 2."),
                     "The fitted non-zero coefficent (incidence rate ratio) and 95 percent confidence interval for all variables in the model."
                   ),
                   shiny::tableOutput(ns("modelTable"))
@@ -490,7 +490,7 @@ sccsView <- function(id = "sccs-module") {
               "Spanning",
               shiny::radioButtons(ns("spanningType"), label = "Type:", choices = c("Age", "Calendar time")),
               shiny::plotOutput(ns("spanningPlot")),
-              shiny::div(strong("Figure 3."), "Number of subjects observed for 3 consecutive months, centered on the indicated month.")
+              shiny::div(shiny::strong("Figure 3."), "Number of subjects observed for 3 consecutive months, centered on the indicated month.")
             ),
             shiny::tabPanel(
               "Time trend",
@@ -511,7 +511,7 @@ sccsView <- function(id = "sccs-module") {
             shiny::tabPanel(
               "Event dep. observation",
               shiny::plotOutput(ns("eventDepObservationPlot")),
-              shiny::div(strong("Figure 6."), "Histograms for the number of months between the first occurrence of the outcome and the end of observation, stratified by whether the end of observation was censored (inferred as not being equal to the end of database time), or uncensored (inferred as having the subject still be observed at the end of database time)."
+              shiny::div(shiny::strong("Figure 6."), "Histograms for the number of months between the first occurrence of the outcome and the end of observation, stratified by whether the end of observation was censored (inferred as not being equal to the end of database time), or uncensored (inferred as having the subject still be observed at the end of database time)."
               )
             ),
             shiny::tabPanel(

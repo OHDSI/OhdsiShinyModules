@@ -11,12 +11,12 @@ getSccsExposuresOutcomes <- function(connectionHandler, resultDatabaseSettings, 
       WHEN eras.era_name IS NULL THEN cd2.cohort_name
       ELSE eras.era_name
     END as exposure_name
-  FROM @database_schema.@table_prefixsccs_exposures_outcome_set eos
-  INNER JOIN @database_schema.@table_prefixsccs_exposure e ON e.exposures_outcome_set_id = eos.exposures_outcome_set_id
+  FROM @database_schema.@table_prefixexposures_outcome_set eos
+  INNER JOIN @database_schema.@table_prefixexposure e ON e.exposures_outcome_set_id = eos.exposures_outcome_set_id
   INNER JOIN @database_schema.@cg_table_prefixcohort_definition cd ON cd.cohort_definition_id = eos.outcome_id
   LEFT JOIN (
     SELECT DISTINCT exposures_outcome_set_id, era_id, era_name
-    FROM @database_schema.@table_prefixsccs_era
+    FROM @database_schema.@table_prefixera
   ) eras ON e.era_id = eras.era_id AND eos.exposures_outcome_set_id = eras.exposures_outcome_set_id
   LEFT JOIN  @database_schema.@cg_table_prefixcohort_definition cd2 ON cd2.cohort_definition_id = e.era_id
   "
@@ -54,15 +54,15 @@ getSccsResults <- function(connectionHandler,
   sc.covariate_name,
   sc.era_id,
   sc.covariate_analysis_id
-  FROM @database_schema.@table_prefixsccs_result sr
+  FROM @database_schema.@table_prefixresult sr
   INNER JOIN @database_schema.@database_table_prefix@database_table ds ON sr.database_id = ds.database_id
-  INNER JOIN @database_schema.@table_prefixsccs_diagnostics_summary sds ON (
+  INNER JOIN @database_schema.@table_prefixdiagnostics_summary sds ON (
     sds.exposures_outcome_set_id = sr.exposures_outcome_set_id AND
     sds.database_id = sr.database_id AND
     sds.analysis_id = sr.analysis_id AND
     sds.covariate_id = sr.covariate_id
   )
-  INNER JOIN @database_schema.@table_prefixsccs_covariate sc ON (
+  INNER JOIN @database_schema.@table_prefixcovariate sc ON (
     sc.exposures_outcome_set_id = sr.exposures_outcome_set_id AND
     sc.database_id = sr.database_id AND
     sc.analysis_id = sr.analysis_id AND
@@ -98,15 +98,15 @@ getSccsModel <- function(connectionHandler,
        ELSE CONCAT(sc.covariate_name, ' : ', era.era_name)
     END as covariate_name,
     scr.covariate_id, scr.rr, scr.ci_95_lb, scr.ci_95_ub
-  FROM @database_schema.@table_prefixsccs_covariate_result scr
-  INNER JOIN @database_schema.@table_prefixsccs_covariate sc ON (
+  FROM @database_schema.@table_prefixcovariate_result scr
+  INNER JOIN @database_schema.@table_prefixcovariate sc ON (
     sc.exposures_outcome_set_id = scr.exposures_outcome_set_id AND
     sc.database_id = scr.database_id AND
     sc.analysis_id = scr.analysis_id AND
     sc.covariate_id = scr.covariate_id
   )
   LEFT JOIN @database_schema.@cg_table_prefixcohort_definition cd ON cd.cohort_definition_id = sc.era_id
-  LEFT JOIN @database_schema.@table_prefixsccs_era era ON (
+  LEFT JOIN @database_schema.@table_prefixera era ON (
     era.exposures_outcome_set_id = scr.exposures_outcome_set_id AND
     era.database_id = scr.database_id AND
     era.analysis_id = scr.analysis_id AND
@@ -135,7 +135,7 @@ getSccsTimeTrend <- function(connectionHandler,
                              analysisId) {
   sql <- "
   SELECT *
-  FROM @database_schema.@table_prefixsccs_time_trend
+  FROM @database_schema.@table_prefixtime_trend
   WHERE database_id = '@database_id'
   AND analysis_id = @analysis_id
   AND exposures_outcome_set_id = @exposures_outcome_set_id
@@ -157,7 +157,7 @@ getSccsTimeToEvent <- function(connectionHandler,
                                databaseId,
                                analysisId) {
   diagnosticsSummary <- connectionHandler$tbl(paste0(resultsDatabaseSettings$schema,
-                                                     ".", resultsDatabaseSettings$tablePrefix, "sccs_diagnostics_summary"))
+                                                     ".", resultsDatabaseSettings$tablePrefix, "diagnostics_summary"))
   p <- diagnosticsSummary %>%
     dplyr::filter(
       exposures_outcome_set_id == exposuresOutcomeSetId,
@@ -168,7 +168,7 @@ getSccsTimeToEvent <- function(connectionHandler,
     dplyr::pull("pre_exposure_p")
 
   timeToEvent <- connectionHandler$tbl(paste0(resultsDatabaseSettings$schema,
-                                              ".", resultsDatabaseSettings$tablePrefix, "sccs_time_to_event"))
+                                              ".", resultsDatabaseSettings$tablePrefix, "time_to_event"))
   timeToEvent %>%
     dplyr::filter(
       .data$exposures_outcome_set_id == exposuresOutcomeSetId,
@@ -190,7 +190,7 @@ getSccsAttrition <- function(connectionHandler,
                              covariateId) {
   sql <- "
   SELECT *
-  FROM @database_schema.@table_prefixsccs_attrition
+  FROM @database_schema.@table_prefixattrition
   WHERE database_id = '@database_id'
   AND analysis_id = @analysis_id
   AND exposures_outcome_set_id = @exposures_outcome_set_id
@@ -213,7 +213,7 @@ getSccsEventDepObservation <- function(connectionHandler,
                                        analysisId) {
   sql <- "
   SELECT *
-  FROM @database_schema.@table_prefixsccs_event_dep_observation
+  FROM @database_schema.@table_prefixevent_dep_observation
   WHERE database_id = '@database_id'
   AND analysis_id = @analysis_id
   AND exposures_outcome_set_id = @exposures_outcome_set_id
@@ -234,7 +234,7 @@ getSccsAgeSpanning <- function(connectionHandler,
                                analysisId) {
   sql <- "
   SELECT *
-  FROM @database_schema.@table_prefixsccs_age_spanning
+  FROM @database_schema.@table_prefixage_spanning
   WHERE database_id = '@database_id'
   AND analysis_id = @analysis_id
   AND exposures_outcome_set_id = @exposures_outcome_set_id
@@ -255,7 +255,7 @@ getSccsCalendarTimeSpanning <- function(connectionHandler,
                                         analysisId) {
   sql <- "
   SELECT *
-  FROM @database_schema.@table_prefixsccs_calendar_time_spanning
+  FROM @database_schema.@table_prefixcalendar_time_spanning
   WHERE database_id = '@database_id'
   AND analysis_id = @analysis_id
   AND exposures_outcome_set_id = @exposures_outcome_set_id
@@ -278,7 +278,7 @@ getSccsSpline <- function(connectionHandler,
 
   sql <- "
   SELECT *
-  FROM @database_schema.@table_prefixsccs_spline
+  FROM @database_schema.@table_prefixspline
   WHERE database_id = '@database_id'
   AND analysis_id = @analysis_id
   AND exposures_outcome_set_id = @exposures_outcome_set_id
@@ -304,14 +304,14 @@ getSccsControlEstimates <- function(connectionHandler,
   sql <- "
   SELECT ci_95_lb, ci_95_ub, log_rr, se_log_rr, calibrated_ci_95_lb, calibrated_ci_95_ub, calibrated_log_rr,
   calibrated_se_log_rr, true_effect_size
-  FROM @database_schema.@table_prefixsccs_result sr
-  INNER JOIN @database_schema.@table_prefixsccs_covariate sc ON (
+  FROM @database_schema.@table_prefixresult sr
+  INNER JOIN @database_schema.@table_prefixcovariate sc ON (
     sc.exposures_outcome_set_id = sr.exposures_outcome_set_id AND
     sc.database_id = sr.database_id AND
     sc.analysis_id = sr.analysis_id AND
     sc.covariate_id = sr.covariate_id
   )
-  INNER JOIN @database_schema.@table_prefixsccs_exposure se ON (
+  INNER JOIN @database_schema.@table_prefixexposure se ON (
     se.exposures_outcome_set_id = sr.exposures_outcome_set_id AND
     se.era_id = sc.era_id
   )
@@ -336,7 +336,7 @@ getSccsDiagnosticsSummary <- function(connectionHandler,
                                       covariateId) {
   sql <- "
   SELECT *
-  FROM @database_schema.@table_prefixsccs_diagnostics_summary
+  FROM @database_schema.@table_prefixdiagnostics_summary
   WHERE database_id = '@database_id'
   AND analysis_id = @analysis_id
   AND covariate_id = @covariate_id
