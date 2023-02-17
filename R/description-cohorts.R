@@ -312,19 +312,29 @@ getDesFEData <- function(
   
   shiny::withProgress(message = 'Getting target comparison data', value = 0, {
     
-  
   sql <- "select distinct ref.covariate_id, ref.covariate_name, an.analysis_name, c.cohort_name, covs.COUNT_VALUE, covs.AVERAGE_VALUE
   from
   (
-  select RUN_ID, COHORT_DEFINITION_ID, COVARIATE_ID,	SUM_VALUE as COUNT_VALUE,	AVERAGE_VALUE*100 as AVERAGE_VALUE from
-   @result_schema.@table_prefixCOVARIATES
+  select co.RUN_ID, cd.TARGET_COHORT_ID as COHORT_DEFINITION_ID, co.COVARIATE_ID,	
+  co.SUM_VALUE as COUNT_VALUE,	co.AVERAGE_VALUE*100 as AVERAGE_VALUE from
+   @result_schema.@table_prefixCOVARIATES co
+   inner join 
+   (select * from @result_schema.@table_prefixcohort_details 
    where DATABASE_ID = '@database_id' and 
-   COHORT_DEFINITION_ID in (@cohort_ids)
+   TARGET_COHORT_ID in (@cohort_ids) and COHORT_TYPE = 'T'
+   ) as cd
+   on co.COHORT_DEFINITION_ID = cd.COHORT_DEFINITION_ID
+   and co.DATABASE_ID = cd.DATABASE_ID
   union
-  select RUN_ID, COHORT_DEFINITION_ID, COVARIATE_ID,	COUNT_VALUE,	AVERAGE_VALUE from
-    @result_schema.@table_prefixCOVARIATES_continuous
-    where DATABASE_ID = '@database_id' and 
-    COHORT_DEFINITION_ID in (@cohort_ids)
+  select cc.RUN_ID, cds.TARGET_COHORT_ID as COHORT_DEFINITION_ID, cc.COVARIATE_ID,	cc.COUNT_VALUE,	cc.AVERAGE_VALUE from
+    @result_schema.@table_prefixCOVARIATES_continuous cc
+    inner join 
+    (select * from @result_schema.@table_prefixcohort_details 
+   where DATABASE_ID = '@database_id' and 
+   TARGET_COHORT_ID in (@cohort_ids) and COHORT_TYPE = 'T'
+   ) as cds
+   on cc.COHORT_DEFINITION_ID = cds.COHORT_DEFINITION_ID
+    and cc.DATABASE_ID = cds.DATABASE_ID
   ) covs
   inner join
   @result_schema.@table_prefixcovariate_ref ref
@@ -334,7 +344,7 @@ getDesFEData <- function(
   on an.RUN_ID = ref.RUN_ID and 
   an.analysis_id = ref.analysis_id
   inner join @result_schema.@cohort_table_prefixcohort_definition c
-  on c.cohort_definition_id = covs.COHORT_DEFINITION_ID/100000
+  on c.cohort_definition_id = covs.COHORT_DEFINITION_ID
   ;
   "
   
@@ -345,7 +355,7 @@ getDesFEData <- function(
     result_schema = schema,
     table_prefix = tablePrefix,
     cohort_table_prefix = cohortTablePrefix,
-    cohort_ids = paste(as.double(targetIds)*100000, collapse = ','),
+    cohort_ids = paste(as.double(targetIds), collapse = ','),
     database_id = databaseId
   )
   
