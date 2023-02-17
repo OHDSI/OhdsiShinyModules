@@ -254,7 +254,7 @@ sccsServer <- function(
           databaseId = row$databaseId,
           analysisId = row$analysisId
         )
-        plotTimeToEvent(timeToEvent)
+        plotTimeToEventSccs(timeToEvent)
       }
     })
 

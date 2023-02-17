@@ -77,7 +77,7 @@ plotTimeTrend <- function(timeTrend) {
   return(plot)
 }
 
-plotTimeToEvent <- function(timeToEvent) {
+plotTimeToEventSccs <- function(timeToEvent) {
 
   events <- timeToEvent %>%
     dplyr::transmute(.data$week,
