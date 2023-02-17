@@ -27,16 +27,18 @@ sccsServer <- function(
     dplyr::collect() %>%
     SqlRender::snakeCaseToCamelCaseNames()
 
-  databases <- connectionHandler$tbl("database_meta_data", databaseSchema = resultDatabaseSettings$schema) %>%
+  databases <- connectionHandler$tbl(resultDatabaseSettings$databaseTable, databaseSchema = resultDatabaseSettings$schema) %>%
     dplyr::collect() %>%
     SqlRender::snakeCaseToCamelCaseNames()
 
   shiny::moduleServer(id, function(input, output, session) {
-
     shiny::observe({
       # Dynamic loading of user selections
-      shiny::updateSelectInput(session, "exposuresOutcome", choices = exposuresOutcomeNames$name)
-      shiny::updateCheckboxGroupInput(session, "database", choices = databases$cdmSourceAbbreviation, selected = databases$cdmSourceAbbreviation)
+
+      databaseIds <- databases$databaseId
+      names(databaseIds) <- databases$cdmSourceAbbreviation
+      shiny::updateSelectInput(session, "exposuresOutcome", choices = exposuresOutcomeNames$name, selected = NULL)
+      shiny::updateCheckboxGroupInput(session, "database", choices = databaseIds, selected = databaseIds)
       shiny::updateCheckboxGroupInput(session, "analysis", choices = sccsAnalyses$description, selected = sccsAnalyses$description)
     })
 
@@ -44,6 +46,7 @@ sccsServer <- function(
       exposuresOutcomeSetId <- exposuresOutcomeNames$exposuresOutcomeSetId[exposuresOutcomeNames$name == input$exposuresOutcome]
       analysisIds <- sccsAnalyses$analysisId[sccsAnalyses$description %in% input$analysis]
       databaseIds <- input$database
+
       if (length(analysisIds) == 0) {
         analysisIds <- -1
       }
@@ -59,71 +62,69 @@ sccsServer <- function(
 
       idx <- (results$unblind == 0)
       if (any(idx)) {
-        results$rr[idx] <- rep(NA, length(idx))
-        results$ci95Ub[idx] <- rep(NA, length(idx))
-        results$ci95Lb[idx] <- rep(NA, length(idx))
-        results$logRr[idx] <- rep(NA, length(idx))
-        results$seLogRr[idx] <- rep(NA, length(idx))
-        results$p[idx] <- rep(NA, length(idx))
-        results$calibratedRr[idx] <- rep(NA, length(idx))
-        results$calibratedCi95Ub[idx] <- rep(NA, length(idx))
-        results$calibratedCi95Lb[idx] <- rep(NA, length(idx))
-        results$calibratedLogRr[idx] <- rep(NA, length(idx))
-        results$calibratedSeLogRr[idx] <- rep(NA, length(idx))
-        results$calibratedP[idx] <- rep(NA, length(idx))
+        results$rr[idx] <- NA
+        results$ci95Ub[idx] <- NA
+        results$ci95Lb[idx] <- NA
+        results$logRr[idx] <- NA
+        results$seLogRr[idx] <- NA
+        results$p[idx] <- NA
+        results$calibratedRr[idx] <- NA
+        results$calibratedCi95Ub[idx] <- NA
+        results$calibratedCi95Lb[idx] <- NA
+        results$calibratedLogRr[idx] <- NA
+        results$calibratedSeLogRr[idx] <- NA
+        results$calibratedP[idx] <- NA
       }
       return(results)
     })
 
     output$mainTable <- DT::renderDataTable({
-      table <- resultSubset()
-      if (is.null(table) || nrow(table) == 0) {
-        return(NULL)
-      }
-      table$description <- sccsAnalyses$description[match(table$analysisId, sccsAnalyses$analysisId)]
-      table <- table %>%
-        select("description",
-               "databaseId",
-               "rr",
-               "ci95Lb",
-               "ci95Ub",
-               "p",
-               "calibratedRr",
-               "calibratedCi95Lb",
-               "calibratedCi95Ub",
-               "calibratedP")
+      resTargetTable <- resultSubset()
 
-      table$rr <- prettyHr(table$rr)
-      table$ci95Lb <- prettyHr(table$ci95Lb)
-      table$ci95Ub <- prettyHr(table$ci95Ub)
-      table$p <- prettyHr(table$p)
-      table$calibratedRr <- prettyHr(table$calibratedRr)
-      table$calibratedCi95Lb <- prettyHr(table$calibratedCi95Lb)
-      table$calibratedCi95Ub <- prettyHr(table$calibratedCi95Ub)
-      table$calibratedP <- prettyHr(table$calibratedP)
-      colnames(table) <- c("<span title=\"Analysis\">Analysis</span>",
-                           "<span title=\"Data source\">Data source</span>",
-                           "<span title=\"Incidence rate ratio (uncalibrated)\">IRR</span>",
-                           "<span title=\"Lower bound of the 95 percent confidence interval (uncalibrated)\">LB</span>",
-                           "<span title=\"Upper bound of the 95 percent confidence interval (uncalibrated)\">UB</span>",
-                           "<span title=\"Two-sided p-value (uncalibrated)\">P</span>",
-                           "<span title=\"Incidence rate ratio (calibrated)\">Cal.IRR</span>",
-                           "<span title=\"Lower bound of the 95 percent confidence interval (calibrated)\">Cal.LB</span>",
-                           "<span title=\"Upper bound of the 95 percent confidence interval (calibrated)\">Cal.UB</span>",
-                           "<span title=\"Two-sided p-value (calibrated)\">Cal.P</span>")
+      resTargetTable$description <- sccsAnalyses$description[match(resTargetTable$analysisId, sccsAnalyses$analysisId)]
+      resTargetTable <- resTargetTable %>%
+        dplyr::select("description",
+                      "databaseName",
+                      "rr",
+                      "ci95Lb",
+                      "ci95Ub",
+                      "p",
+                      "calibratedRr",
+                      "calibratedCi95Lb",
+                      "calibratedCi95Ub",
+                      "calibratedP")
+
+      resTargetTable$rr <- prettyHr(resTargetTable$rr)
+      resTargetTable$ci95Lb <- prettyHr(resTargetTable$ci95Lb)
+      resTargetTable$ci95Ub <- prettyHr(resTargetTable$ci95Ub)
+      resTargetTable$p <- prettyHr(resTargetTable$p)
+      resTargetTable$calibratedRr <- prettyHr(resTargetTable$calibratedRr)
+      resTargetTable$calibratedCi95Lb <- prettyHr(resTargetTable$calibratedCi95Lb)
+      resTargetTable$calibratedCi95Ub <- prettyHr(resTargetTable$calibratedCi95Ub)
+      resTargetTable$calibratedP <- prettyHr(resTargetTable$calibratedP)
+      colnames(resTargetTable) <- c("<span title=\"Analysis\">Analysis</span>",
+                                    "<span title=\"Data source\">Data source</span>",
+                                    "<span title=\"Incidence rate ratio (uncalibrated)\">IRR</span>",
+                                    "<span title=\"Lower bound of the 95 percent confidence interval (uncalibrated)\">LB</span>",
+                                    "<span title=\"Upper bound of the 95 percent confidence interval (uncalibrated)\">UB</span>",
+                                    "<span title=\"Two-sided p-value (uncalibrated)\">P</span>",
+                                    "<span title=\"Incidence rate ratio (calibrated)\">Cal.IRR</span>",
+                                    "<span title=\"Lower bound of the 95 percent confidence interval (calibrated)\">Cal.LB</span>",
+                                    "<span title=\"Upper bound of the 95 percent confidence interval (calibrated)\">Cal.UB</span>",
+                                    "<span title=\"Two-sided p-value (calibrated)\">Cal.P</span>")
       options = list(pageLength = 15,
                      searching = FALSE,
                      lengthChange = TRUE,
                      ordering = TRUE,
                      paging = TRUE)
       selection = list(mode = "single", target = "row")
-      table <- datatable(table,
-                         options = options,
-                         selection = selection,
-                         rownames = FALSE,
-                         escape = FALSE,
-                         class = "stripe nowrap compact")
-      return(table)
+      resTargetTable <- DT::datatable(resTargetTable,
+                                      options = options,
+                                      selection = selection,
+                                      rownames = FALSE,
+                                      escape = FALSE,
+                                      class = "stripe nowrap compact")
+      return(resTargetTable)
     })
 
     selectedRow <- shiny::reactive({
@@ -132,7 +133,7 @@ sccsServer <- function(
       } else {
         idx <- input$mainTable_rows_selected
       }
-      
+
       if (is.null(idx)) {
         return(NULL)
       } else {
@@ -155,9 +156,9 @@ sccsServer <- function(
       if (is.null(row)) {
         return(NULL)
       } else {
-        table <- row %>%
-          mutate(outcomeEvents = ifelse(unblind == 1, outcomeEvents, NA)) %>%
-          select(
+        resTargetTable <- row %>%
+          dplyr::mutate(outcomeEvents = ifelse(.data$unblind == 1, .data$outcomeEvents, NA)) %>%
+          dplyr::select(
             "covariateName",
             "outcomeSubjects",
             "observedDays",
@@ -167,17 +168,17 @@ sccsServer <- function(
             "covariateOutcomes",
             "mdrr"
           ) %>%
-          mutate(observedDays = observedDays / 365.25,
-                 covariateDays = covariateDays / 365.25)
-        colnames(table) <- c("Variable",
-                             "Cases",
-                             "Years observed",
-                             "Outcomes",
-                             "Persons exposed",
-                             "Years exposed",
-                             "Outcomes while exposed",
-                             "MDRR")
-        return(table)
+          dplyr::mutate(observedDays = .data$observedDays / 365.25,
+                        covariateDays = .data$covariateDays / 365.25)
+        colnames(resTargetTable) <- c("Variable",
+                                      "Cases",
+                                      "Years observed",
+                                      "Outcomes",
+                                      "Persons exposed",
+                                      "Years exposed",
+                                      "Outcomes while exposed",
+                                      "MDRR")
+        return(resTargetTable)
       }
     })
 
@@ -186,9 +187,9 @@ sccsServer <- function(
       if (is.null(row)) {
         return(NULL)
       } else {
-        attrition <- getAttrition(
+        attrition <- getSccsAttrition(
           connectionHandler = connectionHandler,
-          resultsDatabaseSchema = resultDatabaseSettings$schema,
+          resultDatabaseSettings = resultDatabaseSettings,
           exposuresOutcomeSetId = row$exposuresOutcomeSetId,
           databaseId = row$databaseId,
           analysisId = row$analysisId,
@@ -203,23 +204,23 @@ sccsServer <- function(
       if (is.null(row)) {
         return(NULL)
       } else {
-        table <- getModel(
+        resTargetTable <- getSccsModel(
           connectionHandler = connectionHandler,
-          resultsDatabaseSchema = resultDatabaseSettings$schema,
+          resultDatabaseSettings = resultDatabaseSettings,
           exposuresOutcomeSetId = row$exposuresOutcomeSetId,
           databaseId = row$databaseId,
           analysisId = row$analysisId
         )
 
-        table <- table %>%
-          arrange(covariateId) %>%
-          select(-"covariateId")
+        resTargetTable <- resTargetTable %>%
+          dplyr::arrange(.data$covariateId) %>%
+          dplyr::select(-"covariateId")
 
-        colnames(table) <- c("Variable",
-                             "IRR",
-                             "LB",
-                             "UB")
-        return(table)
+        colnames(resTargetTable) <- c("Variable",
+                                      "IRR",
+                                      "LB",
+                                      "UB")
+        return(resTargetTable)
       }
     })
 
@@ -228,9 +229,9 @@ sccsServer <- function(
       if (is.null(row)) {
         return(NULL)
       } else {
-        timeTrend <- getTimeTrend(
+        timeTrend <- getSccsTimeTrend(
           connectionHandler = connectionHandler,
-          resultsDatabaseSchema = resultDatabaseSettings$schema,
+          resultDatabaseSettings = resultDatabaseSettings,
           exposuresOutcomeSetId = row$exposuresOutcomeSetId,
           databaseId = row$databaseId,
           analysisId = row$analysisId
@@ -244,9 +245,9 @@ sccsServer <- function(
       if (is.null(row)) {
         return(NULL)
       } else {
-        timeToEvent <- getTimeToEvent(
+        timeToEvent <- getSccsTimeToEvent(
           connectionHandler = connectionHandler,
-          resultsDatabaseSchema = resultDatabaseSettings$schema,
+          resultsDatabaseSettings = resultDatabaseSettings,
           exposuresOutcomeSetId = row$exposuresOutcomeSetId,
           eraId = row$eraId,
           covariateId = row$covariateId,
@@ -262,9 +263,9 @@ sccsServer <- function(
       if (is.null(row)) {
         return(NULL)
       } else {
-        eventDepObservation <- getEventDepObservation(
+        eventDepObservation <- getSccsEventDepObservation(
           connectionHandler = connectionHandler,
-          resultsDatabaseSchema = resultDatabaseSettings$schema,
+          resultDatabaseSettings = resultDatabaseSettings,
           exposuresOutcomeSetId = row$exposuresOutcomeSetId,
           databaseId = row$databaseId,
           analysisId = row$analysisId
@@ -279,18 +280,18 @@ sccsServer <- function(
         return(NULL)
       } else {
         if (input$spanningType == "Age") {
-          ageSpanning <- getAgeSpanning(
+          ageSpanning <- getSccsAgeSpanning(
             connectionHandler = connectionHandler,
-            resultsDatabaseSchema = resultDatabaseSettings$schema,
+            resultDatabaseSettings = resultDatabaseSettings,
             exposuresOutcomeSetId = row$exposuresOutcomeSetId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
           )
           plotSpanning(ageSpanning, type = "age")
         } else {
-          calendarTimeSpanning <- getCalendarTimeSpanning(
+          calendarTimeSpanning <- getSccsCalendarTimeSpanning(
             connectionHandler = connectionHandler,
-            resultsDatabaseSchema = resultDatabaseSettings$schema,
+            resultDatabaseSettings = resultDatabaseSettings,
             exposuresOutcomeSetId = row$exposuresOutcomeSetId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
@@ -305,9 +306,9 @@ sccsServer <- function(
       if (is.null(row)) {
         return(NULL)
       } else {
-        ageSpline <- getSpline(
+        ageSpline <- getSccsSpline(
           connectionHandler = connectionHandler,
-          resultsDatabaseSchema = resultDatabaseSettings$schema,
+          resultDatabaseSettings = resultDatabaseSettings,
           exposuresOutcomeSetId = row$exposuresOutcomeSetId,
           databaseId = row$databaseId,
           analysisId = row$analysisId,
@@ -325,9 +326,9 @@ sccsServer <- function(
       if (is.null(row)) {
         return(NULL)
       } else {
-        seasonSpline <- getSpline(
+        seasonSpline <- getSccsSpline(
           connectionHandler = connectionHandler,
-          resultsDatabaseSchema = resultDatabaseSettings$schema,
+          resultDatabaseSettings = resultDatabaseSettings,
           exposuresOutcomeSetId = row$exposuresOutcomeSetId,
           databaseId = row$databaseId,
           analysisId = row$analysisId,
@@ -345,9 +346,9 @@ sccsServer <- function(
       if (is.null(row)) {
         return(NULL)
       } else {
-        calendarTimeSpline <- getSpline(
+        calendarTimeSpline <- getSccsSpline(
           connectionHandler = connectionHandler,
-          resultsDatabaseSchema = resultDatabaseSettings$schema,
+          resultDatabaseSettings = resultDatabaseSettings,
           exposuresOutcomeSetId = row$exposuresOutcomeSetId,
           databaseId = row$databaseId,
           analysisId = row$analysisId,
@@ -365,10 +366,9 @@ sccsServer <- function(
       if (is.null(row)) {
         return(NULL)
       } else {
-        controlEstimates <- getControlEstimates(
+        controlEstimates <- getSccsControlEstimates(
           connectionHandler = connectionHandler,
-          resultsDatabaseSchema = resultDatabaseSettings$schema,
-          exposuresOutcomeSetId = row$exposuresOutcomeSetId,
+          resultDatabaseSettings,
           covariateId = row$covariateId,
           databaseId = row$databaseId,
           analysisId = row$analysisId
@@ -382,16 +382,16 @@ sccsServer <- function(
       if (is.null(row)) {
         return(NULL)
       } else {
-        diagnosticsSummary <- getDiagnosticsSummary(
+        diagnosticsSummary <- getSccsDiagnosticsSummary(
           connectionHandler = connectionHandler,
-          resultsDatabaseSchema = resultDatabaseSettings$schema,
+          resultDatabaseSettings = resultDatabaseSettings,
           exposuresOutcomeSetId = row$exposuresOutcomeSetId,
           covariateId = row$covariateId,
           databaseId = row$databaseId,
           analysisId = row$analysisId
         )
-        table <- renderDiagnosticsSummary(diagnosticsSummary)
-        return(table)
+        resTargetTable <- renderDiagnosticsSummary(diagnosticsSummary)
+        return(resTargetTable)
       }
     })
 
@@ -408,7 +408,7 @@ sccsView <- function(id = "sccs-module") {
   tags <- shiny::tags
   shiny::fluidPage(
     style = "width:1500px;",
-    shiny::titlePanel("SCCS Evidence Explorer"),
+    shiny::titlePanel("Self Controlled Case Series Evidence"),
     tags$head(
       tags$style(
         type = "text/css", "
@@ -476,7 +476,7 @@ sccsView <- function(id = "sccs-module") {
                 ),
                 shiny::tabPanel(
                   "Season spline",
-                  shiny::plotOutput("seasonSplinePlot"),
+                  shiny::plotOutput(ns("seasonSplinePlot")),
                   shiny::div(shiny::strong("Figure 2b."), "Spline fitted for season")
                 ),
                 shiny::tabPanel(

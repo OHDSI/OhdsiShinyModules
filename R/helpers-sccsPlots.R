@@ -492,18 +492,18 @@ cyclicSplineDesign <- function(x, knots, ord = 4) {
 plotControlEstimates <- function(controlEstimates) {
   size <- 2
   labelY <- 0.7
-  d <- dplyr::rbind(data.frame(yGroup = "Uncalibrated",
-                               logRr = controlEstimates$logRr,
-                               seLogRr = controlEstimates$seLogRr,
-                               ci95Lb = controlEstimates$ci95Lb,
-                               ci95Ub = controlEstimates$ci95Ub,
-                               trueRr = controlEstimates$trueEffectSize),
-                    data.frame(yGroup = "Calibrated",
-                               logRr = controlEstimates$calibratedLogRr,
-                               seLogRr = controlEstimates$calibratedSeLogRr,
-                               ci95Lb = controlEstimates$calibratedCi95Lb,
-                               ci95Ub = controlEstimates$calibratedCi95Ub,
-                               trueRr = controlEstimates$trueEffectSize))
+  d <- rbind(data.frame(yGroup = "Uncalibrated",
+                        logRr = controlEstimates$logRr,
+                        seLogRr = controlEstimates$seLogRr,
+                        ci95Lb = controlEstimates$ci95Lb,
+                        ci95Ub = controlEstimates$ci95Ub,
+                        trueRr = controlEstimates$trueEffectSize),
+             data.frame(yGroup = "Calibrated",
+                        logRr = controlEstimates$calibratedLogRr,
+                        seLogRr = controlEstimates$calibratedSeLogRr,
+                        ci95Lb = controlEstimates$calibratedCi95Lb,
+                        ci95Ub = controlEstimates$calibratedCi95Ub,
+                        trueRr = controlEstimates$trueEffectSize))
   d <- d[!is.na(d$logRr),]
   d <- d[!is.na(d$ci95Lb),]
   d <- d[!is.na(d$ci95Ub),]
