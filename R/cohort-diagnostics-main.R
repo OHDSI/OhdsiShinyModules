@@ -136,7 +136,7 @@ createCdDatabaseDataSource <- function(connectionHandler,
     cohortTableName <- paste0(tablePrefix, "cohort")
   }
   if (is.null(databaseTableName)) {
-    databaseTableName <- paste0(tablePrefix, "datatbase")
+    databaseTableName <- paste0(tablePrefix, "database")
   }
 
   if (displayProgress)
