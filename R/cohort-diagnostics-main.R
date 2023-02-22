@@ -146,22 +146,13 @@ createCdDatabaseDataSource <- function(connectionHandler,
   if (displayProgress) {
     shiny::setProgress(value = 0.05, message = "Getting settings")
   }
-
+  migrations <- data.frame()
   # Check existence of migrations table - display warnings if not present or if it is out of date
   tryCatch({
     migrations <- connectionHandler$queryDb("SELECT * FROM @results_database_schema.@table_prefixmigration",
                                             snakeCaseToCamelCase = TRUE,
                                             results_database_schema = schema,
                                             table_prefix = tablePrefix)
-    dataMigrationsExpected <- utils::read.csv(dataMigrationsRef)
-    for (m in dataMigrationsExpected$migrationFile) {
-      if (!m %in% migrations$migrationFile) {
-        warning(paste("CohortDiagnostics data migration", m, "not executed!"))
-        if (displayProgress) {
-          shiny::showNotification(paste("CohortDiagnostics data migration", m, "not executed!"), type = "error")
-        }
-      }
-    }
   }, error = function(...) {
     warning("CohortDiagnotics schema does not contain migrations table. Schema was likely created incorrectly")
     if (displayProgress) {
@@ -169,6 +160,16 @@ createCdDatabaseDataSource <- function(connectionHandler,
                               type = "error")
     }
   })
+
+  dataMigrationsExpected <- utils::read.csv(dataMigrationsRef)
+  for (m in dataMigrationsExpected$migrationFile) {
+    if (!m %in% migrations$migrationFile) {
+      warning(paste("CohortDiagnostics data migration", m, "not executed!"))
+      if (displayProgress) {
+        shiny::showNotification(paste("CohortDiagnostics data migration", m, "not executed!"), type = "warning")
+      }
+    }
+  }
 
   dataSource <- list(
     connectionHandler = connectionHandler,
