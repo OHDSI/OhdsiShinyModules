@@ -104,6 +104,7 @@ getEnabledCdReports <- function(dataSource) {
 #' @param databaseTableName The name of the database table in the database.
 #' @param dataModelSpecificationsPath The path to a file containing specifications for the data model used by the database.
 #' @param displayProgress display a progress messaage (can only be used inside a shiny reactive context)
+#' @param dataMigrationsRef The path to a file listing all migrations for the data model that should have been applied
 #' @return An object of class `CdDataSource`.
 #'
 #' @export
