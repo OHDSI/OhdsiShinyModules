@@ -27,19 +27,37 @@ evidenceSynthesisHelperFile <- function(){
 evidenceSynthesisViewer <- function(id=1) {
   ns <- shiny::NS(id)
   
-  shiny::tabsetPanel(
-    id = ns('evidenceSynthesisMainView'),
+  shiny::div(
     
-    shiny::tabPanel(
-      "Cohort Method",  
-      evidenceSynthesisCohortViewer(ns('evidenceSynthesisCohortTab'))
-    )#,
+    shinydashboard::box(
+      status = 'info', 
+      width = 12,
+      title = 'Evidence Synthesis Results',
+      solidHeader = TRUE,
+      
+      shiny::uiOutput(ns('esCohortMethodSelect'))
+    ),
     
-    #shiny::tabPanel(
-    #  "SCCS",  
-    #  evidenceSynthesisSCCSViewer(ns('evidenceSynthesisSccsTab'))
-    #  )
+    shiny::fluidRow(
+      shinydashboard::tabBox(
+        width = 12,
+        title = shiny::tagList(shiny::icon("gear"), "Plot and Table"),
+        id = ns('esCohortTabs'),
+        shiny::tabPanel("Cohort Method Plot",
+                        shiny::plotOutput(ns('esCohortMethodPlot'))
+        ),
+        shiny::tabPanel("Cohort Method Table",
+                        shiny::tableOutput(ns('esCohortMethodTable'))
+        ),
+        shiny::tabPanel("SCCS Plot",
+                        shiny::plotOutput(ns('esSccsPlot'))
+        ),
+        shiny::tabPanel("SCCS Table",
+                        shiny::tableOutput(ns('esSccsTable'))
+        )
+      )
     )
+  )
   
 }
 
@@ -66,85 +84,17 @@ evidenceSynthesisServer <- function(
     id,
     function(input, output, session) {
       
-      evidenceSynthesisCohortServer(
-        id = 'evidenceSynthesisCohortTab', 
-        connectionHandler = connectionHandler,  
-        mySchema = resultDatabaseSettings$schema, 
-        esTablePrefix = resultDatabaseSettings$tablePrefix,
-        cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
-        cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-        databaseMetaData = resultDatabaseSettings$databaseMetaData
-      )
-      
-      #evidenceSynthesisSccsServer(
-      #  id = 'evidenceSynthesisSccsTab', 
-      #  connectionHandler = connectionHandler,  
-      #  mySchema = resultDatabaseSettings$schema, 
-      #  esTablePrefix = resultDatabaseSettings$tablePrefix,
-      #  cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
-      #  cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-      #  databaseMetaData = resultDatabaseSettings$databaseMetaData
-      #)
-      
-    }
-    )
-  
-}
-
-evidenceSynthesisCohortViewer <- function(id) {
-  ns <- shiny::NS(id)
-  
-  shiny::div(
-    
-    shinydashboard::box(
-      status = 'info', 
-      width = 12,
-      title = 'Evidence Synthesis Results',
-      solidHeader = TRUE,
-      
-      shiny::uiOutput(ns('esCohortMethodSelect'))
-      ),
-      
-      shiny::fluidRow(
-        shinydashboard::tabBox(
-          width = 12,
-          title = shiny::tagList(shiny::icon("gear"), "Plot and Table"),
-          id = ns('esCohortTabs'),
-          shiny::tabPanel("Plot",
-            shiny::plotOutput(ns('esCohortMethodPlot'))
-          ),
-          shiny::tabPanel("Table",
-            shiny::tableOutput(ns('esCohortMethodTable'))
-          )
-        )
-      )
-  )
-}
-
-evidenceSynthesisCohortServer <- function(
-    id, 
-    connectionHandler,
-    mySchema, 
-    esTablePrefix,
-    cmTablePrefix,
-    cgTablePrefix,
-    databaseMetaData
-) {
-  shiny::moduleServer(
-    id,
-    function(input, output, session) {
-      
       targetIds <- getESTargetIds(
-        connectionHandler,
-        mySchema, 
-        cmTablePrefix,
-        cgTablePrefix
+        connectionHandler = connectionHandler,
+        mySchema = resultDatabaseSettings$schema, 
+        cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix
       )
       outcomeIds <- getESOutcomeIds(
-          connectionHandler,
-          mySchema, 
-          cmTablePrefix,
-          cgTablePrefix
+        connectionHandler = connectionHandler,
+        mySchema = resultDatabaseSettings$schema, 
+        cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix
       )
       
       targetId <- shiny::reactiveVal(targetIds[1])
@@ -152,7 +102,7 @@ evidenceSynthesisCohortServer <- function(
       
       output$esCohortMethodSelect <- shiny::renderUI({
         
-          tagList(
+        tagList(
           shiny::selectInput(
             inputId = session$ns('selectedTargetId'), 
             label = 'Target:', 
@@ -171,7 +121,7 @@ evidenceSynthesisCohortServer <- function(
           )
         )
       })
-
+      
       shiny::observeEvent(input$selectedTargetId,{
         targetId(input$selectedTargetId)
       })
@@ -179,29 +129,31 @@ evidenceSynthesisCohortServer <- function(
         outcomeId(input$selectedOutcomeId)
       })
       
+      
+      # Cohort Method plots and tables
+      
       data <- shiny::reactive({
         getCMEstimation(
-        connectionHandler = connectionHandler,
-        mySchema = mySchema,
-        cmTablePrefix = cmTablePrefix,
-        cgTablePrefix = cgTablePrefix,
-        databaseMetaData = 'database_meta_data',
-        targetId = targetId(),
-        outcomeId = outcomeId()
-      )
+          connectionHandler = connectionHandler,
+          mySchema = resultDatabaseSettings$schema, 
+          cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
+          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+          databaseMetaData = resultDatabaseSettings$databaseMetaData,
+          targetId = targetId(),
+          outcomeId = outcomeId()
+        )
       })
       
       data2 <- shiny::reactive({
         getMetaEstimation(
-        connectionHandler = connectionHandler,
-        mySchema = mySchema,
-        cmTablePrefix = cmTablePrefix,
-        cgTablePrefix = cgTablePrefix,
-        esTablePrefix = esTablePrefix,
-        databaseMetaData = databaseMetaData,
-        targetId = targetId(),
-        outcomeId = outcomeId()
-      )
+          connectionHandler = connectionHandler,
+          mySchema = resultDatabaseSettings$schema, 
+          cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
+          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+          esTablePrefix = resultDatabaseSettings$tablePrefix,
+          targetId = targetId(),
+          outcomeId = outcomeId()
+        )
       })
       
       output$esCohortMethodPlot <- shiny::renderPlot(
@@ -211,15 +163,45 @@ evidenceSynthesisCohortServer <- function(
       )
       
       output$esCohortMethodTable <- shiny::renderTable(
-          unique(rbind(data(),data2())) %>%
-            dplyr::select(
-              -c("targetId","outcomeId", "comparatorId", "analysisId")
-              )
+        unique(rbind(data(),data2())) %>%
+          dplyr::select(
+            -c("targetId","outcomeId", "comparatorId", "analysisId")
+          )
+      )
+      
+      # SCCS plots and tables
+      
+      sccsData <- shiny::reactive({
+        getSccsEstimation(
+          connectionHandler = connectionHandler,
+          mySchema = resultDatabaseSettings$schema, 
+          sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
+          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+          esTablePrefix = resultDatabaseSettings$tablePrefix,
+          databaseMetaData = resultDatabaseSettings$databaseMetaData,
+          targetId = targetId(),
+          outcomeId = outcomeId()
+        )
+      })
+      
+      output$esSccsPlot <- shiny::renderPlot(
+        createPlotForSccsAnalysis(
+          unique(sccsData())
+        )
+      )
+      
+      output$esSccsTable <- shiny::renderTable(
+        unique(sccsData()) %>%
+          dplyr::select(
+            -c("targetId","outcomeId", "analysisId")
+          )
       )
       
     }
-  )
+    )
+  
 }
+
     
 getESTargetIds <- function(
   connectionHandler,
@@ -391,7 +373,6 @@ getMetaEstimation <- function(
     cmTablePrefix = 'cm_',
     cgTablePrefix = 'cg_',
     esTablePrefix = 'es_',
-    databaseMetaData = 'database_meta_data',
     targetId,
     outcomeId
 ){
@@ -554,4 +535,215 @@ computeTraditionalP <- function(
   }
 }
 
+
+
+
+getSccsEstimation <- function(
+  connectionHandler,
+  mySchema, 
+  sccsTablePrefix,
+  cgTablePrefix,
+  esTablePrefix,
+  databaseMetaData,
+  targetId,
+  outcomeId
+){
   
+  sql <- "select 
+  c1.cohort_name as target,
+  c3.cohort_name as outcome,
+  cov.era_id as target_id, eos.outcome_id, r.analysis_id, 
+  a.description,
+  cov.covariate_name as type,
+  db.cdm_source_abbreviation as database, 
+  r.calibrated_rr, 
+  r.calibrated_ci_95_lb, 
+  r.calibrated_ci_95_ub,  
+  r.calibrated_p,
+  r.calibrated_log_rr, 
+  r.calibrated_se_log_rr
+  
+  from 
+   @my_schema.@sccs_table_prefixresult as r
+   inner join 
+   @my_schema.@sccs_table_prefixexposures_outcome_set as eos
+   on 
+   r.exposures_outcome_set_id = eos.exposures_outcome_set_id
+   
+   inner join
+   @my_schema.@sccs_table_prefixcovariate as cov
+   on 
+   r.covariate_id = cov.covariate_id and
+   r.database_id = cov.database_id and
+   r.analysis_id = cov.analysis_id and
+   r.exposures_outcome_set_id = cov.exposures_outcome_set_id
+   
+   inner join
+   @my_schema.@sccs_table_prefixexposure as ex
+   on 
+   ex.era_id = cov.era_id and
+   ex.exposures_outcome_set_id = cov.exposures_outcome_set_id
+   
+   inner join
+   
+   @my_schema.@sccs_table_prefixdiagnostics_summary as unblind
+   on
+   r.analysis_id = unblind.analysis_id and 
+   r.exposures_outcome_set_id = unblind.exposures_outcome_set_id and 
+   r.covariate_id = unblind.covariate_id and
+   r.database_id = unblind.database_id
+   
+   inner join
+   @my_schema.@database_meta_data as db
+   on db.database_id = r.database_id
+   
+   inner join
+   @my_schema.@cg_table_prefixcohort_definition as c1
+   on c1.cohort_definition_id = cov.era_id
+
+   inner join
+   @my_schema.@cg_table_prefixcohort_definition as c3
+   on c3.cohort_definition_id = eos.outcome_id
+   
+   inner join
+   @my_schema.@sccs_table_prefixanalysis as a
+   on a.analysis_id = r.analysis_id
+   
+   where 
+   r.calibrated_rr != 0 and
+   --ex.true_effect_size != 1 and
+   cov.covariate_name in ('Main', 'Second dose') and
+   unblind.unblind = 1 and
+   cov.era_id = @target_id and
+   eos.outcome_id = @outcome_id
+  ;"
+  
+  result <- connectionHandler$queryDb(
+    sql = sql,
+    my_schema = mySchema,
+    database_meta_data = databaseMetaData,
+    sccs_table_prefix = sccsTablePrefix,
+    cg_table_prefix = cgTablePrefix,
+    outcome_id = outcomeId,
+    target_id = targetId
+  )
+  
+  sql <- "select distinct
+  c1.cohort_name as target,
+  c3.cohort_name as outcome,
+  cov.era_id as target_id, eos.outcome_id, r.analysis_id, 
+  a.description,
+  cov.covariate_name as type,
+  ev.evidence_synthesis_description as database, 
+  r.calibrated_rr, 
+  r.calibrated_ci_95_lb, 
+  r.calibrated_ci_95_ub,  
+  r.calibrated_p,
+  r.calibrated_log_rr, 
+  r.calibrated_se_log_rr
+  
+  from 
+   @my_schema.@es_table_prefixsccs_result as r
+   inner join 
+   @my_schema.@sccs_table_prefixexposures_outcome_set as eos
+   on 
+   r.exposures_outcome_set_id = eos.exposures_outcome_set_id
+   
+   inner join
+   @my_schema.@sccs_table_prefixcovariate as cov
+   on 
+   r.covariate_id = cov.covariate_id and
+   r.analysis_id = cov.analysis_id and
+   r.exposures_outcome_set_id = cov.exposures_outcome_set_id
+   
+   inner join
+   @my_schema.@sccs_table_prefixexposure as ex
+   on 
+   ex.era_id = cov.era_id and
+   ex.exposures_outcome_set_id = cov.exposures_outcome_set_id
+   
+   inner join
+   
+   @my_schema.@es_table_prefixsccs_diagnostics_summary as unblind
+   on
+   r.analysis_id = unblind.analysis_id and 
+   r.exposures_outcome_set_id = unblind.exposures_outcome_set_id and 
+   r.covariate_id = unblind.covariate_id and
+   r.evidence_synthesis_analysis_id = unblind.evidence_synthesis_analysis_id
+   
+   inner join
+   @my_schema.@cg_table_prefixcohort_definition as c1
+   on c1.cohort_definition_id = cov.era_id
+
+   inner join
+   @my_schema.@cg_table_prefixcohort_definition as c3
+   on c3.cohort_definition_id = eos.outcome_id
+   
+   inner join
+   @my_schema.@sccs_table_prefixanalysis as a
+   on a.analysis_id = r.analysis_id
+   
+   inner join
+   @my_schema.@es_table_prefixanalysis as ev
+   on ev.evidence_synthesis_analysis_id = r.evidence_synthesis_analysis_id
+   
+   where 
+   r.calibrated_rr != 0 and
+   --ex.true_effect_size != 1 and
+   cov.covariate_name in ('Main', 'Second dose') and
+   unblind.unblind = 1 and
+   cov.era_id = @target_id and
+   eos.outcome_id = @outcome_id
+  ;"
+  
+  result2 <- connectionHandler$queryDb(
+    sql = sql,
+    my_schema = mySchema,
+    es_table_prefix = esTablePrefix,
+    sccs_table_prefix = sccsTablePrefix,
+    cg_table_prefix = cgTablePrefix,
+    outcome_id = outcomeId,
+    target_id = targetId
+  )
+  
+  return(rbind(result,result2))
+  
+}
+  
+
+createPlotForSccsAnalysis <- function(
+  data
+){
+  
+  breaks <- c(0.1, 0.25, 0.5, 1, 2, 4, 6, 8)
+  plot <- ggplot2::ggplot(
+    data = data, 
+    ggplot2::aes(x = .data$calibratedRr, y = .data$type)
+    ) +
+    ggplot2::geom_vline(xintercept = 1, size = 0.5) +
+    ggplot2::geom_point(color = "#000088", alpha = 0.8) +
+    ggplot2::geom_errorbarh(
+      ggplot2::aes(
+        xmin = .data$calibratedCi95Lb, 
+        xmax = .data$calibratedCi95Ub
+        ), 
+      height = 0.5, 
+      color = "#000088", 
+      alpha = 0.8
+      ) +
+    ggplot2::scale_x_log10(
+      "Effect size (Incidence Rate Ratio)", 
+      breaks = breaks, 
+      labels = breaks
+      ) +
+    ggplot2::coord_cartesian(xlim = c(0.1, 10)) + 
+    ggplot2::facet_grid(.data$database ~ .data$description)  +
+    ggplot2::ggtitle(data$outcome[1]) +
+    ggplot2::theme(
+      axis.title.y = ggplot2::element_blank(),
+      panel.grid.minor = ggplot2::element_blank(),
+      strip.text.y.right = ggplot2::element_text(angle = 0)
+      )
+  return(plot)
+}
+
