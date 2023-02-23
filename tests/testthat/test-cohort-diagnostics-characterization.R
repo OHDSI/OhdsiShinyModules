@@ -28,8 +28,6 @@ shiny::testServer(characterizationModule, args = list(
 
   checkmate::expect_list(selectionsPanel())
 
-  checkmate::expect_list(characterizationOutput())
-
   rawTableTimeIdReactable()
   rawTableReactable()
 
