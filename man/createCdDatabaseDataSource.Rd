@@ -13,6 +13,8 @@ createCdDatabaseDataSource(
   databaseTableName = paste0(tablePrefix, "database"),
   dataModelSpecificationsPath = system.file("cohort-diagnostics-ref",
     "resultsDataModelSpecification.csv", package = utils::packageName()),
+  dataMigrationsRef = system.file("cohort-diagnostics-ref", "migrations.csv", package =
+    utils::packageName()),
   displayProgress = FALSE
 )
 }
@@ -30,6 +32,8 @@ createCdDatabaseDataSource(
 \item{databaseTableName}{The name of the database table in the database.}
 
 \item{dataModelSpecificationsPath}{The path to a file containing specifications for the data model used by the database.}
+
+\item{dataMigrationsRef}{The path to a file listing all migrations for the data model that should have been applied}
 
 \item{displayProgress}{display a progress messaage (can only be used inside a shiny reactive context)}
 }
