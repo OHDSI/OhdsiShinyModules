@@ -155,8 +155,8 @@ getAnalysisNames <- function(
     my_schema = mySchema,
     my_table_append = myTableAppend
   )
-  
-  return(result$analysisName)
+
+  return(sort(result$analysisName))
 }
 
 getDrugStudyFailSummary <- function(
