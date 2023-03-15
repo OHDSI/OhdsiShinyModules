@@ -85,10 +85,6 @@ compareCohortCharacteristics <-
 
 plotTemporalCompareStandardizedDifference <- function(balance,
                                                       shortNameRef = NULL,
-                                                      xLimitMin = 0,
-                                                      xLimitMax = 1,
-                                                      yLimitMin = 0,
-                                                      yLimitMax = 1,
                                                       domain = "all") {
   domains <-
     c(
@@ -131,7 +127,6 @@ plotTemporalCompareStandardizedDifference <- function(balance,
       shortNameColumn = "comparatorCohort"
     )
 
-  # ggiraph::geom_point_interactive(ggplot2::aes(tooltip = tooltip), size = 3, alpha = 0.6)
   balance$tooltip <-
     c(
       paste0(
@@ -168,8 +163,6 @@ plotTemporalCompareStandardizedDifference <- function(balance,
       "#E6AB02",
       "#444444"
     )
-  colors <-
-    colors[c(domains, "Other") %in% unique(balance$domainId)]
 
   balance$domainId <-
     factor(balance$domainId, levels = c(domains, "Other"))
@@ -178,55 +171,65 @@ plotTemporalCompareStandardizedDifference <- function(balance,
     return(NULL)
   }
 
-  plot <-
-    ggplot2::ggplot(
-      balance,
-      ggplot2::aes(
-        x = 'mean1',
-        y = "mean2",
-        color = "domainId"
+  subplots <- list()
+  annotations <- list()
+  titles <- balance$temporalChoices %>% unique()
+  nsuplots <- length(titles)
+  for (timeChoice in titles) {
+    dt <- balance %>% dplyr::filter(.data$temporalChoices == timeChoice)
+
+    # Read as - display the plot title 50% along the way of this sub plot - x pos will vary depending on n plots
+    xTitlePos <- (length(annotations) / nsuplots) + 1 / nsuplots * 0.5
+    annotations[[length(annotations) + 1]] <- list(text = timeChoice,
+                                                   showarrow = FALSE,
+                                                   x = xTitlePos,
+                                                   y = 1.0,
+                                                   xref = "paper",
+                                                   yref = "paper",
+                                                   xanchor = "center",
+                                                   yanchor = "bottom")
+
+    subplots[[length(subplots) + 1]] <- plotly::plot_ly(
+      data = dt,
+      type = 'scatter',
+      mode = 'markers',
+      x = ~mean1,
+      y = ~mean2,
+      color = ~domainId,
+      colors = colors,
+      text = ~tooltip,
+      marker = list(opacity = 0.7),
+      hovertemplate = "%{text}"
+    ) %>%
+      plotly::layout(
+        plot_bgcolor = '#e5ecf6',
+        xaxis = list(tickformat = ".0%", zerolinecolor = '#ffff',
+                     zerolinewidth = 2,
+                     gridcolor = 'ffff'),
+        yaxis = list(tickformat = ".0%", zerolinecolor = '#ffff',
+                     zerolinewidth = 2,
+                     gridcolor = 'ffff'),
+        showlegend = F,
+        shapes = list(list(
+          type = "line",
+          x0 = 0,
+          x1 = 1,
+          xref = "x",
+          y0 = 0,
+          y1 = 1,
+          yref = "y",
+          line = list(color = "black", dash = "dot")
+        ))
       )
-    ) +
-      ggiraph::geom_point_interactive(
-        ggplot2::aes(tooltip = .data$tooltip),
-        size = 3,
-        shape = 16,
-        alpha = 0.5
-      ) +
-      ggplot2::geom_abline(
-        slope = 1,
-        intercept = 0,
-        linetype = "dashed"
-      ) +
-      ggplot2::geom_hline(yintercept = 0) +
-      ggplot2::geom_vline(xintercept = 0) +
-      # ggplot2::scale_x_continuous("Mean") +
-      # ggplot2::scale_y_continuous("Mean") +
-      ggplot2::xlab(paste("Covariate Mean in Target Cohort")) +
-      ggplot2::ylab(paste("Covariate Mean in Comparator Cohort")) +
-      ggplot2::scale_color_manual("Domain", values = colors) +
-      ggplot2::facet_grid(cols = ggplot2::vars(.data$temporalChoices)) + # need to facet by 'startDay' that way it is arranged in numeric order.
-      # but labels should be based on choices
-      # ggplot2::facet_wrap(~temporalChoices) +
-      ggplot2::theme(
-        strip.background = ggplot2::element_blank(),
-        panel.spacing = ggplot2::unit(2, "lines")
-      ) +
-      ggplot2::xlim(xLimitMin, xLimitMax) +
-      ggplot2::ylim(yLimitMin, yLimitMax)
+  }
 
-  numberOfTimeIds <- balance$timeId %>%
-    unique() %>%
-    length()
-
-  plot <- ggiraph::girafe(
-    ggobj = plot,
-    options = list(ggiraph::opts_sizing(rescale = TRUE)),
-    width_svg = max(8, 3 * numberOfTimeIds),
-    height_svg = 3
-  )
-  return(plot)
+  plotly::subplot(subplots, nrows = 1, shareX = FALSE, shareY=FALSE) %>%
+    plotly::layout(annotations = annotations,
+                   xaxis = list(title = "Prevalence in Target Cohort"),
+                   yaxis = list(title = "Prevalence in Comparator Cohort"))
 }
+
+
 
 
 #' compare characterization view
@@ -403,7 +406,7 @@ compareCohortCharacterizationView <- function(id, title = "Compare cohort charac
           shiny::tabPanel(
             title = "Plot",
             shinycssloaders::withSpinner(
-              ggiraph::ggiraphOutput(
+              plotly::plotlyOutput(
                 outputId = ns("compareCohortCharacterizationBalancePlot"),
                 width = "100%",
                 height = "100%"
@@ -1209,12 +1212,7 @@ compareCohortCharacterizationModule <- function(id,
       plot <-
         plotTemporalCompareStandardizedDifference(
           balance = data,
-          shortNameRef = cohortTable,
-          xLimitMin = 0,
-          xLimitMax = 1,
-          yLimitMin = 0,
-          yLimitMax = 1
-        )
+          shortNameRef = cohortTable)
 
       progress$set(
         message = "Returning data",
@@ -1237,7 +1235,7 @@ compareCohortCharacterizationModule <- function(id,
 
     ## output: compareCohortCharacterizationBalancePlot ----------------------------------------
     output$compareCohortCharacterizationBalancePlot <-
-      ggiraph::renderggiraph(expr = {
+      plotly::renderPlotly(expr = {
         generatePlot()
       })
   })

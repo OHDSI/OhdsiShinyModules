@@ -18,7 +18,6 @@ Imports:
     dplyr,
     DT,
     ggh4x,
-    ggiraph,
     ggplot2,
     gridExtra,
     htmltools,
