@@ -36,13 +36,13 @@ getTimeDistributionResult <- function(dataSource,
   }
   data <- temporalCovariateValueDist %>%
     dplyr::inner_join(data$temporalCovariateRef,
-      by = "covariateId"
+                      by = "covariateId"
     ) %>%
     dplyr::inner_join(data$temporalAnalysisRef,
-      by = "analysisId"
+                      by = "analysisId"
     ) %>%
     dplyr::inner_join(databaseTable,
-      by = "databaseId"
+                      by = "databaseId"
     ) %>%
     dplyr::rename(
       "timeMetric" = "covariateName",
@@ -66,7 +66,6 @@ getTimeDistributionResult <- function(dataSource,
     )
   return(data)
 }
-
 
 plotTimeDistribution <- function(data, shortNameRef = NULL) {
   errorMessage <- checkmate::makeAssertCollection()
@@ -133,46 +132,61 @@ plotTimeDistribution <- function(data, shortNameRef = NULL) {
                                levels = sortShortName$shortName
   )
 
-  plot <- ggplot2::ggplot(data = plotData) +
-    ggplot2::aes(
-      x = .data$shortName,
-      ymin = .data$minValue,
-      lower = .data$p25Value,
-      middle = .data$medianValue,
-      upper = .data$p75Value,
-      ymax = .data$maxValue,
-      average = .data$averageValue
-    ) +
-    ggplot2::geom_errorbar(size = 0.5) +
-    ggiraph::geom_boxplot_interactive(
-      ggplot2::aes(tooltip = .data$tooltip),
-      stat = "identity",
-      fill = grDevices::rgb(0, 0, 0.8, alpha = 0.25),
-      size = 0.2
-    ) +
-    ggplot2::facet_grid(databaseName ~ timeMetric, scales = "free") +
-    ggplot2::coord_flip() +
-    ggplot2::theme(
-      panel.grid.major.y = ggplot2::element_blank(),
-      panel.grid.minor.y = ggplot2::element_blank(),
-      axis.title.y = ggplot2::element_blank(),
-      axis.ticks.y = ggplot2::element_blank(),
-      strip.background = ggplot2::element_blank(),
-      strip.text.y = ggplot2::element_text(size = 5)
-    )
-  height <-
-    1.5 + 0.4 * nrow(dplyr::distinct(.data = plotData, .data$databaseId, .data$shortName))
-  plot <- ggiraph::girafe(
-    ggobj = plot,
-    options = list(
-      ggiraph::opts_sizing(width = .7),
-      ggiraph::opts_zoom(max = 5)
-    ),
-    width_svg = 12,
-    height_svg = height
-  )
-}
+  ncols <- plotData$timeMetric %>% unique() %>% length()
+  nrows <- plotData$databaseName %>% unique() %>% length()
+  subplots <- list()
+  for (db in plotData$databaseName %>% unique()) {
+    for (tm in plotData$timeMetric %>% unique()) {
+      subset <- plotData %>%
+        dplyr::filter(.data$timeMetric == tm, .data$databaseName == db)
+      subplots[[length(subplots) + 1]] <- subset %>%
+        plotly::plot_ly(y = ~shortName,
+                        color = ~shortName,
+                        text = ~tooltip,
+                        hoverinfo = "tooltip",
+                        hovertemplate = "%{text}",
+                        type = "box",
+                        q1=~p25Value,
+                        q3=~p75Value,
+                        median=~medianValue,
+                        mean=~averageValue,
+                        upperfence = ~p90Value,
+                        lowerfence = ~p10Value,
+                        sd=~standardDeviation) %>%
+        plotly::layout(plot_bgcolor='#e5ecf6',
+         xaxis = list(
+           zerolinecolor = '#ffff',
+           zerolinewidth = 2,
+           gridcolor = 'ffff'),
+         yaxis = list(
+           showTitle = F,
+           zerolinecolor = '#ffff',
+           zerolinewidth = 2,
+           gridcolor = 'ffff'))
 
+      # todo add trace for points - hopefully fix tooptip
+      # todo remove "shortName" title
+      # todo Database name annotations on y axis
+
+    }
+  }
+
+  annotations <- list()
+  for (tm in plotData$timeMetric %>% unique()) {
+    xTitlePos <- (length(annotations) / ncols) + 1 / ncols * 0.5
+    annotations[[length(annotations) + 1]] <- list(text = tm,
+                                                   showarrow = FALSE,
+                                                   x = xTitlePos,
+                                                   y = 1.0,
+                                                   xref = "paper",
+                                                   yref = "paper",
+                                                   xanchor = "center",
+                                                   yanchor = "bottom")
+  }
+
+  plotly::subplot(subplots, nrows = nrows, shareY = T) %>%
+    plotly::layout(annotations = annotations, showlegend = F)
+}
 
 #' timeDistributions view
 #' @description
@@ -206,7 +220,7 @@ timeDistributionsView <- function(id) {
       collapsed = TRUE,
       title = "Time Distributions",
       width = "100%",
-      shiny::htmlTemplate(system.file("cohort-diagnostics-www",  "timeDistribution.html", package = utils::packageName()))
+      shiny::htmlTemplate(system.file("cohort-diagnostics-www", "timeDistribution.html", package = utils::packageName()))
     ),
     shinydashboard::box(
       status = "warning",
@@ -285,7 +299,7 @@ timeDistributionsView <- function(id) {
         condition = "input.timeDistributionType=='Plot'",
         ns = ns,
         shiny::tags$br(),
-        shinycssloaders::withSpinner(ggiraph::ggiraphOutput(ns("timeDistributionPlot"), width = "100%", height = "100%"))
+        shinycssloaders::withSpinner(plotly::plotlyOutput(ns("timeDistributionPlot"), width = "100%", height = "100%"))
       )
     )
   )
@@ -323,7 +337,7 @@ timeDistributionsModule <- function(id,
     })
 
     ## output: timeDistributionPlot -----
-    output$timeDistributionPlot <- ggiraph::renderggiraph(expr = {
+    output$timeDistributionPlot <- plotly::renderPlotly(expr = {
       data <- timeDistributionData()
       shiny::validate(shiny::need(hasData(data), "No data for this combination"))
       plot <- plotTimeDistribution(data = data, shortNameRef = cohortTable)
