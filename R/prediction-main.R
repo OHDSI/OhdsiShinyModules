@@ -46,6 +46,7 @@ predictionViewer <- function(id=1) {
   ns <- shiny::NS(id)
   
   shiny::tabsetPanel(
+    type = 'hidden',#'pills',
     id = ns('allView'),
     
     shiny::tabPanel(
@@ -75,6 +76,7 @@ predictionViewer <- function(id=1) {
         ),
       
       shiny::tabsetPanel(
+        type = 'pills',
         id = ns('singleView'),
         shiny::tabPanel(
           "Design Settings",
@@ -144,32 +146,14 @@ predictionServer <- function(
       
       #   VIEW SETTINGS
       # =============================
-      # initially hide the models and selected model
-      shiny::hideTab(inputId = "allView", session = session, target = "Models Summary")
-      shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
-      
+
       # when going to the all model design hide tabs
       shiny::observeEvent(input$allView, {
         
         
         if(!is.null(input$allView)){
           tempView <- input$allView
-          
-          if(tempView == 'Model Designs Summary'){
-            shiny::hideTab(inputId = "allView", session = session, target = "Models Summary")
-            shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
-          }
-          
-          if(tempView == 'Models Summary'){
-            shiny::showTab(inputId = "allView", session = session, target = "Models Summary")
-            shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
-          }
-          
-          if(tempView == "Explore Selected Model"){
-            shiny::showTab(inputId = "allView", session = session, target = "Explore Selected Model")
-            shiny::hideTab(inputId = "allView", session = session, target = "Models Summary")
-          }
-          
+
           if(tempView != 'Explore Selected Model'){
             shiny::updateTabsetPanel(
               session = session,
