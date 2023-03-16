@@ -67,7 +67,7 @@ getTimeDistributionResult <- function(dataSource,
   return(data)
 }
 
-plotTimeDistribution <- function(data, shortNameRef = NULL) {
+plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
   errorMessage <- checkmate::makeAssertCollection()
   checkmate::assertTibble(
     x = data,
@@ -96,24 +96,28 @@ plotTimeDistribution <- function(data, shortNameRef = NULL) {
   plotData$tooltip <- c(
     paste0(
       plotData$shortName,
+      "\nCohort = ",
+      plotData$cohortName,
       "\nDatabase = ",
       plotData$databaseId,
       "\nMin = ",
       scales::comma(plotData$minValue, accuracy = 1),
-      "\nP25 = ",
+      "  P25 = ",
       scales::comma(plotData$p25Value, accuracy = 1),
-      "\nMedian = ",
+      "  Median = ",
       scales::comma(plotData$medianValue, accuracy = 1),
-      "\nP75 = ",
+      "  P75 = ",
       scales::comma(plotData$p75Value, accuracy = 1),
-      "\nMax = ",
+      "  Max = ",
       scales::comma(plotData$maxValue, accuracy = 1),
-      "\nTime Measure = ",
-      plotData$timeMetric,
-      "\nAverage = ",
+      "  Average = ",
       scales::comma(x = plotData$averageValue, accuracy = 0.01)
     )
   )
+
+  # Fixed colour reference
+  nCohorts <- plotData$shortName %>% unique() %>% length()
+  colours <- RColorBrewer::brewer.pal(max(c(3, nCohorts)), "Set3")
 
   sortShortName <- plotData %>%
     dplyr::select("shortName") %>%
@@ -135,57 +139,74 @@ plotTimeDistribution <- function(data, shortNameRef = NULL) {
   ncols <- plotData$timeMetric %>% unique() %>% length()
   nrows <- plotData$databaseName %>% unique() %>% length()
   subplots <- list()
+
   for (db in plotData$databaseName %>% unique()) {
     for (tm in plotData$timeMetric %>% unique()) {
       subset <- plotData %>%
         dplyr::filter(.data$timeMetric == tm, .data$databaseName == db)
       subplots[[length(subplots) + 1]] <- subset %>%
-        plotly::plot_ly(y = ~shortName,
-                        color = ~shortName,
-                        text = ~tooltip,
-                        hoverinfo = "tooltip",
-                        hovertemplate = "%{text}",
-                        type = "box",
-                        q1=~p25Value,
-                        q3=~p75Value,
-                        median=~medianValue,
-                        mean=~averageValue,
-                        upperfence = ~p90Value,
-                        lowerfence = ~p10Value,
-                        sd=~standardDeviation) %>%
-        plotly::layout(plot_bgcolor='#e5ecf6',
-         xaxis = list(
-           zerolinecolor = '#ffff',
-           zerolinewidth = 2,
-           gridcolor = 'ffff'),
-         yaxis = list(
-           showTitle = F,
-           zerolinecolor = '#ffff',
-           zerolinewidth = 2,
-           gridcolor = 'ffff'))
+        plotly::plot_ly() %>%
+        plotly::add_boxplot(y = ~shortName,
+                            whiskerwidth = 0.2,
+                            color = ~shortName,
+                            colors = colours,
+                            text = NULL,
+                            type = "box",
+                            hoverlabel = list(bgcolor = "#000"),
+                            hoveron = "points",
+                            q1 = ~p25Value,
+                            q3 = ~p75Value,
+                            median = ~medianValue,
+                            mean = ~averageValue,
+                            hoverinfo = ~tooltip,
+                            upperfence = ~p90Value,
+                            lowerfence = ~p10Value) %>%
+        plotly::add_markers(y = ~shortName,
+                            color = ~shortName,
+                            text = ~tooltip,
+                            size = 50,
+                            x = ~medianValue) %>%
+        plotly::layout(plot_bgcolor = '#e5ecf6',
+                       xaxis = list(
+                         showTitle = FALSE,
+                         zerolinecolor = '#ffff',
+                         zerolinewidth = 2,
+                         gridcolor = 'ffff'),
+                       yaxis = list(
+                         title = db,
+                         showTitle = FALSE,
+                         zerolinecolor = '#ffff',
+                         zerolinewidth = 2,
+                         gridcolor = 'ffff'))
 
-      # todo add trace for points - hopefully fix tooptip
-      # todo remove "shortName" title
-      # todo Database name annotations on y axis
-
+      if (showMax) {
+        subplots[[length(subplots)]] <- subplots[[length(subplots)]] %>%
+          plotly::add_markers(y = ~shortName,
+                              color = ~shortName,
+                              text = ~tooltip,
+                              size = 50,
+                              x = ~maxValue)
+      }
     }
   }
 
-  annotations <- list()
+  # Add titles for each subplot
+  topAnnotations <- list()
   for (tm in plotData$timeMetric %>% unique()) {
-    xTitlePos <- (length(annotations) / ncols) + 1 / ncols * 0.5
-    annotations[[length(annotations) + 1]] <- list(text = tm,
-                                                   showarrow = FALSE,
-                                                   x = xTitlePos,
-                                                   y = 1.0,
-                                                   xref = "paper",
-                                                   yref = "paper",
-                                                   xanchor = "center",
-                                                   yanchor = "bottom")
+    # Trial and error...
+    xTitlePos <- (length(topAnnotations) / ncols) + 1/ncols * 0.5
+    topAnnotations[[length(topAnnotations) + 1]] <- list(text = tm,
+                                                         showarrow = FALSE,
+                                                         x = xTitlePos,
+                                                         y = 1.0,
+                                                         xref = "paper",
+                                                         yref = "paper",
+                                                         xanchor = "center",
+                                                         yanchor = "bottom")
   }
 
   plotly::subplot(subplots, nrows = nrows, shareY = T) %>%
-    plotly::layout(annotations = annotations, showlegend = F)
+    plotly::layout(annotations = topAnnotations, showlegend = F)
 }
 
 #' timeDistributions view
@@ -298,6 +319,7 @@ timeDistributionsView <- function(id) {
       shiny::conditionalPanel(
         condition = "input.timeDistributionType=='Plot'",
         ns = ns,
+        shiny::checkboxInput(ns("showMaxValues"), label = "Show max values", value = FALSE),
         shiny::tags$br(),
         shinycssloaders::withSpinner(plotly::plotlyOutput(ns("timeDistributionPlot"), width = "100%", height = "100%"))
       )
@@ -338,9 +360,10 @@ timeDistributionsModule <- function(id,
 
     ## output: timeDistributionPlot -----
     output$timeDistributionPlot <- plotly::renderPlotly(expr = {
-      data <- timeDistributionData()
+      data <- timeDistributionData() %>%
+        dplyr::inner_join(cohortTable %>% dplyr::select("cohortName", "cohortId"), by = "cohortId")
       shiny::validate(shiny::need(hasData(data), "No data for this combination"))
-      plot <- plotTimeDistribution(data = data, shortNameRef = cohortTable)
+      plot <- plotTimeDistribution(data = data, shortNameRef = cohortTable, showMax = input$showMaxValues)
       return(plot)
     })
 
