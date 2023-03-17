@@ -43,14 +43,20 @@ cohortGeneratorViewer <- function(id) {
   
   ns <- shiny::NS(id)
   
-  shiny::fluidPage(
+  shiny::div(
+    
+    shinydashboard::box(
+      status = 'info', 
+      width = 12,
+      title = 'Cohort Generator Results',
+      solidHeader = TRUE,
     
     shiny::tabsetPanel(
       id = ns("cohortGeneratorTabs"),
       
       shiny::tabPanel(
         title = "Cohort Counts",
-        DT::dataTableOutput(
+        reactable::reactableOutput(
           outputId = ns("cohortCounts")
           )
       ),
@@ -69,6 +75,7 @@ cohortGeneratorViewer <- function(id) {
       
     )
     
+   )
   )
 }
 
@@ -98,13 +105,22 @@ cohortGeneratorServer <- function(
       
       resultsSchema <- resultDatabaseSettings$schema
       
-      output$cohortCounts <- DT::renderDataTable({
+      output$cohortCounts <- reactable::renderReactable({
         data <- getCohortGeneratorCohortCounts(
           connectionHandler = connectionHandler, 
           resultsSchema = resultsSchema,
-          tablePrefix = resultDatabaseSettings$tablePrefix
-          )
-        data
+          tablePrefix = resultDatabaseSettings$tablePrefix,
+          databaseTable = resultDatabaseSettings$databaseTable,
+          databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
+          ) %>%
+          dplyr::select("cdmSourceName",
+                        "cohortId",
+                        "cohortName",
+                        "cohortSubjects",
+                        "cohortEntries")
+        reactable::reactable(data,
+                             
+                             )
       })
 
       output$cohortGeneration <- DT::renderDataTable({
