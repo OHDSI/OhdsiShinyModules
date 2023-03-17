@@ -158,7 +158,6 @@ plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
                             q3 = ~p75Value,
                             median = ~medianValue,
                             mean = ~averageValue,
-                            hoverinfo = ~tooltip,
                             upperfence = ~p90Value,
                             lowerfence = ~p10Value) %>%
         plotly::add_markers(y = ~shortName,
