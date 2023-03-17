@@ -30,7 +30,25 @@
 #' @export
 predictionModelSummaryViewer <- function(id) {
   ns <- shiny::NS(id)
-  reactable::reactableOutput(ns('performanceSummaryTable'))
+  
+  shiny::tagList(
+    shinydashboard::box(
+      collapsible = TRUE,
+      collapsed = TRUE,
+      title = "All Database Results For Selected Model Design",
+      width = "100%"#,
+      #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
+    ),
+    shinydashboard::box(
+      status = "warning",
+      width = "100%",
+      shiny::uiOutput(outputId = ns("performanceSummaryText"))
+    ),
+    shinydashboard::box(
+      width = "100%",
+      reactable::reactableOutput(ns('performanceSummaryTable'))
+    )
+  )
 }
 
 #' The module server for exploring prediction summary results 
@@ -65,6 +83,18 @@ predictionModelSummaryServer <- function(
         shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
                    tippy::tippy(value, tooltip, ...))
       }
+      
+      selectedModelDesign <- shiny::reactive(
+        getModelDesignInfo(
+          connectionHandler = connectionHandler, 
+          mySchema = mySchema, 
+          myTableAppend = myTableAppend,
+          modelDesignId = modelDesignId,
+          databaseTableAppend = databaseTableAppend
+          )
+      )
+      output$performanceSummaryText <- shiny::renderUI(selectedModelDesign())
+
 
       resultTable <- shiny::reactive(
         getModelDesignPerformanceSummary(
@@ -313,5 +343,44 @@ editColnames <- function(cnames, edits){
     }
   }
   return(cnames)
+  
+}
+
+
+
+getModelDesignInfo <- function(
+  connectionHandler, 
+  mySchema, 
+  myTableAppend,
+  modelDesignId,
+  databaseTableAppend
+){
+  
+  modelType <- connectionHandler$queryDb(
+    'select distinct model_type from @my_schema.@my_table_appendmodels where model_design_id = @model_design_id;',
+    my_schema = mySchema,
+    my_table_append = myTableAppend,
+    model_design_id = modelDesignId()
+  )
+  
+  result <- data.frame(
+    modelDesignId = modelDesignId(),
+    modelType = modelType
+  )
+  
+  return(
+    shiny::fluidRow(
+      shiny::column(
+        width = 4,
+        shiny::tags$b("modelDesignId :"),
+        modelDesignId()
+      ),
+      shiny::column(
+        width = 8,
+        shiny::tags$b("modelType :"),
+        modelType
+      )
+    )
+  )
   
 }
