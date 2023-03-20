@@ -28,11 +28,11 @@ plotTimeTrend <- function(timeTrend) {
 
   timeTrend <- timeTrend %>%
     dplyr::mutate(
-      monthStartDate = convertToStartDate(calendarYear, calendarMonth),
-      monthEndDate = convertToEndDate(calendarYear, calendarMonth),
-      outcomeRate = pmax(0, outcomeRate),
-      observedSubjects = pmax(0, observedSubjects),
-      adjustedRate = pmax(0, adjustedRate))
+      monthStartDate = convertToStartDate(.data$calendarYear, .data$calendarMonth),
+      monthEndDate = convertToEndDate(.data$calendarYear, .data$calendarMonth),
+      outcomeRate = pmax(0, .data$outcomeRate),
+      observedSubjects = pmax(0, .data$observedSubjects),
+      adjustedRate = pmax(0, .data$adjustedRate))
 
   plotData <- dplyr::bind_rows(
     dplyr::select(timeTrend, "monthStartDate", "monthEndDate", value = "outcomeRate") %>%
@@ -43,7 +43,7 @@ plotTimeTrend <- function(timeTrend) {
                     stable = "Stable"),
     dplyr::select(timeTrend, "monthStartDate", "monthEndDate", value = "adjustedRate", "stable") %>%
       dplyr::mutate(type = "Adj. outcomes per person",
-                    stable = ifelse(stable == 1, "Stable", "Unstable"))
+                    stable = ifelse(.data$stable == 1, "Stable", "Unstable"))
   )
 
   levels <- c("Observed persons", "Outcomes per person", "Adj. outcomes per person")
@@ -52,13 +52,13 @@ plotTimeTrend <- function(timeTrend) {
   theme <- ggplot2::element_text(colour = "#000000", size = 14)
   themeRA <- ggplot2::element_text(colour = "#000000", size = 14, hjust = 1)
   plot <- ggplot2::ggplot(plotData, ggplot2::aes(xmin = .data$monthStartDate, xmax = .data$monthEndDate + 1)) +
-    ggplot2::geom_rect(ggplot2::aes(ymax = .data$value, fill = stable),
+    ggplot2::geom_rect(ggplot2::aes(ymax = .data$value, fill = .data$stable),
                        ymin = 0,
                        linewidth = 0) +
     ggplot2::scale_x_date("Calendar time") +
     ggplot2::scale_y_continuous("Count", limits = c(0, NA)) +
     ggplot2::scale_fill_manual(breaks = c("Stable", "Unstable"),
-                               values = c(rgb(0, 0, 0.8, alpha = 0.6), rgb(0.8, 0, 0, alpha = 0.6))) +
+                               values = c(grDevices::rgb(0, 0, 0.8, alpha = 0.6), grDevices::rgb(0.8, 0, 0, alpha = 0.6))) +
     ggplot2::facet_grid(.data$type ~ ., scales = "free_y") +
     ggplot2::theme(
       panel.grid.minor = ggplot2::element_blank(),
@@ -105,8 +105,8 @@ plotTimeToEventSccs <- function(timeToEvent) {
   breaks <- seq(-180, 180, 30)
   theme <- ggplot2::element_text(colour = "#000000", size = 14)
   themeRA <- ggplot2::element_text(colour = "#000000", size = 14, hjust = 1)
-  plot <- ggplot2::ggplot(data, ggplot2::aes(x = day, y = count)) +
-    ggplot2::geom_col(width = 7, fill = rgb(0, 0, 0.8), alpha = 0.6) +
+  plot <- ggplot2::ggplot(data, ggplot2::aes(x = .data$day, y = .data$count)) +
+    ggplot2::geom_col(width = 7, fill = grDevices::rgb(0, 0, 0.8), alpha = 0.6) +
     ggplot2::geom_vline(xintercept = -0.5, colour = "#000000", lty = 1, linewidth = 1) +
     ggplot2::geom_label(ggplot2::aes(label = .data$text), data = pLabel, hjust = 0, size = 4.5, alpha = 0.8) +
     ggplot2::scale_x_continuous("Days since first exposure start", breaks = breaks, labels = breaks) +
@@ -217,8 +217,8 @@ drawAttritionDiagram <- function(attrition) {
                                              ymin = !!y - (boxHeight / 2),
                                              xmax = !!x + (boxWidth / 2),
                                              ymax = !!y + (boxHeight / 2)),
-                                color = rgb(0, 0, 0.8, alpha = 1),
-                                fill = rgb(0, 0, 0.8, alpha = 0.1))
+                                color = grDevices::rgb(0, 0, 0.8, alpha = 1),
+                                fill = grDevices::rgb(0, 0, 0.8, alpha = 0.1))
     return(p)
   }
 
@@ -271,7 +271,7 @@ plotEventDepObservation <- function(eventDepObservation, maxMonths = 12) {
   themeRA <- ggplot2::element_text(colour = "#000000", size = 14, hjust = 1)
   plot <- ggplot2::ggplot(eventDepObservation, ggplot2::aes(x = .data$monthsToEnd, y = .data$outcomes)) +
     # ggplot2::geom_vline(xintercept = timeBreaks, colour = "#AAAAAA", lty = 1, linewidth = 0.2) +
-    ggplot2::geom_col(width = 1, fill = rgb(0, 0, 0.8), alpha = 0.6) +
+    ggplot2::geom_col(width = 1, fill = grDevices::rgb(0, 0, 0.8), alpha = 0.6) +
     ggplot2::scale_x_continuous("Months from event", breaks = timeBreaks, labels = timeBreaks) +
     ggplot2::scale_y_continuous("Frequency") +
     ggplot2::facet_grid(censoring ~ ., scales = "free_y") +
@@ -314,7 +314,7 @@ plotSpanning <- function(spanning, type = "age") {
   themeRA <- ggplot2::element_text(colour = "#000000", size = 14, hjust = 1)
   plot <- ggplot2::ggplot(spanning, ggplot2::aes(x = .data$x, y = .data$coverBeforeAfterSubjects)) +
     ggplot2::geom_vline(xintercept = breaks, colour = "#AAAAAA", lty = 1, linewidth = 0.2) +
-    ggplot2::geom_col(width = 1, fill = rgb(0, 0, 0.8), alpha = 0.6) +
+    ggplot2::geom_col(width = 1, fill = grDevices::rgb(0, 0, 0.8), alpha = 0.6) +
     ggplot2::scale_x_continuous(xLabel, breaks = breaks, labels = labels) +
     ggplot2::scale_y_continuous("Subjects") +
     ggplot2::theme(
@@ -357,7 +357,7 @@ plotAgeSpline <- function(ageSpline, rrLim = c(0.1, 10)) {
   themeRA <- ggplot2::element_text(colour = "#000000", size = 12, hjust = 1)
   plot <- ggplot2::ggplot(data, ggplot2::aes(x = .data$age, y = .data$rr)) +
     ggplot2::geom_hline(yintercept = breaks, colour = "#AAAAAA", lty = 1, linewidth = 0.2) +
-    ggplot2::geom_line(color = rgb(0, 0, 0.8), alpha = 0.8, linewidth = 1) +
+    ggplot2::geom_line(color = grDevices::rgb(0, 0, 0.8), alpha = 0.8, linewidth = 1) +
     ggplot2::scale_x_continuous("Age", breaks = ageBreaks, labels = ageLabels) +
     ggplot2::scale_y_continuous("Relative risk",
                                 limits = rrLim,
@@ -396,7 +396,7 @@ plotSeasonSpline <- function(seasonSpline, rrLim = c(0.1, 10)) {
   themeRA <- ggplot2::element_text(colour = "#000000", size = 14, hjust = 1)
   plot <- ggplot2::ggplot(data, ggplot2::aes(x = season, y = rr)) +
     ggplot2::geom_hline(yintercept = breaks, colour = "#AAAAAA", lty = 1, linewidth = 0.2) +
-    ggplot2::geom_line(color = rgb(0, 0, 0.8), alpha = 0.8, linewidth = 1) +
+    ggplot2::geom_line(color = grDevices::rgb(0, 0, 0.8), alpha = 0.8, linewidth = 1) +
     ggplot2::scale_x_continuous("Month", breaks = seasonBreaks, labels = seasonBreaks) +
     ggplot2::scale_y_continuous("Relative risk",
                                 limits = rrLim,
@@ -421,7 +421,12 @@ plotSeasonSpline <- function(seasonSpline, rrLim = c(0.1, 10)) {
   return(plot)
 }
 
-plotCalendarTimeSpline <- function(calendarTimeSpline, rrLim = c(0.1, 10)) {
+# unknown function?
+convertMonthToStartDate <- function(x){
+  return(x)
+}
+ # adding missing sccsModel as input
+plotCalendarTimeSpline <- function(calendarTimeSpline, rrLim = c(0.1, 10), sccsModel) {
   splineCoefs <- c(0, log(calendarTimeSpline$rr))
   ageKnots <- calendarTimeSpline$ageMonth
   calendarTimeKnots <- sccsModel$metaData$calendarTime$calendarTimeKnots
@@ -439,7 +444,7 @@ plotCalendarTimeSpline <- function(calendarTimeSpline, rrLim = c(0.1, 10)) {
   theme <- ggplot2::element_text(colour = "#000000", size = 12)
   themeRA <- ggplot2::element_text(colour = "#000000", size = 12, hjust = 1)
   plot <- ggplot2::ggplot(data, ggplot2::aes(x = calendarTime, y = rr)) +
-    ggplot2::geom_line(color = rgb(0, 0, 0.8), alpha = 0.8, linewidth = 1) +
+    ggplot2::geom_line(color = grDevices::rgb(0, 0, 0.8), alpha = 0.8, linewidth = 1) +
     ggplot2::scale_x_date("Calendar Time") +
     ggplot2::scale_y_continuous("Relative risk",
                                 limits = rrLim,
@@ -512,8 +517,8 @@ plotControlEstimates <- function(controlEstimates) {
   }
   d$Group <- as.factor(d$trueRr)
   d$Significant <- d$ci95Lb > d$trueRr | d$ci95Ub < d$trueRr
-  temp1 <- aggregate(Significant ~ Group + yGroup, data = d, length)
-  temp2 <- aggregate(Significant ~ Group + yGroup, data = d, mean)
+  temp1 <- stats::aggregate(Significant ~ Group + yGroup, data = d, length)
+  temp2 <- stats::aggregate(Significant ~ Group + yGroup, data = d, mean)
   temp1$nLabel <- paste0(formatC(temp1$Significant, big.mark = ","), " estimates")
   temp1$Significant <- NULL
 
@@ -532,22 +537,22 @@ plotControlEstimates <- function(controlEstimates) {
   d$Group <- paste("True hazard ratio =", d$Group)
   dd$Group <- paste("True hazard ratio =", dd$Group)
   alpha <- 1 - min(0.95 * (nrow(d) / nrow(dd) / 50000)^0.1, 0.95)
-  plot <- ggplot2::ggplot(d, ggplot2::aes(x = logRr, y = seLogRr), environment = environment()) +
+  plot <- ggplot2::ggplot(d, ggplot2::aes(x = .data$logRr, y = .data$seLogRr), environment = environment()) +
     ggplot2::geom_vline(xintercept = log(breaks), colour = "#AAAAAA", lty = 1, size = 0.5) +
-    ggplot2::geom_abline(ggplot2::aes(intercept = (-log(tes)) / qnorm(0.025), slope = 1 / qnorm(0.025)),
-                         colour = rgb(0.8, 0, 0),
+    ggplot2::geom_abline(ggplot2::aes(intercept = (-log(.data$tes)) / stats::qnorm(0.025), slope = 1 / stats::qnorm(0.025)),
+                         colour = grDevices::rgb(0.8, 0, 0),
                          linetype = "dashed",
                          size = 1,
                          alpha = 0.5,
                          data = dd) +
-    ggplot2::geom_abline(ggplot2::aes(intercept = (-log(tes)) / qnorm(0.975), slope = 1 / qnorm(0.975)),
-                         colour = rgb(0.8, 0, 0),
+    ggplot2::geom_abline(ggplot2::aes(intercept = (-log(.data$tes)) / stats::qnorm(0.975), slope = 1 / stats::qnorm(0.975)),
+                         colour = grDevices::rgb(0.8, 0, 0),
                          linetype = "dashed",
                          size = 1,
                          alpha = 0.5,
                          data = dd) +
     ggplot2::geom_point(size = size,
-                        color = rgb(0, 0, 0, alpha = 0.05),
+                        color = grDevices::rgb(0, 0, 0, alpha = 0.05),
                         alpha = alpha,
                         shape = 16) +
     ggplot2::geom_hline(yintercept = 0) +
@@ -555,14 +560,14 @@ plotControlEstimates <- function(controlEstimates) {
                         y = 0.9,
                         alpha = 1,
                         hjust = "left",
-                        ggplot2::aes(label = nLabel),
+                        ggplot2::aes(label = .data$nLabel),
                         size = 5,
                         data = dd) +
     ggplot2::geom_label(x = log(0.15),
                         y = labelY,
                         alpha = 1,
                         hjust = "left",
-                        ggplot2::aes(label = meanLabel),
+                        ggplot2::aes(label = .data$meanLabel),
                         size = 5,
                         data = dd) +
     ggplot2::scale_x_continuous("Hazard ratio",

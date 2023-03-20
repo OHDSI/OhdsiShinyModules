@@ -147,7 +147,7 @@ connectionHandlerSccs  <- ResultModelManager::ConnectionHandler$new(connectionDe
 
 resultDatabaseSettingsSccs <- list(
   dbms = 'sqlite',
-  tablePrefix = '',
+  tablePrefix = 'sccs_',
   cohortTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA',
   schema = "main",

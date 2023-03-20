@@ -102,7 +102,7 @@ evidenceSynthesisServer <- function(
       
       output$esCohortMethodSelect <- shiny::renderUI({
         
-        tagList(
+        shiny::tagList(
           shiny::selectInput(
             inputId = session$ns('selectedTargetId'), 
             label = 'Target:', 
@@ -522,8 +522,8 @@ computeTraditionalP <- function(
     ) 
 {
   z <- logRr/seLogRr
-  pUpperBound <- 1 - pnorm(z)
-  pLowerBound <- pnorm(z)
+  pUpperBound <- 1 - stats::pnorm(z)
+  pLowerBound <- stats::pnorm(z)
   if (twoSided) {
     return(2 * pmin(pUpperBound, pLowerBound))
   }

@@ -149,7 +149,7 @@ sccsServer <- function(
     output$rowIsSelected <- shiny::reactive({
       return(!is.null(selectedRow()))
     })
-    outputOptions(output, "rowIsSelected", suspendWhenHidden = FALSE)
+    shiny::outputOptions(output, "rowIsSelected", suspendWhenHidden = FALSE)
 
     output$powerTable <- shiny::renderTable({
       row <- selectedRow()
@@ -182,7 +182,7 @@ sccsServer <- function(
       }
     })
 
-    output$attritionPlot <- renderPlot({
+    output$attritionPlot <- shiny::renderPlot({
       row <- selectedRow()
       if (is.null(row)) {
         return(NULL)
@@ -301,7 +301,7 @@ sccsServer <- function(
       }
     })
 
-    output$ageSplinePlot <- renderPlot({
+    output$ageSplinePlot <- shiny::renderPlot({
       row <- selectedRow()
       if (is.null(row)) {
         return(NULL)
