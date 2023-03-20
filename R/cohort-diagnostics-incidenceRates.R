@@ -580,7 +580,7 @@ incidenceRatesView <- function(id) {
         plotSpace.querySelector('.svg-container').style.height = height;
         plotSpace.querySelector('.js-plotly-plot').style.height = height;
       });
-    ", ns("irPlotHeight"), ns("irPlotHeight")))
+    ", ns("irPlotHeight"), ns("irPlotContainer")))
   )
 }
 
