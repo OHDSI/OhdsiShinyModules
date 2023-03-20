@@ -562,7 +562,7 @@ incidenceRatesView <- function(id) {
         shiny::htmlOutput(outputId = ns("hoverInfoIr")),
         shinycssloaders::withSpinner(
           shiny::div(
-            id = "irPlotContainer",
+            id = ns("irPlotContainer"),
             plotly::plotlyOutput(
               outputId = ns("incidenceRatePlot"),
               width = "100%",
@@ -573,19 +573,14 @@ incidenceRatesView <- function(id) {
       )
     ),
     # complicated way of setting plot height based on number of rows and selection type
-    shiny::tags$script("
-      Shiny.addCustomMessageHandler('irPlotHeight', function(height) {
-        let plotSpace = document.getElementById('irPlotContainer')
-        plotSpace.querySelector('.svg-container').style.height = height
-        plotSpace.querySelector('.js-plotly-plot').style.height = height
+    # Note that this code is only used because renderUI/ uiOutput didn't seem to update with plotly
+    shiny::tags$script(sprintf("
+      Shiny.addCustomMessageHandler('%s', function(height) {
+        let plotSpace = document.getElementById('%s');
+        plotSpace.querySelector('.svg-container').style.height = height;
+        plotSpace.querySelector('.js-plotly-plot').style.height = height;
       });
-
-      Shiny.addCustomMessageHandler('irPlotWidth', function(width) {
-        let plotSpace = document.getElementById('irPlotContainer')
-        plotSpace.querySelector('.svg-container').style.width = width
-        plotSpace.querySelector('.js-plotly-plot').style.width = width
-      });
-    ")
+    ", ns("irPlotHeight"), ns("irPlotHeight")))
   )
 }
 
@@ -658,8 +653,9 @@ incidenceRatesModule <- function(id,
                                  selectedDatabaseIds,
                                  cohortIds,
                                  cohortTable) {
-  ns <- shiny::NS(id)
+
   shiny::moduleServer(id, function(input, output, session) {
+    ns <- session$ns
     irRanges <- getIncidenceRateRanges(dataSource)
     output$selectedCohorts <- shiny::renderUI({ selectedCohorts() })
 
@@ -818,18 +814,17 @@ incidenceRatesModule <- function(id,
     })
 
     shiny::observeEvent(input$generatePlot, {
+      # Note that this code is only used because renderUI/ uiOutput didn't seem to update with plotly
+      plotHeight <- 400
       if (nplots() < 101) {
         # Set the height/width of the plot relative to the number of cohorts and databases
         if ("Age" %in% input$irStratification) {
           plotHeight <- 150 * length(selectedDatabaseIds()) * length(cohortIds())
-          session$sendCustomMessage("irPlotHeight", sprintf("%spx", plotHeight))
         } else {
           plotHeight <- 200 * length(selectedDatabaseIds()) * length(cohortIds())
-          session$sendCustomMessage("irPlotHeight", sprintf("%spx", plotHeight))
         }
-      } else {
-        session$sendCustomMessage("irPlotHeight", "400px")
       }
+      session$sendCustomMessage(ns("irPlotHeight"), sprintf("%spx", plotHeight))
     })
 
     getIrPlot <- shiny::eventReactive(input$generatePlot, {

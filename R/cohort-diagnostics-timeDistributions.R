@@ -320,8 +320,20 @@ timeDistributionsView <- function(id) {
         ns = ns,
         shiny::checkboxInput(ns("showMaxValues"), label = "Show max values", value = FALSE),
         shiny::tags$br(),
-        shinycssloaders::withSpinner(plotly::plotlyOutput(ns("timeDistributionPlot"), width = "100%", height = "100%"))
-      )
+        shinycssloaders::withSpinner(
+          shiny::div(
+            id = ns("tsPlotContainer"),
+            plotly::plotlyOutput(ns("timeDistributionPlot"), width = "100%", height = "300px")
+          )
+        )
+      ),
+      shiny::tags$script(sprintf("
+      Shiny.addCustomMessageHandler('%s', function(height) {
+        let plotSpace = document.getElementById('%s');
+        plotSpace.querySelector('.svg-container').style.height = height;
+        plotSpace.querySelector('.js-plotly-plot').style.height = height;
+      });
+    ",ns('tsPlotHeight'), ns('tsPlotContainer')))
     )
   )
 }
@@ -333,8 +345,8 @@ timeDistributionsModule <- function(id,
                                     cohortIds,
                                     cohortTable = dataSource$cohortTable,
                                     databaseTable = dataSource$databaseTable) {
-  ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
+    ns <- session$ns
     output$selectedCohorts <- shiny::renderUI({ selectedCohorts() })
 
     # Time distribution -----
@@ -363,6 +375,11 @@ timeDistributionsModule <- function(id,
         dplyr::inner_join(cohortTable %>% dplyr::select("cohortName", "cohortId"), by = "cohortId")
       shiny::validate(shiny::need(hasData(data), "No data for this combination"))
       plot <- plotTimeDistribution(data = data, shortNameRef = cohortTable, showMax = input$showMaxValues)
+
+      # Note that this code is only used because renderUI/ uiOutput didn't seem to update with plotly
+      plotHeight <- 300 * length(selectedDatabaseIds())
+      session$sendCustomMessage(ns("tsPlotHeight"), sprintf("%spx", plotHeight))
+
       return(plot)
     })
 
