@@ -151,7 +151,7 @@ plotCohortOverlap <- function(data,
                           nrows = nrows,
                           shareY = T,
                           shareX = (yAxis == "Percentages"),
-                          margin = c(0.02, 0.02, 0.01, 0.03)) %>%
+                          margin = c(0.02, 0.02, 0.03, 0.03)) %>%
     plotly::layout(showlegend = FALSE,
                    annotations = annotations,
                    plot_bgcolor = '#e5ecf6',
@@ -206,9 +206,23 @@ cohortOverlapView <- function(id) {
             selected = "Percentages",
             inline = TRUE
           ),
-          shinycssloaders::withSpinner(plotly::plotlyOutput(ns("overlapPlot"), width = "100%", height = "100%"))
+          shinycssloaders::withSpinner(
+            shiny::tags$div(
+              id = ns("overlapPlotContainer"),
+              plotly::plotlyOutput(ns("overlapPlot"), width = "100%", height = "300px")
+            )
+          )
         ),
 
+          # complicated way of setting plot height based on number of rows and selection type
+          # Note that this code is only used because renderUI/ uiOutput didn't seem to update with plotly
+          shiny::tags$script(sprintf("
+        Shiny.addCustomMessageHandler('%s', function(height) {
+          let plotSpace = document.getElementById('%s');
+          plotSpace.querySelector('.svg-container').style.height = height;
+          plotSpace.querySelector('.js-plotly-plot').style.height = height;
+        });
+      ", ns("overlapPlotHeight"), ns("overlapPlotContainer"))),
         shiny::tabPanel(
           title = "Table",
           shiny::fluidRow(
@@ -423,8 +437,8 @@ cohortOverlapModule <- function(id,
                                 targetCohortId,
                                 cohortIds,
                                 cohortTable) {
-  ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
+    ns <- session$ns
     output$selectedCohorts <- shiny::renderUI({ selectedCohorts() })
 
     # Cohort Overlap ------------------------
@@ -474,6 +488,9 @@ cohortOverlapModule <- function(id,
         !all(is.na(data$eitherSubjects)),
         paste0("No cohort overlap data for this combination.")
       ))
+
+     plotHeight <- 300 * length(selectedDatabaseIds())
+      session$sendCustomMessage(ns("overlapPlotHeight"), sprintf("%spx", plotHeight))
 
       plot <- plotCohortOverlap(
         data = data,
