@@ -305,18 +305,20 @@ plotIncidenceRate <- function(data,
   cohortIds <- plotData$cohortId %>% unique()
 
 
-  makeSubPlot <- function(subsetData, colors, title = "") {
+  makeSubPlot <- function(subsetData, colors, title = "", ytitle = "") {
     if (stratifyByCalendarYear) {
       plt <- subsetData %>%
       plotly::plot_ly() %>%
         plotly::add_lines(x = ~calendarYear,
                           color = ~gender,
                           colors = colors,
+                          y0 = 0,
                           y = ~incidenceRate) %>%
         plotly::add_markers(x = ~calendarYear,
                             color = ~gender,
                             colors = colors,
                             text = ~tooltip,
+                            y0 = 0,
                             y = ~incidenceRate)
     } else {
      plt <- subsetData %>%
@@ -325,30 +327,37 @@ plotIncidenceRate <- function(data,
                          color = ~gender,
                          colors = colors,
                          text = ~tooltip,
+                         y0 = 0,
                          y = ~incidenceRate)
     }
     plt <- plt %>%
-      plotly::layout(xaxis = list(showtitle = FALSE,
-                                  zerolinecolor = '#ffff',
+      plotly::layout(title = title,
+                     xaxis = list(zerolinecolor = '#ffff',
                                   zerolinewidth = 1,
                                   textangle = 70,
                                   gridcolor = 'ffff'),
-                     yaxis = list(title = "", showtitle = FALSE))
+                     yaxis = list(title = ytitle))
 
     return(plt)
   }
 
-
-  for (dbm in plotData$databaseName %>% unique()) {
+  databaseNames <- plotData$databaseName %>% unique()
+  for (dbI in 1:length(databaseNames)) {
+    dbm <- databaseNames[dbI]
     subdata <- plotData %>% dplyr::filter(.data$databaseName == dbm)
     for (cohort in cohortIds) {
       csubdata <- subdata %>% dplyr::filter(.data$cohortId == cohort)
 
       if (stratifyByAgeGroup) {
-        for (agrp in ageGroupings) {
+        for (i in 1:length(ageGroupings)) {
+          agrp <- ageGroupings[i]
+          cohortName <- ""
+          if (i == 1) {
+            cohortName <- paste0("C", cohort)
+          }
           pltdt <- csubdata %>% dplyr::filter(.data$ageGroup == agrp)
 
-          subplots[[length(subplots) + 1]] <- makeSubPlot(pltdt, colors, title = agrp)
+          subplots[[length(subplots) + 1]] <- makeSubPlot(pltdt, colors, ytitle = cohortName)
 
           xTitlePos <- (length(topAnnotations) / length(ageGroupings)) + 1 / length(ageGroupings) * 0.2
           topAnnotations[[length(topAnnotations) + 1]] <- list(text = paste("Age", agrp),
@@ -361,28 +370,30 @@ plotIncidenceRate <- function(data,
                                                                showarrow = FALSE)
         }
       } else {
-        subplots[[length(subplots) + 1]] <- makeSubPlot(csubdata, colors)
+        subplots[[length(subplots) + 1]] <- makeSubPlot(csubdata, colors, ytitle = paste0("C", cohort))
       }
     }
   }
 
-  for (i in 1:length(cohortIds)) {
-    cohortName <- cohortIds[i]
-    yTitlePos <- i / length(cohortNames) * 0.5 * 1/length(cohortNames)
-    annotations[[length(annotations) + 1]] <- list(text = cohortName,
-                                                   showarrow = FALSE,
-                                                   x = 1.0,
-                                                   y = yTitlePos,
-                                                   textangle = 90,
-                                                   xref = "paper",
-                                                   yref = "paper",
-                                                   xanchor = "left",
-                                                   yanchor = "bottom")
+  for (i in 1:length(databaseNames)) {
+    dbName <- rev(databaseNames)[i]
+    ypos <- i * 1/length(databaseNames) - 0.05
+    topAnnotations[[length(topAnnotations) + 1]] <- list(
+      text = dbName,
+      x = 0.998,
+      showarrow = FALSE,
+      y = ypos,
+      textangle = 90,
+      xref = "paper",
+      yref = "paper",
+      xanchor = "left",
+      yanchor = "top"
+    )
   }
 
-
-  plt <- plotly::subplot(subplots, nrows = nrows, shareX = F, shareY = T) %>%
-    plotly::layout(annotations = c(annotations, topAnnotations), showlegend = F,
+  plt <- plotly::subplot(subplots, nrows = nrows, shareX = F, shareY = T, margin = c(0.02, 0.02, 0.02, 0.05)) %>%
+    plotly::layout(annotations = c(annotations, topAnnotations),
+                   showlegend = F,
                    plot_bgcolor = '#e5ecf6',
                    xaxis = list(
                      showTitle = FALSE,

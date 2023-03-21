@@ -16,16 +16,16 @@
 
 ### cohort overlap plot ##############
 plotCohortOverlap <- function(data,
-                              shortNameRef = NULL,
+                              cohortTable = NULL,
                               yAxis = "Percentages") {
   data <- data %>%
     addShortName(
-      shortNameRef = shortNameRef,
+      shortNameRef = cohortTable,
       cohortIdColumn = "targetCohortId",
       shortNameColumn = "targetShortName"
     ) %>%
     addShortName(
-      shortNameRef = shortNameRef,
+      shortNameRef = cohortTable,
       cohortIdColumn = "comparatorCohortId",
       shortNameColumn = "comparatorShortName"
     )
@@ -80,134 +80,88 @@ plotCohortOverlap <- function(data,
         "Database: ",
         .data$databaseName,
         "\n",
-        "\n",
         .data$targetShortName,
         " only: ",
         .data$tOnlyString,
-        "\nBoth: ",
+        " Both: ",
         .data$bothString,
-        "\n",
+        " ",
         .data$comparatorShortName,
         " only: ",
         .data$cOnlyString
       )
-    ) %>%
-    dplyr::select(
-      "targetShortName",
-      "comparatorShortName",
-      "databaseId",
-      "databaseName",
-      "absTOnlySubjects",
-      "absCOnlySubjects",
-      "absBothSubjects",
-      "tooltip"
-    ) %>%
-    tidyr::pivot_longer(
-      cols = c(
-        "absTOnlySubjects",
-        "absCOnlySubjects",
-        "absBothSubjects"
-      ),
-      names_to = "subjectsIn",
-      values_to = "value"
-    ) %>%
-    dplyr::mutate(
-      subjectsIn = dplyr::recode(
-        .data$subjectsIn, # is this correct?
-        absTOnlySubjects = "Left cohort only",
-        absBothSubjects = "Both cohorts",
-        absCOnlySubjects = "Right cohort only"
-      )
-    )
-
-  plotData$subjectsIn <-
-    factor(
-      plotData$subjectsIn,
-      levels = c("Right cohort only", "Both cohorts", "Left cohort only")
     )
 
   if (yAxis == "Percentages") {
-    position <- "fill"
-  } else {
-    position <- "stack"
+    plotData <- plotData %>%
+      dplyr::mutate(tOnlySubjects = .data$absTOnlySubjects / .data$absEitherSubjects * 100,
+                    cOnlySubjects = .data$absCOnlySubjects / .data$absEitherSubjects * 100,
+                    bothSubjects = .data$absBothSubjects / .data$absEitherSubjects * 100)
   }
 
-  sortTargetShortName <- plotData %>%
-    dplyr::select("targetShortName") %>%
-    dplyr::distinct() %>%
-    dplyr::arrange(-as.integer(sub(
-      pattern = "^C", "", x = .data$targetShortName
-    )))
+  subplots <- list()
+  annotations <- list()
 
-  sortComparatorShortName <- plotData %>%
-    dplyr::select("comparatorShortName") %>%
-    dplyr::distinct() %>%
-    dplyr::arrange(as.integer(sub(
-      pattern = "^C", "", x = .data$comparatorShortName
-    )))
-
-  plotData <- plotData %>%
-    dplyr::arrange(
-      targetShortName = factor(.data$targetShortName, levels = sortTargetShortName$targetShortName),
-      .data$targetShortName
-    ) %>%
-    dplyr::arrange(
-      comparatorShortName = factor(.data$comparatorShortName, levels = sortComparatorShortName$comparatorShortName),
-      .data$comparatorShortName
-    )
-
-  plotData$targetShortName <- factor(plotData$targetShortName,
-                                     levels = sortTargetShortName$targetShortName
-  )
-
-  plotData$comparatorShortName <-
-    factor(plotData$comparatorShortName,
-           levels = sortComparatorShortName$comparatorShortName
-    )
-
-  plot <- ggplot2::ggplot(data = plotData) +
-    ggplot2::aes(
-      fill = .data$subjectsIn,
-      y = .data$targetShortName,
-      x = .data$value,
-      tooltip = .data$tooltip,
-      group = .data$subjectsIn
-    ) +
-    ggplot2::ylab(label = "") +
-    ggplot2::xlab(label = "") +
-    ggplot2::scale_fill_manual("Subjects in", values = c(grDevices::rgb(0.8, 0.2, 0.2), grDevices::rgb(0.3, 0.2, 0.4), grDevices::rgb(0.4, 0.4, 0.9))) +
-    ggplot2::facet_grid(.data$comparatorShortName ~ .data$databaseName) +
-    ggplot2::theme(
-      panel.background = ggplot2::element_blank(),
-      strip.background = ggplot2::element_blank(),
-      panel.grid.major.x = ggplot2::element_line(color = "gray"),
-      axis.ticks.y = ggplot2::element_blank(),
-      panel.spacing = ggplot2::unit(2, "lines")
-    ) +
-    ggiraph::geom_bar_interactive(
-      position = position,
-      alpha = 0.6,
-      stat = "identity"
-    )
-  if (yAxis == "Percentages") {
-    plot <- plot + ggplot2::scale_x_continuous(labels = scales::percent)
-  } else {
-    plot <-
-      plot + ggplot2::scale_x_continuous(labels = scales::comma, n.breaks = 3)
-  }
-  width <- length(unique(plotData$databaseId))
-  height <-
-    nrow(
+  cohorts <- unique(plotData$targetShortName)
+  databases <- unique(plotData$databaseName)
+  for (i in 1:length(databases)) {
+    database <- databases[i]
+    for (j in 1:length(cohorts)) {
+      cohort <- cohorts[j]
       plotData %>%
-        dplyr::select("targetShortName", "comparatorShortName") %>%
-        dplyr::distinct()
-    )
-  plot <- ggiraph::girafe(
-    ggobj = plot,
-    options = list(ggiraph::opts_sizing(rescale = TRUE)),
-    width_svg = max(12, 2 * width),
-    height_svg = max(2, 0.5 * height)
-  )
+        dplyr::filter(.data$databaseName == database, .data$targetShortName == cohort)
+      plot <- plotly::plot_ly(plotData,
+                              type = 'bar',
+                              orientation = 'h',
+                              x = ~tOnlySubjects,
+                              y = ~comparatorShortName,
+                              #text = ~tooltip,
+                              marker = list(color = "rgba(71, 58, 131, 0.8)")) %>%
+        plotly::add_trace(x = ~bothSubjects, marker = list(color = 'rgba(122, 120, 168, 0.8)')) %>%
+        plotly::add_trace(x = ~cOnlySubjects, marker = list(color = 'rgba(164, 163, 204, 0.85)')) %>%
+        plotly::add_markers(x = ~cOnlySubjects, text = ~tooltip, marker = list(color = 'rgba(164, 163, 204, 0.00)')) %>%
+        plotly::layout(barmode = "stack",
+                       xaxis = list(zerolinecolor = '#ffff',
+                                    zerolinewidth = 1,
+                                    showtitle = FALSE,
+                                    title = "",
+                                    gridcolor = 'ffff'),
+                       yaxis = list(zerolinecolor = '#ffff',
+                                    title = database,
+                                    zerolinewidth = 1,
+                                    gridcolor = 'ffff'))
+
+      subplots[[length(subplots) + 1]] <- plot
+
+      xTitlePos <- (j / length(cohorts))
+      annotations[[length(annotations) + 1]] <- list(text = cohort,
+                                                     x = xTitlePos,
+                                                     y = i/length(databases),
+                                                     xref = "paper",
+                                                     yref = "paper",
+                                                     xanchor = "left",
+                                                     yanchor = "bottom",
+                                                     showarrow = FALSE)
+    }
+  }
+
+  nrows <- length(databases)
+  plot <- plotly::subplot(subplots,
+                          nrows = nrows,
+                          shareY = T,
+                          shareX = (yAxis == "Percentages"),
+                          margin = c(0.02, 0.02, 0.02, 0.05)) %>%
+    plotly::layout(showlegend = FALSE,
+                   annotations = annotations,
+                   plot_bgcolor = '#e5ecf6',
+                   xaxis = list(
+                     zerolinecolor = '#ffff',
+                     zerolinewidth = 1,
+                     gridcolor = 'ffff'),
+                   yaxis = list(
+                     zerolinecolor = '#ffff',
+                     zerolinewidth = 1,
+                     gridcolor = 'ffff'))
   return(plot)
 }
 
@@ -251,7 +205,7 @@ cohortOverlapView <- function(id) {
             selected = "Percentages",
             inline = TRUE
           ),
-          shinycssloaders::withSpinner(ggiraph::ggiraphOutput(ns("overlapPlot"), width = "100%", height = "100%"))
+          shinycssloaders::withSpinner(plotly::plotlyOutput(ns("overlapPlot"), width = "100%", height = "100%"))
         ),
 
         shiny::tabPanel(
@@ -382,7 +336,9 @@ getResultsCohortOverlap <- function(dataSource,
       by = c("databaseId", "comparatorCohortId")
     ) %>%
     dplyr::mutate(cOnlySubjects = .data$comparatorCohortSubjects - .data$subjects) %>%
-    dplyr::mutate(eitherSubjects = .data$cOnlySubjects + .data$tOnlySubjects + .data$subjects) %>%
+    dplyr::mutate(eitherSubjects = .data$cOnlySubjects +
+      .data$tOnlySubjects +
+      .data$subjects) %>%
     dplyr::rename(
       "targetCohortId" = "cohortId",
       "bothSubjects" = "subjects"
@@ -497,7 +453,7 @@ cohortOverlapModule <- function(id,
       return(data)
     })
 
-    output$overlapPlot <- ggiraph::renderggiraph(expr = {
+    output$overlapPlot <- plotly::renderPlotly(expr = {
       shiny::validate(shiny::need(
         length(cohortIds()) > 0,
         paste0("Please select Target Cohort(s)")
@@ -520,7 +476,7 @@ cohortOverlapModule <- function(id,
 
       plot <- plotCohortOverlap(
         data = data,
-        shortNameRef = cohortTable,
+        cohortTable = cohortTable,
         yAxis = input$overlapPlotType
       )
       return(plot)
