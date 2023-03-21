@@ -77,7 +77,8 @@ plotCohortOverlap <- function(data,
     ) %>%
     dplyr::mutate(
       tooltip = paste0(
-        "Database: ",
+        .data$targetShortName, " x ", .data$comparatorShortName,
+        "\nDatabase: ",
         .data$databaseName,
         "\n",
         .data$targetShortName,
@@ -102,15 +103,15 @@ plotCohortOverlap <- function(data,
   subplots <- list()
   annotations <- list()
 
-  cohorts <- unique(plotData$targetShortName)
+  targetCohorts <- unique(plotData$targetShortName)
   databases <- unique(plotData$databaseName)
   for (i in 1:length(databases)) {
     database <- databases[i]
-    for (j in 1:length(cohorts)) {
-      cohort <- cohorts[j]
-      plotData %>%
-        dplyr::filter(.data$databaseName == database, .data$targetShortName == cohort)
-      plot <- plotly::plot_ly(plotData,
+    for (j in 1:length(targetCohorts)) {
+      targetCohortName <- rev(targetCohorts)[j]
+      tPlotData <- plotData %>%
+        dplyr::filter(.data$databaseName == database, .data$targetShortName == targetCohortName)
+      plot <- plotly::plot_ly(tPlotData,
                               type = 'bar',
                               orientation = 'h',
                               x = ~tOnlySubjects,
@@ -119,7 +120,7 @@ plotCohortOverlap <- function(data,
                               marker = list(color = "rgba(71, 58, 131, 0.8)")) %>%
         plotly::add_trace(x = ~bothSubjects, marker = list(color = 'rgba(122, 120, 168, 0.8)')) %>%
         plotly::add_trace(x = ~cOnlySubjects, marker = list(color = 'rgba(164, 163, 204, 0.85)')) %>%
-        plotly::add_markers(x = ~cOnlySubjects, text = ~tooltip, marker = list(color = 'rgba(164, 163, 204, 0.00)')) %>%
+        plotly::add_markers(x = 50, text = ~tooltip, marker = list(color = 'rgba(164, 163, 204, 0.00)')) %>%
         plotly::layout(barmode = "stack",
                        xaxis = list(zerolinecolor = '#ffff',
                                     zerolinewidth = 1,
@@ -133,13 +134,13 @@ plotCohortOverlap <- function(data,
 
       subplots[[length(subplots) + 1]] <- plot
 
-      xTitlePos <- (j / length(cohorts))
-      annotations[[length(annotations) + 1]] <- list(text = cohort,
+      xTitlePos <- (j / length(targetCohorts)) - (1/length(targetCohorts)) * 0.2
+      annotations[[length(annotations) + 1]] <- list(text = targetCohortName,
                                                      x = xTitlePos,
                                                      y = i/length(databases),
                                                      xref = "paper",
                                                      yref = "paper",
-                                                     xanchor = "left",
+                                                     xanchor = "right",
                                                      yanchor = "bottom",
                                                      showarrow = FALSE)
     }
@@ -150,7 +151,7 @@ plotCohortOverlap <- function(data,
                           nrows = nrows,
                           shareY = T,
                           shareX = (yAxis == "Percentages"),
-                          margin = c(0.02, 0.02, 0.02, 0.05)) %>%
+                          margin = c(0.02, 0.02, 0.01, 0.03)) %>%
     plotly::layout(showlegend = FALSE,
                    annotations = annotations,
                    plot_bgcolor = '#e5ecf6',
