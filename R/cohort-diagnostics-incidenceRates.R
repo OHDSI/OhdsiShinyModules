@@ -824,7 +824,8 @@ incidenceRatesModule <- function(id,
       return(nPlotsMade)
     })
 
-    shiny::observeEvent(input$generatePlot, {
+
+    setPlotHieght <- function () {
       # Note that this code is only used because renderUI/ uiOutput didn't seem to update with plotly
       plotHeight <- 400
       if (nplots() < 101) {
@@ -836,6 +837,9 @@ incidenceRatesModule <- function(id,
         }
       }
       session$sendCustomMessage(ns("irPlotHeight"), sprintf("%spx", plotHeight))
+    }
+    shiny::observeEvent(input$generatePlot, {
+      setPlotHieght()
     })
 
     getIrPlot <- shiny::eventReactive(input$generatePlot, {
@@ -843,12 +847,13 @@ incidenceRatesModule <- function(id,
       shiny::validate(shiny::need(length(cohortIds()) > 0, "No cohorts chosen"))
       nPlotsMade <- nplots()
 
+      print(nPlotsMade)
       stratifyByAge <- "Age" %in% input$irStratification
       stratifyByGender <- "Sex" %in% input$irStratification
       stratifyByCalendarYear <-
         "Calendar Year" %in% input$irStratification
 
-      shiny::validate(shiny::need(nPlotsMade < 101, "Resulting number of plots will execeed 100 - adjust selection"))
+      shiny::validate(shiny::need(nPlotsMade < 200, "Resulting number of plots will execeed 200 - adjust selection"))
 
       shiny::withProgress(
         message = paste(
