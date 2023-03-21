@@ -21,7 +21,8 @@ shiny::testServer(sccsServer, args = list(
   session$setInputs(
     mainTableRowInput = 1
   )
-
+  
+  testthat::expect_equal(selectedRow(),1)
   # End of testing that can be done without data
   # The following will be filled in when test data are available
   # checkmate::expect_data_frame(selectedRow())

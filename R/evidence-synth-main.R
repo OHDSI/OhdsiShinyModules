@@ -455,7 +455,7 @@ result <- connectionHandler$queryDb(
       .data$calibratedP / 2)
   )
 
-return(result)
+return(unique(result))
 }
 
 createPlotForAnalysis <- function(data) {
