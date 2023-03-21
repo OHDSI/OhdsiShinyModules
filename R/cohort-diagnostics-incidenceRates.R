@@ -213,7 +213,6 @@ plotIncidenceRate <- function(data,
     plotType <- "bar"
   }
 
-
   sortShortName <- plotData %>%
     dplyr::select("shortName") %>%
     dplyr::distinct() %>%
@@ -308,7 +307,7 @@ plotIncidenceRate <- function(data,
   makeSubPlot <- function(subsetData, colors, title = "", ytitle = "") {
     if (stratifyByCalendarYear) {
       plt <- subsetData %>%
-      plotly::plot_ly() %>%
+        plotly::plot_ly() %>%
         plotly::add_lines(x = ~calendarYear,
                           color = ~gender,
                           colors = colors,
@@ -321,8 +320,8 @@ plotIncidenceRate <- function(data,
                             y0 = 0,
                             y = ~incidenceRate)
     } else {
-     plt <- subsetData %>%
-      plotly::plot_ly() %>%
+      plt <- subsetData %>%
+        plotly::plot_ly() %>%
         plotly::add_bars(x = ~gender,
                          color = ~gender,
                          colors = colors,
@@ -377,7 +376,7 @@ plotIncidenceRate <- function(data,
 
   for (i in 1:length(databaseNames)) {
     dbName <- rev(databaseNames)[i]
-    ypos <- i * 1/length(databaseNames) - 0.05
+    ypos <- i * 1 / length(databaseNames) - 0.05
     topAnnotations[[length(topAnnotations) + 1]] <- list(
       text = dbName,
       x = 0.998,
@@ -562,7 +561,7 @@ incidenceRatesView <- function(id) {
           )
         )
       ),
-      shiny::actionButton(inputId = ns("generatePlot"), label = "Generate Plots"),
+      shiny::actionButton(inputId = ns("generatePlot"), label = "Generate Report"),
 
     ),
     shiny::conditionalPanel(
@@ -570,15 +569,28 @@ incidenceRatesView <- function(id) {
       condition = "input.generatePlot > 0",
       shinydashboard::box(
         width = NULL,
-        shiny::htmlOutput(outputId = ns("hoverInfoIr")),
-        shinycssloaders::withSpinner(
-          shiny::div(
-            id = ns("irPlotContainer"),
-            plotly::plotlyOutput(
-              outputId = ns("incidenceRatePlot"),
-              width = "100%",
-              height = "400px"
+        shiny::tabsetPanel(
+          id = ns("irPlotTabsetPanel"),
+          type = "pills",
+          selected = "Table",
+          shiny::tabPanel(
+            title = "Plot",
+            shinycssloaders::withSpinner(
+              shiny::div(
+                id = ns("irPlotContainer"),
+                plotly::plotlyOutput(
+                  outputId = ns("incidenceRatePlot"),
+                  width = "100%",
+                  height = "400px"
+                )
+              )
             )
+          ),
+          shiny::tabPanel(
+            title = "Table",
+            shiny::checkboxInput(ns("groupColumns"), "Group columns by strata/data source", value = FALSE),
+            shinycssloaders::withSpinner(reactable::reactableOutput(ns("irTable"))),
+            csvDownloadButton(ns, "irTable")
           )
         )
       )
@@ -825,33 +837,62 @@ incidenceRatesModule <- function(id,
     })
 
 
-    setPlotHieght <- function () {
+    setPlotHieght <- function() {
       # Note that this code is only used because renderUI/ uiOutput didn't seem to update with plotly
       plotHeight <- 400
       if (nplots() < 101) {
         # Set the height/width of the plot relative to the number of cohorts and databases
         if ("Age" %in% input$irStratification) {
-          plotHeight <- 150 * length(selectedDatabaseIds()) * length(cohortIds())
+          plotHeight <- 150 *
+            length(selectedDatabaseIds()) *
+            length(cohortIds())
         } else {
-          plotHeight <- 200 * length(selectedDatabaseIds()) * length(cohortIds())
+          plotHeight <- 200 *
+            length(selectedDatabaseIds()) *
+            length(cohortIds())
         }
       }
       session$sendCustomMessage(ns("irPlotHeight"), sprintf("%spx", plotHeight))
     }
+
     shiny::observeEvent(input$generatePlot, {
       setPlotHieght()
+    })
+
+
+    incidenceRateDataFiltered <- shiny::reactive({
+      data <- incidenceRateData()
+
+      stratifyByAge <- "Age" %in% input$irStratification
+      stratifyByGender <- "Sex" %in% input$irStratification
+      stratifyByCalendarYear <-
+        "Calendar Year" %in% input$irStratification
+
+      if (stratifyByAge && !"All" %in% input$incidenceRateAgeFilter) {
+        data <- data %>%
+          dplyr::filter(.data$ageGroup %in% input$incidenceRateAgeFilter)
+      }
+      if (stratifyByGender &&
+        !"All" %in% input$incidenceRateGenderFilter) {
+        data <- data %>%
+          dplyr::filter(.data$gender %in% input$incidenceRateGenderFilter)
+      }
+      if (stratifyByCalendarYear) {
+        data <- data %>%
+          dplyr::filter(.data$calendarYear %in% incidenceRateCalenderFilter())
+      }
+      if (input$irYscaleFixed) {
+        data <- data %>%
+          dplyr::filter(.data$incidenceRate %in% incidenceRateYScaleFilter())
+      }
+
+      return(data)
     })
 
     getIrPlot <- shiny::eventReactive(input$generatePlot, {
       shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
       shiny::validate(shiny::need(length(cohortIds()) > 0, "No cohorts chosen"))
       nPlotsMade <- nplots()
-
-      print(nPlotsMade)
-      stratifyByAge <- "Age" %in% input$irStratification
-      stratifyByGender <- "Sex" %in% input$irStratification
-      stratifyByCalendarYear <-
-        "Calendar Year" %in% input$irStratification
 
       shiny::validate(shiny::need(nPlotsMade < 200, "Resulting number of plots will execeed 200 - adjust selection"))
 
@@ -864,27 +905,15 @@ incidenceRatesModule <- function(id,
           " databases"
         ),
       {
-        data <- incidenceRateData()
+        data <- incidenceRateDataFiltered()
 
         shiny::validate(shiny::need(all(!is.null(data), nrow(data) > 0), paste0("No data for this combination")))
 
-        if (stratifyByAge && !"All" %in% input$incidenceRateAgeFilter) {
-          data <- data %>%
-            dplyr::filter(.data$ageGroup %in% input$incidenceRateAgeFilter)
-        }
-        if (stratifyByGender &&
-          !"All" %in% input$incidenceRateGenderFilter) {
-          data <- data %>%
-            dplyr::filter(.data$gender %in% input$incidenceRateGenderFilter)
-        }
-        if (stratifyByCalendarYear) {
-          data <- data %>%
-            dplyr::filter(.data$calendarYear %in% incidenceRateCalenderFilter())
-        }
-        if (input$irYscaleFixed) {
-          data <- data %>%
-            dplyr::filter(.data$incidenceRate %in% incidenceRateYScaleFilter())
-        }
+        stratifyByAge <- "Age" %in% input$irStratification
+        stratifyByGender <- "Sex" %in% input$irStratification
+        stratifyByCalendarYear <-
+          "Calendar Year" %in% input$irStratification
+
         if (all(!is.null(data), nrow(data) > 0)) {
           plot <- plotIncidenceRate(
             data = data,
@@ -904,6 +933,88 @@ incidenceRatesModule <- function(id,
 
     output$incidenceRatePlot <- plotly::renderPlotly(expr = {
       getIrPlot()
+    })
+
+
+    irTableData <- shiny::eventReactive(input$generatePlot, {
+      data <- incidenceRateDataFiltered()
+
+      data <- data %>%
+        dplyr::inner_join(cohortTable, by = "cohortId") %>%
+        dplyr::select("cohortName",
+                      "databaseName",
+                      "ageGroup",
+                      "calendarYear",
+                      "personYears",
+                      "gender",
+                      "cohortCount",
+                      "incidenceRate")
+
+
+      tooltip <- function(value, tooltip) {
+        shiny::tags$abbr(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
+                         title = tooltip, value)
+      }
+
+
+      barChart <- function(label, width = "100%", height = "1rem", fill = "#00c", background = NULL) {
+        bar <- div(style = list(background = fill, width = width, height = height))
+        chart <- div(style = list(flexGrow = 1, marginLeft = "0.5rem", background = background), bar)
+        div(style = list(display = "flex", alignItems = "center"), label, chart)
+      }
+
+      columnDefs <- list(
+        "cohortName" = reactable::colDef(name = "Cohort", minWidth = 200),
+        "databaseName" = reactable::colDef(name = "Database", minWidth = 200),
+        "cohortCount" = reactable::colDef(header = tooltip("Events",
+                                                           "Number of subjects in cohort within strata")),
+        "personYears" = reactable::colDef(header = tooltip("Person Years",
+                                                           "Cumulative time (in years)"),
+                                          format = reactable::colFormat(digits = 2)),
+        "incidenceRate" = reactable::colDef(header = tooltip("Inicidence per 1k/py",
+                                                             "Incidence of event per 1000 person years - (Events/Person Years * 1000)"),
+                                            cell = function(value) {
+                                              width <- paste0(value / max(data$incidenceRate) * 100, "%")
+                                              barChart(sprintf("%.2f", value), width = width)
+                                            },
+                                            format = reactable::colFormat(digits = 3))
+      )
+
+      groupBy <- c("cohortName", "databaseName")
+      sorted <- c("cohortName")
+
+      if (!"Age" %in% input$irStratification) {
+        data <- data %>% dplyr::select(-"ageGroup")
+      } else {
+        groupBy <- c(groupBy, "ageGroup")
+        sorted <- c(sorted, "ageGroup")
+        columnDefs$ageGroup <- reactable::colDef(name = "Age Group")
+      }
+
+      if (!"Sex" %in% input$irStratification) {
+        data <- data %>% dplyr::select(-"gender")
+      } else {
+        groupBy <- c(groupBy, "gender")
+      }
+
+      if (!"Calendar Year" %in% input$irStratification) {
+        data <- data %>% dplyr::select(-"calendarYear")
+      } else {
+        sorted <- c(sorted, "calendarYear")
+        columnDefs$calendarYear <- reactable::colDef(name = "Year")
+      }
+
+      # modifiable args list to call reactable::reactable
+      return(list(data = data, groupBy = groupBy,  defaultSorted = sorted, columns = columnDefs))
+    })
+
+    output$irTable <- reactable::renderReactable({
+      args <- irTableData()
+      # Masking groupBy as NULL causes bug in reactable=
+      if (isFALSE(input$groupColumns)) {
+        args <- within(args, rm(groupBy))
+      }
+       do.call(reactable::reactable, args)
     })
   })
 }
