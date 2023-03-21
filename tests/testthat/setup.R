@@ -1,3 +1,4 @@
+options("shiny-test-env-enabled" = TRUE)
 jarFolder <- Sys.getenv("DATABASECONNECTOR_JAR_FOLDER", unset = "")
 if (jarFolder == "") {
   tempJarFolder <- tempfile("jdbcDrivers")
@@ -135,12 +136,60 @@ dataSourceCd <-
 
 #  ======
 
+# ====== Sccs
+
+connectionDetailsSccs <- DatabaseConnector::createConnectionDetails(
+  dbms = 'sqlite',
+  server = "../resources/sccsDatabase/databaseFile.sqlite"
+)
+
+connectionHandlerSccs  <- ResultModelManager::ConnectionHandler$new(connectionDetailsSccs, loadConnection = FALSE)
+
+resultDatabaseSettingsSccs <- list(
+  dbms = 'sqlite',
+  tablePrefix = 'sccs_',
+  cohortTablePrefix = 'cg_',
+  databaseTable = 'DATABASE_META_DATA',
+  schema = "main",
+  tempEmulationSchema = NULL
+)
+
+#  ====
+
+# ====== evidence Synth
+
+connectionDetailsES <- DatabaseConnector::createConnectionDetails(
+  dbms = 'sqlite',
+  server = "../resources/esDatabase/databaseFile.sqlite"
+)
+
+connectionHandlerES  <- ResultModelManager::ConnectionHandler$new(
+  connectionDetailsES, 
+  loadConnection = FALSE
+  )
+
+resultDatabaseSettingsES <- list(
+  dbms = 'sqlite',
+  tablePrefix = 'es_',
+  cgTablePrefix = 'cg_',
+  cmTablePrefix = 'cm_',
+  sccsTablePrefix = 'sccs_',
+  databaseTable = 'DATABASE_META_DATA',
+  schema = "main",
+  tempEmulationSchema = NULL
+)
+
+#  ====
+
 ## cleanup after tests complete
 withr::defer({
+  options("shiny-test-env-enabled" = FALSE)
   connectionHandlerCG$finalize()
   connectionHandlerPlp$finalize()
   connectionHandlerDesc$finalize()
   connectionHandlerDataDiag$finalize()
   connectionHandlerEst$finalize()
   connectionHandlerCohortDiag$finalize()
+  connectionHandlerSccs$finalize()
+  connectionHandlerES$finalize()
 }, testthat::teardown_env())
