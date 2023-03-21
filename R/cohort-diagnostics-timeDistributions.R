@@ -374,7 +374,7 @@ timeDistributionsModule <- function(id,
       data <- timeDistributionData() %>%
         dplyr::inner_join(cohortTable %>% dplyr::select("cohortName", "cohortId"), by = "cohortId")
       shiny::validate(shiny::need(hasData(data), "No data for this combination"))
-      plot <- plotTimeDistribution(data = data, shortNameRef = cohortTable, showMax = input$showMaxValues)
+      plot <- plotTimeDistribution(data = data, shortNameRef = cohortTable, showMax = isTRUE(input$showMaxValues))
 
       # Note that this code is only used because renderUI/ uiOutput didn't seem to update with plotly
       plotHeight <- 300 * length(selectedDatabaseIds())
