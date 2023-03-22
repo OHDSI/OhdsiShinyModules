@@ -9,7 +9,7 @@ shiny::testServer(evidenceSynthesisServer, args = list(
   #session$setInputs(
   #)
   
-  testthat::expect_equal(outcomeId(), 3)
+  testthat::expect_equal(as.double(outcomeId()), 3)
   
 })
 
