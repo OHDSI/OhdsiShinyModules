@@ -37,8 +37,6 @@ predictionSettingsViewer <- function(id) {
       width = 12,
       title = "Settings Dashboard",
       status = "info", solidHeader = TRUE,
-      shinydashboard::infoBoxOutput(ns("devDb"), width = 12),
-      shinydashboard::infoBoxOutput(ns("valDb"), width = 12),
       shinydashboard::infoBoxOutput(ns("cohort"), width = 4),
       shinydashboard::infoBoxOutput(ns("outcome"), width = 4),
       shinydashboard::infoBoxOutput(ns("restrictPlpData"), width = 4),
@@ -134,26 +132,6 @@ predictionSettingsServer <- function(
         myTableAppend = myTableAppend, 
         databaseTableAppend = databaseTableAppend 
       )
-      })
-      
-      # development database
-      output$devDb <- shinydashboard::renderInfoBox({
-        shinydashboard::infoBox(
-          'Development Database',
-          shiny::p(databases()$devDb), 
-          icon = shiny::icon("database"),
-          color = "black"
-        )
-      })
-      
-      # validation database
-      output$valDb <- shinydashboard::renderInfoBox({
-        shinydashboard::infoBox(
-          'Validation Database',
-          shiny::p(databases()$valDb), 
-          icon = shiny::icon("database"),
-          color = "black"
-        )
       })
       
       

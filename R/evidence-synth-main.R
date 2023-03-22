@@ -27,36 +27,45 @@ evidenceSynthesisHelperFile <- function(){
 evidenceSynthesisViewer <- function(id=1) {
   ns <- shiny::NS(id)
   
-  shiny::div(
-    
+
     shinydashboard::box(
       status = 'info', 
       width = 12,
-      title = 'Evidence Synthesis Results',
+      title = shiny::span( shiny::icon("sliders"), 'Evidence Synthesis'),
       solidHeader = TRUE,
       
-      shiny::uiOutput(ns('esCohortMethodSelect'))
-    ),
+      shiny::uiOutput(ns('esCohortMethodSelect')),
+
     
-    shiny::fluidRow(
-      shinydashboard::tabBox(
-        width = 12,
-        title = shiny::tagList(shiny::icon("gear"), "Plot and Table"),
+    #shiny::fluidRow(
+      #shinydashboard::tabBox(
+        shiny::tabsetPanel(
+          type = 'pills',
+        #width = 12,
+        #title = shiny::tagList(shiny::icon("gear"), "Plot and Table"),
         id = ns('esCohortTabs'),
-        shiny::tabPanel("Cohort Method Plot",
-                        shiny::plotOutput(ns('esCohortMethodPlot'))
+        
+        shiny::tabPanel(
+          "Cohort Method Plot",
+          shiny::plotOutput(ns('esCohortMethodPlot'))
         ),
-        shiny::tabPanel("Cohort Method Table",
-                        shiny::tableOutput(ns('esCohortMethodTable'))
+        shiny::tabPanel(
+          "Cohort Method Table",
+          reactable::reactableOutput(ns('esCohortMethodTable')),
+          shiny::downloadButton(
+            ns('downloadCohortMethodTable'), 
+            label = "Download"
+          )
         ),
         shiny::tabPanel("SCCS Plot",
                         shiny::plotOutput(ns('esSccsPlot'))
         ),
         shiny::tabPanel("SCCS Table",
-                        shiny::tableOutput(ns('esSccsTable'))
+                        reactable::reactableOutput(ns('esSccsTable'))
         )
       )
-    )
+    #)
+    
   )
   
 }
@@ -83,6 +92,12 @@ evidenceSynthesisServer <- function(
   shiny::moduleServer(
     id,
     function(input, output, session) {
+      
+      withTooltip <- function(value, tooltip, ...) {
+        shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
+                   tippy::tippy(value, tooltip, ...))
+      }
+      
       
       targetIds <- getESTargetIds(
         connectionHandler = connectionHandler,
@@ -129,7 +144,6 @@ evidenceSynthesisServer <- function(
         outcomeId(input$selectedOutcomeId)
       })
       
-      
       # Cohort Method plots and tables
       
       data <- shiny::reactive({
@@ -162,11 +176,83 @@ evidenceSynthesisServer <- function(
         )
       )
       
-      output$esCohortMethodTable <- shiny::renderTable(
-        unique(rbind(data(),data2())) %>%
+
+      output$esCohortMethodTable <- reactable::renderReactable(
+        reactable::reactable(
+          data =  unique(rbind(data(),data2())) %>%
           dplyr::select(
             -c("targetId","outcomeId", "comparatorId", "analysisId")
+          ),
+          
+          rownames = FALSE, 
+          defaultPageSize = 5,
+          showPageSizeOptions = T, 
+          striped = T,
+          columns = list(
+            description = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Analysis", 
+                "Analysis"
+              )),
+            database = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Data source", 
+                "Data source"
+              )),
+            calibratedRr = reactable::colDef( 
+              format = reactable::colFormat(digits = 3),
+              header = withTooltip(
+                "Cal.HR", 
+                "Hazard ratio (calibrated)"
+              )),
+            calibratedCi95Lb = reactable::colDef( 
+              format = reactable::colFormat(digits = 3),
+              header = withTooltip(
+                "Cal.LB", 
+                "Lower bound of the 95 percent confidence interval (calibrated)"
+              )),
+            calibratedCi95Ub = reactable::colDef( 
+              format = reactable::colFormat(digits = 3),
+              header = withTooltip(
+                "Cal.UB", 
+                "Upper bound of the 95 percent confidence interval (calibrated)"
+              )),
+            calibratedP = reactable::colDef( 
+              format = reactable::colFormat(digits = 3),
+              header = withTooltip(
+                "Cal.P", 
+                "Two-sided p-value (calibrated)"
+              )),
+            calibratedLogRr = reactable::colDef( 
+              format = reactable::colFormat(digits = 3),
+              header = withTooltip(
+                "Cal.Log.HR", 
+                "Log of Hazard ratio (calibrated)"
+              )),
+            calibratedSeLogRr = reactable::colDef( 
+              format = reactable::colFormat(digits = 3),
+              header = withTooltip(
+                "Cal.Se.Log.HR", 
+                "Log Standard Error of Hazard ratio (calibrated)"
+              ))
           )
+        )
+      )
+      
+      # download button
+      output$downloadCohortMethodTable <- shiny::downloadHandler(
+        filename = function() {
+          paste('cohort-method-data-', Sys.Date(), '.csv', sep='')
+        },
+        content = function(con) {
+          utils::write.csv(unique(rbind(data(),data2())) %>%
+                             dplyr::select(
+                               -c("targetId","outcomeId", "comparatorId", "analysisId")
+                             )
+                           , con)
+        }
       )
       
       # SCCS plots and tables
@@ -190,11 +276,68 @@ evidenceSynthesisServer <- function(
         )
       )
       
-      output$esSccsTable <- shiny::renderTable(
-        unique(sccsData()) %>%
-          dplyr::select(
-            -c("targetId","outcomeId", "analysisId")
+      output$esSccsTable <- reactable::renderReactable(
+        reactable::reactable(
+          data =  unique(sccsData()) %>%
+            dplyr::select(
+              -c("targetId","outcomeId", "analysisId")
+            ),
+          
+          rownames = FALSE, 
+          defaultPageSize = 5,
+          showPageSizeOptions = T, 
+          striped = T,
+          columns = list(
+            description = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Analysis", 
+                "Analysis"
+              )),
+            database = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Data source", 
+                "Data source"
+              )),
+            calibratedRr = reactable::colDef( 
+              format = reactable::colFormat(digits = 3),
+              header = withTooltip(
+                "Cal.IRR", 
+                "Incidence rate ratio (calibrated)"
+              )),
+            calibratedCi95Lb = reactable::colDef( 
+              format = reactable::colFormat(digits = 3),
+              header = withTooltip(
+                "Cal.LB", 
+                "Lower bound of the 95 percent confidence interval (calibrated)"
+              )),
+            calibratedCi95Ub = reactable::colDef( 
+              format = reactable::colFormat(digits = 3),
+              header = withTooltip(
+                "Cal.UB", 
+                "Upper bound of the 95 percent confidence interval (calibrated)"
+              )),
+            calibratedP = reactable::colDef( 
+              format = reactable::colFormat(digits = 3),
+              header = withTooltip(
+                "Cal.P", 
+                "Two-sided p-value (calibrated)"
+              )),
+            calibratedLogRr = reactable::colDef( 
+              format = reactable::colFormat(digits = 3),
+              header = withTooltip(
+                "Cal.Log.IRR", 
+                "Log of Incidence rate ratio (calibrated)"
+              )),
+            calibratedSeLogRr = reactable::colDef( 
+              format = reactable::colFormat(digits = 3),
+              header = withTooltip(
+                "Cal.Se.Log.IRR", 
+                "Log Standard Error of Incidence rate ratio (calibrated)"
+              ))
           )
+        )
       )
       
     }
@@ -522,8 +665,10 @@ computeTraditionalP <- function(
     ) 
 {
   z <- logRr/seLogRr
+
   pUpperBound <- 1 - stats::pnorm(z)
   pLowerBound <- stats::pnorm(z)
+  
   if (twoSided) {
     return(2 * pmin(pUpperBound, pLowerBound))
   }
@@ -705,7 +850,7 @@ getSccsEstimation <- function(
     outcome_id = outcomeId,
     target_id = targetId
   )
-  
+
   return(rbind(result,result2))
   
 }

@@ -42,8 +42,21 @@ estimationHelperFile <- function(){
 estimationViewer <- function(id) {
   ns <- shiny::NS(id)
   
-  shiny::fluidPage(style = "width:1500px;",
-            estimationTitlePanelViewer(ns("titlePanel")),
+  shinydashboard::box(
+    status = 'info', 
+    width = 12,
+    title = shiny::span( shiny::icon("chart-column"), 'Cohort Method'),
+    solidHeader = TRUE,
+    
+  #shiny::fluidPage(style = "width:1500px;",
+  shinydashboard::box(
+    collapsible = TRUE,
+    collapsed = TRUE,
+    title = "Cohort Method Evidence Explorer",
+    width = "100%"#,
+    #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
+  ),
+  
             htmltools::tags$head(htmltools::tags$style(type = "text/css", "
              #loadmessage {
                                  position: fixed;
@@ -63,6 +76,7 @@ estimationViewer <- function(id) {
                              condition = "$('html').hasClass('shiny-busy')",
                              htmltools::tags$div("Processing...")),
             shiny::tabsetPanel(
+              type = 'pills',
               id = ns("mainTabsetPanel"),
               shiny::tabPanel(
                 title = "Diagnostics",
@@ -144,8 +158,6 @@ estimationServer <- function(
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      estimationTitlePanelServer(id = "titlePanel")
       
       dataFolder <- NULL
       

@@ -44,15 +44,21 @@ aboutHelperFile <- function(){
 #' @export
 aboutViewer <- function(id = 'homepage') {
   ns <- shiny::NS(id)
-  shiny::div(
-    
-    shiny::fluidRow(
-      shiny::includeMarkdown(
-        path = system.file(
-          'about-document', 
-          "introduction.md", 
-          package = "OhdsiShinyModules"
+  
+  shinydashboard::box(
+    status = 'info', width = 12,
+    title =  shiny::span( shiny::icon("info"), "About OHDSI Viewer"),
+    solidHeader = TRUE,
+
+    shiny::fluidPage(
+      shiny::fluidRow(
+        shiny::includeMarkdown(
+          path = system.file(
+            'about-document', 
+            "introduction.md", 
+            package = "OhdsiShinyModules"
           )
+        )
       )
     )
     

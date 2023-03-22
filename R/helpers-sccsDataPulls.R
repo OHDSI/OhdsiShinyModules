@@ -1,8 +1,10 @@
+
 getSccsExposuresOutcomes <- function(
     connectionHandler, 
     resultDatabaseSettings, 
     includeControls = FALSE
     ) {
+    
   # Note Query rew-written from dplyr because of data type/casting issues with null values in left joins
   sql <- "
   SELECT
