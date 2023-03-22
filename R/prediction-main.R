@@ -61,8 +61,8 @@ predictionViewer <- function(id=1) {
           collapsible = TRUE,
           collapsed = TRUE,
           title = "Model Designs Summary",
-          width = "100%"#,
-          #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
+          width = "100%",
+          shiny::htmlTemplate(system.file("prediction-www", "help-designSummary.html", package = utils::packageName()))
         ),
         
         predictionDesignSummaryViewer(ns('designSummaryTab'))
@@ -93,8 +93,8 @@ predictionViewer <- function(id=1) {
           collapsible = TRUE,
           collapsed = TRUE,
           title = "Full Result Explorer",
-          width = "100%"#,
-          #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
+          width = "100%",
+          shiny::htmlTemplate(system.file("prediction-www", "help-fullResults.html", package = utils::packageName()))
         ),
         
         shinydashboard::box(
