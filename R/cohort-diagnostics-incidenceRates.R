@@ -957,7 +957,7 @@ incidenceRatesModule <- function(id,
       }
 
 
-      barChart <- function(label, width = "100%", height = "1rem", fill = "#00c", background = NULL) {
+      barChart <- function(label, width = "100%", height = "1rem", fill = "#f19119", background = "#ccc") {
         bar <- div(style = list(background = fill, width = width, height = height))
         chart <- div(style = list(flexGrow = 1, marginLeft = "0.5rem", background = background), bar)
         div(style = list(display = "flex", alignItems = "center"), label, chart)
