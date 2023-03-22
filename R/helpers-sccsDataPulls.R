@@ -1,5 +1,10 @@
-#' Get expsoure outcome pairs set for sccs module
-getSccsExposuresOutcomes <- function(connectionHandler, resultDatabaseSettings, includeControls = FALSE) {
+
+getSccsExposuresOutcomes <- function(
+    connectionHandler, 
+    resultDatabaseSettings, 
+    includeControls = FALSE
+    ) {
+    
   # Note Query rew-written from dplyr because of data type/casting issues with null values in left joins
   sql <- "
   SELECT
@@ -160,10 +165,10 @@ getSccsTimeToEvent <- function(connectionHandler,
                                                      ".", resultsDatabaseSettings$tablePrefix, "diagnostics_summary"))
   p <- diagnosticsSummary %>%
     dplyr::filter(
-      exposures_outcome_set_id == exposuresOutcomeSetId,
-      covariate_id == !!covariateId,
-      database_id == !!databaseId,
-      analysis_id == !!analysisId,
+      .data$exposures_outcome_set_id == exposuresOutcomeSetId,
+      .data$covariate_id == !!covariateId,
+      .data$database_id == !!databaseId,
+      .data$analysis_id == !!analysisId,
     ) %>%
     dplyr::pull("pre_exposure_p")
 

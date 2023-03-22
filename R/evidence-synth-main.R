@@ -27,6 +27,7 @@ evidenceSynthesisHelperFile <- function(){
 evidenceSynthesisViewer <- function(id=1) {
   ns <- shiny::NS(id)
   
+
     shinydashboard::box(
       status = 'info', 
       width = 12,
@@ -116,7 +117,7 @@ evidenceSynthesisServer <- function(
       
       output$esCohortMethodSelect <- shiny::renderUI({
         
-        tagList(
+        shiny::tagList(
           shiny::selectInput(
             inputId = session$ns('selectedTargetId'), 
             label = 'Target:', 
@@ -142,8 +143,6 @@ evidenceSynthesisServer <- function(
       shiny::observeEvent(input$selectedOutcomeId,{
         outcomeId(input$selectedOutcomeId)
       })
-      
-      
       
       # Cohort Method plots and tables
       
@@ -177,6 +176,7 @@ evidenceSynthesisServer <- function(
         )
       )
       
+
       output$esCohortMethodTable <- reactable::renderReactable(
         reactable::reactable(
           data =  unique(rbind(data(),data2())) %>%
@@ -598,7 +598,7 @@ result <- connectionHandler$queryDb(
       .data$calibratedP / 2)
   )
 
-return(result)
+return(unique(result))
 }
 
 createPlotForAnalysis <- function(data) {
@@ -665,8 +665,10 @@ computeTraditionalP <- function(
     ) 
 {
   z <- logRr/seLogRr
-  pUpperBound <- 1 - pnorm(z)
-  pLowerBound <- pnorm(z)
+
+  pUpperBound <- 1 - stats::pnorm(z)
+  pLowerBound <- stats::pnorm(z)
+  
   if (twoSided) {
     return(2 * pmin(pUpperBound, pLowerBound))
   }
@@ -848,6 +850,7 @@ getSccsEstimation <- function(
     outcome_id = outcomeId,
     target_id = targetId
   )
+
   return(rbind(result,result2))
   
 }

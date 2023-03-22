@@ -17,7 +17,7 @@ sccsServer <- function(
   resultDatabaseSettings = list(port = 1)
 ) {
   ns <- shiny::NS(id)
-  
+
   withTooltip <- function(value, tooltip, ...) {
     shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
                tippy::tippy(value, tooltip, ...))
@@ -37,9 +37,9 @@ sccsServer <- function(
   databases <- connectionHandler$tbl(resultDatabaseSettings$databaseTable, databaseSchema = resultDatabaseSettings$schema) %>%
     dplyr::collect() %>%
     SqlRender::snakeCaseToCamelCaseNames()
-  
+
   shiny::moduleServer(id, function(input, output, session) {
-    
+
     shiny::observe({
       # Dynamic loading of user selections
 
@@ -66,6 +66,7 @@ sccsServer <- function(
                                 exposuresOutcomeSetId = exposuresOutcomeSetId,
                                 databaseIds = databaseIds,
                                 analysisIds = analysisIds)
+                                
       results$description <- sccsAnalyses$description[match(results$analysisId, sccsAnalyses$analysisId)]
       
       results <- results[order(results$analysisId),]
@@ -201,7 +202,8 @@ sccsServer <- function(
     output$rowIsSelected <- shiny::reactive({
       return(!is.null(selectedRow()))
     })
-    outputOptions(output, "rowIsSelected", suspendWhenHidden = FALSE)
+    
+    shiny::outputOptions(output, "rowIsSelected", suspendWhenHidden = FALSE)
 
     output$powerTable <- shiny::renderTable({
       row <- selectedRow()
@@ -234,7 +236,8 @@ sccsServer <- function(
       }
     })
 
-    output$attritionPlot <- renderPlot({
+    output$attritionPlot <- shiny::renderPlot({
+
       row <- selectedRow()
       if (is.null(row)) {
         return(NULL)
@@ -353,7 +356,8 @@ sccsServer <- function(
       }
     })
 
-    output$ageSplinePlot <- renderPlot({
+    output$ageSplinePlot <- shiny::renderPlot({
+
       row <- selectedRow()
       if (is.null(row)) {
         return(NULL)
@@ -497,7 +501,6 @@ sccsView <- function(id = "sccs-module") {
       tags$div("Processing...", id = "loadmessage")
       ),
     
-    
     shiny::fluidRow(
       shiny::column(
         3,
@@ -507,7 +510,9 @@ sccsView <- function(id = "sccs-module") {
       ),
       shiny::column(
         width = 9,
+        
         reactable::reactableOutput(ns("mainTable")),
+        
         shiny::conditionalPanel(
           "output.rowIsSelected == true",
           ns = ns,

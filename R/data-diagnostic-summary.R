@@ -30,7 +30,13 @@
 #' @export
 dataDiagnosticSummaryViewer <- function(id) {
   ns <- shiny::NS(id)
-  reactable::reactableOutput(ns('drugStudyFailSummaryTable'))
+  
+  shiny::div(
+    shiny::fluidPage(
+      shiny::uiOutput(ns('dbDiagInputs')),
+      reactable::reactableOutput(ns('drugStudyFailSummaryTable'))
+    )
+  )
 }
 
 #' The module server for exploring prediction summary results 
@@ -57,36 +63,68 @@ dataDiagnosticSummaryServer <- function(
     id,
     function(input, output, session) {
       
+      analysisNames <- getAnalysisNames(
+        connectionHandler = connectionHandler, 
+        mySchema = mySchema, 
+        myTableAppend = myTableAppend
+      )
+      
+      # create UI for selecting analysis of interest
+      output$dbDiagInputs <- shiny::renderUI({
+          shiny::fluidRow(
+            shiny::selectInput(
+              inputId = session$ns('dbDiagAnalysisNameSelected'), 
+              label = 'Analysis:', 
+              choices = analysisNames, 
+              multiple = T, 
+              selected = analysisNames[1]
+            )
+        )
+      }
+      )
+      
       resultTable <- shiny::reactive(
+        if(!is.null(input$dbDiagAnalysisNameSelected[1])){
         getDrugStudyFailSummary(
           connectionHandler = connectionHandler, 
           mySchema = mySchema, 
-          myTableAppend = myTableAppend
+          myTableAppend = myTableAppend,
+          analysisNames = input$dbDiagAnalysisNameSelected
         )
+        } else{
+          data.frame(databaseId = 'none', analysis = 'none')
+        }
       )
       
       # create the colum formating
-      columnFormat <- lapply(
-        X = 1:ncol(resultTable()[,-1]), 
+      columnFormat <- shiny::reactive({
         
-        FUN = function(x){
-          return(
-            reactable::colDef(
-              style = function(value) {
-                if (value > 0) {
-                  color <- '#e00000'
-                } else {
-                  color <- "#008000"
-                }
-                list(color = color, fontWeight = "bold")
-              }
-            )
+        if(!is.null(input$dbDiagAnalysisNameSelected[1])){
+          res <- lapply(
+            X = 1:ncol(resultTable()[,-1]), 
+            
+            FUN = function(x){
+              return(
+                reactable::colDef(
+                  style = function(value) {
+                    if (value > 0) {
+                      color <- '#e00000'
+                    } else {
+                      color <- "#008000"
+                    }
+                    list(color = color, fontWeight = "bold")
+                  }
+                )
+              )
+            }
+            
           )
+          names(res) <- colnames(resultTable()[,-1])
+          return(res)
+        } else{
+          return(NULL)
         }
-        
-      )
-      names(columnFormat) <- colnames(resultTable()[,-1])
-      
+      })
       
       # format this to be color based on number
       output$drugStudyFailSummaryTable <- reactable::renderReactable({
@@ -94,8 +132,7 @@ dataDiagnosticSummaryServer <- function(
           data = resultTable(),
           defaultPageSize = 20,
           searchable = TRUE,
-          
-          columns = columnFormat
+          columns = columnFormat()
         )
  
       })
@@ -104,13 +141,32 @@ dataDiagnosticSummaryServer <- function(
   )
 }
 
+getAnalysisNames <- function(
+    connectionHandler, 
+    mySchema, 
+    myTableAppend
+    ){
+  
+  sql <- "SELECT distinct sum.analysis_name 
+    FROM @my_schema.@my_table_appenddata_diagnostics_summary as sum;"
+  
+  result <- connectionHandler$queryDb(
+    sql = sql, 
+    my_schema = mySchema,
+    my_table_append = myTableAppend
+  )
 
+  return(sort(result$analysisName))
+}
 
 getDrugStudyFailSummary <- function(
     connectionHandler, 
     mySchema, 
-    myTableAppend = ''
+    myTableAppend = '',
+    analysisNames
 ){
+  
+
   
   shiny::withProgress(message = 'Extracting data diagnostic summary', value = 0, {
     
@@ -122,12 +178,14 @@ getDrugStudyFailSummary <- function(
      sum.database_id,
      sum.total_fails
     
-    FROM @my_schema.@my_table_appenddata_diagnostics_summary as sum;"
+    FROM @my_schema.@my_table_appenddata_diagnostics_summary as sum
+    where sum.analysis_name in (@names);"
     
     summaryTable <- connectionHandler$queryDb(
       sql = sql, 
       my_schema = mySchema,
-      my_table_append = myTableAppend
+      my_table_append = myTableAppend,
+      names = paste(paste0("'",analysisNames,"'"), collapse=',')
     )
     
     shiny::incProgress(2/3, detail = paste("Data extracted"))
