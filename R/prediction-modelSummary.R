@@ -36,8 +36,8 @@ predictionModelSummaryViewer <- function(id) {
       collapsible = TRUE,
       collapsed = TRUE,
       title = "All Database Results For Selected Model Design",
-      width = "100%"#,
-      #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
+      width = "100%",
+      shiny::htmlTemplate(system.file("prediction-www", "main-modelSummaryHelp.html", package = utils::packageName()))
     ),
     shinydashboard::box(
       status = "warning",

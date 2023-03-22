@@ -17,7 +17,14 @@ sccsServer <- function(
   resultDatabaseSettings = list(port = 1)
 ) {
   ns <- shiny::NS(id)
+  
+  withTooltip <- function(value, tooltip, ...) {
+    shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
+               tippy::tippy(value, tooltip, ...))
+  }
+  
   exposuresOutcomeSets <- getSccsExposuresOutcomes(connectionHandler, resultDatabaseSettings)
+
   exposuresOutcomeNames <- exposuresOutcomeSets %>%
     dplyr::group_by(.data$exposuresOutcomeSetId, .data$outcomeName) %>%
     dplyr::summarise(exposures = paste(.data$exposureName, collapse = ", "), .groups = "drop") %>%
@@ -30,8 +37,9 @@ sccsServer <- function(
   databases <- connectionHandler$tbl(resultDatabaseSettings$databaseTable, databaseSchema = resultDatabaseSettings$schema) %>%
     dplyr::collect() %>%
     SqlRender::snakeCaseToCamelCaseNames()
-
+  
   shiny::moduleServer(id, function(input, output, session) {
+    
     shiny::observe({
       # Dynamic loading of user selections
 
@@ -58,6 +66,8 @@ sccsServer <- function(
                                 exposuresOutcomeSetId = exposuresOutcomeSetId,
                                 databaseIds = databaseIds,
                                 analysisIds = analysisIds)
+      results$description <- sccsAnalyses$description[match(results$analysisId, sccsAnalyses$analysisId)]
+      
       results <- results[order(results$analysisId),]
 
       idx <- (results$unblind == 0)
@@ -75,63 +85,105 @@ sccsServer <- function(
         results$calibratedSeLogRr[idx] <- NA
         results$calibratedP[idx] <- NA
       }
+      
+      results$rr <- prettyHr(results$rr)
+      results$ci95Lb <- prettyHr(results$ci95Lb)
+      results$ci95Ub <- prettyHr(results$ci95Ub)
+      results$p <- prettyHr(results$p)
+      results$calibratedRr <- prettyHr(results$calibratedRr)
+      results$calibratedCi95Lb <- prettyHr(results$calibratedCi95Lb)
+      results$calibratedCi95Ub <- prettyHr(results$calibratedCi95Ub)
+      results$calibratedP <- prettyHr(results$calibratedP)
+      
       return(results)
     })
 
-    output$mainTable <- DT::renderDataTable({
-      resTargetTable <- resultSubset()
-
-      resTargetTable$description <- sccsAnalyses$description[match(resTargetTable$analysisId, sccsAnalyses$analysisId)]
-      resTargetTable <- resTargetTable %>%
-        dplyr::select("description",
-                      "databaseName",
-                      "rr",
-                      "ci95Lb",
-                      "ci95Ub",
-                      "p",
-                      "calibratedRr",
-                      "calibratedCi95Lb",
-                      "calibratedCi95Ub",
-                      "calibratedP")
-
-      resTargetTable$rr <- prettyHr(resTargetTable$rr)
-      resTargetTable$ci95Lb <- prettyHr(resTargetTable$ci95Lb)
-      resTargetTable$ci95Ub <- prettyHr(resTargetTable$ci95Ub)
-      resTargetTable$p <- prettyHr(resTargetTable$p)
-      resTargetTable$calibratedRr <- prettyHr(resTargetTable$calibratedRr)
-      resTargetTable$calibratedCi95Lb <- prettyHr(resTargetTable$calibratedCi95Lb)
-      resTargetTable$calibratedCi95Ub <- prettyHr(resTargetTable$calibratedCi95Ub)
-      resTargetTable$calibratedP <- prettyHr(resTargetTable$calibratedP)
-      colnames(resTargetTable) <- c("<span title=\"Analysis\">Analysis</span>",
-                                    "<span title=\"Data source\">Data source</span>",
-                                    "<span title=\"Incidence rate ratio (uncalibrated)\">IRR</span>",
-                                    "<span title=\"Lower bound of the 95 percent confidence interval (uncalibrated)\">LB</span>",
-                                    "<span title=\"Upper bound of the 95 percent confidence interval (uncalibrated)\">UB</span>",
-                                    "<span title=\"Two-sided p-value (uncalibrated)\">P</span>",
-                                    "<span title=\"Incidence rate ratio (calibrated)\">Cal.IRR</span>",
-                                    "<span title=\"Lower bound of the 95 percent confidence interval (calibrated)\">Cal.LB</span>",
-                                    "<span title=\"Upper bound of the 95 percent confidence interval (calibrated)\">Cal.UB</span>",
-                                    "<span title=\"Two-sided p-value (calibrated)\">Cal.P</span>")
-      options = list(pageLength = 15,
-                     searching = FALSE,
-                     lengthChange = TRUE,
-                     ordering = TRUE,
-                     paging = TRUE)
-      selection = list(mode = "single", target = "row")
-      resTargetTable <- DT::datatable(resTargetTable,
-                                      options = options,
-                                      selection = selection,
-                                      rownames = FALSE,
-                                      escape = FALSE,
-                                      class = "stripe nowrap compact")
-      return(resTargetTable)
+    output$mainTable <- reactable::renderReactable({
+       reactable::reactable(
+        data = resultSubset() %>%
+          dplyr::select("description",
+                        "databaseName",
+                        "rr",
+                        "ci95Lb",
+                        "ci95Ub",
+                        "p",
+                        "calibratedRr",
+                        "calibratedCi95Lb",
+                        "calibratedCi95Ub",
+                        "calibratedP"),
+        rownames = FALSE, 
+        defaultPageSize = 15,
+        showPageSizeOptions = T, 
+        onClick = 'select', 
+        selection = 'single',
+        striped = T,
+        
+        columns = list(
+          description = reactable::colDef( 
+            filterable = TRUE,
+            header = withTooltip(
+              "Analysis", 
+              "Analysis"
+            )),
+          databaseName = reactable::colDef( 
+            filterable = TRUE,
+            header = withTooltip(
+              "Data source", 
+              "Data source"
+            )),
+          rr = reactable::colDef( 
+            header = withTooltip(
+              "IRR", 
+              "Incidence rate ratio (uncalibrated)"
+            )),
+          ci95Lb = reactable::colDef( 
+            header = withTooltip(
+              "LB", 
+              "Lower bound of the 95 percent confidence interval (uncalibrated)"
+            )),
+          ci95Ub = reactable::colDef( 
+            header = withTooltip(
+              "UB", 
+              "Upper bound of the 95 percent confidence interval (uncalibrated)"
+            )),
+          p = reactable::colDef( 
+            header = withTooltip(
+              "P", 
+              "Two-sided p-value (uncalibrated)"
+            )),
+          calibratedRr = reactable::colDef( 
+            header = withTooltip(
+              "Cal.IRR", 
+              "Incidence rate ratio (calibrated)"
+            )),
+          calibratedCi95Lb = reactable::colDef( 
+            header = withTooltip(
+              "Cal.LB", 
+              "Lower bound of the 95 percent confidence interval (calibrated)"
+            )),
+          calibratedCi95Ub = reactable::colDef( 
+            header = withTooltip(
+              "Cal.UB", 
+              "Upper bound of the 95 percent confidence interval (calibrated)"
+            )),
+          calibratedP = reactable::colDef( 
+            header = withTooltip(
+              "Cal.P", 
+              "Two-sided p-value (calibrated)"
+            ))
+        )
+       )
+  
     })
 
     selectedRow <- shiny::reactive({
       if (getOption("shiny-test-env-enabled", default = FALSE)) {
         idx <- input$mainTableRowInput
       } else {
-        idx <- input$mainTable_rows_selected
+        idx <- reactable::getReactableState(
+          outputId = 'mainTable', 
+          name = 'selected'
+        ) 
       }
 
       if (is.null(idx)) {
@@ -406,9 +458,21 @@ sccsServer <- function(
 sccsView <- function(id = "sccs-module") {
   ns <- shiny::NS(id)
   tags <- shiny::tags
-  shiny::fluidPage(
-    style = "width:1500px;",
-    shiny::titlePanel("Self Controlled Case Series Evidence"),
+  
+  shinydashboard::box(
+    status = 'info', 
+    width = 12,
+    title = shiny::span( shiny::icon("people-arrows"), 'Self Controlled Case Series'),
+    solidHeader = TRUE,
+    
+    shinydashboard::box(
+      collapsible = TRUE,
+      collapsed = TRUE,
+      title = "Self Controlled Case Series Evidence",
+      width = "100%"#,
+      #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
+    ),
+
     tags$head(
       tags$style(
         type = "text/css", "
@@ -425,11 +489,15 @@ sccsView <- function(id = "sccs-module") {
                                  background-color: #ADD8E6;
                                  z-index: 105;
                                  }
-                                 ")),
+                                 ")
+      ),
     shiny::conditionalPanel(
       condition = "$('html').hasClass('shiny-busy')",
       ns = ns,
-      tags$div("Processing...", id = "loadmessage")),
+      tags$div("Processing...", id = "loadmessage")
+      ),
+    
+    
     shiny::fluidRow(
       shiny::column(
         3,
@@ -439,7 +507,7 @@ sccsView <- function(id = "sccs-module") {
       ),
       shiny::column(
         width = 9,
-        DT::dataTableOutput(ns("mainTable")),
+        reactable::reactableOutput(ns("mainTable")),
         shiny::conditionalPanel(
           "output.rowIsSelected == true",
           ns = ns,

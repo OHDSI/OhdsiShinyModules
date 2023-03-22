@@ -45,7 +45,13 @@ descriptionHelperFile <- function(){
 descriptionViewer <- function(id=1) {
   ns <- shiny::NS(id)
   
+  shinydashboard::box(
+    status = 'info', width = 12,
+    title =  shiny::span( shiny::icon("table"), "Characterization Viewer"),
+    solidHeader = TRUE,
+  
   shiny::tabsetPanel(
+    type = 'pills',
     id = ns('mainPanel'),
     
     shiny::tabPanel(
@@ -73,6 +79,7 @@ descriptionViewer <- function(id=1) {
       descriptionDechallengeRechallengeViewer(ns('dechallengeRechallengeTab'))
       )
     )
+  )
   
 }
 
