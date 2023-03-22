@@ -333,7 +333,10 @@ plotIncidenceRate <- function(data,
       plotly::layout(title = title,
                      xaxis = list(zerolinecolor = '#ffff',
                                   zerolinewidth = 1,
-                                  textangle = 70,
+                                  showtitle = FALSE,
+                                  title = "",
+                                  textangle = 90,
+                                  showgrid = TRUE,
                                   gridcolor = 'ffff'),
                      yaxis = list(title = ytitle))
 
@@ -390,7 +393,7 @@ plotIncidenceRate <- function(data,
     )
   }
 
-  plt <- plotly::subplot(subplots, nrows = nrows, shareX = F, shareY = T, margin = c(0.02, 0.02, 0.02, 0.05)) %>%
+  plt <- plotly::subplot(subplots, nrows = nrows, shareX = TRUE, shareY = FALSE, margin = c(0.01)) %>%
     plotly::layout(annotations = c(annotations, topAnnotations),
                    showlegend = F,
                    plot_bgcolor = '#e5ecf6',
@@ -398,12 +401,13 @@ plotIncidenceRate <- function(data,
                      showTitle = FALSE,
                      zerolinecolor = '#ffff',
                      zerolinewidth = 1,
-                     textangle = 70,
+                     textangle = 90,
+                     showgrid = TRUE,
                      gridcolor = 'ffff'),
                    yaxis = list(
-                     showTitle = FALSE,
                      zerolinecolor = '#ffff',
                      zerolinewidth = 1,
+                     showgrid = TRUE,
                      gridcolor = 'ffff'))
 
   plt
@@ -957,7 +961,7 @@ incidenceRatesModule <- function(id,
       }
 
 
-      barChart <- function(label, width = "100%", height = "1rem", fill = "#f19119", background = "#ccc") {
+      barChart <- function(label, width = "100%", height = "1rem", fill = "#337ab7", background = "#ccc") {
         bar <- div(style = list(background = fill, width = width, height = height))
         chart <- div(style = list(flexGrow = 1, marginLeft = "0.5rem", background = background), bar)
         div(style = list(display = "flex", alignItems = "center"), label, chart)
