@@ -95,22 +95,25 @@ plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
 
   plotData$tooltip <- c(
     paste0(
-      plotData$shortName,
-      "\nCohort = ",
       plotData$cohortName,
-      "\nDatabase = ",
-      plotData$databaseId,
-      "\nMin = ",
-      scales::comma(plotData$minValue, accuracy = 1),
+      "\n\nDatabase = ",
+      plotData$databaseName,
+      "\n\nP10 = ",
+      scales::comma(plotData$p10Value, accuracy = 1),
       "  P25 = ",
       scales::comma(plotData$p25Value, accuracy = 1),
       "  Median = ",
       scales::comma(plotData$medianValue, accuracy = 1),
       "  P75 = ",
       scales::comma(plotData$p75Value, accuracy = 1),
+      "  P90 = ",
+      scales::comma(plotData$p90Value, accuracy = 1),
+
+      "\n\nMin = ",
+      scales::comma(plotData$minValue, accuracy = 1),
       "  Max = ",
       scales::comma(plotData$maxValue, accuracy = 1),
-      "  Average = ",
+      "  Mean = ",
       scales::comma(x = plotData$averageValue, accuracy = 0.01)
     )
   )
@@ -153,6 +156,7 @@ plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
                             text = NULL,
                             type = "box",
                             hoverlabel = list(bgcolor = "#000"),
+                            line = list(color = 'rgb(0,0,0)', width = 1.5),
                             hoveron = "points",
                             q1 = ~p25Value,
                             q3 = ~p75Value,
@@ -165,6 +169,21 @@ plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
                             text = ~tooltip,
                             size = 50,
                             x = ~medianValue) %>%
+        plotly::add_markers(y = ~shortName,
+                            color = ~shortName,
+                            text = ~p10Value,
+                            size = 0.01,
+                            x = ~p10Value) %>%
+        plotly::add_markers(y = ~shortName,
+                            color = ~shortName,
+                            text = ~mean,
+                            size = 0.01,
+                            x = ~mean) %>%
+        plotly::add_markers(y = ~shortName,
+                            color = ~shortName,
+                            text = ~p90Value,
+                            size = 0.01,
+                            x = ~p90Value) %>%
         plotly::layout(plot_bgcolor = '#e5ecf6',
                        xaxis = list(
                          showTitle = FALSE,
@@ -183,7 +202,7 @@ plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
           plotly::add_markers(y = ~shortName,
                               color = ~shortName,
                               text = ~tooltip,
-                              size = 50,
+                              size = 1,
                               x = ~maxValue)
       }
     }
