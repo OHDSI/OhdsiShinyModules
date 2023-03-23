@@ -120,7 +120,7 @@ plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
 
   # Fixed colour reference
   nCohorts <- plotData$shortName %>% unique() %>% length()
-  colours <- RColorBrewer::brewer.pal(max(c(3, nCohorts)), "Set3")
+  colorPallet <- RColorBrewer::brewer.pal(max(c(3, nCohorts)), "Set3")
 
   sortShortName <- plotData %>%
     dplyr::select("shortName") %>%
@@ -152,8 +152,7 @@ plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
         plotly::add_boxplot(y = ~shortName,
                             whiskerwidth = 0.2,
                             color = ~shortName,
-                            colors = colours,
-                            text = NULL,
+                            colors = colorPallet,
                             type = "box",
                             hoverlabel = list(bgcolor = "#000"),
                             line = list(color = 'rgb(0,0,0)', width = 1.5),
@@ -186,7 +185,7 @@ plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
                             x = ~p90Value) %>%
         plotly::layout(plot_bgcolor = '#e5ecf6',
                        xaxis = list(
-                         showTitle = FALSE,
+                         title = "time in days",
                          zerolinecolor = '#ffff',
                          zerolinewidth = 2,
                          gridcolor = 'ffff'),
@@ -212,7 +211,7 @@ plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
   topAnnotations <- list()
   for (tm in plotData$timeMetric %>% unique()) {
     # Trial and error...
-    xTitlePos <- (length(topAnnotations) / ncols) + 1/ncols * 0.5
+    xTitlePos <- (length(topAnnotations) / ncols) + 1 / ncols * 0.5
     topAnnotations[[length(topAnnotations) + 1]] <- list(text = tm,
                                                          showarrow = FALSE,
                                                          x = xTitlePos,
@@ -223,8 +222,10 @@ plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
                                                          yanchor = "bottom")
   }
 
-  plotly::subplot(subplots, nrows = nrows, shareY = T) %>%
-    plotly::layout(annotations = topAnnotations, showlegend = F)
+  plt <- plotly::subplot(subplots, nrows = nrows, shareY = TRUE, shareX = TRUE) %>%
+      plotly::layout(annotations = topAnnotations, showlegend = F)
+
+  return(plt)
 }
 
 #' timeDistributions view
@@ -338,21 +339,16 @@ timeDistributionsView <- function(id) {
         condition = "input.timeDistributionType=='Plot'",
         ns = ns,
         shiny::checkboxInput(ns("showMaxValues"), label = "Show max values", value = FALSE),
+        shiny::numericInput(
+          inputId = ns("plotRowHeight"),
+          label = "Plot row height (pixels)",
+          max = 500,
+          value = 200,
+          min = 100
+        ),
         shiny::tags$br(),
-        shinycssloaders::withSpinner(
-          shiny::div(
-            id = ns("tsPlotContainer"),
-            plotly::plotlyOutput(ns("timeDistributionPlot"), width = "100%", height = "300px")
-          )
-        )
-      ),
-      shiny::tags$script(sprintf("
-      Shiny.addCustomMessageHandler('%s', function(height) {
-        let plotSpace = document.getElementById('%s');
-        plotSpace.querySelector('.svg-container').style.height = height;
-        plotSpace.querySelector('.js-plotly-plot').style.height = height;
-      });
-    ",ns('tsPlotHeight'), ns('tsPlotContainer')))
+        shiny::uiOutput(ns("plotArea"))
+      )
     )
   )
 }
@@ -387,6 +383,20 @@ timeDistributionsModule <- function(id,
 
       return(data)
     })
+
+
+    output$plotArea <- shiny::renderUI({
+      rowHeight <- ifelse(is.null(input$plotRowHeight) | is.na(input$plotRowHeight), 200, input$plotRowHeight)
+      plotHeight <- rowHeight * length(selectedDatabaseIds()) * length(cohortIds())
+      shiny::div(
+        id = ns("tsPlotContainer"),
+        shinycssloaders::withSpinner(plotly::plotlyOutput(ns("timeDistributionPlot"),
+                                                          width = "100%",
+                                                          height = sprintf("%spx", plotHeight + 50))),
+        height = sprintf("%spx", plotHeight + 50)
+      )
+    })
+
 
     ## output: timeDistributionPlot -----
     output$timeDistributionPlot <- plotly::renderPlotly(expr = {
