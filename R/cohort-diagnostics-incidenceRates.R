@@ -14,6 +14,68 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+# Global ranges for IR values
+getIncidenceRateRanges <- function(dataSource, minPersonYears = 0) {
+  sql <- "SELECT DISTINCT age_group FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
+
+  ageGroups <- dataSource$connectionHandler$queryDb(
+    sql = sql,
+    results_database_schema = dataSource$resultsDatabaseSchema,
+    ir_table = dataSource$prefixTable("incidence_rate"),
+    person_years = minPersonYears,
+    snakeCaseToCamelCase = TRUE
+  ) %>%
+    dplyr::mutate(ageGroup = dplyr::na_if(.data$ageGroup, ""))
+
+  sql <- "SELECT DISTINCT calendar_year FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
+
+  calendarYear <- dataSource$connectionHandler$queryDb(
+    sql = sql,
+    results_database_schema = dataSource$resultsDatabaseSchema,
+    ir_table = dataSource$prefixTable("incidence_rate"),
+    person_years = minPersonYears,
+    snakeCaseToCamelCase = TRUE
+  ) %>%
+    dplyr::mutate(
+      calendarYear = dplyr::na_if(.data$calendarYear, "")
+    ) %>%
+    dplyr::mutate(calendarYear = as.integer(.data$calendarYear))
+
+  sql <- "SELECT DISTINCT gender FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
+
+  gender <- dataSource$connectionHandler$queryDb(
+    sql = sql,
+    results_database_schema = dataSource$resultsDatabaseSchema,
+    ir_table = dataSource$prefixTable("incidence_rate"),
+    person_years = minPersonYears,
+    snakeCaseToCamelCase = TRUE
+  ) %>%
+    dplyr::mutate(gender = dplyr::na_if(.data$gender, ""))
+
+
+  sql <- "SELECT
+    min(incidence_rate) as min_ir,
+    max(incidence_rate) as max_ir
+   FROM @results_database_schema.@ir_table
+   WHERE person_years >= @person_years
+   AND incidence_rate > 0.0
+   "
+
+  incidenceRate <- dataSource$connectionHandler$queryDb(
+    sql = sql,
+    results_database_schema = dataSource$resultsDatabaseSchema,
+    ir_table = dataSource$prefixTable("incidence_rate"),
+    person_years = minPersonYears,
+    snakeCaseToCamelCase = TRUE
+  )
+
+  return(list(gender = gender,
+              incidenceRate = incidenceRate,
+              calendarYear = calendarYear,
+              ageGroups = ageGroups))
+}
+
 getIncidenceRateResult <- function(dataSource,
                                    cohortIds,
                                    databaseIds,
@@ -105,7 +167,8 @@ plotIncidenceRate <- function(data,
                               stratifyByAgeGroup = TRUE,
                               stratifyByGender = TRUE,
                               stratifyByCalendarYear = TRUE,
-                              yscaleFixed = FALSE) {
+                              yscaleFixed = FALSE,
+                              yRange = c()) {
   errorMessage <- checkmate::makeAssertCollection()
   checkmate::assertTibble(
     x = data,
@@ -186,33 +249,6 @@ plotIncidenceRate <- function(data,
     ) %>%
     dplyr::select(-dplyr::starts_with("strata"))
 
-  aesthetics <- list(y = "incidenceRate")
-  if (stratifyByCalendarYear) {
-    aesthetics$x <- "calendarYear"
-    xLabel <- "Calender year"
-    showX <- TRUE
-    if (stratifyByGender) {
-      aesthetics$group <- "gender"
-      aesthetics$color <- "gender"
-    }
-    plotType <- "line"
-  } else {
-    xLabel <- ""
-    if (stratifyByGender) {
-      aesthetics$x <- "gender"
-      aesthetics$color <- "gender"
-      aesthetics$fill <- "gender"
-      showX <- TRUE
-    } else if (stratifyByAgeGroup) {
-      aesthetics$x <- "ageGroup"
-      showX <- TRUE
-    } else {
-      aesthetics$x <- 1
-      showX <- FALSE
-    }
-    plotType <- "bar"
-  }
-
   sortShortName <- plotData %>%
     dplyr::select("shortName") %>%
     dplyr::distinct() %>%
@@ -250,7 +286,7 @@ plotIncidenceRate <- function(data,
 
   plotData$tooltip <- c(
     paste0(
-      plotData$cohortName,
+      plotData$cohortId, " ", plotData$cohortName,
       "\n",
       plotData$databaseName,
       "\nIncidence Rate = ",
@@ -289,8 +325,8 @@ plotIncidenceRate <- function(data,
     colors <- RColorBrewer::brewer.pal(n = 3, name = "Dark2")
     plotData$gender <- factor(plotData$gender, levels = genders)
   } else {
-    colors <- "#000000"
-    plotData$gender <- "NA"
+    colors <- "#337ab7"
+    plotData$gender <- ""
   }
 
   ncohorts <- plotData$shortName %>% unique() %>% length()
@@ -318,6 +354,7 @@ plotIncidenceRate <- function(data,
                             colors = colors,
                             text = ~tooltip,
                             y0 = 0,
+                            opacity = 0.8,
                             y = ~incidenceRate)
     } else {
       plt <- subsetData %>%
@@ -329,16 +366,28 @@ plotIncidenceRate <- function(data,
                          y0 = 0,
                          y = ~incidenceRate)
     }
+
+    yaxis <- list(title = list(text = ""),
+                  ticklen = 3,
+                  ticks = "inside",
+                  fixedrange = TRUE)
+    if (yscaleFixed) {
+      yaxis$range <- c(min(yRange), max(yRange))
+    }
+
     plt <- plt %>%
-      plotly::layout(title = title,
-                     xaxis = list(zerolinecolor = '#ffff',
-                                  zerolinewidth = 1,
+      plotly::layout(plot_bgcolor = '#eee',
+                     xaxis = list(zerolinecolor = '#fff',
+                                  zerolinewidth = 0,
                                   showtitle = FALSE,
                                   title = "",
-                                  textangle = 90,
+                                  rangemode = "nonnegative",
+                                  tickangle = 90,
+                                  ticklen = 3,
+                                  ticks = "inside",
                                   showgrid = TRUE,
-                                  gridcolor = 'ffff'),
-                     yaxis = list(title = ytitle))
+                                  gridcolor = '#fff'),
+                     yaxis = yaxis)
 
     return(plt)
   }
@@ -347,7 +396,8 @@ plotIncidenceRate <- function(data,
   for (dbI in 1:length(databaseNames)) {
     dbm <- databaseNames[dbI]
     subdata <- plotData %>% dplyr::filter(.data$databaseName == dbm)
-    for (cohort in cohortIds) {
+    for (cj in 1:length(cohortIds)) {
+      cohort <- cohortIds[cj]
       csubdata <- subdata %>% dplyr::filter(.data$cohortId == cohort)
 
       if (stratifyByAgeGroup) {
@@ -361,15 +411,17 @@ plotIncidenceRate <- function(data,
 
           subplots[[length(subplots) + 1]] <- makeSubPlot(pltdt, colors, ytitle = cohortName)
 
-          xTitlePos <- (length(topAnnotations) / length(ageGroupings)) + 1 / length(ageGroupings) * 0.2
-          topAnnotations[[length(topAnnotations) + 1]] <- list(text = paste("Age", agrp),
-                                                               x = xTitlePos,
-                                                               y = 1,
-                                                               xref = "paper",
-                                                               yref = "paper",
-                                                               xanchor = "left",
-                                                               yanchor = "bottom",
-                                                               showarrow = FALSE)
+          xTitlePos <- (length(topAnnotations) / length(ageGroupings)) + (0.50 * 1 / length(ageGroupings))
+          if (dbI == 1 && cj == 1) {
+            topAnnotations[[length(topAnnotations) + 1]] <- list(text = agrp,
+                                                                 x = xTitlePos,
+                                                                 y = 1,
+                                                                 xref = "paper",
+                                                                 yref = "paper",
+                                                                 xanchor = "center",
+                                                                 yanchor = "bottom",
+                                                                 showarrow = FALSE)
+          }
         }
       } else {
         subplots[[length(subplots) + 1]] <- makeSubPlot(csubdata, colors, ytitle = paste0("C", cohort))
@@ -377,38 +429,58 @@ plotIncidenceRate <- function(data,
     }
   }
 
+  j <- 0
   for (i in 1:length(databaseNames)) {
     dbName <- rev(databaseNames)[i]
-    ypos <- i * 1 / length(databaseNames) - 0.05
+    ypos <-  1 / (ndatabases * 2) + (1/ ndatabases) * (i - 1)
     topAnnotations[[length(topAnnotations) + 1]] <- list(
       text = dbName,
-      x = 0.998,
+      x = 1.05,
       showarrow = FALSE,
       y = ypos,
       textangle = 90,
       xref = "paper",
       yref = "paper",
-      xanchor = "left",
-      yanchor = "top"
+      xanchor = "right",
+      yanchor = "middle"
     )
+
+    for (cohort in rev(cohortIds)) {
+      cohortYpos <-  1 / (nrows * 2) + (1/ nrows) * j
+
+      topAnnotations[[length(topAnnotations) + 1]] <- list(
+        text = paste("C", cohort),
+        x = 1.02,
+        showarrow = FALSE,
+        y = cohortYpos,
+        textangle = 90,
+        xref = "paper",
+        yref = "paper",
+        xanchor = "right",
+        yanchor = "middle"
+      )
+      j <- j + 1
+    }
   }
 
-  plt <- plotly::subplot(subplots, nrows = nrows, shareX = TRUE, shareY = FALSE, margin = c(0.01)) %>%
+  annotations[[length(topAnnotations) + 1]] <- list(
+    text = "Incidence Rate (/1000 Person Years)",
+    font = list(size = 15),
+    x = -0.03,
+    showarrow = FALSE,
+    y = 0.5,
+    textangle = -90,
+    xref = "paper",
+    yref = "paper",
+    xanchor = "center",
+    yanchor = "middle"
+  )
+
+  plt <- plotly::subplot(subplots, nrows = nrows, shareX = TRUE, shareY = TRUE, margin = c(0.0015, 0.0015, 0.01, 0.01)) %>%
     plotly::layout(annotations = c(annotations, topAnnotations),
-                   showlegend = F,
-                   plot_bgcolor = '#e5ecf6',
-                   xaxis = list(
-                     showTitle = FALSE,
-                     zerolinecolor = '#ffff',
-                     zerolinewidth = 1,
-                     textangle = 90,
-                     showgrid = TRUE,
-                     gridcolor = 'ffff'),
-                   yaxis = list(
-                     zerolinecolor = '#ffff',
-                     zerolinewidth = 1,
-                     showgrid = TRUE,
-                     gridcolor = 'ffff'))
+                   margin = c(50, 50, 0, 0),
+                   showlegend = FALSE,
+                   plot_bgcolor = '#eee')
 
   plt
 }
@@ -576,19 +648,9 @@ incidenceRatesView <- function(id) {
         shiny::tabsetPanel(
           id = ns("irPlotTabsetPanel"),
           type = "pills",
-          selected = "Table",
           shiny::tabPanel(
             title = "Plot",
-            shinycssloaders::withSpinner(
-              shiny::div(
-                id = ns("irPlotContainer"),
-                plotly::plotlyOutput(
-                  outputId = ns("incidenceRatePlot"),
-                  width = "100%",
-                  height = "400px"
-                )
-              )
-            )
+            shiny::tags$div(id = ns("plotArea"), height = "100%")
           ),
           shiny::tabPanel(
             title = "Table",
@@ -598,79 +660,8 @@ incidenceRatesView <- function(id) {
           )
         )
       )
-    ),
-    # complicated way of setting plot height based on number of rows and selection type
-    # Note that this code is only used because renderUI/ uiOutput didn't seem to update with plotly
-    shiny::tags$script(sprintf("
-      Shiny.addCustomMessageHandler('%s', function(height) {
-        let plotSpace = document.getElementById('%s');
-        plotSpace.querySelector('.svg-container').style.height = height;
-        plotSpace.querySelector('.js-plotly-plot').style.height = height;
-      });
-    ", ns("irPlotHeight"), ns("irPlotContainer")))
+    )
   )
-}
-
-
-# Global ranges for IR values
-getIncidenceRateRanges <- function(dataSource, minPersonYears = 0) {
-  sql <- "SELECT DISTINCT age_group FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
-
-  ageGroups <- dataSource$connectionHandler$queryDb(
-    sql = sql,
-    results_database_schema = dataSource$resultsDatabaseSchema,
-    ir_table = dataSource$prefixTable("incidence_rate"),
-    person_years = minPersonYears,
-    snakeCaseToCamelCase = TRUE
-  ) %>%
-    dplyr::mutate(ageGroup = dplyr::na_if(.data$ageGroup, ""))
-
-  sql <- "SELECT DISTINCT calendar_year FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
-
-  calendarYear <- dataSource$connectionHandler$queryDb(
-    sql = sql,
-    results_database_schema = dataSource$resultsDatabaseSchema,
-    ir_table = dataSource$prefixTable("incidence_rate"),
-    person_years = minPersonYears,
-    snakeCaseToCamelCase = TRUE
-  ) %>%
-    dplyr::mutate(
-      calendarYear = dplyr::na_if(.data$calendarYear, "")
-    ) %>%
-    dplyr::mutate(calendarYear = as.integer(.data$calendarYear))
-
-  sql <- "SELECT DISTINCT gender FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
-
-  gender <- dataSource$connectionHandler$queryDb(
-    sql = sql,
-    results_database_schema = dataSource$resultsDatabaseSchema,
-    ir_table = dataSource$prefixTable("incidence_rate"),
-    person_years = minPersonYears,
-    snakeCaseToCamelCase = TRUE
-  ) %>%
-    dplyr::mutate(gender = dplyr::na_if(.data$gender, ""))
-
-
-  sql <- "SELECT
-    min(incidence_rate) as min_ir,
-    max(incidence_rate) as max_ir
-   FROM @results_database_schema.@ir_table
-   WHERE person_years >= @person_years
-   AND incidence_rate > 0.0
-   "
-
-  incidenceRate <- dataSource$connectionHandler$queryDb(
-    sql = sql,
-    results_database_schema = dataSource$resultsDatabaseSchema,
-    ir_table = dataSource$prefixTable("incidence_rate"),
-    person_years = minPersonYears,
-    snakeCaseToCamelCase = TRUE
-  )
-
-  return(list(gender = gender,
-              incidenceRate = incidenceRate,
-              calendarYear = calendarYear,
-              ageGroups = ageGroups))
 }
 
 
@@ -840,27 +831,23 @@ incidenceRatesModule <- function(id,
       return(nPlotsMade)
     })
 
-
-    setPlotHieght <- function() {
-      # Note that this code is only used because renderUI/ uiOutput didn't seem to update with plotly
-      plotHeight <- 400
-      if (nplots() < 101) {
-        # Set the height/width of the plot relative to the number of cohorts and databases
-        if ("Age" %in% input$irStratification) {
-          plotHeight <- 150 *
-            length(selectedDatabaseIds()) *
-            length(cohortIds())
-        } else {
-          plotHeight <- 200 *
-            length(selectedDatabaseIds()) *
-            length(cohortIds())
-        }
-      }
-      session$sendCustomMessage(ns("irPlotHeight"), sprintf("%spx", plotHeight))
-    }
-
     shiny::observeEvent(input$generatePlot, {
-      setPlotHieght()
+      plotHeight <- 200 * length(selectedDatabaseIds()) * length(cohortIds())
+      shiny::removeUI(selector = paste0("#", ns("irPlotContainer")))
+      shiny::insertUI(
+        selector = paste0("#", ns("plotArea")),
+        ui = shiny::div(
+          id = ns("irPlotContainer"),
+          shinycssloaders::withSpinner(
+            plotly::plotlyOutput(
+              outputId = ns("incidenceRatePlot"),
+              width = "100%",
+              height = sprintf("%spx", plotHeight)
+            )
+          ),
+          height = sprintf("%spx", plotHeight + 50)
+        )
+      )
     })
 
 
@@ -898,8 +885,6 @@ incidenceRatesModule <- function(id,
       shiny::validate(shiny::need(length(cohortIds()) > 0, "No cohorts chosen"))
       nPlotsMade <- nplots()
 
-      shiny::validate(shiny::need(nPlotsMade < 200, "Resulting number of plots will execeed 200 - adjust selection"))
-
       shiny::withProgress(
         message = paste(
           "Building incidence rate plot data for ",
@@ -925,7 +910,8 @@ incidenceRatesModule <- function(id,
             stratifyByAgeGroup = stratifyByAge,
             stratifyByGender = stratifyByGender,
             stratifyByCalendarYear = stratifyByCalendarYear,
-            yscaleFixed = input$irYscaleFixed
+            yscaleFixed = input$irYscaleFixed,
+            yRange = incidenceRateYScaleFilter()
           )
           return(plot)
         }
@@ -945,6 +931,7 @@ incidenceRatesModule <- function(id,
 
       data <- data %>%
         dplyr::inner_join(cohortTable, by = "cohortId") %>%
+        dplyr::mutate(incidenceProportion = .data$cohortCount / .data$cohortSubjects) %>%
         dplyr::select("cohortName",
                       "databaseName",
                       "ageGroup",
@@ -952,7 +939,8 @@ incidenceRatesModule <- function(id,
                       "personYears",
                       "gender",
                       "cohortCount",
-                      "incidenceRate")
+                      "incidenceRate",
+                      "incidenceProportion")
 
 
       tooltip <- function(value, tooltip) {
@@ -974,6 +962,9 @@ incidenceRatesModule <- function(id,
                                                            "Number of subjects in cohort within strata")),
         "personYears" = reactable::colDef(header = tooltip("Person Years",
                                                            "Cumulative time (in years)"),
+                                          cell = function(value) {
+                                            scales::comma(value, accuracy = 0.01)
+                                          },
                                           format = reactable::colFormat(digits = 2)),
         "incidenceRate" = reactable::colDef(header = tooltip("Inicidence per 1k/py",
                                                              "Incidence of event per 1000 person years - (Events/Person Years * 1000)"),
@@ -981,7 +972,16 @@ incidenceRatesModule <- function(id,
                                               width <- paste0(value / max(data$incidenceRate) * 100, "%")
                                               barChart(sprintf("%.2f", value), width = width)
                                             },
-                                            format = reactable::colFormat(digits = 3))
+                                            format = reactable::colFormat(digits = 3)),
+        "incidenceProportion" = reactable::colDef(header = tooltip("Inicidence proportion",
+                                                                   "Proportion of cohort - Event count in strata / total cohort count"),
+                                                  cell = function(value) {
+                                                    value <- abs(value)
+                                                    width <- paste0(value * 100, "%")
+                                                    barChart(sprintf("%.2f%%", value * 100), width = width)
+                                                  },
+                                                  format = reactable::colFormat(digits = 3))
+
       )
 
       groupBy <- c("cohortName", "databaseName")
@@ -1009,7 +1009,7 @@ incidenceRatesModule <- function(id,
       }
 
       # modifiable args list to call reactable::reactable
-      return(list(data = data, groupBy = groupBy,  defaultSorted = sorted, columns = columnDefs))
+      return(list(data = data, groupBy = groupBy, defaultSorted = sorted, columns = columnDefs))
     })
 
     output$irTable <- reactable::renderReactable({
@@ -1018,7 +1018,7 @@ incidenceRatesModule <- function(id,
       if (isFALSE(input$groupColumns)) {
         args <- within(args, rm(groupBy))
       }
-       do.call(reactable::reactable, args)
+      do.call(reactable::reactable, args)
     })
   })
 }
