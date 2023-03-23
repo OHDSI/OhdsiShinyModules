@@ -203,12 +203,13 @@ plotTemporalCompareStandardizedDifference <- function(balance,
     ) %>%
       plotly::layout(
         plot_bgcolor = '#e5ecf6',
-        xaxis = list(tickformat = ".0%", zerolinecolor = '#ffff',
+        xaxis = list(tickformat = ".0%", zerolinecolor = '#fff',
                      zerolinewidth = 2,
-                     gridcolor = 'ffff'),
-        yaxis = list(tickformat = ".0%", zerolinecolor = '#ffff',
+                     title = "",
+                     gridcolor = '#fff'),
+        yaxis = list(tickformat = ".0%", zerolinecolor = '#fff',
                      zerolinewidth = 2,
-                     gridcolor = 'ffff'),
+                     gridcolor = '#fff'),
         showlegend = F,
         shapes = list(list(
           type = "line",
@@ -222,14 +223,21 @@ plotTemporalCompareStandardizedDifference <- function(balance,
         ))
       )
   }
+  annotations[[length(annotations) + 1]] <- list(text = "Prevalance in Target Cohort", font = list(size = 13),
+                                                 y = -0.1,
+                                                 x = 0.5,
+                                                 xref = "paper",
+                                                 yref = "paper",
+                                                 xanchor = "center",
+                                                 yanchor = "bottom",
+                                                 showarrow = FALSE)
 
-  plotly::subplot(subplots, nrows = 1, shareX = FALSE, shareY=FALSE) %>%
+
+  plotly::subplot(subplots, nrows = 1, shareX = FALSE, shareY = FALSE) %>%
     plotly::layout(annotations = annotations,
-                   xaxis = list(title = "Prevalence in Target Cohort"),
+                   xaxis = list(title = ""),
                    yaxis = list(title = "Prevalence in Comparator Cohort"))
 }
-
-
 
 
 #' compare characterization view
@@ -248,7 +256,7 @@ compareCohortCharacterizationView <- function(id, title = "Compare cohort charac
       collapsed = TRUE,
       title = "Compare Cohort Characterization",
       width = "100%",
-      shiny::htmlTemplate(system.file("cohort-diagnostics-www",  "compareCohortCharacterization.html", package = utils::packageName()))
+      shiny::htmlTemplate(system.file("cohort-diagnostics-www", "compareCohortCharacterization.html", package = utils::packageName()))
     ),
     shinydashboard::box(
       width = NULL,
@@ -510,7 +518,7 @@ getCohortRelationshipCharacterizationResults <-
     # subjects overlap
     subjectsOverlap <- cohortRelationships %>%
       dplyr::inner_join(cohortCounts,
-        by = c("cohortId", "databaseId")
+                        by = c("cohortId", "databaseId")
       ) %>%
       dplyr::mutate(sumValue = .data$subCeWindowT + .data$subCsWindowT - .data$subCWithinT) %>%
       dplyr::mutate(mean = .data$sumValue / .data$cohortSubjects) %>%
@@ -528,7 +536,7 @@ getCohortRelationshipCharacterizationResults <-
     # subjects start
     subjectsStart <- cohortRelationships %>%
       dplyr::inner_join(cohortCounts,
-        by = c("cohortId", "databaseId")
+                        by = c("cohortId", "databaseId")
       ) %>%
       dplyr::mutate(sumValue = .data$subCsWindowT) %>%
       dplyr::mutate(mean = .data$sumValue / .data$cohortSubjects) %>%
@@ -564,11 +572,11 @@ getCohortRelationshipCharacterizationResults <-
         isBinary = "Y",
         missingMeansZero = "Y"
       ) %>%
-      dplyr::inner_join(data %>%
-        dplyr::select("analysisId") %>%
-        dplyr::distinct(),
-      by = c("analysisId")
-      )
+        dplyr::inner_join(data %>%
+                            dplyr::select("analysisId") %>%
+                            dplyr::distinct(),
+                          by = c("analysisId")
+        )
     covariateRef <- tidyr::crossing(
       cohort,
       analysisRef %>%
@@ -578,8 +586,10 @@ getCohortRelationshipCharacterizationResults <-
         )
     ) %>%
       dplyr::mutate(covariateId = (.data$cohortId * -1000) + .data$analysisId) %>%
-      dplyr::inner_join(data %>% dplyr::select("covariateId") %>% dplyr::distinct(),
-        by = "covariateId"
+      dplyr::inner_join(data %>%
+                          dplyr::select("covariateId") %>%
+                          dplyr::distinct(),
+                        by = "covariateId"
       ) %>%
       dplyr::mutate(covariateName = paste0(
         .data$analysisName,
@@ -681,10 +691,10 @@ getCharacterizationOutput <- function(dataSource,
         .data$covariateId
       ) %>%
       dplyr::inner_join(data$temporalCovariateRef,
-        by = "covariateId"
+                        by = "covariateId"
       ) %>%
       dplyr::inner_join(data$temporalAnalysisRef,
-        by = "analysisId"
+                        by = "analysisId"
       ) %>%
       dplyr::left_join(
         temporalChoices %>%
@@ -1085,7 +1095,7 @@ compareCohortCharacterizationModule <- function(id,
           ),
           StdDiff = reactable::colDef(
             cell = function(value) {
-              return(round(value,2))
+              return(round(value, 2))
             },
             style = function(value) {
               color <- '#fff'
