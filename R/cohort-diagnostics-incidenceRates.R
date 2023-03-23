@@ -602,7 +602,7 @@ incidenceRatesView <- function(id) {
 
       shiny::fluidRow(
         shiny::column(
-          width = 3,
+          width = 2,
           shiny::numericInput(
             inputId = ns("minPersonYear"),
             label = "Minimum person years",
@@ -611,7 +611,7 @@ incidenceRatesView <- function(id) {
           )
         ),
         shiny::column(
-          width = 3,
+          width = 2,
           shiny::numericInput(
             inputId = ns("minSubjectCount"),
             label = "Minimum subject count",
@@ -619,7 +619,17 @@ incidenceRatesView <- function(id) {
           )
         ),
         shiny::column(
-          width = 6,
+          width = 2,
+          shiny::numericInput(
+            inputId = ns("plotRowHeight"),
+            label = "Plot row height (pixels)",
+            max = 500,
+            value = 200,
+            min = 100
+          )
+        ),
+        shiny::column(
+          width = 5,
           shiny::conditionalPanel(
             condition = "input.irStratification.indexOf('Calendar Year') > -1",
             ns = ns,
@@ -807,19 +817,7 @@ incidenceRatesModule <- function(id,
 
 
     incidenceRateYScaleFilter <- shiny::reactive({
-      incidenceRateFilter <- incidenceRateData() %>%
-        dplyr::select("incidenceRate") %>%
-        dplyr::filter(
-          .data$incidenceRate != "NA",
-          !is.na(.data$incidenceRate)
-        ) %>%
-        dplyr::distinct(.data$incidenceRate) %>%
-        dplyr::arrange(.data$incidenceRate)
-      incidenceRateFilter <-
-        incidenceRateFilter[incidenceRateFilter$incidenceRate >= input$YscaleMinAndMax[1] &
-                              incidenceRateFilter$incidenceRate <= input$YscaleMinAndMax[2], , drop = FALSE] %>%
-          dplyr::pull("incidenceRate")
-      return(incidenceRateFilter)
+      input$YscaleMinAndMax
     })
 
     nplots <- shiny::reactive({
@@ -832,7 +830,8 @@ incidenceRatesModule <- function(id,
     })
 
     shiny::observeEvent(input$generatePlot, {
-      plotHeight <- 200 * length(selectedDatabaseIds()) * length(cohortIds())
+      rowHeight <- ifelse(is.null(input$plotRowHeight) | is.na(input$plotRowHeight), 200, input$plotRowHeight)
+      plotHeight <-  rowHeight * length(selectedDatabaseIds()) * length(cohortIds())
       shiny::removeUI(selector = paste0("#", ns("irPlotContainer")))
       shiny::insertUI(
         selector = paste0("#", ns("plotArea")),
@@ -871,10 +870,6 @@ incidenceRatesModule <- function(id,
       if (stratifyByCalendarYear) {
         data <- data %>%
           dplyr::filter(.data$calendarYear %in% incidenceRateCalenderFilter())
-      }
-      if (input$irYscaleFixed) {
-        data <- data %>%
-          dplyr::filter(.data$incidenceRate %in% incidenceRateYScaleFilter())
       }
 
       return(data)
