@@ -31,7 +31,7 @@
 estimationResultsTableViewer <- function(id) {
   ns <- shiny::NS(id)
   
-  DT::dataTableOutput(outputId = ns("mainTable"))
+  reactable::reactableOutput(outputId = ns("mainTable"))
 }
 
 
@@ -63,6 +63,11 @@ estimationResultsTableServer <- function(
     id,
     function(input, output, session) {
       
+      withTooltip <- function(value, tooltip, ...) {
+        shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
+                   tippy::tippy(value, tooltip, ...))
+      }
+      
       
       mainColumns <- c("description",
                        "cdmSourceAbbreviation",
@@ -74,19 +79,6 @@ estimationResultsTableServer <- function(
                        "calibratedCi95Lb",
                        "calibratedCi95Ub",
                        "calibratedP")
-      
-      mainColumnNames <- c("<span title=\"Analysis\">Analysis</span>",
-                           "<span title=\"Data source\">Data source</span>",
-                           "<span title=\"Hazard ratio (uncalibrated)\">HR</span>",
-                           "<span title=\"Lower bound of the 95 percent confidence interval (uncalibrated)\">LB</span>",
-                           "<span title=\"Upper bound of the 95 percent confidence interval (uncalibrated)\">UB</span>",
-                           "<span title=\"Two-sided p-value (uncalibrated)\">P</span>",
-                           "<span title=\"Hazard ratio (calibrated)\">Cal.HR</span>",
-                           "<span title=\"Lower bound of the 95 percent confidence interval (calibrated)\">Cal.LB</span>",
-                           "<span title=\"Upper bound of the 95 percent confidence interval (calibrated)\">Cal.UB</span>",
-                           "<span title=\"Two-sided p-value (calibrated)\">Cal.P</span>")
-      
-      
       
       resultSubset <- shiny::reactive({
         
@@ -108,7 +100,10 @@ estimationResultsTableServer <- function(
       })
       
       selectedRow <- shiny::reactive({
-        idx <- input$mainTable_rows_selected
+        idx <- reactable::getReactableState(
+          outputId = 'mainTable', 
+          name = 'selected'
+          ) 
         if (is.null(idx)) {
           return(NULL)
         } else {
@@ -122,7 +117,7 @@ estimationResultsTableServer <- function(
         }
       })
       
-      output$mainTable <- DT::renderDataTable({
+      output$mainTable <- reactable::renderReactable({
         table <- resultSubset()
         if (is.null(table) || nrow(table) == 0) {
           shiny::validate(shiny::need(nrow(table) > 0, "No CM results for selections."))
@@ -137,22 +132,82 @@ estimationResultsTableServer <- function(
         table$calibratedCi95Lb <- prettyEstimationHr(table$calibratedCi95Lb)
         table$calibratedCi95Ub <- prettyEstimationHr(table$calibratedCi95Ub)
         table$calibratedP <- prettyEstimationHr(table$calibratedP)
-        colnames(table) <- mainColumnNames
-        options = list(pageLength = 15,
-                       searching = FALSE,
-                       lengthChange = TRUE,
-                       ordering = TRUE,
-                       paging = TRUE)
-        selection = list(mode = "single", target = "row")
-        table <- DT::datatable(table,
-                               options = options,
-                               selection = selection,
-                               rownames = FALSE,
-                               escape = FALSE,
-                               class = "stripe nowrap compact")
-        table
+        #colnames(table) <- mainColumnNames
+
+        reactable::reactable( # add extras
+          data = table, 
+          rownames = FALSE, 
+          defaultPageSize = 15,
+          showPageSizeOptions = T, 
+          onClick = 'select', 
+          selection = 'single',
+          striped = T,
+          
+          columns = list(
+            description = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Analysis", 
+                "Analysis"
+              )),
+            cdmSourceAbbreviation = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Data source", 
+                "Data source"
+              )),
+            rr = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "HR", 
+                "Hazard ratio (uncalibrated)"
+              )),
+            ci95Lb = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "LB", 
+                "Lower bound of the 95 percent confidence interval (uncalibrated)"
+              )),
+            ci95Ub = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "UB", 
+                "Upper bound of the 95 percent confidence interval (uncalibrated)"
+              )),
+            p = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "P", 
+                "Two-sided p-value (uncalibrated)"
+              )),
+            calibratedRr = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Cal.HR", 
+                "Hazard ratio (calibrated)"
+              )),
+            calibratedCi95Lb = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Cal.LB", 
+                "Lower bound of the 95 percent confidence interval (calibrated)"
+              )),
+            calibratedCi95Ub = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Cal.UB", 
+                "Upper bound of the 95 percent confidence interval (calibrated)"
+              )),
+            calibratedP = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Cal.P", 
+                "Two-sided p-value (calibrated)"
+              ))
+          )
+          )
       })
       
-      selectedRow
+      return(selectedRow)
     })
 }

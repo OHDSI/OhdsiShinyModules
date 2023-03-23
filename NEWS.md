@@ -1,3 +1,11 @@
+OhdsiShinyModules v1.0.4
+========================
+- Fixed an issue with hide/show tabs and reactives in the plp viewer
+
+OhdsiShinyModules v1.0.3
+========================
+- Fixed a glitchy prediction viewer
+
 OhdsiShinyModules v1.0.2
 ========================
 - Added Cohort Diagnostics module

@@ -45,78 +45,110 @@ predictionHelperFile <- function(){
 predictionViewer <- function(id=1) {
   ns <- shiny::NS(id)
   
-  shiny::tabsetPanel(
-    id = ns('allView'),
+  shinydashboard::box(
+    status = 'info', width = 12,
+    title =  shiny::span( shiny::icon("chart-line"), "Prediction Viewer"),
+    solidHeader = TRUE,
     
-    shiny::tabPanel(
-      "Model Designs Summary",  
-      predictionDesignSummaryViewer(ns('designSummaryTab'))
-    ),
-    
-    shiny::tabPanel(
-      "Models Summary",  
-      shiny::actionButton(
-        inputId = ns("backToDesignSummary"), 
-        label = "Back To Design Summary",
-        shiny::icon("arrow-left"), 
-        style="color: #fff; background-color: #337ab7; border-color: #2e6da4"
+    shiny::tabsetPanel(
+      type = 'hidden',#'pills',
+      id = ns('allView'),
+      
+      shiny::tabPanel(
+        "Model Designs Summary",  
+        
+        shinydashboard::box(
+          collapsible = TRUE,
+          collapsed = TRUE,
+          title = "Model Designs Summary",
+          width = "100%"#,
+          #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
+        ),
+        
+        predictionDesignSummaryViewer(ns('designSummaryTab'))
       ),
-      predictionModelSummaryViewer(ns('modelSummaryTab'))
-    ),
-    
-    shiny::tabPanel(
-      "Explore Selected Model",
       
-      shiny::actionButton(
-        inputId = ns("backToModelSummary"), 
-        label = "Back To Models Summary",
-        shiny::icon("arrow-left"), 
-        style="color: #fff; background-color: #337ab7; border-color: #2e6da4"
+      shiny::tabPanel(
+        "Models Summary",  
+        shiny::actionButton(
+          inputId = ns("backToDesignSummary"), 
+          label = "Back To Design Summary",
+          shiny::icon("arrow-left"), 
+          style="color: #fff; background-color: #337ab7; border-color: #2e6da4"
         ),
+        predictionModelSummaryViewer(ns('modelSummaryTab'))
+      ),
       
-      shiny::tabsetPanel(
-        id = ns('singleView'),
-        shiny::tabPanel(
-          "Design Settings",
-          predictionSettingsViewer(ns('settings'))
+      shiny::tabPanel(
+        "Explore Selected Model",
+        
+        shiny::actionButton(
+          inputId = ns("backToModelSummary"), 
+          label = "Back To Models Summary",
+          shiny::icon("arrow-left"), 
+          style="color: #fff; background-color: #337ab7; border-color: #2e6da4"
         ),
         
-        shiny::tabPanel(
-          "Model",
-          predictionCovariateSummaryViewer(ns('covariateSummary'))
+        shinydashboard::box(
+          collapsible = TRUE,
+          collapsed = TRUE,
+          title = "Full Result Explorer",
+          width = "100%"#,
+          #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
         ),
         
-        shiny::tabPanel(
-          "Threshold Dependant", 
-          predictionCutoffViewer(ns('cutoff'))
-        ), 
-        
-        shiny::tabPanel(
-          "Discrimination",  
-          predictionDiscriminationViewer(ns('discrimination'))
+        shinydashboard::box(
+          status = "warning",
+          width = "100%",
+          shiny::uiOutput(outputId = ns("resultSelectText"))
         ),
         
-        shiny::tabPanel(
-          "Calibration", 
-          predictionCalibrationViewer(ns('calibration'))
-        ),
-        
-        shiny::tabPanel(
-          "Net Benefit", 
-          predictionNbViewer(ns('netBenefit'))
-        ),
-        
-
-        shiny::tabPanel(
+        shiny::tabsetPanel(
+          type = 'pills',
+          id = ns('singleView'),
+          shiny::tabPanel(
+            "Design Settings",
+            predictionSettingsViewer(ns('settings'))
+          ),
+          
+          shiny::tabPanel(
+            "Model",
+            predictionCovariateSummaryViewer(ns('covariateSummary'))
+          ),
+          
+          shiny::tabPanel(
+            "Threshold Dependant", 
+            predictionCutoffViewer(ns('cutoff'))
+          ), 
+          
+          shiny::tabPanel(
+            "Discrimination",  
+            predictionDiscriminationViewer(ns('discrimination'))
+          ),
+          
+          shiny::tabPanel(
+            "Calibration", 
+            predictionCalibrationViewer(ns('calibration'))
+          ),
+          
+          shiny::tabPanel(
+            "Net Benefit", 
+            predictionNbViewer(ns('netBenefit'))
+          ),
+          
+          
+          shiny::tabPanel(
             "Validation",
             predictionValidationViewer(ns('validation'))
           )
-    
-        
+          
+          
+        )
       )
+      
     )
     
-  )
+  ) # end box
   
 }
 
@@ -144,31 +176,26 @@ predictionServer <- function(
       
       #   VIEW SETTINGS
       # =============================
-      # initially hide the models and selected model
-      shiny::hideTab(inputId = "allView", session = session, target = "Models Summary")
-      shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
-      
+
       # when going to the all model design hide tabs
       shiny::observeEvent(input$allView, {
         
-        tempView <- ifelse(is.null(input$allView), 'Model Designs Summary', input$allView)
         
-        if(tempView == 'Model Designs Summary'){
-          shiny::hideTab(inputId = "allView", session = session, target = "Models Summary")
-          shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
+        if(!is.null(input$allView)){
+          tempView <- input$allView
+
+          if(tempView != 'Explore Selected Model'){
+            shiny::updateTabsetPanel(
+              session = session,
+              inputId = 'singleView',
+              selected = 'Design Settings'
+            )
+            
+            # 
+          }
         }
-    
-        if(tempView != 'Explore Selected Model'){
-          shiny::updateTabsetPanel(
-            session = session,
-            inputId = 'singleView',
-            selected = 'Design Settings'
-          )
-          
-          # 
-        }
-        }
-        
+      }
+      
       )
       
       # go back button 
@@ -178,8 +205,7 @@ predictionServer <- function(
           inputId = 'allView',
           selected = 'Models Summary'
         )
-        shiny::showTab(inputId = "allView", session = session, target = "Models Summary")
-        shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
+
             })
       
       shiny::observeEvent(input$backToDesignSummary, {
@@ -220,9 +246,9 @@ predictionServer <- function(
       shiny::observeEvent(designSummary$modelDesignId(), {
         modelDesignId(designSummary$modelDesignId())
         if(!is.null(designSummary$modelDesignId())){
-          shiny::showTab(inputId = "allView", session = session, target = "Models Summary")
+          #shiny::showTab(inputId = "allView", session = session, target = "Models Summary")
           shiny::updateTabsetPanel(session, "allView", selected = "Models Summary")
-          shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
+          #shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
         }
       })
       
@@ -259,9 +285,9 @@ predictionServer <- function(
         performanceId(performance$performanceId())
         developmentDatabaseId(performance$developmentDatabaseId())
         if(!is.null(performance$performanceId())){
-          shiny::showTab(inputId = "allView", session = session, target = "Explore Selected Model")
+          #shiny::showTab(inputId = "allView", session = session, target = "Explore Selected Model")
           shiny::updateTabsetPanel(session, "allView", selected = "Explore Selected Model")
-          shiny::hideTab(inputId = "allView", session = session, target = "Models Summary")
+          #shiny::hideTab(inputId = "allView", session = session, target = "Models Summary")
         }
         
         # hide validation tab if non internal val
@@ -412,6 +438,26 @@ predictionServer <- function(
       #  Single Result Exploring Modules
       # ===========================================
       
+      output$resultSelectText <- shiny::renderUI(
+          getResultSelection(
+            connectionHandler = connectionHandler, 
+            mySchema = resultDatabaseSettings$schema, 
+            myTableAppend = resultDatabaseSettings$tablePrefix,
+            modelDesignId = modelDesignId,
+            performanceId = performanceId,
+            cohortTableAppend = ifelse(
+              !is.null(resultDatabaseSettings$cohortTablePrefix), 
+              resultDatabaseSettings$cohortTablePrefix,
+              resultDatabaseSettings$tablePrefix
+            ),
+            databaseTableAppend = ifelse(
+              !is.null(resultDatabaseSettings$databaseTablePrefix), 
+              resultDatabaseSettings$databaseTablePrefix,
+              resultDatabaseSettings$tablePrefix
+            )
+          )
+      )
+      
       predictionCovariateSummaryServer(
         id = 'covariateSummary',
         modelDesignId = modelDesignId, # reactive
@@ -498,4 +544,127 @@ predictionServer <- function(
       
     }
   )
+}
+
+
+
+getResultSelection <- function(
+  connectionHandler, 
+  mySchema, 
+  myTableAppend,
+  modelDesignId,
+  performanceId,
+  cohortTableAppend,
+  databaseTableAppend
+){
+  if(!is.null(modelDesignId()) & !is.null(performanceId())){
+  
+  modelType <- connectionHandler$queryDb(
+    'select distinct model_type from @my_schema.@my_table_appendmodels where model_design_id = @model_design_id;',
+    my_schema = mySchema,
+    my_table_append = myTableAppend,
+    model_design_id = modelDesignId()
+  )
+  
+  print(modelType)
+  
+  developmentDb = connectionHandler$queryDb(
+    'select distinct d.cdm_source_abbreviation from 
+    @my_schema.@database_table_appenddatabase_meta_data d
+    inner join
+    @my_schema.@my_table_appenddatabase_details dd
+    on dd.database_meta_data_id = d.database_id
+    inner join
+    @my_schema.@my_table_appendperformances p 
+    on dd.database_id = p.development_database_id
+    where p.performance_id = @performance_id;',
+    my_schema = mySchema,
+    my_table_append = myTableAppend,
+    performance_id = performanceId(),
+    database_table_append = databaseTableAppend
+  )
+  
+  print(developmentDb)
+  
+  validationDb = connectionHandler$queryDb(
+    'select distinct d.cdm_source_abbreviation from 
+    @my_schema.@database_table_appenddatabase_meta_data d
+    inner join
+    @my_schema.@my_table_appenddatabase_details dd
+    on dd.database_meta_data_id = d.database_id
+    inner join
+    @my_schema.@my_table_appendperformances p 
+    on dd.database_id = p.validation_database_id
+    where p.performance_id = @performance_id;',
+    my_schema = mySchema,
+    my_table_append = myTableAppend,
+    performance_id = performanceId(),
+    database_table_append = databaseTableAppend
+  )
+  print(validationDb)
+  
+  target <- connectionHandler$queryDb(
+    'select distinct c.cohort_name from 
+    @my_schema.@my_table_appendcohorts c
+    inner join
+    @my_schema.@my_table_appendperformances p 
+    on c.cohort_id = p.target_id
+    where p.performance_id = @performance_id;',
+    my_schema = mySchema,
+    my_table_append = myTableAppend,
+    performance_id = performanceId()
+  )
+  print(target)
+  outcome <- connectionHandler$queryDb(
+    'select distinct c.cohort_name from 
+    @my_schema.@my_table_appendcohorts c
+    inner join
+    @my_schema.@my_table_appendperformances p 
+    on c.cohort_id = p.outcome_id
+    where p.performance_id = @performance_id;',
+    my_schema = mySchema,
+    my_table_append = myTableAppend,
+    performance_id = performanceId()
+  )
+  print(outcome)
+  
+  return(
+    shiny::fluidPage(
+      shiny::fluidRow(
+        shiny::column(
+          width = 4,
+          shiny::tags$b("modelDesignId :"),
+          modelDesignId()
+        ),
+        shiny::column(
+          width = 4,
+          shiny::tags$b("modelType :"),
+          modelType
+        ),
+        shiny::column(
+          width = 4,
+          shiny::tags$b("Target :"),
+          target
+        )
+      ),
+      shiny::fluidRow(
+        shiny::column(
+          width = 4,
+          shiny::tags$b("developmentDb :"),
+          developmentDb
+        ),
+        shiny::column(
+          width = 4,
+          shiny::tags$b("validationDb :"),
+          validationDb
+        ),
+        shiny::column(
+          width = 4,
+          shiny::tags$b("outcome :"),
+          outcome
+        )
+      )
+    )
+  )
+  }
 }

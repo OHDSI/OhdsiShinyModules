@@ -238,16 +238,18 @@ FROM
   }
   sql <- paste0(sql, paste(clauses, collapse = " AND "), ";")
   return(
-    connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      database_table = databaseTable,
-      target_ids = paste0("'", paste(targetIds, collapse = "', '"), "'"),
-      comparator_ids = paste0("'", paste(comparatorIds, collapse = "', '"), "'"),
-      outcome_ids = paste0("'", paste(outcomeIds, collapse = "', '"), "'"),
-      database_ids = paste0("'", paste(databaseIds, collapse = "', '"), "'"),
-      analysis_ids = paste0("'", paste(analysisIds, collapse = "', '"), "'")
+    suppressWarnings( # ignoring warnings due to parameter not found
+      connectionHandler$queryDb(
+        sql = sql,
+        results_schema = resultsSchema,
+        table_prefix = tablePrefix,
+        database_table = databaseTable,
+        target_ids = paste0("'", paste(targetIds, collapse = "', '"), "'"),
+        comparator_ids = paste0("'", paste(comparatorIds, collapse = "', '"), "'"),
+        outcome_ids = paste0("'", paste(outcomeIds, collapse = "', '"), "'"),
+        database_ids = paste0("'", paste(databaseIds, collapse = "', '"), "'"),
+        analysis_ids = paste0("'", paste(analysisIds, collapse = "', '"), "'")
+      )
     )
   )
   
