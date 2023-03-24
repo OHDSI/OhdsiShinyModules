@@ -33,18 +33,21 @@ descriptionAggregateFeaturesViewer <- function(id) {
   
   shiny::div(
     
-    # summary table
-    shiny::fluidRow(
-      shinydashboard::box(
-        status = 'info', 
-        width = 12,
-        title = 'Options',
-        solidHeader = TRUE,
-        shiny::p('Click view to see the plot options for the selection:'),
-        reactable::reactableOutput(ns('optionsTable'))
-      )
+    shinydashboard::box(
+      collapsible = TRUE,
+      collapsed = TRUE,
+      title = "Outcome Stratified",
+      width = "100%"#,
+      #shiny::htmlTemplate(system.file("description-www", "help-aggregateFeatures.html", package = utils::packageName()))
     ),
     
+    # summary table
+    shinydashboard::box(
+      collapsible = TRUE,
+      title = "Options",
+      width = "100%",
+      shiny::uiOutput(ns("AFinputs"))
+    ),
     
     # COV: RUN_ID	DATABASE_ID	COHORT_DEFINITION_ID	COVARIATE_ID	SUM_VALUE	AVERAGE_VALUE
     # COV REF: RUN_ID	DATABASE_ID	COVARIATE_ID	COVARIATE_NAME	ANALYSIS_ID	CONCEPT_ID
@@ -52,51 +55,51 @@ descriptionAggregateFeaturesViewer <- function(id) {
     # cohort_details: RUN_ID	DATABASE_ID COHORT_DEFINITION_ID	TARGET_COHORT_ID	OUTCOME_COHORT_ID	COHORT_TYPE
     # analysis_ref: RUN_ID	DATABASE_ID	ANALYSIS_ID	ANALYSIS_NAME	DOMAIN_ID	START_DAY	END_DAY	IS_BINARY	MISSING_MEANS_ZERO
     # cov cont: RUN_ID	DATABASE_ID	COHORT_DEFINITION_ID	COVARIATE_ID	COUNT_VALUE	MIN_VALUE	MAX_VALUE	AVERAGE_VALUE	STANDARD_DEVIATION	MEDIAN_VALUE	P_10_VALUE	P_25_VALUE	P_75_VALUE	P_90_VALUE
-    
-    
     # add table with options to select T, O and TAR
-
-    shiny::fluidRow(
-      # add UI to pick database/type 1 and database/type 2
-      shinydashboard::box(
-        title = 'Select database and cohort types:',
-        status = 'primary',
-        width = 12,
-        solidHeader = TRUE,
-        shiny::uiOutput(ns("inputsDesc"))
-      )
-    ),
     
-    shinydashboard::tabBox(
-      width = 12,
-      # Title can include an icon
-      title = shiny::tagList(shiny::icon("gear"), "Table and Plots"),
-      shiny::tabPanel("Binary Table", 
-                      shiny::downloadButton(
-                        ns('downloadBinary'), 
-                        label = "Download"
+    # add UI to pick database/type 1 and database/type 2
+    
+    shiny::conditionalPanel(
+      condition = "input.generate != 0",
+      ns = ns,
+      
+      shiny::uiOutput(ns("AFinputsText")),
+      
+      shinydashboard::tabBox(
+        width = "100%",
+        # Title can include an icon
+        title = shiny::tagList(shiny::icon("gear"), "Table and Plots"),
+        shiny::tabPanel("Binary Feature Table", 
+                        shiny::downloadButton(
+                          ns('downloadBinary'), 
+                          label = "Download"
                         ),
-                      reactable::reactableOutput(ns('binaryTable'))
-      ),
-      shiny::tabPanel("Continuous Table", 
-                      shiny::downloadButton(
-                        ns('downloadContinuous'), 
-                        label = "Download"
-                      ),
-                      reactable::reactableOutput(ns('continuousTable'))
-      ),
-      shiny::tabPanel("Binary Features",
-                      plotly::plotlyOutput(ns("binaryPlot"))
-      ),
-      shiny::tabPanel("Continuous Features", 
-                      plotly::plotlyOutput(ns("continuousPlot"))
+                        shinycssloaders::withSpinner(
+                          reactable::reactableOutput(ns('binaryTable'))
+                        )
+        ),
+        shiny::tabPanel("Continuous Feature Table", 
+                        shiny::downloadButton(
+                          ns('downloadContinuous'), 
+                          label = "Download"
+                        ),
+                        shinycssloaders::withSpinner(
+                          reactable::reactableOutput(ns('continuousTable'))
+                        )
+        ),
+        shiny::tabPanel("Binary Feature Plot",
+                        shinycssloaders::withSpinner(
+                          plotly::plotlyOutput(ns("binaryPlot"))
+                        )
+        ),
+        shiny::tabPanel("Continuous Feature Plot", 
+                        shinycssloaders::withSpinner(
+                          plotly::plotlyOutput(ns("continuousPlot"))
+                        )
+        )
       )
     )
-    
-    # add table
-    #reactable::reactableOutput(outputId = ns('binaryTable')),
-    #reactable::reactableOutput(outputId = ns('continuousTable'))
-    )
+  )
 }
 
 
@@ -134,15 +137,29 @@ descriptionAggregateFeaturesServer <- function(
       #  return(invisible(NULL))
       #}
       
-      targetId <- shiny::reactiveVal(NULL)
-      outcomeId <- shiny::reactiveVal(NULL)
-      riskWindowStart <- shiny::reactiveVal(NULL)
-      riskWindowEnd <- shiny::reactiveVal(NULL)
-      endAnchor <- shiny::reactiveVal(NULL)
-      startAnchor <- shiny::reactiveVal(NULL)
+      binaryData <- shiny::reactiveVal(
+        data.frame(
+          covariateName = '',
+          comp1 = '',
+          comp1sd = '' ,
+          comp2 = '' ,
+          comp2sd = '', 
+          analysisName = '' ,
+          standardizedMeanDiff = ''
+        )
+      )
       
-      binaryData <- shiny::reactiveVal(NULL)
-      continuousData <- shiny::reactiveVal(NULL)
+      continuousData <- shiny::reactiveVal(
+        data.frame(
+          covariateName = '',
+          comp1 = '',
+          comp1sd = '' ,
+          comp2 = '' ,
+          comp2sd = '', 
+          analysisName = '' ,
+          standardizedMeanDiff = ''
+        )
+      )
       
       types <- c(
         'Target',
@@ -167,187 +184,234 @@ descriptionAggregateFeaturesServer <- function(
         cohortTablePrefix = cohortTablePrefix
       )
       
+      # get databases
+      databases <- getAggregateFeatureDatabases(
+        connectionHandler = connectionHandler,
+        schema = schema, 
+        tablePrefix = tablePrefix,
+        databaseTable = databaseTable
+      )
+      
       
       # add buttons
-      output$optionsTable <- reactable::renderReactable({
-        reactable::reactable(
-          data = cbind(
-            view = rep("",nrow(options)),
-            options
-          ),
-          showPageSizeOptions = TRUE,
-          pageSizeOptions = c(10, 50, 100,1000),
-          defaultPageSize = 10,
-          striped = TRUE,
-          highlight = TRUE,
-          elementId = "desc-af-select",
-          
-          columns = list(  
-            view = reactable::colDef(
-              name = "",
-              sortable = FALSE,
-              cell = function() htmltools::tags$button("Select")
-            ),
-            
-            targetCohortId = reactable::colDef(show = F),
-            outcomeCohortId = reactable::colDef(show = F),
-            
-            target = reactable::colDef(
-              filterInput = function(values, name) {
-                shiny::tags$select(
-                  # Set to undefined to clear the filter
-                  onchange = sprintf("Reactable.setFilter('desc-af-select', '%s', event.target.value || undefined)", name),
-                  # "All" has an empty value to clear the filter, and is the default option
-                  shiny::tags$option(value = "", "All"),
-                  lapply(unique(values), shiny::tags$option),
-                  "aria-label" = sprintf("Filter %s", name),
-                  style = "width: 100%; height: 28px;"
+      output$AFinputs <- shiny::renderUI({
+        
+        shiny::fluidPage(
+          shiny::fluidRow(
+            shiny::column(
+              width = 4,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('target'), 
+                label = 'Target: ', 
+                choices = options$targets, 
+                selected = 1,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
                 )
-              }
+              )
             ),
-            outcome = reactable::colDef(
-              filterInput = function(values, name) {
-                shiny::tags$select(
-                  # Set to undefined to clear the filter
-                  onchange = sprintf("Reactable.setFilter('desc-af-select', '%s', event.target.value || undefined)", name),
-                  # "All" has an empty value to clear the filter, and is the default option
-                  shiny::tags$option(value = "", "All"),
-                  lapply(unique(values), shiny::tags$option),
-                  "aria-label" = sprintf("Filter %s", name),
-                  style = "width: 100%; height: 28px;"
+            shiny::column(
+              width = 4,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('outcome'), 
+                label = 'Outcome: ', 
+                choices = options$outcomes, 
+                selected = 1,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
                 )
-              }
-            )
-            
-          ),
-          onClick = reactable::JS(paste0("function(rowInfo, column) {
-    // Only handle click events on the 'details' column
-    if (column.id !== 'view') {
-      return
-    }
-
-    if(column.id == 'view'){
-      Shiny.setInputValue('",session$ns('descAgSelect'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
-  }")
-          ),
-          filterable = TRUE
-        )
-      })
-      
-      # set the reactive vars
-      shiny::observeEvent(
-        eventExpr = input$descAgSelect,{
-          
-          binaryData(
-            data.frame(
-              covariateName = '',
-              comp1 = '',
-              comp1sd = '' ,
-              comp2 = '' ,
-              comp2sd = '', 
-              analysisName = '' ,
-              standardizedMeanDiff = ''
-            )
-          )
-          
-          continuousData(
-            data.frame(
-              covariateName = '',
-              comp1 = '',
-              comp1sd = '' ,
-              comp2 = '' ,
-              comp2sd = '', 
-              analysisName = '' ,
-              standardizedMeanDiff = ''
-            )
-          )
-          
-          targetId(options$targetCohortId[input$descAgSelect$index])
-          outcomeId(options$outcomeCohortId[input$descAgSelect$index])
-          riskWindowStart(options$riskWindowStart[input$descAgSelect$index])
-          riskWindowEnd(options$riskWindowEnd[input$descAgSelect$index])
-          startAnchor(options$startAnchor[input$descAgSelect$index])
-          endAnchor(options$endAnchor[input$descAgSelect$index])
-          
-          databases <- getAggregateFeatureDatabases(
-            connectionHandler = connectionHandler,
-            schema = schema, 
-            tablePrefix = tablePrefix,
-            targetId = targetId(),
-            outcomeId = outcomeId(),
-            riskWindowStart = riskWindowStart(),
-            riskWindowEnd = riskWindowEnd(),
-            startAnchor = startAnchor(),
-            endAnchor = endAnchor(),
-            databaseTable = databaseTable
-          )
-          
-          dbVal <- databases$databaseId
-          names(dbVal) <- databases$databaseName
-          
-          output$inputsDesc <- shiny::renderUI({
-            
-            shiny::fluidPage(
-              shiny::fluidRow(
-                shiny::column(width = 3,
-                     shiny::selectInput(
-                       inputId = session$ns('database1'), 
-                       label = 'Database 1: ', 
-                       choices = dbVal, 
-                       selected = 1
-                     ),
-                     shiny::selectInput(
-                       inputId = session$ns('database2'), 
-                       label = 'Database 2: ', 
-                       choices = dbVal, 
-                       selected = 1
-                     )
-              ),
-              shiny::column(width = 7, 
-                     shiny::selectInput(
-                       inputId = session$ns('type1'), 
-                       label = 'Type 1: ', 
-                       choices = types, 
-                       selected = 3
-                     ),
-                     shiny::selectInput(
-                       inputId = session$ns('type2'), 
-                       label = 'Type 2: ', 
-                       choices = types, 
-                       selected = 4
-                     )
-              ),
-              
-              shiny::column(width = 2, 
-                     shiny::actionButton(
-                       inputId = session$ns('ag_plot'), 
-                       label = 'Click'
-                     )
+              )
+            ),
+            shiny::column(
+              width = 4,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('tar'), 
+                label = 'Time at risk: ', 
+                choices = options$tars, 
+                selected = 1,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
               )
             )
+          ),
             
+        shiny::fluidRow(
+          shiny::column(
+            width = 3,
+            shinyWidgets::pickerInput(
+              inputId = session$ns('database1'), 
+              label = 'Database 1: ', 
+              choices = databases, 
+              selected = 1,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
             )
-          })
-          
-        })
+          ),
+          shiny::column(
+            width = 3,
+            shinyWidgets::pickerInput(
+              inputId = session$ns('type1'), 
+              label = 'Type 1: ', 
+              choices = types, 
+              selected = 3,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          shiny::column(
+            width = 3,
+            shinyWidgets::pickerInput(
+              inputId = session$ns('database2'), 
+              label = 'Database 2: ', 
+              choices = databases, 
+              selected = 1,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          shiny::column(
+            width = 3,
+            shinyWidgets::pickerInput(
+              inputId = session$ns('type2'), 
+              label = 'Type 2: ', 
+              choices = types, 
+              selected = 4,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          )
+        ), # end row
+        shiny::actionButton(
+                            inputId = session$ns('generate'), 
+                            label = 'Generate Report'
+                          )
+        
+        )
+        
+      })
       
-      
+      selectedInputs <- shiny::reactiveVal()
+      output$AFinputsText <- shiny::renderUI(selectedInputs())
       
       shiny::observeEvent(
-        eventExpr = input$ag_plot,
+        eventExpr = input$generate,
         {
           
+          ind <- which(options$tars == input$tar)
+          
+          
+          selectedInputs(
+            shinydashboard::box(
+              status = 'warning', 
+              width = "100%",
+              title = 'Selected:',
+              shiny::div(
+                shiny::fluidRow(
+                  shiny::column(
+                    width = 4,
+                    shiny::tags$b("Target:"),
+                    names(options$targets)[options$targets == input$target]
+                  ),
+                  shiny::column(
+                    width = 4,
+                    shiny::tags$b("Outcome:"),
+                    names(options$outcomes)[options$outcomes == input$outcome]
+                  ),
+                  shiny::column(
+                    width = 4,
+                    shiny::tags$b("TAR:"),
+                    options$tars[[ind]]
+                  )
+                ),
+                
+                shiny::fluidRow(
+                  shiny::column(
+                    width = 6,
+                    shiny::tags$b("Selection 1")
+                  ),
+                  shiny::column(
+                    width = 6,
+                    shiny::tags$b("Selection 2")
+                  )
+                ),
+                
+                shiny::fluidRow(
+                  shiny::column(
+                    width = 3,
+                    shiny::tags$b("Database:"),
+                    names(databases)[databases == input$database1]
+                  ),
+                  shiny::column(
+                    width = 3,
+                    shiny::tags$b("Type:"),
+                    types[types == input$type1]
+                  ),
+                  shiny::column(
+                    width = 3,
+                    shiny::tags$b("Database:"),
+                    names(databases)[databases == input$database2]
+                  ),
+                  shiny::column(
+                    width = 3,
+                    shiny::tags$b("Type:"),
+                    types[types == input$type2]
+                  )
+                )
+                
+              )
+            )
+          )
+
           allData <- descriptiveGetAggregateData(
             connectionHandler = connectionHandler,
             schema = schema, 
             tablePrefix = tablePrefix,
-            targetId = targetId(),
-            outcomeId = outcomeId(),
-            riskWindowStart = riskWindowStart(),
-            riskWindowEnd = riskWindowEnd(),
-            startAnchor = startAnchor(),
-            endAnchor = endAnchor(),
+            targetId = input$target,
+            outcomeId = input$outcome,
+            riskWindowStart = options$tarList[[ind]]$riskWindowStart,
+            riskWindowEnd = options$tarList[[ind]]$riskWindowEnd,
+            startAnchor = options$tarList[[ind]]$startAnchor,
+            endAnchor = options$tarList[[ind]]$endAnchor,
             database1 = input$database1,
             database2 = input$database2,
             type1 = typesTranslate[types == input$type1],
@@ -376,7 +440,7 @@ descriptionAggregateFeaturesServer <- function(
               
               showPageSizeOptions = TRUE,
               pageSizeOptions = c(10, 50, 100,1000),
-              defaultPageSize = 50,
+              defaultPageSize = 10,
               striped = TRUE,
               highlight = TRUE,
               
@@ -430,7 +494,7 @@ descriptionAggregateFeaturesServer <- function(
               
               showPageSizeOptions = TRUE,
               pageSizeOptions = c(10, 50, 100,1000),
-              defaultPageSize = 50,
+              defaultPageSize = 10,
               striped = TRUE,
               highlight = TRUE,
               
@@ -543,61 +607,91 @@ getAggregateFeatureOptions <- function(
   
   })
   
+  targets <- unique(options$targetCohortId)
+  names(targets) <- unique(options$target)
+  
+  outcomes <- unique(options$outcomeCohortId)
+  names(outcomes) <- unique(options$outcome)
+  
+  options <- unique(
+    options %>% 
+      dplyr::select(
+        "riskWindowStart",
+        "riskWindowEnd",
+        "startAnchor",
+        "endAnchor"
+      )
+    )
+  
+  tarList <- lapply(
+    1:nrow(options), 
+    function(i){
+    list(
+      riskWindowStart = options$riskWindowStart[i],
+      riskWindowEnd = options$riskWindowEnd[i],
+      startAnchor = options$startAnchor[i],
+      endAnchor = options$endAnchor[i] 
+    )
+  })
+  
+  tars <- unlist(
+    lapply(
+      1:nrow(options), 
+      function(i){
+        paste0(
+          '(',options$startAnchor[i],' + ', options$riskWindowStart[i],
+          ') - (', options$endAnchor[i],' + ', options$riskWindowEnd[i],
+          ')'
+        )
+      })
+  )
+  
   return(
-    options
+    list(
+      targets = targets,
+      outcomes = outcomes,
+      tars = tars,
+      tarList = tarList
+    )
   )
 }
 
-
 getAggregateFeatureDatabases <- function(
     connectionHandler,
-  schema, 
-  tablePrefix,
-  targetId,
-  outcomeId,
-  riskWindowStart,
-  riskWindowEnd,
-  startAnchor,
-  endAnchor,
-  databaseTable
+    schema, 
+    tablePrefix,
+    databaseTable
 ){
   
-  shiny::withProgress(message = 'Finding databases with data', value = 0, {
-  sql <- "SELECT DISTINCT s.DATABASE_ID, d.CDM_SOURCE_ABBREVIATION as database_name  
+  shiny::withProgress(message = 'Finding databases', value = 0, {
+    sql <- "SELECT DISTINCT s.DATABASE_ID, d.CDM_SOURCE_ABBREVIATION as database_name  
           FROM @result_database_schema.@table_prefixCOHORT_DETAILS cd
           inner join @result_database_schema.@database_table d
           on cd.database_id = d.database_id
           inner join @result_database_schema.@table_prefixSETTINGS s
           on s.database_id = d.database_id
-          and s.run_id = cd.run_id
-          WHERE cd.TARGET_COHORT_ID = @target_id and cd.OUTCOME_COHORT_ID = @outcome_id
-          and s.RISK_WINDOW_START = @risk_window_start and s.START_ANCHOR = '@start_anchor'
-          and s.RISK_WINDOW_END = @risk_window_end and	s.END_ANCHOR = '@end_anchor';"
-  
-  shiny::incProgress(1/2, detail = paste("Extracting databases"))
-  
-  
-  databases <- connectionHandler$queryDb(
-    sql = sql, 
-    result_database_schema = schema,
-    table_prefix = tablePrefix,
-    target_id = targetId,
-    outcome_id = outcomeId,
-    risk_window_start = riskWindowStart,
-    start_anchor = startAnchor,
-    risk_window_end = riskWindowEnd,
-    end_anchor = endAnchor,
-    database_table = databaseTable
-  )
-  
-  shiny::incProgress(2/2, detail = paste("Finished"))
-  
+          and s.run_id = cd.run_id;"
+    
+    shiny::incProgress(1/2, detail = paste("Extracting databases"))
+    
+    
+    databases <- connectionHandler$queryDb(
+      sql = sql, 
+      result_database_schema = schema,
+      table_prefix = tablePrefix,
+      database_table = databaseTable
+    )
+    
+    shiny::incProgress(2/2, detail = paste("Finished"))
+    
   }
   )
   
-  return(databases)
+  dbs <- databases$databaseId
+  names(dbs) <- databases$databaseName
+  
+  return(dbs)
 }
-
 
 addTypeEnd <- function(x){
   if(x == 'TnO'){
