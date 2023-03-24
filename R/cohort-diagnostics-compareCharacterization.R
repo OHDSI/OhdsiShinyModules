@@ -472,7 +472,7 @@ compareCohortCharacterizationView <- function(id, title = "Compare cohort charac
             shinycssloaders::withSpinner(
               reactable::reactableOutput(ns("compareCohortCharacterizationTable")),
             ),
-            csvDownloadButton(ns, "compareCohortCharacterizationTable")
+            reactableCsvDownloadButton(ns, "compareCohortCharacterizationTable")
           )
         )
       )

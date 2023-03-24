@@ -432,7 +432,7 @@ plotIncidenceRate <- function(data,
   j <- 0
   for (i in 1:length(databaseNames)) {
     dbName <- rev(databaseNames)[i]
-    ypos <-  1 / (ndatabases * 2) + (1/ ndatabases) * (i - 1)
+    ypos <- 1 / (ndatabases * 2) + (1 / ndatabases) * (i - 1)
     topAnnotations[[length(topAnnotations) + 1]] <- list(
       text = dbName,
       x = 1.05,
@@ -446,7 +446,7 @@ plotIncidenceRate <- function(data,
     )
 
     for (cohort in rev(cohortIds)) {
-      cohortYpos <-  1 / (nrows * 2) + (1/ nrows) * j
+      cohortYpos <- 1 / (nrows * 2) + (1 / nrows) * j
 
       topAnnotations[[length(topAnnotations) + 1]] <- list(
         text = paste("C", cohort),
@@ -500,14 +500,6 @@ incidenceRatesView <- function(id) {
       title = "Incidence Rates",
       width = "100%",
       shiny::htmlTemplate(system.file("cohort-diagnostics-www", "incidenceRate.html", package = utils::packageName()))
-    ),
-    shinydashboard::box(
-      status = "warning",
-      width = "100%",
-      shiny::tags$div(
-        style = "max-height: 100px; overflow-y: auto",
-        shiny::uiOutput(outputId = ns("selectedCohorts"))
-      )
     ),
     shinydashboard::box(
       width = NULL,
@@ -648,11 +640,13 @@ incidenceRatesView <- function(id) {
         )
       ),
       shiny::actionButton(inputId = ns("generatePlot"), label = "Generate Report"),
-
     ),
+
     shiny::conditionalPanel(
       ns = ns,
       condition = "input.generatePlot > 0",
+
+      shiny::uiOutput(outputId = ns("selectedCohorts")),
       shinydashboard::box(
         width = NULL,
         shiny::tabsetPanel(
@@ -664,9 +658,11 @@ incidenceRatesView <- function(id) {
           ),
           shiny::tabPanel(
             title = "Table",
-            shiny::checkboxInput(ns("groupColumns"), "Group columns by strata/data source", value = FALSE),
+            shiny::fluidRow(
+              shiny::column(width = 10, shiny::checkboxInput(ns("groupColumns"), "Group columns by strata/data source", value = FALSE)),
+              shiny::column(width = 2, reactableCsvDownloadButton(ns, "irTable"))
+            ),
             shinycssloaders::withSpinner(reactable::reactableOutput(ns("irTable"))),
-            csvDownloadButton(ns, "irTable")
           )
         )
       )
@@ -685,7 +681,7 @@ incidenceRatesModule <- function(id,
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     irRanges <- getIncidenceRateRanges(dataSource)
-    output$selectedCohorts <- shiny::renderUI({ selectedCohorts() })
+
 
     # Incidence rate ---------------------------
 
@@ -831,7 +827,9 @@ incidenceRatesModule <- function(id,
 
     shiny::observeEvent(input$generatePlot, {
       rowHeight <- ifelse(is.null(input$plotRowHeight) | is.na(input$plotRowHeight), 200, input$plotRowHeight)
-      plotHeight <-  rowHeight * length(selectedDatabaseIds()) * length(cohortIds())
+      plotHeight <- rowHeight *
+        length(selectedDatabaseIds()) *
+        length(cohortIds())
       shiny::removeUI(selector = paste0("#", ns("irPlotContainer")))
       shiny::insertUI(
         selector = paste0("#", ns("plotArea")),
@@ -931,18 +929,11 @@ incidenceRatesModule <- function(id,
                       "databaseName",
                       "ageGroup",
                       "calendarYear",
-                      "personYears",
                       "gender",
+                      "personYears",
                       "cohortCount",
                       "incidenceRate",
                       "incidenceProportion")
-
-
-      tooltip <- function(value, tooltip) {
-        shiny::tags$abbr(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
-                         title = tooltip, value)
-      }
-
 
       barChart <- function(label, width = "100%", height = "1rem", fill = "#337ab7", background = "#ccc") {
         bar <- div(style = list(background = fill, width = width, height = height))
@@ -951,25 +942,25 @@ incidenceRatesModule <- function(id,
       }
 
       columnDefs <- list(
-        "cohortName" = reactable::colDef(name = "Cohort", minWidth = 200),
-        "databaseName" = reactable::colDef(name = "Database", minWidth = 200),
-        "cohortCount" = reactable::colDef(header = tooltip("Events",
-                                                           "Number of subjects in cohort within strata")),
-        "personYears" = reactable::colDef(header = tooltip("Person Years",
-                                                           "Cumulative time (in years)"),
+        "cohortName" = reactable::colDef(name = "Cohort", minWidth = 250),
+        "databaseName" = reactable::colDef(name = "Database", minWidth = 250),
+        "cohortCount" = reactable::colDef(header = withTooltip("Events",
+                                                               "Number of subjects in cohort within strata")),
+        "personYears" = reactable::colDef(header = withTooltip("Person Years",
+                                                               "Cumulative time (in years)"),
                                           cell = function(value) {
                                             scales::comma(value, accuracy = 0.01)
                                           },
                                           format = reactable::colFormat(digits = 2)),
-        "incidenceRate" = reactable::colDef(header = tooltip("Inicidence per 1k/py",
-                                                             "Incidence of event per 1000 person years - (Events/Person Years * 1000)"),
+        "incidenceRate" = reactable::colDef(header = withTooltip("Inicidence per 1k/py",
+                                                                 "Incidence of event per 1000 person years - (Events/Person Years * 1000)"),
                                             cell = function(value) {
                                               width <- paste0(value / max(data$incidenceRate) * 100, "%")
                                               barChart(sprintf("%.2f", value), width = width)
                                             },
                                             format = reactable::colFormat(digits = 3)),
-        "incidenceProportion" = reactable::colDef(header = tooltip("Inicidence proportion",
-                                                                   "Proportion of cohort - Event count in strata / total cohort count"),
+        "incidenceProportion" = reactable::colDef(header = withTooltip("Inicidence proportion",
+                                                                       "Proportion of cohort - Event count in strata / total cohort count"),
                                                   cell = function(value) {
                                                     value <- abs(value)
                                                     width <- paste0(value * 100, "%")
@@ -1004,7 +995,12 @@ incidenceRatesModule <- function(id,
       }
 
       # modifiable args list to call reactable::reactable
-      return(list(data = data, groupBy = groupBy, defaultSorted = sorted, columns = columnDefs))
+      return(list(data = data,
+                  groupBy = groupBy,
+                  defaultSorted = sorted,
+                  columns = columnDefs,
+                  searchable = TRUE,
+                  striped = TRUE))
     })
 
     output$irTable <- reactable::renderReactable({
@@ -1015,5 +1011,28 @@ incidenceRatesModule <- function(id,
       }
       do.call(reactable::reactable, args)
     })
+
+    selectionsOutput <- shiny::eventReactive(input$generatePlot, {
+
+      shinydashboard::box(
+        status = "warning",
+        width = "100%",
+        shiny::fluidRow(
+          shiny::column(
+            width = 7,
+            shiny::tags$b("Selected cohorts :"),
+           selectedCohorts()
+          ),
+          shiny::column(
+            width = 5,
+            shiny::tags$b("Selected databases :"),
+            selectedDatabaseIds()
+          )
+        )
+      )
+    })
+
+  output$selectedCohorts <- shiny::renderUI({ selectionsOutput() })
+
   })
 }

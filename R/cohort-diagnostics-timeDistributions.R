@@ -166,23 +166,9 @@ plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
         plotly::add_markers(y = ~shortName,
                             color = ~shortName,
                             text = ~tooltip,
-                            size = 50,
+                            opacity = 0.99,
+                            size = 100,
                             x = ~medianValue) %>%
-        plotly::add_markers(y = ~shortName,
-                            color = ~shortName,
-                            text = ~p10Value,
-                            size = 0.01,
-                            x = ~p10Value) %>%
-        plotly::add_markers(y = ~shortName,
-                            color = ~shortName,
-                            text = ~mean,
-                            size = 0.01,
-                            x = ~mean) %>%
-        plotly::add_markers(y = ~shortName,
-                            color = ~shortName,
-                            text = ~p90Value,
-                            size = 0.01,
-                            x = ~p90Value) %>%
         plotly::layout(plot_bgcolor = '#e5ecf6',
                        xaxis = list(
                          title = "time in days",
@@ -223,7 +209,7 @@ plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
   }
 
   plt <- plotly::subplot(subplots, nrows = nrows, shareY = TRUE, shareX = TRUE) %>%
-      plotly::layout(annotations = topAnnotations, showlegend = F)
+    plotly::layout(annotations = topAnnotations, showlegend = F)
 
   return(plt)
 }
@@ -333,18 +319,26 @@ timeDistributionsView <- function(id) {
         condition = "input.timeDistributionType=='Table'",
         ns = ns,
         shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("timeDistributionTable"))),
-        csvDownloadButton(ns, "timeDistributionTable")
+        reactableCsvDownloadButton(ns, "timeDistributionTable")
       ),
       shiny::conditionalPanel(
         condition = "input.timeDistributionType=='Plot'",
         ns = ns,
-        shiny::checkboxInput(ns("showMaxValues"), label = "Show max values", value = FALSE),
-        shiny::numericInput(
-          inputId = ns("plotRowHeight"),
-          label = "Plot row height (pixels)",
-          max = 500,
-          value = 200,
-          min = 100
+        shiny::fluidRow(
+          shiny::column(
+            width = 3,
+            shiny::checkboxInput(ns("showMaxValues"), label = "Show max values", value = FALSE)
+          ),
+          shiny::column(
+            width = 3,
+            shiny::numericInput(
+              inputId = ns("plotRowHeight"),
+              label = "Plot row height (pixels)",
+              max = 2000,
+              value = 400,
+              min = 200
+            )
+          )
         ),
         shiny::tags$br(),
         shiny::uiOutput(ns("plotArea"))
@@ -386,8 +380,8 @@ timeDistributionsModule <- function(id,
 
 
     output$plotArea <- shiny::renderUI({
-      rowHeight <- ifelse(is.null(input$plotRowHeight) | is.na(input$plotRowHeight), 200, input$plotRowHeight)
-      plotHeight <- rowHeight * length(selectedDatabaseIds()) * length(cohortIds())
+      rowHeight <- ifelse(is.null(input$plotRowHeight) | is.na(input$plotRowHeight), 400, input$plotRowHeight)
+      plotHeight <- rowHeight * length(selectedDatabaseIds())
       shiny::div(
         id = ns("tsPlotContainer"),
         shinycssloaders::withSpinner(plotly::plotlyOutput(ns("timeDistributionPlot"),
