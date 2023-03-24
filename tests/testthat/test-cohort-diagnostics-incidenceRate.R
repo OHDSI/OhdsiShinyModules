@@ -19,7 +19,8 @@ shiny::testServer(incidenceRatesModule, args = list(
   cohortTable = getCohortTable(dataSourceCd),
   selectedCohorts = shiny::reactive("Any String"),
   selectedDatabaseIds = shiny::reactive("Eunomia"),
-  cohortIds = shiny::reactive({ c(18347) })
+  cohortIds = shiny::reactive({ c(18347) }),
+  databaseTable = getDatabaseTable(dataSourceCd)
 ), {
   ## input tests will go here
   session$setInputs(

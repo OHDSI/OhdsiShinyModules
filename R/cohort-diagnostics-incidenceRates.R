@@ -676,13 +676,12 @@ incidenceRatesModule <- function(id,
                                  selectedCohorts,
                                  selectedDatabaseIds,
                                  cohortIds,
+                                 databaseTable,
                                  cohortTable) {
 
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     irRanges <- getIncidenceRateRanges(dataSource)
-
-
     # Incidence rate ---------------------------
 
     incidenceRateData <- shiny::reactive({
@@ -1013,6 +1012,7 @@ incidenceRatesModule <- function(id,
     })
 
     selectionsOutput <- shiny::eventReactive(input$generatePlot, {
+      databases <- databaseTable %>% dplyr::filter(.data$databaseId %in% selectedDatabaseIds())
 
       shinydashboard::box(
         status = "warning",
@@ -1021,12 +1021,12 @@ incidenceRatesModule <- function(id,
           shiny::column(
             width = 7,
             shiny::tags$b("Selected cohorts :"),
-           selectedCohorts()
+            shiny::tagList(lapply(selectedCohorts(), shiny::tags$p))
           ),
           shiny::column(
             width = 5,
             shiny::tags$b("Selected databases :"),
-            selectedDatabaseIds()
+            shiny::tagList(lapply(databases$databaseName, shiny::tags$p))
           )
         )
       )
