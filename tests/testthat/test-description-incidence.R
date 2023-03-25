@@ -16,10 +16,10 @@ shiny::testServer(
     testthat::expect_true(!is.null(cohorts$targetIds))
     testthat::expect_true(!is.null(cohorts$outcomeIds))
     
-    # check input$fetchData does not crash app
+    # check input$generate does not crash app
     session$setInputs(targetId = 1)
     session$setInputs(outcomeId = 3)
-    session$setInputs(fetchData = T)
+    session$setInputs(generate = T)
     
     
   })

@@ -32,20 +32,31 @@ descriptionTimeToEventViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    shiny::fluidRow(
-      shinydashboard::box(
-        status = 'info', width = 12,
-        title = 'Options',
-        solidHeader = TRUE,
-        shiny::p('Select settings:'),
-        shiny::uiOutput(ns('timeToEventInputs'))
-        )
+    shinydashboard::box(
+      collapsible = TRUE,
+      collapsed = TRUE,
+      title = "Time-to-events",
+      width = "100%"#,
+      #shiny::htmlTemplate(system.file("description-www", "help-timeToEvent.html", package = utils::packageName()))
     ),
     
-    shiny::fluidRow(
+    shinydashboard::box(
+      width = "100%",
+      title = 'Options',
+      collapsible = TRUE,
+      collapsed = F,
+      shiny::uiOutput(ns('timeToEventInputs'))
+    ),
+    
+    
+    shiny::conditionalPanel(
+      condition = "input.generate != 0",
+      ns = ns,
+      
+      shiny::uiOutput(ns("TTEinputsText")),
+      
       shinydashboard::box(
-        width = 12,
-        # Title can include an icon
+        width = "100%",
         title = shiny::tagList(shiny::icon("gear"), "Results"),
         
         shiny::fluidRow(
@@ -55,7 +66,9 @@ descriptionTimeToEventViewer <- function(id) {
           ),
           shiny::column(
             width = 10,
-            shiny::plotOutput(ns('timeToEvent'))
+            shinycssloaders::withSpinner(
+              shiny::plotOutput(ns('timeToEvent'))
+            )
           )
         )
       )
@@ -125,42 +138,93 @@ descriptionTimeToEventServer <- function(
         
         shiny::fluidPage(
           shiny::fluidRow(
-            shiny::selectInput(
-              inputId = session$ns('targetId'), 
-              label = 'Target id: ', 
-              choices = bothIds$targetIds, 
-              multiple = FALSE
-            ),
             
-            shiny::selectInput(
-              inputId = session$ns('outcomeId'), 
-              label = 'Outcome id: ', 
-              choices = bothIds$outcomeIds[[1]],
-              selected = 1
+            shiny::column(
+              width = 6,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('targetId'), 
+                label = 'Target id: ', 
+                choices = bothIds$targetIds, 
+                multiple = FALSE,
+                choicesOpt = list(style = rep_len("color: black;", 999)),
+                selected = 1,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
             ),
+            shiny::column(
+              width = 6,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('outcomeId'), 
+                label = 'Outcome id: ', 
+                choices = bothIds$outcomeIds[[1]],
+                selected = 1,
+                choicesOpt = list(style = rep_len("color: black;", 999)),
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
+              ),
             
             shiny::actionButton(
-              inputId = session$ns('fetchData'),
-              label = 'Select'
+              inputId = session$ns('generate'),
+              label = 'Generate Report'
             )
           )
         )
-      }
-      )
+      })
       
       
       allData <- shiny::reactiveVal(NULL)
       databaseNames <- shiny::reactiveVal(c('none'))
       timespans <- shiny::reactiveVal(c('none'))
       
+      selectedInputs <- shiny::reactiveVal()
+      output$TTEinputsText <- shiny::renderUI(selectedInputs())
+      
+      
       # fetch data when targetId changes
       shiny::observeEvent(
-        eventExpr = input$fetchData,
+        eventExpr = input$generate,
         {
           if(is.null(input$targetId) | is.null(input$outcomeId)){
-            print('Null ids value')
             return(invisible(NULL))
           }
+          
+          selectedInputs(
+            shinydashboard::box(
+              status = 'warning', 
+              width = "100%",
+              title = 'Selected:',
+              shiny::div(
+                shiny::fluidRow(
+                  shiny::column(
+                    width = 6,
+                    shiny::tags$b("Target:"),
+                    names(bothIds$targetIds)[bothIds$targetIds == input$targetId]
+                  ),
+                  shiny::column(
+                    width = 6,
+                    shiny::tags$b("Outcome:"),
+                    names(bothIds$outcomeIds[[1]])[bothIds$outcomeIds[[1]] == input$outcomeId]
+                  )
+                )
+                
+              )
+            )
+          )
+          
           tempData <- tryCatch({
             getTimeToEventData(
               targetId = input$targetId,
