@@ -12,23 +12,24 @@ shiny::testServer(
   ), 
   expr = {
     
-    # expect the values to be null untill button clicked
-    testthat::expect_null(targetId())
+    # expect the binaryData() to be the default
+    testthat::expect_true(nrow(binaryData()) == 1)
+    testthat::expect_true(binaryData()$covariateName[1] == '')
     
-    # make sure options returns a data.frame
-    testthat::expect_true(class(options) == 'data.frame')
-    testthat::expect_true(nrow(options) >0 )
+    # make sure options returns a list
+    testthat::expect_true(class(options) == 'list')
+    testthat::expect_true(length(options) >0 )
     
-    # set input$descAgSelect to list with index = 1
-    session$setInputs(descAgSelect = list(index = 1))  
-    testthat::expect_true(!is.null(targetId()))
-    testthat::expect_true(!is.null(outcomeId()))
-    
-    # input$ag_plot with settings works
+    # check setting and generating works
+    session$setInputs(tar = options$tars[1]) 
+    session$setInputs(target = options$targets[1]) 
+    session$setInputs(outcome = options$outcomes[1]) 
     session$setInputs(database1 = 'eunomia')
     session$setInputs(database2 = 'eunomia')
     session$setInputs(type1 = 'Target')
     session$setInputs(type2 = 'Outcome')
-    session$setInputs(ag_plot = TRUE)
+    session$setInputs(generate = TRUE)
+    
+    testthat::expect_true(binaryData()$covariateName[1] != '')
     
   })

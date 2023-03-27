@@ -129,9 +129,9 @@ getCohortGenerationAttritionTable <- function(
   for(cohortId in uniqueCohortIDs){
     
     cohortRules <- rules %>% 
-      dplyr::filter(cohortDefinitionId==cohortId) %>%
-      dplyr::select(ruleSequence, ruleName, cohortName) %>%
-      dplyr::arrange(ruleSequence)
+      dplyr::filter(.data$cohortDefinitionId==cohortId) %>%
+      dplyr::select("ruleSequence", "ruleName", "cohortName") %>%
+      dplyr::arrange("ruleSequence")
     
     testMask = 0
     
@@ -142,12 +142,12 @@ getCohortGenerationAttritionTable <- function(
       testMask = testMask + 2^(rule$ruleSequence)
       
       attritionRows <- stats %>%
-        dplyr::filter((cohortDefinitionId == cohortId) &
-                        (bitwAnd(inclusionRuleMask, testMask) == testMask)
+        dplyr::filter((.data$cohortDefinitionId == !!cohortId) &
+                        (bitwAnd(.data$inclusionRuleMask, !!testMask) == !!testMask)
         ) %>% 
-        dplyr::select(-c(databaseId)) %>%
-        dplyr::group_by(cdmSourceName, cohortDefinitionId, modeId) %>%
-        dplyr::summarise(personCount = sum(personCount))
+        dplyr::select(-c("databaseId")) %>%
+        dplyr::group_by(.data$cdmSourceName, .data$cohortDefinitionId, .data$modeId) %>%
+        dplyr::summarise(personCount = sum(.data$personCount))
       
       attritionRowsFull <- cbind(attritionRows, rule)
       

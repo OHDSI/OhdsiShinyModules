@@ -32,42 +32,54 @@ descriptionTableViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    shiny::fluidRow(
-      shinydashboard::box(
-        status = 'info', width = 12,
-        title = 'Options',
-        solidHeader = TRUE,
-        shiny::p('Select settings:'),
-        shiny::uiOutput(ns('cohortInputs'))
-        ),
-      
     shinydashboard::box(
-      status = 'info',
-      width = 12,
-      # Title can include an icon
-      title = shiny::tagList(shiny::icon("gear"), "Table"),
-      
-      shiny::checkboxGroupInput(
-        inputId = ns("columnSelect"), 
-        label = "Columns to show:",
-        inline = T,
-        choices = c(
-          "Mean" = "averageValue",
-          "Count" = "countValue"
-        ), 
-        selected = c("averageValue", "countValue")
-      ),
-      
-      shiny::downloadButton(
-        ns('downloadCohorts'), 
-        label = "Download"
-      ),
-      
-      reactable::reactableOutput(ns('feTable'))
-    )
-    )
+      collapsible = TRUE,
+      collapsed = TRUE,
+      title = "Target Viewer",
+      width = "100%"#,
+      #shiny::htmlTemplate(system.file("description-www", "help-aggregateFeatures.html", package = utils::packageName()))
+    ),
     
+    shinydashboard::box(
+      width = "100%",
+      title = 'Options',
+      collapsible = TRUE,
+      collapsed = F,
+      shiny::uiOutput(ns('cohortInputs'))
+    ),
     
+    shiny::conditionalPanel(
+      condition = "input.generate != 0",
+      ns = ns,
+      
+      shiny::uiOutput(ns("TinputsText")),
+      
+      shinydashboard::box(
+        status = 'info',
+        width = "100%",
+        # Title can include an icon
+        title = shiny::tagList(shiny::icon("gear"), "Table"),
+        
+        shiny::checkboxGroupInput(
+          inputId = ns("columnSelect"), 
+          label = "Columns to show:",
+          inline = T,
+          choices = c(
+            "Mean" = "averageValue",
+            "Count" = "countValue"
+          ), 
+          selected = c("averageValue", "countValue")
+        ),
+        
+        shiny::downloadButton(
+          ns('downloadCohorts'), 
+          label = "Download"
+        ),
+        shinycssloaders::withSpinner(
+          reactable::reactableOutput(ns('feTable'))
+        )
+      )
+    )
   )
 }
 
@@ -119,43 +131,93 @@ descriptionTableServer <- function(
         
         shiny::fluidPage(
           shiny::fluidRow(
-            shiny::selectInput(
+            shiny::column(
+              width = 6,
+            shinyWidgets::pickerInput(
               inputId = session$ns('targetIds'), 
-              label = 'Target: ', 
+              label = 'Targets: ', 
               choices = inputVals$cohortIds, 
-              multiple = T
+              selected = inputVals$cohortIds,
+              choicesOpt = list(style = rep_len("color: black;", 999)),
+              multiple = T,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
             ),
-            
-              shiny::selectInput(
+            shiny::column(
+              width = 6,
+              shinyWidgets::pickerInput(
                 inputId = session$ns('databaseId'), 
                 label = 'Database: ', 
                 choices = inputVals$databaseIds, 
-                multiple = F
-              ),
-            
-            #sidebarPanel(
-            #  pickerInput("locInput","Location", choices=c("New Mexico", "Colorado", "California"), options = list(`actions-box` = TRUE),multiple = T)
-            #)
+                selected = 1,
+                choicesOpt = list(style = rep_len("color: black;", 999)),
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
+            )
+            ),
             
             shiny::actionButton(
-              inputId = session$ns('fetchData'),
-              label = 'Select'
+              inputId = session$ns('generate'),
+              label = 'Generate Report'
             )
           )
-        )
       }
       )
       
       reactiveAllData <- shiny::reactiveVal(NULL)
       
+      selectedInputs <- shiny::reactiveVal()
+      output$TinputsText <- shiny::renderUI(selectedInputs())
       
       shiny::observeEvent(
-        eventExpr = input$fetchData,
+        eventExpr = input$generate,
         {
           if(length(input$targetIds) == 0 | is.null(input$databaseId)){
             print('Null ids value')
             return(invisible(NULL))
           }
+          
+          selectedInputs(
+            shinydashboard::box(
+              status = 'warning', 
+              width = "100%",
+              title = 'Selected:',
+              shiny::div(
+                shiny::fluidRow(
+                  shiny::column(
+                    width = 8,
+                    shiny::tags$b("Target/s:"),
+                    
+                    paste(
+                      names(inputVals$cohortIds)[inputVals$cohortIds %in% input$targetIds],
+                      collapse = ','
+                    )
+                    
+                  ),
+                  shiny::column(
+                    width = 4,
+                    shiny::tags$b("Database:"),
+                    names(inputVals$databaseIds)[inputVals$databaseIds == input$databaseId]
+                  )
+                )
+                
+              )
+            )
+          )
           
           # hide/show columns - make allData react
           
