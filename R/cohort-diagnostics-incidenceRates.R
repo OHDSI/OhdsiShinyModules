@@ -168,7 +168,7 @@ plotIncidenceRate <- function(data,
                               stratifyByGender = TRUE,
                               stratifyByCalendarYear = TRUE,
                               yscaleFixed = FALSE,
-                              yRange = c()) {
+                              yRange = c(0, 1.0)) {
   errorMessage <- checkmate::makeAssertCollection()
   checkmate::assertTibble(
     x = data,
@@ -371,6 +371,7 @@ plotIncidenceRate <- function(data,
                   ticklen = 3,
                   ticks = "inside",
                   fixedrange = TRUE)
+
     if (yscaleFixed) {
       yaxis$range <- c(min(yRange), max(yRange))
     }

@@ -707,16 +707,16 @@ getCharacterizationOutput <- function(dataSource,
         by = c("startDay", "endDay")
       ) %>%
       dplyr::relocate(
-        .data$cohortId,
-        .data$databaseId,
-        .data$timeId,
-        .data$startDay,
-        .data$endDay,
-        .data$temporalChoices,
-        .data$analysisId,
-        .data$covariateId,
-        .data$covariateName,
-        .data$isBinary
+        "cohortId",
+        "databaseId",
+        "timeId",
+        "startDay",
+        "endDay",
+        "temporalChoices",
+        "analysisId",
+        "covariateId",
+        "covariateName",
+        "isBinary"
       )
 
     if ("missingMeansZero" %in% colnames(resultCovariateValue)) {
