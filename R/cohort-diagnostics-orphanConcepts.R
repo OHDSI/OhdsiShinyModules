@@ -68,7 +68,7 @@ orpahanConceptsView <- function(id) {
         )
       ),
       shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("orphanConceptsTable"))),
-      csvDownloadButton(ns, "orphanConceptsTable")
+      reactableCsvDownloadButton(ns, "orphanConceptsTable")
     )
   )
 }

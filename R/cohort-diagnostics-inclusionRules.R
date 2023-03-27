@@ -69,7 +69,7 @@ inclusionRulesView <- function(id) {
         )
       ),
       shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("inclusionRuleTable"))),
-      csvDownloadButton(ns, "inclusionRuleTable")
+      reactableCsvDownloadButton(ns, "inclusionRuleTable")
     )
   )
 }

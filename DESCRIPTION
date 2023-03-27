@@ -17,8 +17,6 @@ Imports:
     DatabaseConnector,
     dplyr,
     DT,
-    ggh4x,
-    ggiraph,
     ggplot2,
     gridExtra,
     htmltools,
@@ -42,7 +40,8 @@ Imports:
     tibble,
     tidyr,
     tidyselect,
-    tippy
+    tippy,
+    RColorBrewer
 Suggests:
     kableExtra,
     knitr,

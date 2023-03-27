@@ -68,7 +68,7 @@ visitContextView <- function(id) {
         )
       ),
       shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("visitContextTable"))),
-      csvDownloadButton(ns, "visitContextTable")
+      reactableCsvDownloadButton(ns, "visitContextTable")
     )
   )
 }
