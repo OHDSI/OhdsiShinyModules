@@ -1,0 +1,35 @@
+DBMS:
+postgresql
+
+Error:
+org.postgresql.util.PSQLException: ERROR: relation "ase_01.es_cohort_inclusion" does not exist
+  Position: 95
+
+SQL:
+SELECT ci.cohort_definition_id, ci.rule_sequence, ci.name as rule_name,
+  cd.cohort_name FROM ase_01.es_COHORT_INCLUSION ci
+  join ase_01.es_COHORT_DEFINITION cd
+  on cd.cohort_definition_id = ci.cohort_definition_id
+  ;
+
+R version:
+R version 4.2.2 (2022-10-31 ucrt)
+
+Platform:
+x86_64-w64-mingw32
+
+Attached base packages:
+- stats
+- graphics
+- grDevices
+- utils
+- datasets
+- methods
+- base
+
+Other attached packages:
+- OhdsiShinyModules (1.0.4.9000)
+- shiny (1.7.4)
+- ShinyAppBuilder (1.1.1)
+- testthat (3.1.6)
+- dplyr (1.1.0)
