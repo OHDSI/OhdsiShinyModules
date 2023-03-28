@@ -22,7 +22,7 @@ shiny::testServer(
     
     # check input$fetchData does not crash app
     session$setInputs(outcomeId = 3)
-    session$setInputs(fetchData = T)
+    session$setInputs(generate = T)
     
     # check fetchData sets these reactices
     testthat::expect_true(length(databases())>0)
