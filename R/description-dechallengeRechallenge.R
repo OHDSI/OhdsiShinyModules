@@ -32,39 +32,44 @@ descriptionDechallengeRechallengeViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    shiny::fluidRow(
-      shinydashboard::box(
-        status = 'info', width = 12,
-        title = 'Options',
-        solidHeader = TRUE,
-        shiny::p('Select settings:'),
-        shiny::uiOutput(ns('dechalRechalInputs'))
-        )
+    shinydashboard::box(
+      collapsible = TRUE,
+      collapsed = TRUE,
+      title = "Dechallenge Rechallenge",
+      width = "100%"#,
+      #shiny::htmlTemplate(system.file("description-www", "help-dechallengeRechallenge.html", package = utils::packageName()))
     ),
     
-    shiny::fluidRow(
-    shinydashboard::tabBox(
-      width = 12,
-      # Title can include an icon
-      title = shiny::tagList(shiny::icon("gear"), "Results"),
-      #shiny::tabPanel(
-      #  "Table",
-      shiny::div(
-        shiny::downloadButton(
-        ns('downloadDechall'), 
-        label = "Download"
-      ),
-         reactable::reactableOutput(ns('tableResults'))
+    shinydashboard::box(
+      width = "100%",
+      title = 'Options',
+      collapsible = TRUE,
+      collapsed = F,
+      shiny::uiOutput(ns('dechalRechalInputs'))
+    ),
+    
+    shiny::conditionalPanel(
+      condition = "input.generate != 0",
+      ns = ns,
+      
+      shiny::uiOutput(ns("DRinputsText")),
+      
+      shinydashboard::box(
+        width = "100%",
+        # Title can include an icon
+        title = shiny::tagList(shiny::icon("gear"), "Results"),
+        
+        shiny::div(
+          shiny::downloadButton(
+            ns('downloadDechall'), 
+            label = "Download"
+          ),
+          shinycssloaders::withSpinner(
+            reactable::reactableOutput(ns('tableResults'))
+          )
+        )
       )
-      #),
-      #shiny::tabPanel(
-     #   "Plot",
-      #  shiny::plotOutput(ns('dechalplot'))
-      #)
     )
-    )
-    
-    
   )
 }
 
@@ -126,28 +131,52 @@ descriptionDechallengeRechallengeServer <- function(
       # update UI
       output$dechalRechalInputs <- shiny::renderUI({
         
-        shiny::fluidPage(
-          shiny::fluidRow(
-            shiny::selectInput(
-              inputId = session$ns('targetId'), 
-              label = 'Target id: ', 
-              choices = bothIds$targetIds, 
-              multiple = FALSE
-            ),
-            
-            shiny::selectInput(
-              inputId = session$ns('outcomeId'), 
-              label = 'Outcome id: ', 
-              choices = bothIds$outcomeIds[[1]],
-              selected = 1
-            ),
+            shiny::fluidPage(
+              shiny::fluidRow(
+                shiny::column(
+                  width = 6,
+                  shinyWidgets::pickerInput(
+                    inputId = session$ns('targetId'), 
+                    label = 'Target id: ', 
+                    choices = bothIds$targetIds, 
+                    multiple = FALSE,
+                    choicesOpt = list(style = rep_len("color: black;", 999)),
+                    selected = 1,
+                    options = shinyWidgets::pickerOptions(
+                      actionsBox = TRUE,
+                      liveSearch = TRUE,
+                      size = 10,
+                      liveSearchStyle = "contains",
+                      liveSearchPlaceholder = "Type here to search",
+                      virtualScroll = 50
+                    )
+                  )
+                ),
+                shiny::column(
+                  width = 6,
+                  shinyWidgets::pickerInput(
+                    inputId = session$ns('outcomeId'), 
+                    label = 'Outcome id: ', 
+                    choices = bothIds$outcomeIds[[1]],
+                    selected = 1,
+                    choicesOpt = list(style = rep_len("color: black;", 999)),
+                    options = shinyWidgets::pickerOptions(
+                      actionsBox = TRUE,
+                      liveSearch = TRUE,
+                      size = 10,
+                      liveSearchStyle = "contains",
+                      liveSearchPlaceholder = "Type here to search",
+                      virtualScroll = 50
+                    )
+                  )
+                )
+              ),
             
             shiny::actionButton(
-              inputId = session$ns('fetchData'),
-              label = 'Select'
+              inputId = session$ns('generate'),
+              label = 'Generate Report'
             )
           )
-        )
       }
       )
       
@@ -156,15 +185,41 @@ descriptionDechallengeRechallengeServer <- function(
       dechallengeEvaluationWindow <- shiny::reactiveVal(c())
       
       reactiveData <- shiny::reactiveVal(data.frame())
+      selectedInputs <- shiny::reactiveVal()
+      output$DRinputsText <- shiny::renderUI(selectedInputs())
+      
       
       # fetch data when targetId changes
       shiny::observeEvent(
-        eventExpr = input$fetchData,
+        eventExpr = input$generate,
         {
           if(is.null(input$targetId) | is.null(input$outcomeId)){
-            print('Null ids value')
             return(invisible(NULL))
           }
+          
+          selectedInputs(
+            shinydashboard::box(
+              status = 'warning', 
+              width = "100%",
+              title = 'Selected:',
+              shiny::div(
+                shiny::fluidRow(
+                  shiny::column(
+                    width = 6,
+                    shiny::tags$b("Target:"),
+                    names(bothIds$targetIds)[bothIds$targetIds == input$targetId]
+                  ),
+                  shiny::column(
+                    width = 6,
+                    shiny::tags$b("Outcome:"),
+                    names(bothIds$outcomeIds[[1]])[bothIds$outcomeIds[[1]] == input$outcomeId]
+                  )
+                )
+                
+              )
+            )
+          )
+          
           allData <- getDechalRechalInputsData(
             targetId = input$targetId,
             outcomeId = input$outcomeId,

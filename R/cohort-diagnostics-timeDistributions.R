@@ -36,13 +36,13 @@ getTimeDistributionResult <- function(dataSource,
   }
   data <- temporalCovariateValueDist %>%
     dplyr::inner_join(data$temporalCovariateRef,
-      by = "covariateId"
+                      by = "covariateId"
     ) %>%
     dplyr::inner_join(data$temporalAnalysisRef,
-      by = "analysisId"
+                      by = "analysisId"
     ) %>%
     dplyr::inner_join(databaseTable,
-      by = "databaseId"
+                      by = "databaseId"
     ) %>%
     dplyr::rename(
       "timeMetric" = "covariateName",
@@ -67,8 +67,7 @@ getTimeDistributionResult <- function(dataSource,
   return(data)
 }
 
-
-plotTimeDistribution <- function(data, shortNameRef = NULL) {
+plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
   errorMessage <- checkmate::makeAssertCollection()
   checkmate::assertTibble(
     x = data,
@@ -96,25 +95,32 @@ plotTimeDistribution <- function(data, shortNameRef = NULL) {
 
   plotData$tooltip <- c(
     paste0(
-      plotData$shortName,
-      "\nDatabase = ",
-      plotData$databaseId,
-      "\nMin = ",
-      scales::comma(plotData$minValue, accuracy = 1),
-      "\nP25 = ",
+      plotData$cohortName,
+      "\n\nDatabase = ",
+      plotData$databaseName,
+      "\n\nP10 = ",
+      scales::comma(plotData$p10Value, accuracy = 1),
+      "  P25 = ",
       scales::comma(plotData$p25Value, accuracy = 1),
-      "\nMedian = ",
+      "  Median = ",
       scales::comma(plotData$medianValue, accuracy = 1),
-      "\nP75 = ",
+      "  P75 = ",
       scales::comma(plotData$p75Value, accuracy = 1),
-      "\nMax = ",
+      "  P90 = ",
+      scales::comma(plotData$p90Value, accuracy = 1),
+
+      "\n\nMin = ",
+      scales::comma(plotData$minValue, accuracy = 1),
+      "  Max = ",
       scales::comma(plotData$maxValue, accuracy = 1),
-      "\nTime Measure = ",
-      plotData$timeMetric,
-      "\nAverage = ",
+      "  Mean = ",
       scales::comma(x = plotData$averageValue, accuracy = 0.01)
     )
   )
+
+  # Fixed colour reference
+  nCohorts <- plotData$shortName %>% unique() %>% length()
+  colorPallet <- RColorBrewer::brewer.pal(max(c(3, nCohorts)), "Set3")
 
   sortShortName <- plotData %>%
     dplyr::select("shortName") %>%
@@ -133,46 +139,80 @@ plotTimeDistribution <- function(data, shortNameRef = NULL) {
                                levels = sortShortName$shortName
   )
 
-  plot <- ggplot2::ggplot(data = plotData) +
-    ggplot2::aes(
-      x = .data$shortName,
-      ymin = .data$minValue,
-      lower = .data$p25Value,
-      middle = .data$medianValue,
-      upper = .data$p75Value,
-      ymax = .data$maxValue,
-      average = .data$averageValue
-    ) +
-    ggplot2::geom_errorbar(size = 0.5) +
-    ggiraph::geom_boxplot_interactive(
-      ggplot2::aes(tooltip = .data$tooltip),
-      stat = "identity",
-      fill = grDevices::rgb(0, 0, 0.8, alpha = 0.25),
-      size = 0.2
-    ) +
-    ggplot2::facet_grid(databaseName ~ timeMetric, scales = "free") +
-    ggplot2::coord_flip() +
-    ggplot2::theme(
-      panel.grid.major.y = ggplot2::element_blank(),
-      panel.grid.minor.y = ggplot2::element_blank(),
-      axis.title.y = ggplot2::element_blank(),
-      axis.ticks.y = ggplot2::element_blank(),
-      strip.background = ggplot2::element_blank(),
-      strip.text.y = ggplot2::element_text(size = 5)
-    )
-  height <-
-    1.5 + 0.4 * nrow(dplyr::distinct(.data = plotData, .data$databaseId, .data$shortName))
-  plot <- ggiraph::girafe(
-    ggobj = plot,
-    options = list(
-      ggiraph::opts_sizing(width = .7),
-      ggiraph::opts_zoom(max = 5)
-    ),
-    width_svg = 12,
-    height_svg = height
-  )
-}
+  ncols <- plotData$timeMetric %>% unique() %>% length()
+  nrows <- plotData$databaseName %>% unique() %>% length()
+  subplots <- list()
 
+  for (db in plotData$databaseName %>% unique()) {
+    for (tm in plotData$timeMetric %>% unique()) {
+      subset <- plotData %>%
+        dplyr::filter(.data$timeMetric == tm, .data$databaseName == db)
+      subplots[[length(subplots) + 1]] <- subset %>%
+        plotly::plot_ly() %>%
+        plotly::add_boxplot(y = ~shortName,
+                            whiskerwidth = 0.2,
+                            color = ~shortName,
+                            colors = colorPallet,
+                            type = "box",
+                            hoverlabel = list(bgcolor = "#000"),
+                            line = list(color = 'rgb(0,0,0)', width = 1.5),
+                            hoveron = "points",
+                            q1 = ~p25Value,
+                            q3 = ~p75Value,
+                            median = ~medianValue,
+                            mean = ~averageValue,
+                            upperfence = ~p90Value,
+                            lowerfence = ~p10Value) %>%
+        plotly::add_markers(y = ~shortName,
+                            color = ~shortName,
+                            text = ~tooltip,
+                            opacity = 0.99,
+                            size = 100,
+                            x = ~medianValue) %>%
+        plotly::layout(plot_bgcolor = '#e5ecf6',
+                       xaxis = list(
+                         title = "time in days",
+                         zerolinecolor = '#ffff',
+                         zerolinewidth = 2,
+                         gridcolor = 'ffff'),
+                       yaxis = list(
+                         title = db,
+                         showTitle = FALSE,
+                         zerolinecolor = '#ffff',
+                         zerolinewidth = 2,
+                         gridcolor = 'ffff'))
+
+      if (showMax) {
+        subplots[[length(subplots)]] <- subplots[[length(subplots)]] %>%
+          plotly::add_markers(y = ~shortName,
+                              color = ~shortName,
+                              text = ~tooltip,
+                              size = 1,
+                              x = ~maxValue)
+      }
+    }
+  }
+
+  # Add titles for each subplot
+  topAnnotations <- list()
+  for (tm in plotData$timeMetric %>% unique()) {
+    # Trial and error...
+    xTitlePos <- (length(topAnnotations) / ncols) + 1 / ncols * 0.5
+    topAnnotations[[length(topAnnotations) + 1]] <- list(text = tm,
+                                                         showarrow = FALSE,
+                                                         x = xTitlePos,
+                                                         y = 1.0,
+                                                         xref = "paper",
+                                                         yref = "paper",
+                                                         xanchor = "center",
+                                                         yanchor = "bottom")
+  }
+
+  plt <- plotly::subplot(subplots, nrows = nrows, shareY = TRUE, shareX = TRUE) %>%
+    plotly::layout(annotations = topAnnotations, showlegend = F)
+
+  return(plt)
+}
 
 #' timeDistributions view
 #' @description
@@ -206,7 +246,7 @@ timeDistributionsView <- function(id) {
       collapsed = TRUE,
       title = "Time Distributions",
       width = "100%",
-      shiny::htmlTemplate(system.file("cohort-diagnostics-www",  "timeDistribution.html", package = utils::packageName()))
+      shiny::htmlTemplate(system.file("cohort-diagnostics-www", "timeDistribution.html", package = utils::packageName()))
     ),
     shinydashboard::box(
       status = "warning",
@@ -279,13 +319,29 @@ timeDistributionsView <- function(id) {
         condition = "input.timeDistributionType=='Table'",
         ns = ns,
         shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("timeDistributionTable"))),
-        csvDownloadButton(ns, "timeDistributionTable")
+        reactableCsvDownloadButton(ns, "timeDistributionTable")
       ),
       shiny::conditionalPanel(
         condition = "input.timeDistributionType=='Plot'",
         ns = ns,
+        shiny::fluidRow(
+          shiny::column(
+            width = 3,
+            shiny::checkboxInput(ns("showMaxValues"), label = "Show max values", value = FALSE)
+          ),
+          shiny::column(
+            width = 3,
+            shiny::numericInput(
+              inputId = ns("plotRowHeight"),
+              label = "Plot row height (pixels)",
+              max = 2000,
+              value = 400,
+              min = 200
+            )
+          )
+        ),
         shiny::tags$br(),
-        shinycssloaders::withSpinner(ggiraph::ggiraphOutput(ns("timeDistributionPlot"), width = "100%", height = "100%"))
+        shiny::uiOutput(ns("plotArea"))
       )
     )
   )
@@ -298,8 +354,8 @@ timeDistributionsModule <- function(id,
                                     cohortIds,
                                     cohortTable = dataSource$cohortTable,
                                     databaseTable = dataSource$databaseTable) {
-  ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
+    ns <- session$ns
     output$selectedCohorts <- shiny::renderUI({ selectedCohorts() })
 
     # Time distribution -----
@@ -322,11 +378,31 @@ timeDistributionsModule <- function(id,
       return(data)
     })
 
+
+    output$plotArea <- shiny::renderUI({
+      rowHeight <- ifelse(is.null(input$plotRowHeight) | is.na(input$plotRowHeight), 400, input$plotRowHeight)
+      plotHeight <- rowHeight * length(selectedDatabaseIds())
+      shiny::div(
+        id = ns("tsPlotContainer"),
+        shinycssloaders::withSpinner(plotly::plotlyOutput(ns("timeDistributionPlot"),
+                                                          width = "100%",
+                                                          height = sprintf("%spx", plotHeight + 50))),
+        height = sprintf("%spx", plotHeight + 50)
+      )
+    })
+
+
     ## output: timeDistributionPlot -----
-    output$timeDistributionPlot <- ggiraph::renderggiraph(expr = {
-      data <- timeDistributionData()
+    output$timeDistributionPlot <- plotly::renderPlotly(expr = {
+      data <- timeDistributionData() %>%
+        dplyr::inner_join(cohortTable %>% dplyr::select("cohortName", "cohortId"), by = "cohortId")
       shiny::validate(shiny::need(hasData(data), "No data for this combination"))
-      plot <- plotTimeDistribution(data = data, shortNameRef = cohortTable)
+      plot <- plotTimeDistribution(data = data, shortNameRef = cohortTable, showMax = isTRUE(input$showMaxValues))
+
+      # Note that this code is only used because renderUI/ uiOutput didn't seem to update with plotly
+      plotHeight <- 300 * length(selectedDatabaseIds())
+      session$sendCustomMessage(ns("tsPlotHeight"), sprintf("%spx", plotHeight))
+
       return(plot)
     })
 

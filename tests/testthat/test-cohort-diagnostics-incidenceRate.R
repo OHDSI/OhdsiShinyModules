@@ -1,18 +1,16 @@
 context("cohort-diagnostics-incidence")
 
 test_that("plot works", {
-  tData <- tibble::tibble(
-    cohortCount = 10, personYears = 1000, gender = "m", ageGroup = "18-64", calendarYear = 2010,
-    incidenceRate = 1003.4, cohortId = 18347, databaseId = "Eunomia", databaseName = "Eunomia", cohortSubjects = 1000
-  )
+  # just a small subset of data
+  tData <- read.csv2(file.path("..", "resources", "cdDatabase", "ir_test_data.csv")) %>% tibble::tibble()
   plt <- plotIncidenceRate(data = tData,
-                    cohortTable = dataSourceCd$cohortTable,
-                    stratifyByGender = TRUE,
-                    stratifyByCalendarYear = TRUE,
-                    yscaleFixed = TRUE,
-                    stratifyByAgeGroup = TRUE)
+                           cohortTable = dataSourceCd$cohortTable,
+                           stratifyByGender = TRUE,
+                           stratifyByCalendarYear = TRUE,
+                           yscaleFixed = TRUE,
+                           stratifyByAgeGroup = TRUE)
 
-  checkmate::expect_class(plt, "girafe")
+  checkmate::expect_class(plt, "plotly")
 })
 
 shiny::testServer(incidenceRatesModule, args = list(
@@ -21,7 +19,8 @@ shiny::testServer(incidenceRatesModule, args = list(
   cohortTable = getCohortTable(dataSourceCd),
   selectedCohorts = shiny::reactive("Any String"),
   selectedDatabaseIds = shiny::reactive("Eunomia"),
-  cohortIds = shiny::reactive({ c(18347) })
+  cohortIds = shiny::reactive({ c(18347) }),
+  databaseTable = getDatabaseTable(dataSourceCd)
 ), {
   ## input tests will go here
   session$setInputs(
@@ -31,7 +30,7 @@ shiny::testServer(incidenceRatesModule, args = list(
     generatePlot = 1,
     incidenceRateCalenderFilter = c(2010, 2019)
   )
-    
+
   checkmate::expect_data_frame(incidenceRateData())
   checkmate::expect_integerish(incidenceRateCalenderFilter())
 })

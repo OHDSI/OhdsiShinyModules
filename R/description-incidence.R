@@ -32,19 +32,30 @@ descriptionIncidenceViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    shiny::fluidRow(
-      shinydashboard::box(
-        status = 'info', width = 12,
-        title = 'Options',
-        solidHeader = TRUE,
-        shiny::p('Select settings:'),
-        shiny::uiOutput(ns('cohortInputs'))
-        )
+    shinydashboard::box(
+      collapsible = TRUE,
+      collapsed = TRUE,
+      title = "Incidence Rates",
+      width = "100%"#,
+      #shiny::htmlTemplate(system.file("description-www", "help-dechallengeRechallenge.html", package = utils::packageName()))
     ),
     
-    shiny::fluidRow(
     shinydashboard::box(
-      width = 12,
+      width = "100%",
+      title = 'Options',
+      collapsible = TRUE,
+      collapsed = F,
+      shiny::uiOutput(ns('cohortInputs'))
+    ),
+    
+    shiny::conditionalPanel(
+      condition = "input.generate != 0",
+      ns = ns,
+      
+      shiny::uiOutput(ns("IRinputsText")),
+    
+    shinydashboard::box(
+      width = "100%",
       # Title can include an icon
       title = shiny::tagList(shiny::icon("gear"), "Table"),
       
@@ -52,7 +63,9 @@ descriptionIncidenceViewer <- function(id) {
         ns('downloadInc'), 
         label = "Download"
       ),
-      reactable::reactableOutput(ns('incTable'))
+      shinycssloaders::withSpinner(
+        reactable::reactableOutput(ns('incTable'))
+      )
     )
     )
     
@@ -105,39 +118,89 @@ descriptionIncidenceServer <- function(
         
         shiny::fluidPage(
           shiny::fluidRow(
-            shiny::selectInput(
-              inputId = session$ns('targetId'), 
-              label = 'Target id: ', 
-              choices = cohorts$targetIds, 
-              multiple = FALSE
+            shiny::column(
+              width = 6,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('targetId'), 
+                label = 'Target id: ', 
+                choices = cohorts$targetIds, 
+                multiple = FALSE,
+                choicesOpt = list(style = rep_len("color: black;", 999)),
+                selected = 1,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
             ),
-            
-            shiny::selectInput(
-              inputId = session$ns('outcomeId'), 
-              label = 'Outcome id: ', 
-              choices = cohorts$outcomeIds,
-              selected = 1
-            ),
-            
-            shiny::actionButton(
-              inputId = session$ns('fetchData'),
-              label = 'Select'
+            shiny::column(
+              width = 6,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('outcomeId'), 
+                label = 'Outcome id: ', 
+                choices = cohorts$outcomeIds,
+                selected = 1,
+                choicesOpt = list(style = rep_len("color: black;", 999)),
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
             )
+          ),
+          
+          shiny::actionButton(
+            inputId = session$ns('generate'),
+            label = 'Generate Report'
           )
         )
-      }
-      )
+      })
       
       allDataDownload <- shiny::reactiveVal(data.frame())
+      selectedInputs <- shiny::reactiveVal()
+      output$IRinputsText <- shiny::renderUI(selectedInputs())
+      
 
       # fetch data when targetId changes
       shiny::observeEvent(
-        eventExpr = input$fetchData,
+        eventExpr = input$generate,
         {
           if(is.null(input$targetId) | is.null(input$outcomeId)){
-            print('Null ids value')
             return(invisible(NULL))
           }
+          
+          selectedInputs(
+            shinydashboard::box(
+              status = 'warning', 
+              width = "100%",
+              title = 'Selected:',
+              shiny::div(
+                shiny::fluidRow(
+                  shiny::column(
+                    width = 6,
+                    shiny::tags$b("Target:"),
+                    names(cohorts$targetIds)[cohorts$targetIds == input$targetId]
+                  ),
+                  shiny::column(
+                    width = 6,
+                    shiny::tags$b("Outcome:"),
+                    names(cohorts$outcomeIds)[cohorts$outcomeIds == input$outcomeId]
+                  )
+                )
+                
+              )
+            )
+          )
+          
+          
           allData <- getIncidenceData(
             targetId = input$targetId,
             outcomeId = input$outcomeId,

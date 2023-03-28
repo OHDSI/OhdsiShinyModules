@@ -20,9 +20,9 @@ shiny::testServer(
     # checl targetId does not crash app
     session$setInputs(targetId = names(bothIds$outcomeIds)[1])
     
-    # check input$fetchData does not crash app
+    # check input$generate does not crash app
     session$setInputs(outcomeId = 3)
-    session$setInputs(fetchData = T)
+    session$setInputs(generate = T)
     
     
   })

@@ -165,7 +165,7 @@ characterizationView <- function(id) {
         shinycssloaders::withSpinner(
           reactable::reactableOutput(outputId = ns("characterizationTable"))
         ),
-        csvDownloadButton(ns, "characterizationTable")
+        reactableCsvDownloadButton(ns, "characterizationTable")
       )
     ),
     shiny::conditionalPanel(
@@ -220,14 +220,14 @@ characterizationView <- function(id) {
             shinycssloaders::withSpinner(
               reactable::reactableOutput(outputId = ns("characterizationTableRaw"))
             ),
-            csvDownloadButton(ns, "characterizationTableRaw")
+            reactableCsvDownloadButton(ns, "characterizationTableRaw")
           ),
           shiny::tabPanel(
             title = "Group by Time ID",
             shinycssloaders::withSpinner(
               reactable::reactableOutput(outputId = ns("characterizationTableRawGroupedByTime"))
             ),
-            csvDownloadButton(ns, "characterizationTableRawGroupedByTime")
+            reactableCsvDownloadButton(ns, "characterizationTableRawGroupedByTime")
           )
         )
       )
