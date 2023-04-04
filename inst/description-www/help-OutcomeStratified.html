@@ -1,0 +1,29 @@
+<h3>Description</h3>
+<p>A table or plot showing the binary features for the target and outcome cohorts during the time at risk selected.</p> 
+<p>The tables show all captured covariates.There are separate tables and plots for the binary and continuous covariates (e.g. the Charlson comorbidity index).</p>
+<p>For each covariate the table lists the mean, which for binary covariates is equal to the proportion, the standard deviation (SD), and the standardized difference of the mean (StdDiff).</p>
+<p>The plot shows all covariates, (NOTE: separate plots for binary and continuous covariates).</p> 
+<p>The x-axis represents the mean value in the target cohort, the y-axis the mean value in the outcome cohort.</p>
+<p>Each dot represents a covariate, and the color indicates the domain of the covariate being plotted.</p>
+<p>In the plot, domains are fixed (even though additional domains may exist in data) to ensure the color of the domains are consistently applied.</p>
+<h3>Options</h3>
+<p>Select a single target and outcome cohort from the drop down.</p> 
+<p>Select the time at risk from the drop down, options include cohort start +1 to cohort start +14 days; include cohort start +1 to cohort start +28 days; 
+include cohort start +1 to cohort start +42 days; include cohort start +1 to cohort start +90 days.</p>
+<p>Select from the drop down menu for Database 1, the database for the target cohort.Select from the drop down menu 
+for Database 2, the database for the outcome cohort.</p>
+<p>Select from Type 1 and Type 2 drop down menus one of the following options: Target, Outcome, Target with outcome, Target with outcome during TAR (T index), Target with outcome during TAR (O index), or Target without outcome during TAR.</p>
+<p>Select the generate button to display results.</p>
+<p>Select the text from the displayed results: Binary Feature Table, Continuous Feature Table, Binary Feature Plot
+or Continuous Feature Plot. </p>
+<p>From the tabular results select the download button to download a .csv file.</p>
+<p>From the plot results moving the cursor will display options to resize/zoom and download a .png file. </p>
+
+<h3>What to look for</h3>
+<ul>
+<li>Are there major differences between the two cohorts? For example, if we wish to compute a propensity score between two cohorts, concepts that have very high proportion in one cohort and a very low proportion in the other may lead to a perfectly predictive model.
+</li>
+<li>In general, how comparable are two cohorts? If we wish to compare two exposures, but the cohorts differ over many characteristics, we may be able to fit a propensity model and compute an estimate, but we may have concerns over the generalizability of the results.</li>
+</ul>
+
+

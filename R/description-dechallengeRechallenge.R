@@ -36,8 +36,8 @@ descriptionDechallengeRechallengeViewer <- function(id) {
       collapsible = TRUE,
       collapsed = TRUE,
       title = "Dechallenge Rechallenge",
-      width = "100%"#,
-      #shiny::htmlTemplate(system.file("description-www", "help-dechallengeRechallenge.html", package = utils::packageName()))
+      width = "100%",
+      shiny::htmlTemplate(system.file("description-www", "help-dechallengeRechallenge.html", package = utils::packageName()))
     ),
     
     shinydashboard::box(
