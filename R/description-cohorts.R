@@ -36,8 +36,8 @@ descriptionTableViewer <- function(id) {
       collapsible = TRUE,
       collapsed = TRUE,
       title = "Target Viewer",
-      width = "100%"#,
-      #shiny::htmlTemplate(system.file("description-www", "help-aggregateFeatures.html", package = utils::packageName()))
+      width = "100%",
+      shiny::htmlTemplate(system.file("description-www", "help-targetViewer.html", package = utils::packageName()))
     ),
     
     shinydashboard::box(

@@ -36,8 +36,8 @@ descriptionIncidenceViewer <- function(id) {
       collapsible = TRUE,
       collapsed = TRUE,
       title = "Incidence Rates",
-      width = "100%"#,
-      #shiny::htmlTemplate(system.file("description-www", "help-dechallengeRechallenge.html", package = utils::packageName()))
+      width = "100%",
+      shiny::htmlTemplate(system.file("description-www", "help-incidenceRate.html", package = utils::packageName()))
     ),
     
     shinydashboard::box(
