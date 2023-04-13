@@ -771,8 +771,10 @@ characterizationModule <- function(
         value = 20
       )
 
+      largeQueryLimit <- getOption("shinydb.large_query_limit", default = 20000)
+
       data <- dataSource$connectionHandler$queryDb(
-        sql = "SELECT tcv.*,
+        sql = "SELECT TOP @query_size_limit tcv.*,
                 ref.covariate_name, ref.analysis_id, ref.concept_id,
                 aref.analysis_name, aref.is_binary, aref.domain_id,
                 tref.start_day, tref.end_day
@@ -786,8 +788,10 @@ characterizationModule <- function(
                 {@cohort_id != \"\"} ? { AND tcv.cohort_id IN (@cohort_id)}
                 {@time_id != \"\"} ? { AND (tcv.time_id IN (@time_id) OR tcv.time_id IS NULL OR tcv.time_id = 0)}
                 {@use_database_id} ? { AND database_id IN (@database_id)}
+                ORDER BY tcv.mean DESC;
                 ",
         snakeCaseToCamelCase = TRUE,
+        query_size_limit = largeQueryLimit,
         analysis_ids = input$selectedRawAnalysisIds %>% unique(),
         time_id = selectedTimeIds() %>% unique(),
         use_database_id = !is.null(selectedDatabaseIds()),
@@ -805,7 +809,13 @@ characterizationModule <- function(
         dplyr::mutate(temporalChoices = ifelse(is.na(.data$startDay),
                                                "Time Invariant",
                                                paste0("T (", .data$startDay, "d to ", .data$endDay, "d)")))
-        return(data)
+
+
+      if (nrow(data) == largeQueryLimit) {
+        shiny::showNotification("Warning: Large number of covariates returned - adjust parameters to find rarer results",
+                                type = "error")
+      }
+      return(data)
     })
 
     ## cohortCharacterizationDataFiltered ----
