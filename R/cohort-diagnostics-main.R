@@ -172,6 +172,9 @@ createCdDatabaseDataSource <- function(connectionHandler,
     }
   }
 
+  modelSpec <- utils::read.csv(dataModelSpecificationsPath)
+  colnames(modelSpec) <- SqlRender::snakeCaseToCamelCase(colnames(modelSpec))
+
   dataSource <- list(
     connectionHandler = connectionHandler,
     resultsDatabaseSchema = schema,
@@ -190,7 +193,7 @@ createCdDatabaseDataSource <- function(connectionHandler,
     },
     cohortTableName = cohortTableName,
     databaseTableName = databaseTableName,
-    dataModelSpecifications = utils::read.csv(dataModelSpecificationsPath)
+    dataModelSpecifications = modelSpec
   )
 
   if (displayProgress)
@@ -558,7 +561,7 @@ cohortDiagnosticsSever <- function(id,
       if (!hasData(targetCohortId())) {
         return(NULL)
       }
-
+      browser()
       dataSource$conceptSets %>%
         dplyr::filter(.data$cohortId == targetCohortId()) %>%
         dplyr::mutate(name = .data$conceptSetName) %>%
