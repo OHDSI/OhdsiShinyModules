@@ -1,7 +1,7 @@
 Package: OhdsiShinyModules
 Type: Package
 Title: Repository of Shiny Modules for OHDSI Result Viewers
-Version: 1.0.4.9000
+Version: 1.1.0.9000
 Author: Jenna Reps
 Maintainer: Jenna Reps <reps@ohdsi.org>
 Description: Install this package to access useful shiny modules for building shiny apps to explore results using the OHDSI tools .
@@ -17,8 +17,6 @@ Imports:
     DatabaseConnector,
     dplyr,
     DT,
-    ggh4x,
-    ggiraph,
     ggplot2,
     gridExtra,
     htmltools,
@@ -42,7 +40,8 @@ Imports:
     tibble,
     tidyr,
     tidyselect,
-    tippy
+    tippy,
+    RColorBrewer
 Suggests:
     kableExtra,
     knitr,

@@ -736,17 +736,6 @@ mappedConceptSet <- function(dataSource,
   return(mapped)
 }
 
-
-csvDownloadButton <- function(ns,
-                              outputTableId,
-                              buttonText = "Download CSV (filtered)") {
-
-  shiny::tagList(
-    shiny::tags$br(),
-    shiny::tags$button(buttonText,
-                       onclick = paste0("Reactable.downloadDataCSV('", ns(outputTableId), "')")))
-}
-
 addShortName <-
   function(data,
            shortNameRef = NULL,
@@ -763,7 +752,7 @@ addShortName <-
       dplyr::distinct(.data$cohortId, .data$shortName)
     colnames(shortNameRef) <- c(cohortIdColumn, shortNameColumn)
     data <- data %>%
-      dplyr::inner_join(shortNameRef, by = dplyr::all_of(cohortIdColumn))
+      dplyr::inner_join(shortNameRef, by = cohortIdColumn)
     return(data)
   }
 
@@ -837,7 +826,7 @@ queryResultCovariateValue <- function(dataSource,
       start_day = startDay,
       end_day = endDay
     ) %>%
-    dplyr::tibble()
+      dplyr::tibble()
 
   temporalTimeRefData <- dplyr::bind_rows(
     temporalTimeRefData,
@@ -856,7 +845,7 @@ queryResultCovariateValue <- function(dataSource,
       snakeCaseToCamelCase = TRUE,
       results_database_schema = dataSource$resultsDatabaseSchema
     ) %>%
-    dplyr::tibble()
+      dplyr::tibble()
 
   temporalCovariateRefData <-
     dataSource$connectionHandler$queryDb(
@@ -869,7 +858,7 @@ queryResultCovariateValue <- function(dataSource,
       table_name = dataSource$prefixTable("temporal_covariate_ref"),
       results_database_schema = dataSource$resultsDatabaseSchema
     ) %>%
-    dplyr::tibble()
+      dplyr::tibble()
 
   temporalCovariateValueData <- NULL
   if (temporalCovariateValue) {
@@ -895,8 +884,8 @@ queryResultCovariateValue <- function(dataSource,
         results_database_schema = dataSource$resultsDatabaseSchema,
         filter_mean_threshold = meanThreshold
       ) %>%
-      dplyr::tibble() %>%
-      tidyr::replace_na(replace = list(timeId = -1))
+        dplyr::tibble() %>%
+        tidyr::replace_na(replace = list(timeId = -1))
   }
 
   temporalCovariateValueDistData <- NULL
@@ -921,23 +910,23 @@ queryResultCovariateValue <- function(dataSource,
         results_database_schema = dataSource$resultsDatabaseSchema,
         filter_mean_threshold = meanThreshold
       ) %>%
-      dplyr::tibble() %>%
-      tidyr::replace_na(replace = list(timeId = -1))
+        dplyr::tibble() %>%
+        tidyr::replace_na(replace = list(timeId = -1))
   }
 
   if (hasData(temporalCovariateValueData)) {
     temporalCovariateValueData <- temporalCovariateValueData %>%
       dplyr::left_join(temporalTimeRefData,
-        by = "timeId"
+                       by = "timeId"
       )
   }
 
   if (hasData(temporalCovariateValueDistData)) {
     temporalCovariateValueDistData <-
       temporalCovariateValueDistData %>%
-      dplyr::left_join(temporalTimeRefData,
-        by = "timeId"
-      )
+        dplyr::left_join(temporalTimeRefData,
+                         by = "timeId"
+        )
   }
 
   data <- list(

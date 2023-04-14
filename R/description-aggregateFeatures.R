@@ -37,8 +37,8 @@ descriptionAggregateFeaturesViewer <- function(id) {
       collapsible = TRUE,
       collapsed = TRUE,
       title = "Outcome Stratified",
-      width = "100%"#,
-      #shiny::htmlTemplate(system.file("description-www", "help-aggregateFeatures.html", package = utils::packageName()))
+      width = "100%",
+      shiny::htmlTemplate(system.file("description-www", "help-OutcomeStratified.html", package = utils::packageName()))
     ),
     
     # summary table

@@ -678,6 +678,7 @@ cohortDiagnosticsSever <- function(id,
                            selectedCohorts = selectedCohorts,
                            cohortIds = cohortIds,
                            selectedDatabaseIds = selectedDatabaseIds,
+                           databaseTable = databaseTable,
                            cohortTable = cohortTable)
     }
 

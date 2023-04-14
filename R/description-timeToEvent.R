@@ -36,8 +36,8 @@ descriptionTimeToEventViewer <- function(id) {
       collapsible = TRUE,
       collapsed = TRUE,
       title = "Time-to-events",
-      width = "100%"#,
-      #shiny::htmlTemplate(system.file("description-www", "help-timeToEvent.html", package = utils::packageName()))
+      width = "100%",
+      shiny::htmlTemplate(system.file("description-www", "help-timeToEvent.html", package = utils::packageName()))
     ),
     
     shinydashboard::box(

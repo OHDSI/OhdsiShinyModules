@@ -1,3 +1,10 @@
+OhdsiShinyModules v1.1.0
+========================
+- Udated the style for Characterization
+- added SCCS module (jpg)
+- added meta (evidence synthesis) module
+- removal of ggiraph package and replacement with plotly plots for CohortDiagnostics plots: Time Distributions, Overlap, Incidence and Compare Cohort Characterization (jpg)
+
 OhdsiShinyModules v1.0.4
 ========================
 - Fixed an issue with hide/show tabs and reactives in the plp viewer

@@ -57,7 +57,7 @@ cohortCountsView <- function(id) {
           reactable::reactableOutput(outputId = ns("cohortCountsTable")
           )
         ),
-        csvDownloadButton(ns, "cohortCountsTable"),
+        reactableCsvDownloadButton(ns, "cohortCountsTable"),
         shiny::conditionalPanel(
           condition = "output.cohortCountRowIsSelected == true",
           ns = ns,
@@ -96,7 +96,7 @@ cohortCountsView <- function(id) {
           shinycssloaders::withSpinner(
             reactable::reactableOutput(ns("inclusionRuleStats"))
           ),
-          csvDownloadButton(ns, "inclusionRuleStats")
+          reactableCsvDownloadButton(ns, "inclusionRuleStats")
         )
       )
     )
