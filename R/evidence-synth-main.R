@@ -45,35 +45,37 @@ evidenceSynthesisViewer <- function(id=1) {
       
       #shiny::uiOutput(ns('esCohortMethodSelect')),
       
-    #shiny::fluidRow(
-      #shinydashboard::tabBox(
+      shiny::conditionalPanel(
+        condition = 'input.generate != 0',
+        ns = shiny::NS(ns("input-selection")),
+        
         shiny::tabsetPanel(
           type = 'pills',
-        #width = 12,
-        #title = shiny::tagList(shiny::icon("gear"), "Plot and Table"),
-        id = ns('esCohortTabs'),
-        
-        shiny::tabPanel(
-          "Cohort Method Plot",
-          shiny::plotOutput(ns('esCohortMethodPlot'))
-        ),
-        shiny::tabPanel(
-          "Cohort Method Table",
-          reactable::reactableOutput(ns('esCohortMethodTable')),
-          shiny::downloadButton(
-            ns('downloadCohortMethodTable'), 
-            label = "Download"
+          #width = 12,
+          #title = shiny::tagList(shiny::icon("gear"), "Plot and Table"),
+          id = ns('esCohortTabs'),
+          
+          shiny::tabPanel(
+            "Cohort Method Plot",
+            shiny::plotOutput(ns('esCohortMethodPlot'))
+          ),
+          shiny::tabPanel(
+            "Cohort Method Table",
+            reactable::reactableOutput(ns('esCohortMethodTable')),
+            shiny::downloadButton(
+              ns('downloadCohortMethodTable'), 
+              label = "Download"
+            )
+          ),
+          shiny::tabPanel("SCCS Plot",
+                          shiny::plotOutput(ns('esSccsPlot'))
+          ),
+          shiny::tabPanel("SCCS Table",
+                          reactable::reactableOutput(ns('esSccsTable'))
           )
-        ),
-        shiny::tabPanel("SCCS Plot",
-                        shiny::plotOutput(ns('esSccsPlot'))
-        ),
-        shiny::tabPanel("SCCS Table",
-                        reactable::reactableOutput(ns('esSccsTable'))
         )
       )
-    #)
-    
+
   )
   
 }
@@ -164,9 +166,7 @@ evidenceSynthesisServer <- function(
         )
         )
       
-      
-      # Cohort Method plots and tables
-      
+      # plots and tables
       data <- shiny::reactive({
         getCMEstimation(
           connectionHandler = connectionHandler,
