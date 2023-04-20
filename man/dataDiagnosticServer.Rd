@@ -4,12 +4,18 @@
 \alias{dataDiagnosticServer}
 \title{The module server for exploring data-diagnostic}
 \usage{
-dataDiagnosticServer(id = "dataDiag", resultDatabaseSettings = list(port = 1))
+dataDiagnosticServer(
+  id = "dataDiag",
+  connectionHandler,
+  resultDatabaseSettings = list(port = 1)
+)
 }
 \arguments{
 \item{id}{the unique reference id for the module}
 
-\item{resultDatabaseSettings}{a list containing the data-diagnostic result schema and connection details}
+\item{connectionHandler}{a connection to the database with the results}
+
+\item{resultDatabaseSettings}{a list containing the data-diagnostic result schema}
 }
 \value{
 The server for the data-diagnostic module

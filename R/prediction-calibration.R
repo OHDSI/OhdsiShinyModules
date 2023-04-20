@@ -77,10 +77,9 @@ predictionCalibrationViewer <- function(id) {
 #'
 #' @param id  the unique reference id for the module
 #' @param performanceId the performance id in the database
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param inputSingleView the current tab 
 #' @param mySchema the database schema for the model results
-#' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
 #' 
 #' @return
@@ -90,10 +89,9 @@ predictionCalibrationViewer <- function(id) {
 predictionCalibrationServer <- function(
   id, 
   performanceId,
-  con,
+  connectionHandler,
   inputSingleView,
   mySchema, 
-  targetDialect,
   myTableAppend
 ) {
   shiny::moduleServer(
@@ -105,10 +103,9 @@ predictionCalibrationServer <- function(
           print('Extracting calibration')
           data <- getPredictionResult(
             performanceId = performanceId, 
-            con = con,
+            connectionHandler = connectionHandler,
             tableName = paste0(myTableAppend,'evaluation_statistics'), 
-            mySchema = mySchema, 
-            targetDialect = targetDialect 
+            mySchema = mySchema
           )
         } else{
           data <- NULL
@@ -196,19 +193,17 @@ predictionCalibrationServer <- function(
             
             value <- getPredictionResult(
               performanceId = performanceId,
-              con = con,
+              connectionHandler = connectionHandler,
               tableName = paste0(myTableAppend,'calibration_summary'), 
-              mySchema = mySchema, 
-              targetDialect = targetDialect 
+              mySchema = mySchema
             )
             calibrationSummary(value)
             
             value <- getPredictionResult(
               performanceId = performanceId,
-              con = con,
+              connectionHandler = connectionHandler,
               tableName = paste0(myTableAppend,'demographic_summary'), 
-              mySchema = mySchema, 
-              targetDialect = targetDialect 
+              mySchema = mySchema 
             )
             demographicSummary(value)
           }

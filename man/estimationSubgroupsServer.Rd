@@ -10,7 +10,7 @@ estimationSubgroupsServer(
   inputParams,
   exposureOfInterest,
   outcomeOfInterest,
-  connection
+  connectionHandler
 )
 }
 \arguments{
@@ -24,7 +24,7 @@ estimationSubgroupsServer(
 
 \item{outcomeOfInterest}{outcomeOfInterest}
 
-\item{connection}{connection}
+\item{connectionHandler}{connection}
 }
 \value{
 the PLE subgroup results server

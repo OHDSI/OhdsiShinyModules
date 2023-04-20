@@ -32,26 +32,46 @@ descriptionTimeToEventViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    shiny::fluidRow(
-      shinydashboard::box(
-        status = 'info', width = 12,
-        title = 'Options',
-        solidHeader = TRUE,
-        shiny::p('Select settings:'),
-        shiny::uiOutput(ns('timeToEventInputs'))
-        )
+    shinydashboard::box(
+      collapsible = TRUE,
+      collapsed = TRUE,
+      title = "Time-to-events",
+      width = "100%"#,
+      #shiny::htmlTemplate(system.file("description-www", "help-timeToEvent.html", package = utils::packageName()))
     ),
     
-    shiny::fluidRow(
-    shinydashboard::tabBox(
-      width = 12,
-      # Title can include an icon
-      title = shiny::tagList(shiny::icon("gear"), "Plots"),
-      shiny::tabPanel(
-        "Time To Event Plot",
-         shiny::plotOutput(ns('timeToEvent')) #shinycssloaders::withSpinner()
+    shinydashboard::box(
+      width = "100%",
+      title = 'Options',
+      collapsible = TRUE,
+      collapsed = F,
+      shiny::uiOutput(ns('timeToEventInputs'))
+    ),
+    
+    
+    shiny::conditionalPanel(
+      condition = "input.generate != 0",
+      ns = ns,
+      
+      shiny::uiOutput(ns("TTEinputsText")),
+      
+      shinydashboard::box(
+        width = "100%",
+        title = shiny::tagList(shiny::icon("gear"), "Results"),
+        
+        shiny::fluidRow(
+          shiny::column(
+            width = 2,
+            shiny::uiOutput(ns('timeToEventPlotInputs'))
+          ),
+          shiny::column(
+            width = 10,
+            shinycssloaders::withSpinner(
+              shiny::plotOutput(ns('timeToEvent'))
+            )
+          )
+        )
       )
-    )
     )
     
     
@@ -65,12 +85,10 @@ descriptionTimeToEventViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mainPanelTab the current tab 
 #' @param schema the database schema for the model results
-#' @param dbms the database management system for the model results
 #' @param tablePrefix a string that appends the tables in the result schema
-#' @param tempEmulationSchema  The temp schema (optional)
 #' @param cohortTablePrefix a string that appends the cohort table in the result schema
 #' @param databaseTable  name of the database table
 #' 
@@ -80,12 +98,10 @@ descriptionTimeToEventViewer <- function(id) {
 #' @export
 descriptionTimeToEventServer <- function(
   id, 
-  con,
+  connectionHandler,
   mainPanelTab,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema = NULL,
   cohortTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA'
 ) {
@@ -99,11 +115,9 @@ descriptionTimeToEventServer <- function(
       
       # get the possible target ids
       bothIds <- timeToEventGetIds(
-        con,
+        connectionHandler,
         schema, 
-        dbms,
         tablePrefix,
-        tempEmulationSchema,
         cohortTablePrefix
       )
 
@@ -124,68 +138,151 @@ descriptionTimeToEventServer <- function(
         
         shiny::fluidPage(
           shiny::fluidRow(
-            shiny::selectInput(
-              inputId = session$ns('targetId'), 
-              label = 'Target id: ', 
-              choices = bothIds$targetIds, 
-              multiple = FALSE
-            ),
             
-            shiny::selectInput(
-              inputId = session$ns('outcomeId'), 
-              label = 'Outcome id: ', 
-              choices = bothIds$outcomeIds[[1]],
-              selected = 1
+            shiny::column(
+              width = 6,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('targetId'), 
+                label = 'Target id: ', 
+                choices = bothIds$targetIds, 
+                multiple = FALSE,
+                choicesOpt = list(style = rep_len("color: black;", 999)),
+                selected = 1,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
             ),
+            shiny::column(
+              width = 6,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('outcomeId'), 
+                label = 'Outcome id: ', 
+                choices = bothIds$outcomeIds[[1]],
+                selected = 1,
+                choicesOpt = list(style = rep_len("color: black;", 999)),
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
+              ),
             
             shiny::actionButton(
-              inputId = session$ns('fetchData'),
-              label = 'Select'
+              inputId = session$ns('generate'),
+              label = 'Generate Report'
             )
           )
         )
-      }
-      )
+      })
       
-
+      
+      allData <- shiny::reactiveVal(NULL)
+      databaseNames <- shiny::reactiveVal(c('none'))
+      timespans <- shiny::reactiveVal(c('none'))
+      
+      selectedInputs <- shiny::reactiveVal()
+      output$TTEinputsText <- shiny::renderUI(selectedInputs())
+      
+      
       # fetch data when targetId changes
       shiny::observeEvent(
-        eventExpr = input$fetchData,
+        eventExpr = input$generate,
         {
           if(is.null(input$targetId) | is.null(input$outcomeId)){
-            print('Null ids value')
             return(invisible(NULL))
           }
-          allData <- tryCatch({
+          
+          selectedInputs(
+            shinydashboard::box(
+              status = 'warning', 
+              width = "100%",
+              title = 'Selected:',
+              shiny::div(
+                shiny::fluidRow(
+                  shiny::column(
+                    width = 6,
+                    shiny::tags$b("Target:"),
+                    names(bothIds$targetIds)[bothIds$targetIds == input$targetId]
+                  ),
+                  shiny::column(
+                    width = 6,
+                    shiny::tags$b("Outcome:"),
+                    names(bothIds$outcomeIds[[1]])[bothIds$outcomeIds[[1]] == input$outcomeId]
+                  )
+                )
+                
+              )
+            )
+          )
+          
+          tempData <- tryCatch({
             getTimeToEventData(
               targetId = input$targetId,
               outcomeId = input$outcomeId,
-              con = con,
+              connectionHandler = connectionHandler,
               schema = schema, 
-              dbms = dbms,
               tablePrefix = tablePrefix,
-              tempEmulationSchema = tempEmulationSchema, 
               databaseTable = databaseTable
             )
           }, 
           error = function(e){shiny::showNotification(paste0('Error: ', e));return(NULL)}
           )
           
-          # TODO: create  NEW UI FOR SELECTING DATABASES
-          # find databases and set to UI
-          #databases <- unique(allData$databaseId)
-          
-          if(!is.null(allData)){
-            # do the plots reactively
-            output$timeToEvent <- shiny::renderPlot(
-              plotTimeToEvent(
-                timeToEventData = allData
-              )
-            )
+          if(is.null(tempData)){
+            shiny::showNotification('No data...')
+          } else{
+            shiny::showNotification(paste0('Data with ', nrow(tempData),' rows returned'))
           }
+          
+          allData(tempData)
+          databaseNames(unique(tempData$databaseName))  
+          timespans(unique(tempData$timeScale))  
           
         }
       )
+      
+      output$timeToEventPlotInputs <- shiny::renderUI({
+        
+        shiny::fluidPage(
+          shiny::fluidRow(
+            
+            shiny::checkboxGroupInput(
+              inputId = session$ns("databases"), 
+              label = "Databases:",
+              choiceNames = databaseNames(), 
+              choiceValues = databaseNames(),
+              selected = databaseNames()
+            ),
+            shiny::checkboxGroupInput(
+              inputId = session$ns("times"), 
+              label = "Timespan:",
+              choiceNames = timespans(), 
+              choiceValues = timespans(),
+              selected = timespans()
+            )
+            
+          )
+        )
+      }
+      )
+      
+      output$timeToEvent <- shiny::renderPlot(
+          plotTimeToEvent(
+            timeToEventData = allData,
+            databases = input$databases,
+            times = input$times
+          )
+        )
     
       
       return(invisible(NULL))
@@ -195,11 +292,9 @@ descriptionTimeToEventServer <- function(
 }
 
 timeToEventGetIds <- function(
-  con,
+    connectionHandler,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema,
   cohortTablePrefix
 ){
   
@@ -214,27 +309,15 @@ timeToEventGetIds <- function(
    inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION o
           on tte.OUTCOME_COHORT_DEFINITION_ID = o.COHORT_DEFINITION_ID
   ;"
-  sql <- SqlRender::render(
+
+
+  shiny::incProgress(1/4, detail = paste("Fetching ids"))
+  
+  bothIds <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
     cohort_table_prefix = cohortTablePrefix
-  )
-  
-  shiny::incProgress(1/4, detail = paste("Rendering and translating sql"))
-  
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  shiny::incProgress(2/4, detail = paste("Fetching ids"))
-  
-  bothIds <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
   )
   
   shiny::incProgress(3/4, detail = paste("Processing ids"))
@@ -278,11 +361,9 @@ timeToEventGetIds <- function(
 getTimeToEventData <- function(
   targetId,
   outcomeId,
-  con,
+  connectionHandler,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema,
   databaseTable
 ){
   
@@ -295,29 +376,16 @@ getTimeToEventData <- function(
           on tte.database_id = d.database_id
           where tte.TARGET_COHORT_DEFINITION_ID = @target_id
           and tte.OUTCOME_COHORT_DEFINITION_ID = @outcome_id;"
-  sql <- SqlRender::render(
+
+  shiny::incProgress(1/3, detail = paste("Fetching data"))
+  
+  data <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
     target_id = targetId,
     outcome_id = outcomeId,
     database_table = databaseTable
-  )
-  
-  shiny::incProgress(1/3, detail = paste("Rendering and translating sql"))
-  
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  shiny::incProgress(2/3, detail = paste("Fetching data"))
-  
-  data <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
   )
   
   shiny::incProgress(3/3, detail = paste("Finished"))
@@ -328,8 +396,24 @@ getTimeToEventData <- function(
 }
 
 plotTimeToEvent <- function(
-  timeToEventData
+  timeToEventData,
+  databases,
+  times
 ){
+  
+  if(is.null(timeToEventData())){
+    return(NULL)
+  }
+  
+  timeToEventData <- timeToEventData() %>% 
+    dplyr::filter(.data$databaseName %in% databases)
+  
+  if(is.null(timeToEventData)){
+    return(NULL)
+  }
+  
+  timeToEventData <- timeToEventData %>% 
+    dplyr::filter(.data$timeScale %in% times)
   
   if(is.null(timeToEventData)){
     return(NULL)

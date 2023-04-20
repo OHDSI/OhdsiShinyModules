@@ -9,7 +9,7 @@ shiny::testServer(
       comparator = 2, 
       outcome = 3
       )), 
-    connection = connectionEst, 
+    connectionHandler = connectionHandlerEst, 
     resultsSchema = 'main', 
     tablePrefix = 'cm_',
     metaAnalysisDbIds = '1'
@@ -38,6 +38,7 @@ shiny::testServer(
     ##testthat::expect_true(!is.null(balanceSummaryPlot())) - doesnt work
     testthat::expect_true(!is.null(output$balanceSummaryPlotCaption))
     
-    
+    # check textsearch 
+    textSearchEstimation('heart')
     
   })

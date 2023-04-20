@@ -8,9 +8,8 @@ predictionDiagnosticsServer(
   id,
   modelDesignId,
   mySchema,
-  con,
+  connectionHandler,
   myTableAppend,
-  targetDialect,
   databaseTableAppend
 )
 }
@@ -21,11 +20,9 @@ predictionDiagnosticsServer(
 
 \item{mySchema}{the database schema for the model results}
 
-\item{con}{the connection to the prediction result database}
+\item{connectionHandler}{the connection to the prediction result database}
 
 \item{myTableAppend}{a string that appends the tables in the result schema}
-
-\item{targetDialect}{the database management system for the model results}
 
 \item{databaseTableAppend}{a string that appends the database_meta_data table}
 }

@@ -3,13 +3,12 @@ context("description-cohorts")
 shiny::testServer(
   app = descriptionTableServer, 
   args = list(
-    con = connectionDesc,
-    schema = schemaTest,
-    dbms = dbmsTest,
+    connectionHandler = connectionHandlerDesc ,
+    schema = resultDatabaseSettingsDesc$schema,
     mainPanelTab = shiny::reactiveVal("Feature Comparison"),
-    tablePrefix = descTablePrefix,
-    cohortTablePrefix = cohortTablePrefix,
-    databaseTable = databaseTable
+    tablePrefix = resultDatabaseSettingsDesc$tablePrefix,
+    cohortTablePrefix = resultDatabaseSettingsDesc$cohortTablePrefix,
+    databaseTable = resultDatabaseSettingsDesc$databaseTable
   ), 
   expr = {
     
@@ -19,10 +18,10 @@ shiny::testServer(
     testthat::expect_true(!is.null(inputVals$cohortIds) )
     testthat::expect_true(!is.null(inputVals$databaseIds) )
     
-    # checl fetchData does not crash app
+    # checl generate does not crash app
     session$setInputs(targetIds = c(1,3))
     session$setInputs(databaseId = 'eunomia')
-    session$setInputs(fetchData = T)
+    session$setInputs(generate = T)
     
     # check input$columnSelect works without error
     session$setInputs(columnSelect = 'countValue')

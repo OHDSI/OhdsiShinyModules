@@ -9,10 +9,9 @@ predictionCovariateSummaryServer(
   modelDesignId,
   developmentDatabaseId,
   performanceId,
-  con,
+  connectionHandler,
   inputSingleView,
   mySchema,
-  targetDialect = NULL,
   myTableAppend = ""
 )
 }
@@ -25,13 +24,11 @@ predictionCovariateSummaryServer(
 
 \item{performanceId}{unique id for the performance results}
 
-\item{con}{the connection to the prediction result database}
+\item{connectionHandler}{the connection to the prediction result database}
 
 \item{inputSingleView}{the current tab}
 
 \item{mySchema}{the database schema for the model results}
-
-\item{targetDialect}{the database management system for the model results}
 
 \item{myTableAppend}{a string that appends the tables in the result schema}
 }

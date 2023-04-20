@@ -32,37 +32,54 @@ descriptionTableViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    shiny::fluidRow(
-      shinydashboard::box(
-        status = 'info', width = 12,
-        title = 'Options',
-        solidHeader = TRUE,
-        shiny::p('Select settings:'),
-        shiny::uiOutput(ns('cohortInputs'))
-        ),
-      
     shinydashboard::box(
-      status = 'info',
-      width = 12,
-      # Title can include an icon
-      title = shiny::tagList(shiny::icon("gear"), "Table"),
-      
-      shiny::checkboxGroupInput(
-        inputId = ns("columnSelect"), 
-        label = "Columns to show:",
-        inline = T,
-        choices = c(
-          "Mean" = "averageValue",
-          "Count" = "countValue"
-        ), 
-        selected = c("averageValue", "countValue")
-      ),
-      
-      reactable::reactableOutput(ns('feTable'))
-    )
-    )
+      collapsible = TRUE,
+      collapsed = TRUE,
+      title = "Target Viewer",
+      width = "100%"#,
+      #shiny::htmlTemplate(system.file("description-www", "help-aggregateFeatures.html", package = utils::packageName()))
+    ),
     
+    shinydashboard::box(
+      width = "100%",
+      title = 'Options',
+      collapsible = TRUE,
+      collapsed = F,
+      shiny::uiOutput(ns('cohortInputs'))
+    ),
     
+    shiny::conditionalPanel(
+      condition = "input.generate != 0",
+      ns = ns,
+      
+      shiny::uiOutput(ns("TinputsText")),
+      
+      shinydashboard::box(
+        status = 'info',
+        width = "100%",
+        # Title can include an icon
+        title = shiny::tagList(shiny::icon("gear"), "Table"),
+        
+        shiny::checkboxGroupInput(
+          inputId = ns("columnSelect"), 
+          label = "Columns to show:",
+          inline = T,
+          choices = c(
+            "Mean" = "averageValue",
+            "Count" = "countValue"
+          ), 
+          selected = c("averageValue", "countValue")
+        ),
+        
+        shiny::downloadButton(
+          ns('downloadCohorts'), 
+          label = "Download"
+        ),
+        shinycssloaders::withSpinner(
+          reactable::reactableOutput(ns('feTable'))
+        )
+      )
+    )
   )
 }
 
@@ -73,13 +90,11 @@ descriptionTableViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mainPanelTab the current tab 
 #' @param schema the database schema for the model results
-#' @param dbms the database management system for the model results
 #' @param tablePrefix a string that appends the tables in the result schema
 #' @param cohortTablePrefix a string that appends the cohort table in the result schema
-#' @param tempEmulationSchema  The temp schema (optional)
 #' @param databaseTable  name of the database table
 #' 
 #' @return
@@ -88,13 +103,11 @@ descriptionTableViewer <- function(id) {
 #' @export
 descriptionTableServer <- function(
   id, 
-  con,
+  connectionHandler,
   mainPanelTab,
   schema, 
-  dbms,
   tablePrefix,
   cohortTablePrefix,
-  tempEmulationSchema = NULL,
   databaseTable = 'DATABASE_META_DATA'
 ) {
   shiny::moduleServer(
@@ -106,13 +119,11 @@ descriptionTableServer <- function(
       #}
       
       inputVals <- getDecCohortsInputs(
-        con,
+        connectionHandler,
         schema, 
-        dbms,
         tablePrefix,
         cohortTablePrefix,
-        databaseTable,
-        tempEmulationSchema
+        databaseTable
       )
       
       # update UI
@@ -120,43 +131,93 @@ descriptionTableServer <- function(
         
         shiny::fluidPage(
           shiny::fluidRow(
-            shiny::selectInput(
+            shiny::column(
+              width = 6,
+            shinyWidgets::pickerInput(
               inputId = session$ns('targetIds'), 
-              label = 'Target: ', 
+              label = 'Targets: ', 
               choices = inputVals$cohortIds, 
-              multiple = T
+              selected = inputVals$cohortIds,
+              choicesOpt = list(style = rep_len("color: black;", 999)),
+              multiple = T,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
             ),
-            
-              shiny::selectInput(
+            shiny::column(
+              width = 6,
+              shinyWidgets::pickerInput(
                 inputId = session$ns('databaseId'), 
                 label = 'Database: ', 
                 choices = inputVals$databaseIds, 
-                multiple = F
-              ),
-            
-            #sidebarPanel(
-            #  pickerInput("locInput","Location", choices=c("New Mexico", "Colorado", "California"), options = list(`actions-box` = TRUE),multiple = T)
-            #)
+                selected = 1,
+                choicesOpt = list(style = rep_len("color: black;", 999)),
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
+            )
+            ),
             
             shiny::actionButton(
-              inputId = session$ns('fetchData'),
-              label = 'Select'
+              inputId = session$ns('generate'),
+              label = 'Generate Report'
             )
           )
-        )
       }
       )
       
       reactiveAllData <- shiny::reactiveVal(NULL)
       
+      selectedInputs <- shiny::reactiveVal()
+      output$TinputsText <- shiny::renderUI(selectedInputs())
       
       shiny::observeEvent(
-        eventExpr = input$fetchData,
+        eventExpr = input$generate,
         {
           if(length(input$targetIds) == 0 | is.null(input$databaseId)){
             print('Null ids value')
             return(invisible(NULL))
           }
+          
+          selectedInputs(
+            shinydashboard::box(
+              status = 'warning', 
+              width = "100%",
+              title = 'Selected:',
+              shiny::div(
+                shiny::fluidRow(
+                  shiny::column(
+                    width = 8,
+                    shiny::tags$b("Target/s:"),
+                    
+                    paste(
+                      names(inputVals$cohortIds)[inputVals$cohortIds %in% input$targetIds],
+                      collapse = ','
+                    )
+                    
+                  ),
+                  shiny::column(
+                    width = 4,
+                    shiny::tags$b("Database:"),
+                    names(inputVals$databaseIds)[inputVals$databaseIds == input$databaseId]
+                  )
+                )
+                
+              )
+            )
+          )
           
           # hide/show columns - make allData react
           
@@ -164,12 +225,10 @@ descriptionTableServer <- function(
             getDesFEData(
               targetIds = input$targetIds,
               databaseId = input$databaseId,
-              con = con,
+              connectionHandler = connectionHandler,
               schema = schema, 
-              dbms = dbms,
               tablePrefix = tablePrefix,
-              cohortTablePrefix = cohortTablePrefix,
-              tempEmulationSchema = tempEmulationSchema
+              cohortTablePrefix = cohortTablePrefix
             )}, 
             error = function(e){
               shiny::showNotification(paste0('Error: ', e)); return(NULL)
@@ -284,6 +343,17 @@ descriptionTableServer <- function(
         }
       )
       
+      
+      # download button
+      output$downloadCohorts <- shiny::downloadHandler(
+        filename = function() {
+          paste('cohort-data-', Sys.Date(), '.csv', sep='')
+        },
+        content = function(con) {
+          utils::write.csv(reactiveAllData(), con)
+        }
+      )
+      
     
       return(invisible(NULL))
       
@@ -295,30 +365,38 @@ descriptionTableServer <- function(
 getDesFEData <- function(
   targetIds,
   databaseId,
-  con,
+  connectionHandler,
   schema, 
-  dbms,
   tablePrefix,
-  cohortTablePrefix,
-  tempEmulationSchema
+  cohortTablePrefix
 ){
   
   
   shiny::withProgress(message = 'Getting target comparison data', value = 0, {
     
-  
   sql <- "select distinct ref.covariate_id, ref.covariate_name, an.analysis_name, c.cohort_name, covs.COUNT_VALUE, covs.AVERAGE_VALUE
   from
   (
-  select RUN_ID, COHORT_DEFINITION_ID, COVARIATE_ID,	SUM_VALUE as COUNT_VALUE,	AVERAGE_VALUE*100 as AVERAGE_VALUE from
-   @result_schema.@table_prefixCOVARIATES
+  select co.RUN_ID, cd.TARGET_COHORT_ID as COHORT_DEFINITION_ID, co.COVARIATE_ID,	
+  co.SUM_VALUE as COUNT_VALUE,	co.AVERAGE_VALUE*100 as AVERAGE_VALUE from
+   @result_schema.@table_prefixCOVARIATES co
+   inner join 
+   (select * from @result_schema.@table_prefixcohort_details 
    where DATABASE_ID = '@database_id' and 
-   COHORT_DEFINITION_ID in (@cohort_ids)
+   TARGET_COHORT_ID in (@cohort_ids) and COHORT_TYPE = 'T'
+   ) as cd
+   on co.COHORT_DEFINITION_ID = cd.COHORT_DEFINITION_ID
+   and co.DATABASE_ID = cd.DATABASE_ID
   union
-  select RUN_ID, COHORT_DEFINITION_ID, COVARIATE_ID,	COUNT_VALUE,	AVERAGE_VALUE from
-    @result_schema.@table_prefixCOVARIATES_continuous
-    where DATABASE_ID = '@database_id' and 
-    COHORT_DEFINITION_ID in (@cohort_ids)
+  select cc.RUN_ID, cds.TARGET_COHORT_ID as COHORT_DEFINITION_ID, cc.COVARIATE_ID,	cc.COUNT_VALUE,	cc.AVERAGE_VALUE from
+    @result_schema.@table_prefixCOVARIATES_continuous cc
+    inner join 
+    (select * from @result_schema.@table_prefixcohort_details 
+   where DATABASE_ID = '@database_id' and 
+   TARGET_COHORT_ID in (@cohort_ids) and COHORT_TYPE = 'T'
+   ) as cds
+   on cc.COHORT_DEFINITION_ID = cds.COHORT_DEFINITION_ID
+    and cc.DATABASE_ID = cds.DATABASE_ID
   ) covs
   inner join
   @result_schema.@table_prefixcovariate_ref ref
@@ -328,22 +406,20 @@ getDesFEData <- function(
   on an.RUN_ID = ref.RUN_ID and 
   an.analysis_id = ref.analysis_id
   inner join @result_schema.@cohort_table_prefixcohort_definition c
-  on c.cohort_definition_id = covs.COHORT_DEFINITION_ID/100000
+  on c.cohort_definition_id = covs.COHORT_DEFINITION_ID
   ;
   "
-
-  sql <- SqlRender::render(
+  
+  shiny::incProgress(1/3, detail = paste("Created SQL - Extracting..."))
+  
+  resultTable <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = schema,
     table_prefix = tablePrefix,
     cohort_table_prefix = cohortTablePrefix,
-    cohort_ids = paste(as.double(targetIds)*100000, collapse = ','),
+    cohort_ids = paste(as.double(targetIds), collapse = ','),
     database_id = databaseId
   )
-  
-  shiny::incProgress(1/3, detail = paste("Created SQL - Extracting..."))
-  
-  resultTable <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   
   shiny::incProgress(2/3, detail = paste("Formating"))
   
@@ -368,13 +444,11 @@ getDesFEData <- function(
 
 
 getDecCohortsInputs <- function(
-  con,
-  schema, 
-  dbms,
-  tablePrefix,
-  cohortTablePrefix,
-  databaseTable,
-  tempEmulationSchema
+    connectionHandler,
+    schema, 
+    tablePrefix,
+    cohortTablePrefix,
+    databaseTable
 ){
   
   
@@ -385,21 +459,19 @@ getDecCohortsInputs <- function(
   @result_schema.@cohort_table_prefixcohort_definition c
   inner join
   (select distinct TARGET_COHORT_ID as id
-  from @result_schema.@table_prefixsettings
+  from @result_schema.@table_prefixcohort_details
   ) ids
   on ids.id = c.cohort_definition_id
   ;'
-  
-  sql <- SqlRender::render(
+
+  shiny::incProgress(1/4, detail = paste("Extracting targetIds"))
+
+  idVals <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = schema,
     table_prefix = tablePrefix,
     cohort_table_prefix = cohortTablePrefix
   )
-  
-  shiny::incProgress(1/4, detail = paste("Extracting targetIds"))
-
-  idVals <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   ids <- idVals$cohortDefinitionId
   names(ids) <- idVals$cohortName
   
@@ -409,15 +481,13 @@ getDecCohortsInputs <- function(
   sql <- 'select d.database_id, d.cdm_source_abbreviation as database_name
   from @result_schema.@database_table d;'
   
-  sql <- SqlRender::render(
+  shiny::incProgress(3/4, detail = paste("Extracting databaseIds"))
+  
+  database <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = schema,
     database_table = databaseTable
   )
-  
-  shiny::incProgress(3/4, detail = paste("Extracting databaseIds"))
-  
-  database <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   databaseIds <- database$databaseId
   names(databaseIds) <- database$databaseName
   

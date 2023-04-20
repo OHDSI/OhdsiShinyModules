@@ -6,12 +6,10 @@
 \usage{
 descriptionAggregateFeaturesServer(
   id,
-  con,
+  connectionHandler,
   mainPanelTab,
   schema,
-  dbms,
   tablePrefix,
-  tempEmulationSchema = NULL,
   cohortTablePrefix = "cg_",
   databaseTable = "DATABASE_META_DATA"
 )
@@ -19,17 +17,13 @@ descriptionAggregateFeaturesServer(
 \arguments{
 \item{id}{the unique reference id for the module}
 
-\item{con}{the connection to the prediction result database}
+\item{connectionHandler}{the connection to the prediction result database}
 
 \item{mainPanelTab}{the current tab}
 
 \item{schema}{the database schema for the model results}
 
-\item{dbms}{the database management system for the model results}
-
 \item{tablePrefix}{a string that appends the tables in the result schema}
-
-\item{tempEmulationSchema}{The temp schema (optional)}
 
 \item{cohortTablePrefix}{a string that appends the COHORT_DEFINITION table in the result schema}
 

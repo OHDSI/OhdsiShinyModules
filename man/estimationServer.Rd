@@ -4,10 +4,12 @@
 \alias{estimationServer}
 \title{The module server for the main estimation module}
 \usage{
-estimationServer(id, resultDatabaseSettings)
+estimationServer(id, connectionHandler, resultDatabaseSettings)
 }
 \arguments{
 \item{id}{the unique reference id for the module}
+
+\item{connectionHandler}{a connection to the database with the results}
 
 \item{resultDatabaseSettings}{a named list containing the PLE results database connection details}
 }

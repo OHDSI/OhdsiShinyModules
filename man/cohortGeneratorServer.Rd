@@ -4,12 +4,14 @@
 \alias{cohortGeneratorServer}
 \title{The module server for the main cohort generator module}
 \usage{
-cohortGeneratorServer(id, resultDatabaseSettings)
+cohortGeneratorServer(id, connectionHandler, resultDatabaseSettings)
 }
 \arguments{
 \item{id}{the unique reference id for the module}
 
-\item{resultDatabaseSettings}{a named list containing the cohort generator results database connection details}
+\item{connectionHandler}{a connection to the database with the results}
+
+\item{resultDatabaseSettings}{a named list containing the cohort generator results database details (schema, table prefix)}
 }
 \value{
 the cohort generator results viewer main module server

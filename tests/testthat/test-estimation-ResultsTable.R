@@ -16,11 +16,11 @@ shiny::testServer(
       database = 1,
       analysis = 1
       )), 
-    connection = connectionEst, 
+    connectionHandler = connectionHandlerEst, 
     resultsSchema = 'main', 
     tablePrefix = 'cm_',
     #cohortTablePrefix = cohortTablePrefix, 
-    databaseTable = databaseTable
+    databaseTable = resultDatabaseSettingsEst$databaseTable
     #metaAnalysisDbIds = NULL
   ), 
   expr = {
@@ -29,7 +29,14 @@ shiny::testServer(
     testthat::expect_true(!is.null(resultSubset()))
     
     # select first row 
-    session$setInputs(mainTable_rows_selected = 1)
+    testthat::expect_true(is.null(selectedRow()))
+    #reactable::updateReactable(
+    #  outputId = "mainTable", 
+    #  selected = 1, 
+    #  session = session
+    #  )
+    session$setInputs(mainTable__reactable__selected = 1)
+    #session$setInputs(mainTable_rows_selected = 1)
     testthat::expect_true(!is.null(selectedRow())) # could check columns
     
     

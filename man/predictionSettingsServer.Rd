@@ -9,12 +9,12 @@ predictionSettingsServer(
   modelDesignId,
   developmentDatabaseId,
   performanceId,
-  mySchema,
-  con,
+  connectionHandler,
   inputSingleView,
+  mySchema,
   myTableAppend,
-  targetDialect,
-  cohortTableAppend = myTableAppend
+  cohortTableAppend = myTableAppend,
+  databaseTableAppend = myTableAppend
 )
 }
 \arguments{
@@ -26,17 +26,17 @@ predictionSettingsServer(
 
 \item{performanceId}{unique id for the performance results}
 
-\item{mySchema}{the database schema for the model results}
-
-\item{con}{the connection to the prediction result database}
+\item{connectionHandler}{the connection to the prediction result database}
 
 \item{inputSingleView}{the current tab}
 
+\item{mySchema}{the database schema for the model results}
+
 \item{myTableAppend}{a string that appends the tables in the result schema}
 
-\item{targetDialect}{the database management system for the model results}
-
 \item{cohortTableAppend}{a string that appends the cohort_definition table}
+
+\item{databaseTableAppend}{a string that appends the database_meta_data table}
 }
 \value{
 The server to the settings module

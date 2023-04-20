@@ -3,13 +3,12 @@ context("description-TimeToEvent")
 shiny::testServer(
   app = descriptionTimeToEventServer, 
   args = list(
-    con = connectionDesc,
-    schema = schemaTest,
-    dbms = dbmsTest,
+    connectionHandler = connectionHandlerDesc,
+    schema = resultDatabaseSettingsDesc$schema,
     mainPanelTab = shiny::reactiveVal("Feature Comparison"),
-    tablePrefix = descTablePrefix,
-    cohortTablePrefix = cohortTablePrefix,
-    databaseTable = databaseTable
+    tablePrefix = resultDatabaseSettingsDesc$tablePrefix,
+    cohortTablePrefix = resultDatabaseSettingsDesc$cohortTablePrefix,
+    databaseTable = resultDatabaseSettingsDesc$databaseTable
   ), 
   expr = {
     
@@ -21,9 +20,9 @@ shiny::testServer(
     # checl targetId does not crash app
     session$setInputs(targetId = names(bothIds$outcomeIds)[1])
     
-    # check input$fetchData does not crash app
+    # check input$generate does not crash app
     session$setInputs(outcomeId = 3)
-    session$setInputs(fetchData = T)
+    session$setInputs(generate = T)
     
     
   })

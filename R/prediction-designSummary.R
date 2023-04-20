@@ -39,9 +39,8 @@ predictionDesignSummaryViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mySchema the database schema for the model results
-#' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
 #' 
 #' @return
@@ -50,19 +49,22 @@ predictionDesignSummaryViewer <- function(id) {
 #' @export
 predictionDesignSummaryServer <- function(
   id, 
-  con,
+  connectionHandler,
   mySchema,
-  targetDialect,
   myTableAppend
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
+      withTooltip <- function(value, tooltip, ...) {
+        shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
+                   tippy::tippy(value, tooltip, ...))
+      }
+      
       designSummaryTable <- getDesignSummary(
-        con = con, 
+        connectionHandler = connectionHandler, 
         mySchema = mySchema, 
-        targetDialect = targetDialect, 
         myTableAppend = myTableAppend 
       )
       
@@ -82,50 +84,101 @@ predictionDesignSummaryServer <- function(
             # Render a "show details" button in the last column of the table.
             # This button won't do anything by itself, but will trigger the custom
             # click action on the column.
+            modelDesignId = reactable::colDef( 
+              header = withTooltip(
+                "Design ID", 
+                "A unique identifier for the model design"
+              )),
+            modelType = reactable::colDef( 
+              header = withTooltip(
+                "Model Type", 
+                "The classifier/survivial model"
+              )),
+            target = reactable::colDef( 
+              header = withTooltip(
+                "Target Pop", 
+                "The patients who the risk model is applied to"
+              )),
+            outcome = reactable::colDef( 
+              header = withTooltip(
+                "Outcome", 
+                "The outcome being predicted"
+              )),
+            TAR = reactable::colDef( 
+              header = withTooltip(
+                "TAR", 
+                "The time-at-risk when the outcome is being predicted relative to the target pop index"
+              ),
+              sortable = TRUE
+              ),
+            
             diagDatabases = reactable::colDef(
-              name = "Num. Diagnostic Databases",
+              header = withTooltip(
+                "Num. Diagnostic Dbs", 
+                "The number of databases with the model design diagnostics evaluated"
+              ),
+              filterable = FALSE,
               sortable = TRUE
             ),
             devDatabases = reactable::colDef(
-              name = "Num. Development Databases",
+              header = withTooltip(
+                "Num. Development Dbs", 
+                "The number of databases where a model was developed using the design"
+              ),
+              filterable = FALSE,
               sortable = TRUE
             ),
             minAuroc = reactable::colDef(
-              name = "min AUROC",
+              header = withTooltip(
+                "min AUROC", 
+                "The minimum AUROC across internal and external validations for this model design"
+              ),
               sortable = TRUE,
+              filterable = FALSE,
               format = reactable::colFormat(digits = 3)
               ),
             meanAuroc = reactable::colDef(
-              name = "mean AUROC",
+              header = withTooltip(
+                "mean AUROC", 
+                "The mean AUROC across internal and external validations for this model design"
+              ),
               sortable = TRUE,
+              filterable = FALSE,
               format = reactable::colFormat(digits = 3)
             ),
             maxAuroc = reactable::colDef(
-              name = "max AUROC",
+              header = withTooltip(
+                "max AUROC", 
+                "The max AUROC across internal and external validations for this model design"
+              ),
+              filterable = FALSE,
               sortable = TRUE,
               format = reactable::colFormat(digits = 3)
             ),
             valDatabases = reactable::colDef(
-              name = "Num. Validation Databases",
-              sortable = TRUE
-            ),
-            TAR = reactable::colDef(
-              name = "Time at risk",
-              sortable = TRUE
+              header = withTooltip(
+                "Num. Validation Dbs", 
+                "The number of databases where a model with the design was validated"
+              ),
+              sortable = TRUE,
+              filterable = FALSE
             ),
             diagnostic = reactable::colDef(
               name = "",
               sortable = FALSE,
+              filterable = FALSE,
               cell = function() htmltools::tags$button("View Diagnostics")
             ),
             details = reactable::colDef(
               name = "",
               sortable = FALSE,
-              cell = function() htmltools::tags$button("View Models")
+              filterable = FALSE,
+              cell = function() htmltools::tags$button("View Results")
             ),
             report = reactable::colDef(
               name = "",
               sortable = FALSE,
+              filterable = FALSE,
               cell = function() htmltools::tags$button("View Report")
             )
           ),
@@ -204,13 +257,17 @@ predictionDesignSummaryServer <- function(
 
 
 
-getDesignSummary <- function(con, mySchema, targetDialect, myTableAppend = '' ){
-  ParallelLogger::logInfo("getting model design summary")
-  
+getDesignSummary <- function(
+    connectionHandler, 
+    mySchema, 
+    myTableAppend = '' 
+    ){
+
   shiny::withProgress(message = 'Generating model design summary', value = 0, {
     
   sql <- "SELECT 
           model_designs.model_design_id, 
+          model_settings.model_type AS model_type, 
           targets.cohort_name AS target, 
           outcomes.cohort_name AS outcome,
           tars.tar_start_day, 
@@ -225,7 +282,12 @@ getDesignSummary <- function(con, mySchema, targetDialect, myTableAppend = '' ){
           COUNT(distinct v.database_id) val_databases
 
        FROM 
-          @my_schema.@my_table_appendmodel_designs as model_designs LEFT JOIN
+          @my_schema.@my_table_appendmodel_designs as model_designs 
+          inner join
+          @my_schema.@my_table_appendmodel_settings as model_settings
+          on model_designs.model_setting_id = model_settings.model_setting_id
+         
+          LEFT JOIN
           @my_schema.@my_table_appendperformances AS results
             
            on model_designs.model_design_id = results.model_design_id
@@ -242,26 +304,25 @@ getDesignSummary <- function(con, mySchema, targetDialect, myTableAppend = '' ){
         
         LEFT JOIN @my_schema.@my_table_appenddiagnostics AS diag ON results.development_database_id = diag.database_id 
         
-        GROUP BY model_designs.model_design_id, targets.cohort_name, 
+        GROUP BY model_designs.model_design_id, model_settings.model_type, targets.cohort_name, 
           outcomes.cohort_name, tars.tar_start_day, tars.tar_start_anchor, 
           tars.tar_end_day, tars.tar_end_anchor;"
   
   
-  sql <- SqlRender::render(sql = sql, 
-                           my_schema = mySchema,
-                           my_table_append = myTableAppend)
-  
   shiny::incProgress(1/3, detail = paste("Extracting data"))
   
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  
-  summaryTable <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
+  summaryTable <- connectionHandler$queryDb(
+    sql = sql, 
+    my_schema = mySchema,
+    my_table_append = myTableAppend
+  )
   
   shiny::incProgress(2/3, detail = paste("Extracted data"))
   
-  colnames(summaryTable) <- SqlRender::snakeCaseToCamelCase(colnames(summaryTable))
-
-  summaryTable <- editTar(summaryTable)
+  summaryTable <- editTar(summaryTable) %>%
+    dplyr::relocate("TAR", .after = "outcome")  %>% 
+    dplyr::relocate("devDatabases", .before = "valDatabases") %>%
+    dplyr::relocate("diagDatabases", .before = "devDatabases")
   
   shiny::incProgress(3/3, detail = paste("Finished"))
   
@@ -274,7 +335,8 @@ getDesignSummary <- function(con, mySchema, targetDialect, myTableAppend = '' ){
 
 editTar <- function(summaryTable){
   
-  summaryTable <- summaryTable %>% dplyr::mutate(TAR = paste0('(',trimws(.data$tarStartAnchor),' + ',.data$tarStartDay, ') - (',trimws(.data$tarEndAnchor),' + ',.data$tarEndDay, ')' )) %>%
+  summaryTable <- summaryTable %>% 
+    dplyr::mutate(TAR = paste0('(',trimws(.data$tarStartAnchor),' + ',.data$tarStartDay, ') - (',trimws(.data$tarEndAnchor),' + ',.data$tarEndDay, ')' )) %>%
     dplyr::select(-c("tarStartAnchor", "tarStartDay", "tarEndAnchor", "tarEndDay"))
   
   return(summaryTable)

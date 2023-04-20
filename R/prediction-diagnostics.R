@@ -46,9 +46,8 @@ predictionDiagnosticsViewer <- function(id) {
 #' @param id  the unique reference id for the module
 #' @param modelDesignId the unique id for the model design
 #' @param mySchema the database schema for the model results
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param myTableAppend a string that appends the tables in the result schema
-#' @param targetDialect the database management system for the model results
 #' @param databaseTableAppend a string that appends the database_meta_data table
 #' 
 #' @return
@@ -59,14 +58,18 @@ predictionDiagnosticsServer <- function(
   id,
   modelDesignId, 
   mySchema, 
-  con,
+  connectionHandler,
   myTableAppend, 
-  targetDialect,
   databaseTableAppend
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
+      
+      withTooltip <- function(value, tooltip, ...) {
+        shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
+            tippy::tippy(value, tooltip, ...))
+      }
       
       shiny::observe({
         if(!is.null(modelDesignId()) ){
@@ -74,9 +77,8 @@ predictionDiagnosticsServer <- function(
           diagnosticTable <- getDiagnostics(
             modelDesignId = modelDesignId(),
             mySchema, 
-            con,
+            connectionHandler = connectionHandler,
             myTableAppend, 
-            targetDialect,
             databaseTableAppend = databaseTableAppend
           )
           # input tables
@@ -89,7 +91,11 @@ predictionDiagnosticsServer <- function(
                 outcomes = rep("",nrow(diagnosticTable))
               ),
               columns = list(
-                '1.1' = reactable::colDef(
+                '1.1' = reactable::colDef( 
+                  header = withTooltip(
+                    "1.1", 
+                    "Participants: Were appropriate data sources used, e.g. cohort, RCT or nested case-control study data?"
+                    ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -97,6 +103,10 @@ predictionDiagnosticsServer <- function(
     }
   ")),
                 '1.2' = reactable::colDef(
+                  header = withTooltip(
+                    "1.2", 
+                    "Participants: Were all inclusions and exclusions of participants appropriate?"
+                  ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -104,6 +114,10 @@ predictionDiagnosticsServer <- function(
     }
   ")),
                 '2.1' = reactable::colDef(
+                  header = withTooltip(
+                    "2.1", 
+                    "Predictors: Were predictors defined and assessed in a similar way for all participants?"
+                  ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -111,6 +125,10 @@ predictionDiagnosticsServer <- function(
     }
   ")),   
                 '2.2' = reactable::colDef(
+                  header = withTooltip(
+                    "2.2", 
+                    "Predictors: Were predictor assessments made without knowledge of outcome data?"
+                  ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -118,6 +136,10 @@ predictionDiagnosticsServer <- function(
     }
   ")),
                 '2.3' = reactable::colDef(
+                  header = withTooltip(
+                    "2.3", 
+                    "Predictors: Are all predictors available at the time the model is intended to be used?"
+                  ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -125,6 +147,10 @@ predictionDiagnosticsServer <- function(
     }
   ")),
                 '3.4' = reactable::colDef(
+                  header = withTooltip(
+                    "3.4", 
+                    "Outcome: Was the outcome defined and determined in a similar way for all participants?"
+                  ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -132,6 +158,10 @@ predictionDiagnosticsServer <- function(
     }
   ")),
                 '3.6' = reactable::colDef(
+                  header = withTooltip(
+                    "3.6", 
+                    "Outcome: Was the time interval between predictor assessment and outcome determination appropriate?"
+                  ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -139,6 +169,10 @@ predictionDiagnosticsServer <- function(
     }
   ")),
                 '4.1' = reactable::colDef(
+                  header = withTooltip(
+                    "4.1", 
+                    "Design: Were there a reasonable number of participants with the outcome?"
+                  ),
                   cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
@@ -202,9 +236,8 @@ predictionDiagnosticsServer <- function(
               participants <- getDiagnosticParticipants(
                 diagnosticId = diagnosticTable$diagnosticId[input$show_participants$index],
                 mySchema, 
-                con,
-                myTableAppend, 
-                targetDialect  
+                connectionHandler = connectionHandler,
+                myTableAppend
               )
               
               output$participants <- reactable::renderReactable({
@@ -253,9 +286,8 @@ predictionDiagnosticsServer <- function(
               predTable <- getDiagnosticPredictors(
                 diagnosticId = diagnosticTable$diagnosticId[input$show_predictors$index],
                 mySchema, 
-                con,
-                myTableAppend, 
-                targetDialect  
+                connectionHandler = connectionHandler,
+                myTableAppend
               )
               
               output$predictorPlot <- plotly::renderPlotly({
@@ -331,9 +363,8 @@ predictionDiagnosticsServer <- function(
               outcomeTable <- getDiagnosticOutcomes(
                 diagnosticId = diagnosticTable$diagnosticId[input$show_outcomes$index],
                 mySchema, 
-                con,
-                myTableAppend, 
-                targetDialect  
+                connectionHandler = connectionHandler,
+                myTableAppend  
               )
               
               #output$predictorPlot <-  
@@ -397,9 +428,8 @@ predictionDiagnosticsServer <- function(
 getDiagnostics <- function(
   modelDesignId,
   mySchema, 
-  con,
+  connectionHandler,
   myTableAppend, 
-  targetDialect,
   databaseTableAppend = myTableAppend,
   threshold1_2 = 0.9
 ){
@@ -416,40 +446,38 @@ getDiagnostics <- function(
           summary.RESULT_VALUE
           
           from 
-          @my_schema.@my_table_appendDIAGNOSTICS diagnostics inner join
-          @my_schema.@my_table_appendMODEL_DESIGNS design inner join
-          @my_schema.@my_table_appendDIAGNOSTIC_SUMMARY summary inner join
+          (select * from @my_schema.@my_table_appendDIAGNOSTICS where MODEL_DESIGN_ID = @model_design_id) as diagnostics 
+          inner join
+          @my_schema.@my_table_appendMODEL_DESIGNS design 
+          on diagnostics.MODEL_DESIGN_ID = design.MODEL_DESIGN_ID 
           
+          inner join
+          @my_schema.@my_table_appendDIAGNOSTIC_SUMMARY summary 
+          on diagnostics.DIAGNOSTIC_ID = summary.DIAGNOSTIC_ID 
+
+          inner join      
           (select dd.database_id, md.cdm_source_abbreviation as database_name
                    from @my_schema.@database_table_appenddatabase_meta_data md inner join 
                    @my_schema.@my_table_appenddatabase_details dd 
-                   on md.database_id = dd.database_meta_data_id) 
-          as database inner join
-          
-          @my_schema.@my_table_appendCOHORTS cohortT inner join
+                   on md.database_id = dd.database_meta_data_id) as database 
+          on database.database_id = diagnostics.database_id
+
+         inner join  
+          @my_schema.@my_table_appendCOHORTS cohortT 
+         on cohortT.cohort_id = design.target_id 
+
+          inner join
           @my_schema.@my_table_appendCOHORTS cohortO 
-          
-          on diagnostics.DIAGNOSTIC_ID = summary.DIAGNOSTIC_ID and
-          diagnostics.MODEL_DESIGN_ID = design.MODEL_DESIGN_ID and
-          cohortT.cohort_id = design.target_id and
-          cohortO.cohort_id = design.outcome_id and
-          database.database_id = diagnostics.database_id
-          
-          where diagnostics.MODEL_DESIGN_ID = @model_design_id
+          on cohortO.cohort_id = design.outcome_id;
   "
   
-  sql <- SqlRender::render(
+  summaryTable <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     my_table_append = myTableAppend,
     model_design_id = modelDesignId,
     database_table_append = databaseTableAppend
   )
-  
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  
-  summaryTable <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  colnames(summaryTable) <- SqlRender::snakeCaseToCamelCase(colnames(summaryTable))
   
   if(nrow(summaryTable)==0){
     ParallelLogger::logInfo("No diagnostic summary")
@@ -483,21 +511,19 @@ getDiagnostics <- function(
 getDiagnosticParticipants <- function(
   diagnosticId,
   mySchema, 
-  con,
-  myTableAppend, 
-  targetDialect  
+  connectionHandler,
+  myTableAppend
 ){
   
-  sql <- "SELECT * FROM @my_schema.@table_name WHERE diagnostic_id = @diagnostic_id"
-  sql <- SqlRender::render(
+  sql <- "SELECT * FROM @my_schema.@my_table_append@table_name WHERE diagnostic_id = @diagnostic_id;"
+
+  participants <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     table_name = 'diagnostic_participants',
+    my_table_append = myTableAppend,
     diagnostic_id = diagnosticId
   )
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  participants <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  colnames(participants) <- SqlRender::snakeCaseToCamelCase(colnames(participants))
   
   participants$parameter <- unlist(
     lapply(
@@ -519,21 +545,19 @@ getDiagnosticParticipants <- function(
 getDiagnosticPredictors <- function(
   diagnosticId,
   mySchema, 
-  con,
-  myTableAppend, 
-  targetDialect  
+  connectionHandler,
+  myTableAppend
 ){
   
-  sql <- "SELECT * FROM @my_schema.@table_name WHERE diagnostic_id = @diagnostic_id"
-  sql <- SqlRender::render(
+  sql <- "SELECT * FROM @my_schema.@my_table_append@table_name WHERE diagnostic_id = @diagnostic_id;"
+
+  predictors <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     table_name = 'diagnostic_predictors',
+    my_table_append = myTableAppend,
     diagnostic_id = diagnosticId
   )
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  predictors <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  colnames(predictors) <- SqlRender::snakeCaseToCamelCase(colnames(predictors))
   
   return(predictors)
 }
@@ -541,23 +565,20 @@ getDiagnosticPredictors <- function(
 getDiagnosticOutcomes <- function(
   diagnosticId,
   mySchema, 
-  con,
-  myTableAppend, 
-  targetDialect  
+  connectionHandler,
+  myTableAppend 
 ){
   
-  sql <- "SELECT * FROM @my_schema.@table_name WHERE diagnostic_id = @diagnostic_id"
-  sql <- SqlRender::render(
+  sql <- "SELECT * FROM @my_schema.@my_table_append@table_name WHERE diagnostic_id = @diagnostic_id;"
+
+  outcomes <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     table_name = 'diagnostic_outcomes',
+    my_table_append = myTableAppend,
     diagnostic_id = diagnosticId
   )
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  outcomes <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  colnames(outcomes) <- SqlRender::snakeCaseToCamelCase(colnames(outcomes))
   
   return(outcomes)
   
 }
-

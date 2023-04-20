@@ -18,25 +18,14 @@ sql <- "select distinct
       and p.model_development = 1 
       ;
     "
-    sql <- SqlRender::render(
+ 
+  res <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = params$resultSchema,
     my_table_append = params$myTableAppend,
     database_table_append = params$databaseTableAppend,
     model_design_id = params$modelDesignIds[i]
   )
-    
-    sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = params$targetDialect, 
-    tempEmulationSchema = NULL, #tempEmulationSchema
-    )
-  
-  res <- DatabaseConnector::querySql(
-    connection = params$connection, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-    )
   
   # get all the databases with models
   devDatabases <- res$dbval

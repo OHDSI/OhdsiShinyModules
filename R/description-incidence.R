@@ -32,22 +32,40 @@ descriptionIncidenceViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    shiny::fluidRow(
-      shinydashboard::box(
-        status = 'info', width = 12,
-        title = 'Options',
-        solidHeader = TRUE,
-        shiny::p('Select settings:'),
-        shiny::uiOutput(ns('cohortInputs'))
-        )
+    shinydashboard::box(
+      collapsible = TRUE,
+      collapsed = TRUE,
+      title = "Incidence Rates",
+      width = "100%"#,
+      #shiny::htmlTemplate(system.file("description-www", "help-dechallengeRechallenge.html", package = utils::packageName()))
     ),
     
-    shiny::fluidRow(
     shinydashboard::box(
-      width = 12,
+      width = "100%",
+      title = 'Options',
+      collapsible = TRUE,
+      collapsed = F,
+      shiny::uiOutput(ns('cohortInputs'))
+    ),
+    
+    shiny::conditionalPanel(
+      condition = "input.generate != 0",
+      ns = ns,
+      
+      shiny::uiOutput(ns("IRinputsText")),
+    
+    shinydashboard::box(
+      width = "100%",
       # Title can include an icon
       title = shiny::tagList(shiny::icon("gear"), "Table"),
-      reactable::reactableOutput(ns('incTable'))
+      
+      shiny::downloadButton(
+        ns('downloadInc'), 
+        label = "Download"
+      ),
+      shinycssloaders::withSpinner(
+        reactable::reactableOutput(ns('incTable'))
+      )
     )
     )
     
@@ -62,12 +80,10 @@ descriptionIncidenceViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mainPanelTab the current tab 
 #' @param schema the database schema for the model results
-#' @param dbms the database management system for the model results
 #' @param incidenceTablePrefix a string that appends the incidence table in the result schema
-#' @param tempEmulationSchema  The temp schema (optional)
 #' @param databaseTable  name of the database table
 #' 
 #' @return
@@ -76,12 +92,10 @@ descriptionIncidenceViewer <- function(id) {
 #' @export
 descriptionIncidenceServer <- function(
   id, 
-  con,
+  connectionHandler,
   mainPanelTab,
   schema, 
-  dbms,
   incidenceTablePrefix,
-  tempEmulationSchema = NULL,
   databaseTable = 'DATABASE_META_DATA'
 ) {
   shiny::moduleServer(
@@ -93,11 +107,9 @@ descriptionIncidenceServer <- function(
       #}
       
       cohorts <- getTargetOutcomes(
-        con,
+        connectionHandler,
         schema, 
-        dbms,
-        incidenceTablePrefix,
-        tempEmulationSchema
+        incidenceTablePrefix
       )
       
 
@@ -106,49 +118,99 @@ descriptionIncidenceServer <- function(
         
         shiny::fluidPage(
           shiny::fluidRow(
-            shiny::selectInput(
-              inputId = session$ns('targetId'), 
-              label = 'Target id: ', 
-              choices = cohorts$targetIds, 
-              multiple = FALSE
+            shiny::column(
+              width = 6,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('targetId'), 
+                label = 'Target id: ', 
+                choices = cohorts$targetIds, 
+                multiple = FALSE,
+                choicesOpt = list(style = rep_len("color: black;", 999)),
+                selected = 1,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
             ),
-            
-            shiny::selectInput(
-              inputId = session$ns('outcomeId'), 
-              label = 'Outcome id: ', 
-              choices = cohorts$outcomeIds,
-              selected = 1
-            ),
-            
-            shiny::actionButton(
-              inputId = session$ns('fetchData'),
-              label = 'Select'
+            shiny::column(
+              width = 6,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('outcomeId'), 
+                label = 'Outcome id: ', 
+                choices = cohorts$outcomeIds,
+                selected = 1,
+                choicesOpt = list(style = rep_len("color: black;", 999)),
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
             )
+          ),
+          
+          shiny::actionButton(
+            inputId = session$ns('generate'),
+            label = 'Generate Report'
           )
         )
-      }
-      )
+      })
       
-
+      allDataDownload <- shiny::reactiveVal(data.frame())
+      selectedInputs <- shiny::reactiveVal()
+      output$IRinputsText <- shiny::renderUI(selectedInputs())
+      
 
       # fetch data when targetId changes
       shiny::observeEvent(
-        eventExpr = input$fetchData,
+        eventExpr = input$generate,
         {
           if(is.null(input$targetId) | is.null(input$outcomeId)){
-            print('Null ids value')
             return(invisible(NULL))
           }
+          
+          selectedInputs(
+            shinydashboard::box(
+              status = 'warning', 
+              width = "100%",
+              title = 'Selected:',
+              shiny::div(
+                shiny::fluidRow(
+                  shiny::column(
+                    width = 6,
+                    shiny::tags$b("Target:"),
+                    names(cohorts$targetIds)[cohorts$targetIds == input$targetId]
+                  ),
+                  shiny::column(
+                    width = 6,
+                    shiny::tags$b("Outcome:"),
+                    names(cohorts$outcomeIds)[cohorts$outcomeIds == input$outcomeId]
+                  )
+                )
+                
+              )
+            )
+          )
+          
+          
           allData <- getIncidenceData(
             targetId = input$targetId,
             outcomeId = input$outcomeId,
-            con = con,
+            connectionHandler = connectionHandler,
             schema = schema, 
-            dbms = dbms,
             incidenceTablePrefix = incidenceTablePrefix,
-            databaseTable = databaseTable,
-            tempEmulationSchema = tempEmulationSchema
+            databaseTable = databaseTable
           )
+          
+          allDataDownload(allData )
           
           # do the plots reactively
           output$incTable <- reactable::renderReactable(
@@ -161,10 +223,6 @@ descriptionIncidenceServer <- function(
                   dplyr::relocate("personOutcomes", .after = "personDays") %>% 
                   dplyr::relocate("incidenceProportionP100p", .after = "personOutcomes") %>% 
                   dplyr::relocate("incidenceRateP100py", .after = "incidenceProportionP100p") 
-                  #dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation) %>% 
-                  #dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation) %>% 
-                  #dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation) %>% 
-                  #dplyr::relocate(.data$tarId, .after = .data$cdmSourceAbbreviation)
                   ,
                 filterable = TRUE,
                 showPageSizeOptions = TRUE,
@@ -231,6 +289,16 @@ descriptionIncidenceServer <- function(
           
         }
       )
+      
+      # download
+      output$downloadInc <- shiny::downloadHandler(
+        filename = function() {
+          paste('incidence-data-', Sys.Date(), '.csv', sep='')
+        },
+        content = function(con) {
+          utils::write.csv(allDataDownload(), con)
+        }
+      )
     
       
       return(invisible(NULL))
@@ -242,12 +310,10 @@ descriptionIncidenceServer <- function(
 getIncidenceData <- function(
   targetId,
   outcomeId,
-  con,
+  connectionHandler,
   schema, 
-  dbms,
   incidenceTablePrefix,
-  databaseTable,
-  tempEmulationSchema
+  databaseTable
 ){
   
   shiny::withProgress(message = 'Getting incidence data', value = 0, {
@@ -260,7 +326,9 @@ getIncidenceData <- function(
     and outcome_cohort_definition_id = @outcome_id
     ;'
   
-  sql <- SqlRender::render(
+  shiny::incProgress(1/2, detail = paste("Created SQL - Extracting..."))
+  
+  resultTable <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = schema,
     incidence_table_prefix = incidenceTablePrefix,
@@ -268,11 +336,6 @@ getIncidenceData <- function(
     outcome_id = outcomeId,
     database_table_name = databaseTable
   )
-  print(sql)
-  
-  shiny::incProgress(1/2, detail = paste("Created SQL - Extracting..."))
-  
-  resultTable <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   
   shiny::incProgress(2/2, detail = paste("Done..."))
   
@@ -284,40 +347,36 @@ getIncidenceData <- function(
 
 
 getTargetOutcomes <- function(
-  con,
+    connectionHandler,
   schema, 
-  dbms,
-  incidenceTablePrefix,
-  tempEmulationSchema
+  incidenceTablePrefix
 ){
   
   shiny::withProgress(message = 'Getting incidence inputs', value = 0, {
   
   sql <- 'select distinct target_cohort_definition_id, target_name 
   from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  sql <- SqlRender::render(
+  
+  shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
+
+  targets <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = schema,
     incidence_table_prefix = incidenceTablePrefix
   )
-  
-  shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
-
-  targets <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   targetIds <- targets$targetCohortDefinitionId
   names(targetIds) <- targets$targetName
   
   sql <- 'select distinct outcome_cohort_definition_id, outcome_name 
   from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  sql <- SqlRender::render(
+
+  shiny::incProgress(2/3, detail = paste("Created SQL - Extracting outcomes"))
+  
+  outcomes <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = schema,
     incidence_table_prefix = incidenceTablePrefix
   )
-  
-  shiny::incProgress(2/3, detail = paste("Created SQL - Extracting outcomes"))
-  
-  outcomes <- DatabaseConnector::querySql(con, sql, snakeCaseToCamelCase = T)
   
   outcomeIds <- outcomes$outcomeCohortDefinitionId
   names(outcomeIds) <- outcomes$outcomeName

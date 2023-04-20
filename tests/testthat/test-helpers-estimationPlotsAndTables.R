@@ -3,7 +3,7 @@ context('tests-helpers-estimationPlotsAndTables')
 test_that("Subgroup stuff", {
   
 subgroupRes <- getEstimationSubgroupResults(
-  connection = connectionEst, 
+  connectionHandler = connectionHandlerEst, 
   targetIds = 1, 
   comparatorIds = 2, 
   outcomeIds = 3, 
@@ -42,21 +42,8 @@ testthat::expect_true(nrow(res) > 0)
 
 test_that("CovariateBalance stuff", {
   
-  balanceSummary <- getEstimationCovariateBalance(
-    connection = connectionEst,
-    resultsSchema = 'main',
-    tablePrefix = estTablePrefix,
-    targetId = 1,
-    comparatorId = 2,
-    analysisId = 1,
-    databaseId = '1',
-    outcomeId = 3
-  )
-    
-    testthat::expect_true(inherits(balanceSummary, 'data.frame'))
-  
     # not the output of getEstimationCovariateBalance - where does it come from??
-    balanceSummary <- data.frame(
+    balance <- data.frame(
       databaseId = rep(1,2), 
       #covariateId = 1,
       #covariateName = '1',              
@@ -67,6 +54,8 @@ test_that("CovariateBalance stuff", {
       #afterMatchingMeanTreated = 1,
       #afterMatchingMeanComparator = 1,
       #afterMatchingStdDiff = 0,
+      absBeforeMatchingStdDiff = c(0.1,0.4),
+      absAfterMatchingStdDiff = c(0.1,0.4),
       x = rep(1,2),
       ymin = rep(1,2),
       lower = rep(1,2),
@@ -77,6 +66,36 @@ test_that("CovariateBalance stuff", {
       type = c("Before matching","After matching")
     )
     
+    # added test for this in covariatebal
+  #resP <- plotEstimationCovariateBalanceScatterPlotNew(
+  #  balance = balance,
+  #  beforeLabel = "Before matching",
+  #  afterLabel = "After matching",
+  #  textsearch = shiny::reactiveVal(NULL)
+  #)
+  #testthat::expect_true(inherits(resP, 'plotly'))
+  
+  balanceSummary <- data.frame(
+    databaseId = rep(1,2), 
+    #covariateId = 1,
+    #covariateName = '1',              
+    #analysisId = 1,
+    #beforeMatchingMeanTreated = 1,
+    #beforeMatchingMeanComparator = 1,
+    #beforeMatchingStdDiff = 0,
+    #afterMatchingMeanTreated = 1,
+    #afterMatchingMeanComparator = 1,
+    #afterMatchingStdDiff = 0,
+    x = rep(1,2),
+    ymin = rep(1,2),
+    lower = rep(1,2),
+    median = rep(1,2),
+    upper = rep(1,2),
+    ymax = rep(1,2),
+    covariateCount = rep(1,2),
+    type = c("Before matching","After matching")
+  )
+  
   resP <- plotEstimationCovariateBalanceSummary(
     balanceSummary = balanceSummary,
     threshold = 0,

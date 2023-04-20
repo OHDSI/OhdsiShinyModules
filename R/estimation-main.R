@@ -42,8 +42,21 @@ estimationHelperFile <- function(){
 estimationViewer <- function(id) {
   ns <- shiny::NS(id)
   
-  shiny::fluidPage(style = "width:1500px;",
-            estimationTitlePanelViewer(ns("titlePanel")),
+  shinydashboard::box(
+    status = 'info', 
+    width = 12,
+    title = shiny::span( shiny::icon("chart-column"), 'Cohort Method'),
+    solidHeader = TRUE,
+    
+  #shiny::fluidPage(style = "width:1500px;",
+  shinydashboard::box(
+    collapsible = TRUE,
+    collapsed = TRUE,
+    title = "Cohort Method Evidence Explorer",
+    width = "100%"#,
+    #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
+  ),
+  
             htmltools::tags$head(htmltools::tags$style(type = "text/css", "
              #loadmessage {
                                  position: fixed;
@@ -63,6 +76,7 @@ estimationViewer <- function(id) {
                              condition = "$('html').hasClass('shiny-busy')",
                              htmltools::tags$div("Processing...")),
             shiny::tabsetPanel(
+              type = 'pills',
               id = ns("mainTabsetPanel"),
               shiny::tabPanel(
                 title = "Diagnostics",
@@ -128,53 +142,27 @@ estimationViewer <- function(id) {
 #' The module server for the main estimation module
 #'
 #' @param id the unique reference id for the module
+#' @param connectionHandler a connection to the database with the results
 #' @param resultDatabaseSettings a named list containing the PLE results database connection details
 #'
 #' @return
 #' the PLE results viewer main module server
 #' 
 #' @export
-estimationServer <- function(id, resultDatabaseSettings) {
+estimationServer <- function(
+    id, 
+    connectionHandler, 
+    resultDatabaseSettings
+    ) {
   
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      
-      estimationTitlePanelServer(id = "titlePanel")
-      
-      connection <- NULL
       dataFolder <- NULL
       
-      
-      # =============================
-      #   CONNECTION
-      # =============================
-      connectionDetails <- DatabaseConnector::createConnectionDetails(
-        dbms = resultDatabaseSettings$dbms,
-        user = resultDatabaseSettings$user,
-        password = resultDatabaseSettings$password,
-        server = resultDatabaseSettings$server
-      )
-      
-        #connection <- pool::dbPool(drv = DatabaseConnector::DatabaseConnectorDriver(),
-        #                           dbms = resultDatabaseSettings$dbms,
-        #                           server = resultDatabaseSettings$server,
-        #                           user = resultDatabaseSettings$user,
-        #                           password = resultDatabaseSettings$password)
-        
-        
-        connection <- DatabaseConnector::connect(connectionDetails = connectionDetails)
-
-      
-      shiny::onStop(function() {
-        if (DBI::dbIsValid(connection)) {
-          DatabaseConnector::disconnect(connection)
-        }
-      })
-      
       output$targetWidget <- shiny::renderUI({
-        targets <- getEstimationTargetChoices(connection,
+        targets <- getEstimationTargetChoices(connectionHandler,
                                               resultDatabaseSettings$schema,
                                               resultDatabaseSettings$tablePrefix,
                                               resultDatabaseSettings$cohortTablePrefix)
@@ -185,7 +173,7 @@ estimationServer <- function(id, resultDatabaseSettings) {
       })
       
       output$comparatorWidget <- shiny::renderUI({
-        comparators <- getEstimationComparatorChoices(connection,
+        comparators <- getEstimationComparatorChoices(connectionHandler,
                                                       resultDatabaseSettings$schema,
                                                       resultDatabaseSettings$tablePrefix,
                                                       resultDatabaseSettings$cohortTablePrefix)
@@ -196,7 +184,7 @@ estimationServer <- function(id, resultDatabaseSettings) {
       })
       
       output$outcomeWidget <- shiny::renderUI({
-        outcomes <- getEstimationOutcomeChoices(connection,
+        outcomes <- getEstimationOutcomeChoices(connectionHandler,
                                                 resultDatabaseSettings$schema,
                                                 resultDatabaseSettings$tablePrefix,
                                                 resultDatabaseSettings$cohortTablePrefix)
@@ -206,7 +194,7 @@ estimationServer <- function(id, resultDatabaseSettings) {
                                                                      outcomes$cohortName))
       })
       output$databaseWidget<- shiny::renderUI({
-        databases <- getEstimationDatabaseChoices(connection,
+        databases <- getEstimationDatabaseChoices(connectionHandler,
                                                   resultDatabaseSettings$schema,
                                                   resultDatabaseSettings$tablePrefix,
                                                   resultDatabaseSettings$databaseTable)
@@ -217,7 +205,7 @@ estimationServer <- function(id, resultDatabaseSettings) {
                                   selected = unique(databases$databaseId))
       })
       output$analysisWidget <- shiny::renderUI({
-        analyses <- getCmAnalysisOptions(connection,
+        analyses <- getCmAnalysisOptions(connectionHandler,
                                          resultDatabaseSettings$schema,
                                          resultDatabaseSettings$tablePrefix)
         shiny::checkboxGroupInput(inputId = session$ns("analysis"),
@@ -240,7 +228,7 @@ estimationServer <- function(id, resultDatabaseSettings) {
       
       
       estimationDiagnosticsSummaryServer(id = "estimationDiganostics",
-                                         connection = connection,
+                                         connectionHandler = connectionHandler,
                                          resultsSchema = resultDatabaseSettings$schema,
                                          tablePrefix = resultDatabaseSettings$tablePrefix,
                                          cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix,
@@ -248,7 +236,7 @@ estimationServer <- function(id, resultDatabaseSettings) {
       
       
       selectedRow <- estimationResultsTableServer(id = "resultsTable",
-                                                  connection = connection,
+                                                  connectionHandler = connectionHandler,
                                                   inputParams = inputParams,
                                                   resultsSchema = resultDatabaseSettings$schema,
                                                   tablePrefix = resultDatabaseSettings$tablePrefix,
@@ -298,14 +286,14 @@ estimationServer <- function(id, resultDatabaseSettings) {
       estimationPowerServer(id = "power",
                             selectedRow = selectedRow,
                             inputParams = inputParams,
-                            connection = connection,
+                            connectionHandler = connectionHandler,
                             resultsSchema = resultDatabaseSettings$schema,
                             resultDatabaseSettings$tablePrefix)
       
       estimationAttritionServer(id = "attrition",
                                 selectedRow = selectedRow,
                                 inputParams = inputParams,
-                                connection = connection,
+                                connectionHandler = connectionHandler,
                                 resultsSchema = resultDatabaseSettings$schema,
                                 tablePrefix = resultDatabaseSettings$tablePrefix,
                                 databaseTable = resultDatabaseSettings$cohortTablePrefix)
@@ -313,21 +301,21 @@ estimationServer <- function(id, resultDatabaseSettings) {
       estimationPopulationCharacteristicsServer(id = "popCharacteristics",
                                                 selectedRow = selectedRow,
                                                 inputParams = inputParams,
-                                                connection = connection,
+                                                connectionHandler = connectionHandler,
                                                 resultsSchema = resultDatabaseSettings$schema,
                                                 tablePrefix = resultDatabaseSettings$tablePrefix)
       
       estimationPropensityModelServer(id = "propensityModel",
                                       selectedRow = selectedRow,
                                       inputParams = inputParams,
-                                      connection = connection,
+                                      connectionHandler = connectionHandler,
                                       resultsSchema = resultDatabaseSettings$schema,
                                       tablePrefix = resultDatabaseSettings$tablePrefix)
       
       estimationPropensityScoreDistServer(id = "propensityScoreDist",
                                           selectedRow = selectedRow,
                                           inputParams = inputParams,
-                                          connection = connection,
+                                          connectionHandler = connectionHandler,
                                           resultsSchema = resultDatabaseSettings$schema,
                                           tablePrefix = resultDatabaseSettings$tablePrefix,
                                           cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix)
@@ -335,21 +323,21 @@ estimationServer <- function(id, resultDatabaseSettings) {
       estimationCovariateBalanceServer(id = "covariateBalance",
                                        selectedRow = selectedRow,
                                        inputParams = inputParams,
-                                       connection = connection,
+                                       connectionHandler = connectionHandler,
                                        resultsSchema = resultDatabaseSettings$schema,
                                        tablePrefix = resultDatabaseSettings$tablePrefix)
       
       estimationSystematicErrorServer(id = "systematicError",
                                       selectedRow = selectedRow,
                                       inputParams = inputParams,
-                                      connection = connection,
+                                      connectionHandler = connectionHandler,
                                       resultsSchema = resultDatabaseSettings$schema,
                                       tablePrefix = resultDatabaseSettings$tablePrefix)
       
       estimationKaplanMeierServer(id = "kaplanMeier",
                                   selectedRow = selectedRow,
                                   inputParams = inputParams,
-                                  connection = connection,
+                                  connectionHandler = connectionHandler,
                                   resultsSchema = resultDatabaseSettings$schema,
                                   tablePrefix = resultDatabaseSettings$tablePrefix,
                                   cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix,

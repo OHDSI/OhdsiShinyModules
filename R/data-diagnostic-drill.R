@@ -51,9 +51,8 @@ dataDiagnosticDrillViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mySchema the database schema for the model results
-#' @param targetDialect the database management system for the model results
 #' @param myTableAppend a string that appends the tables in the result schema
 #' 
 #' @return
@@ -62,43 +61,49 @@ dataDiagnosticDrillViewer <- function(id) {
 #' @export
 dataDiagnosticDrillServer <- function(
     id, 
-    con,
+    connectionHandler,
     mySchema,
-    targetDialect,
     myTableAppend
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
     
-      analyses <- getAnalysesDataDiagnostics(
-        con = con, 
+      analyses <- getAnalysisNames(
+        connectionHandler = connectionHandler, 
         mySchema = mySchema, 
-        targetDialect = targetDialect, 
         myTableAppend = myTableAppend
       )
-      databases <- getDbDataDiagnostics(
-        con = con, 
-        mySchema = mySchema, 
-        targetDialect = targetDialect, 
-        myTableAppend = myTableAppend
-      )
-
+      
+      databases <- shiny::reactiveVal({
+        getDbDataDiagnosticsDatabases(
+          connectionHandler = connectionHandler, 
+          mySchema = mySchema, 
+          myTableAppend = myTableAppend,
+          analysisName = analyses[1]
+        )
+      })
+      
+      analysis <- shiny::reactiveVal({
+        analyses[1]
+      })
+      
       output$dataDiagnosticInputs <- shiny::renderUI({  
         
         shiny::tagList(
           shiny::selectInput(
             inputId = session$ns("analysisSelected"), 
             label = shiny::h4("Analysis:"), 
-            choices =  analyses
+            choices =  analyses, 
+            selected = analysis()
           ),
           
           shiny::checkboxGroupInput(
             inputId = session$ns("databasesSelected"), 
             label = shiny::h4("Databases:"), 
-            choiceNames =  databases[[1]],
-            choiceValues  =  databases[[1]],
-            selected = databases[[1]],
+            choiceNames =  databases(),
+            choiceValues  =  databases(),
+            selected = databases(),
             inline = FALSE,
             width = NULL
           )
@@ -109,11 +114,10 @@ dataDiagnosticDrillServer <- function(
       # inital table
       resultTable <- shiny::reactiveVal(
         value = getDrugStudyFail(
-        con = con, 
+          connectionHandler = connectionHandler, 
         mySchema = mySchema, 
-        targetDialect = targetDialect, 
         myTableAppend = myTableAppend,
-        analysis = analyses[[1]]
+        analysis = analyses[1]
       ))
       
       shiny::observeEvent(input$analysisSelected, {
@@ -121,13 +125,16 @@ dataDiagnosticDrillServer <- function(
         if(!is.null(input$analysisSelected)){
           
           resultTableTemp <- getDrugStudyFail(
-            con = con, 
+            connectionHandler = connectionHandler, 
             mySchema = mySchema, 
-            targetDialect = targetDialect, 
             myTableAppend = myTableAppend,
             analysis = input$analysisSelected
           )
           resultTable(resultTableTemp)
+          
+          databases(unique(resultTableTemp$databaseId))
+          
+          analysis(input$analysisSelected)
           
         }
       }) # end observe event analysis
@@ -203,16 +210,15 @@ dataDiagnosticDrillServer <- function(
           dplyr::filter(.data$databaseId %in% input$databasesSelected)
         
         databaseId <- database$databaseId[input$show_details$index]
-        analysisId <- input$analysisSelected
+        analysisName <- input$analysisSelected
         
         output$modaltable <- reactable::renderReactable({
           reactable::reactable(
             data = getDrillDown(
-              con = con, 
+              connectionHandler = connectionHandler, 
               mySchema = mySchema, 
-              targetDialect = targetDialect, 
               myTableAppend = myTableAppend,
-              analysisId = analysisId, 
+              analysisName = analysisName, 
               databaseId = databaseId
             )
           )
@@ -222,7 +228,7 @@ dataDiagnosticDrillServer <- function(
         shiny::showModal(
           shiny::modalDialog(
             title = "Details",
-            paste0("For database: ", databaseId, " and analysisId ", analysisId),
+            paste0("For database: ", databaseId, " and analysisName ", analysisName),
 
             reactable::reactableOutput(session$ns("modaltable")),
         
@@ -242,29 +248,23 @@ dataDiagnosticDrillServer <- function(
 }
 
 getDrillDown <- function(
-  con = con, 
-  mySchema = mySchema, 
-  targetDialect = targetDialect, 
-  myTableAppend = myTableAppend,
-  analysisId = analysisId, 
-  databaseId = databaseId
+    connectionHandler, 
+  mySchema, 
+  myTableAppend,
+  analysisName, 
+  databaseId
 ){
   
-  sql <- "SELECT *FROM @my_schema.@my_table_appenddata_diagnostics_output
-  WHERE analysis_id = @analysis_id and database_id = '@database_id';"
+  sql <- "SELECT * FROM @my_schema.@my_table_appenddata_diagnostics_output
+  WHERE analysis_name = '@analysis_name' and database_id = '@database_id';"
   
-  sql <- SqlRender::render(
+  result <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     my_table_append = myTableAppend,
-    analysis_id = analysisId,
+    analysis_name = analysisName,
     database_id = databaseId
   )
-  
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  
-  result <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  colnames(result) <- SqlRender::snakeCaseToCamelCase(colnames(result))
   
   result <- result %>%
     dplyr::select(-c("databaseId", "analysisId", "analysisName"))
@@ -272,58 +272,19 @@ getDrillDown <- function(
   return(result)
 }
 
-
-getAnalysesDataDiagnostics <- function(
-  con = con, 
-  mySchema = mySchema, 
-  targetDialect = targetDialect, 
-  myTableAppend = myTableAppend
-){
-  
-  print('Getting Analyses')
-  
-  sql <- "SELECT distinct analysis_id, analysis_name FROM @my_schema.@my_table_appenddata_diagnostics_summary;"
-  
-  sql <- SqlRender::render(
-    sql = sql, 
-    my_schema = mySchema,
-    my_table_append = myTableAppend
-  )
-  
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  
-  analysisNames <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  colnames(analysisNames) <- SqlRender::snakeCaseToCamelCase(colnames(analysisNames))
-  
-  result <- as.list(analysisNames$analysisId)
-  names(result) <- analysisNames$analysisName
-  
-  print('Got Analyses')
-  
-  return(result)
-  
-}
-
 getDbDataDiagnostics <- function(
-  con = con, 
+    connectionHandler = connectionHandler, 
   mySchema = mySchema, 
-  targetDialect = targetDialect, 
   myTableAppend = myTableAppend
 ){
   
   sql <- "SELECT distinct database_id FROM @my_schema.@my_table_appenddata_diagnostics_summary;"
-  
-  sql <- SqlRender::render(
+
+  dbNames <- connectionHandler$queryDb(
     sql = sql, 
     my_schema = mySchema,
     my_table_append = myTableAppend
   )
-  
-  sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-  
-  dbNames <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-  colnames(dbNames) <- SqlRender::snakeCaseToCamelCase(colnames(dbNames))
-  
   result <- list(dbNames$databaseId)
   
   return(result)
@@ -331,9 +292,8 @@ getDbDataDiagnostics <- function(
 }
 
 getDrugStudyFail <- function(
-    con, 
+    connectionHandler, 
     mySchema, 
-    targetDialect, 
     myTableAppend = '',
     analysis = NULL
 ){
@@ -347,22 +307,16 @@ getDrugStudyFail <- function(
     shiny::incProgress(1/3, detail = paste("Extracting data"))
     
     sql <- "SELECT * FROM @my_schema.@my_table_appenddata_diagnostics_summary
-  WHERE analysis_id = @analysis;"
+  WHERE analysis_name in ('@analysis');"
     
-    sql <- SqlRender::render(
+    summaryTable <- connectionHandler$queryDb(
       sql = sql, 
       my_schema = mySchema,
       my_table_append = myTableAppend,
       analysis = analysis
     )
     
-    sql <- SqlRender::translate(sql = sql, targetDialect =  targetDialect)
-    
-    summaryTable <- DatabaseConnector::dbGetQuery(conn =  con, statement = sql) 
-    
     shiny::incProgress(2/3, detail = paste("Data extracted"))
-    
-    colnames(summaryTable) <- SqlRender::snakeCaseToCamelCase(colnames(summaryTable))
     
     # hide analysisId and analysisName
     
@@ -373,4 +327,28 @@ getDrugStudyFail <- function(
   })
   
   return(summaryTable)  
+}
+
+
+getDbDataDiagnosticsDatabases <- function(
+  connectionHandler, 
+  mySchema, 
+  myTableAppend,
+  analysisName
+){
+  if(!is.null(analysisName)){
+    sql <- "SELECT distinct database_id FROM @my_schema.@my_table_appenddata_diagnostics_summary
+  WHERE analysis_name in ('@analysis');"
+    
+    res <- connectionHandler$queryDb(
+      sql = sql, 
+      my_schema = mySchema,
+      my_table_append = myTableAppend,
+      analysis = analysisName
+    )
+    
+    return(res$databaseId)
+  } else{
+    return(c())
+  }
 }

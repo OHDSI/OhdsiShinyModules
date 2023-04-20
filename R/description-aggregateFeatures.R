@@ -33,69 +33,73 @@ descriptionAggregateFeaturesViewer <- function(id) {
   
   shiny::div(
     
-    # summary table
-    shiny::fluidRow(
-      shinydashboard::box(
-        status = 'info', 
-        width = 12,
-        title = 'Options',
-        solidHeader = TRUE,
-        shiny::p('Click view to see the plot options for the selection:'),
-        reactable::reactableOutput(ns('optionsTable'))
-      )
+    shinydashboard::box(
+      collapsible = TRUE,
+      collapsed = TRUE,
+      title = "Outcome Stratified",
+      width = "100%"#,
+      #shiny::htmlTemplate(system.file("description-www", "help-aggregateFeatures.html", package = utils::packageName()))
     ),
     
+    # summary table
+    shinydashboard::box(
+      collapsible = TRUE,
+      title = "Options",
+      width = "100%",
+      shiny::uiOutput(ns("AFinputs"))
+    ),
     
     # COV: RUN_ID	DATABASE_ID	COHORT_DEFINITION_ID	COVARIATE_ID	SUM_VALUE	AVERAGE_VALUE
     # COV REF: RUN_ID	DATABASE_ID	COVARIATE_ID	COVARIATE_NAME	ANALYSIS_ID	CONCEPT_ID
-    # settings: RUN_ID	DATABASE_ID	COVARIATE_SETTING_JSON	RISK_WINDOW_START	START_ANCHOR	RISK_WINDOW_END	END_ANCHOR	COMBINED_COHORT_ID	TARGET_COHORT_ID	OUTCOME_COHORT_ID	COHORT_TYPE
+    # settings: RUN_ID	DATABASE_ID	COVARIATE_SETTING_JSON	RISK_WINDOW_START	START_ANCHOR	RISK_WINDOW_END	END_ANCHOR	
+    # cohort_details: RUN_ID	DATABASE_ID COHORT_DEFINITION_ID	TARGET_COHORT_ID	OUTCOME_COHORT_ID	COHORT_TYPE
     # analysis_ref: RUN_ID	DATABASE_ID	ANALYSIS_ID	ANALYSIS_NAME	DOMAIN_ID	START_DAY	END_DAY	IS_BINARY	MISSING_MEANS_ZERO
     # cov cont: RUN_ID	DATABASE_ID	COHORT_DEFINITION_ID	COVARIATE_ID	COUNT_VALUE	MIN_VALUE	MAX_VALUE	AVERAGE_VALUE	STANDARD_DEVIATION	MEDIAN_VALUE	P_10_VALUE	P_25_VALUE	P_75_VALUE	P_90_VALUE
-    
-    
     # add table with options to select T, O and TAR
-
-    shiny::fluidRow(
-      # add UI to pick database/type 1 and database/type 2
-      shinydashboard::box(
-        title = 'Select database and cohort types:',
-        status = 'primary',
-        width = 12,
-        solidHeader = TRUE,
-        shiny::uiOutput(ns("inputsDesc"))
-      )
-    ),
     
-    shinydashboard::tabBox(
-      width = 12,
-      # Title can include an icon
-      title = shiny::tagList(shiny::icon("gear"), "Table and Plots"),
-      shiny::tabPanel("Binary Table", 
-                      shiny::downloadButton(
-                        ns('downloadBinary'), 
-                        label = "Download"
+    # add UI to pick database/type 1 and database/type 2
+    
+    shiny::conditionalPanel(
+      condition = "input.generate != 0",
+      ns = ns,
+      
+      shiny::uiOutput(ns("AFinputsText")),
+      
+      shinydashboard::tabBox(
+        width = "100%",
+        # Title can include an icon
+        title = shiny::tagList(shiny::icon("gear"), "Table and Plots"),
+        shiny::tabPanel("Binary Feature Table", 
+                        shiny::downloadButton(
+                          ns('downloadBinary'), 
+                          label = "Download"
                         ),
-                      reactable::reactableOutput(ns('binaryTable'))
-      ),
-      shiny::tabPanel("Continuous Table", 
-                      shiny::downloadButton(
-                        ns('downloadContinuous'), 
-                        label = "Download"
-                      ),
-                      reactable::reactableOutput(ns('continuousTable'))
-      ),
-      shiny::tabPanel("Binary Features",
-                      plotly::plotlyOutput(ns("binaryPlot"))
-      ),
-      shiny::tabPanel("Continuous Features", 
-                      plotly::plotlyOutput(ns("continuousPlot"))
+                        shinycssloaders::withSpinner(
+                          reactable::reactableOutput(ns('binaryTable'))
+                        )
+        ),
+        shiny::tabPanel("Continuous Feature Table", 
+                        shiny::downloadButton(
+                          ns('downloadContinuous'), 
+                          label = "Download"
+                        ),
+                        shinycssloaders::withSpinner(
+                          reactable::reactableOutput(ns('continuousTable'))
+                        )
+        ),
+        shiny::tabPanel("Binary Feature Plot",
+                        shinycssloaders::withSpinner(
+                          plotly::plotlyOutput(ns("binaryPlot"))
+                        )
+        ),
+        shiny::tabPanel("Continuous Feature Plot", 
+                        shinycssloaders::withSpinner(
+                          plotly::plotlyOutput(ns("continuousPlot"))
+                        )
+        )
       )
     )
-    
-    # add table
-    #reactable::reactableOutput(outputId = ns('binaryTable')),
-    #reactable::reactableOutput(outputId = ns('continuousTable'))
-    )
+  )
 }
 
 
@@ -105,12 +109,10 @@ descriptionAggregateFeaturesViewer <- function(id) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @param con the connection to the prediction result database
+#' @param connectionHandler the connection to the prediction result database
 #' @param mainPanelTab the current tab 
 #' @param schema the database schema for the model results
-#' @param dbms the database management system for the model results
 #' @param tablePrefix a string that appends the tables in the result schema
-#' @param tempEmulationSchema  The temp schema (optional)
 #' @param cohortTablePrefix a string that appends the COHORT_DEFINITION table in the result schema
 #' @param databaseTable The database table name
 #' 
@@ -120,12 +122,10 @@ descriptionAggregateFeaturesViewer <- function(id) {
 #' @export
 descriptionAggregateFeaturesServer <- function(
   id, 
-  con,
+  connectionHandler,
   mainPanelTab,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema = NULL,
   cohortTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA'
 ) {
@@ -137,15 +137,29 @@ descriptionAggregateFeaturesServer <- function(
       #  return(invisible(NULL))
       #}
       
-      targetId <- shiny::reactiveVal(NULL)
-      outcomeId <- shiny::reactiveVal(NULL)
-      riskWindowStart <- shiny::reactiveVal(NULL)
-      riskWindowEnd <- shiny::reactiveVal(NULL)
-      endAnchor <- shiny::reactiveVal(NULL)
-      startAnchor <- shiny::reactiveVal(NULL)
+      binaryData <- shiny::reactiveVal(
+        data.frame(
+          covariateName = '',
+          comp1 = '',
+          comp1sd = '' ,
+          comp2 = '' ,
+          comp2sd = '', 
+          analysisName = '' ,
+          standardizedMeanDiff = ''
+        )
+      )
       
-      binaryData <- shiny::reactiveVal(NULL)
-      continuousData <- shiny::reactiveVal(NULL)
+      continuousData <- shiny::reactiveVal(
+        data.frame(
+          covariateName = '',
+          comp1 = '',
+          comp1sd = '' ,
+          comp2 = '' ,
+          comp2sd = '', 
+          analysisName = '' ,
+          standardizedMeanDiff = ''
+        )
+      )
       
       types <- c(
         'Target',
@@ -164,175 +178,240 @@ descriptionAggregateFeaturesServer <- function(
       
       # get the possible options
       options <- getAggregateFeatureOptions(
-        con = con ,
+        connectionHandler = connectionHandler,
         schema = schema, 
-        dbms = dbms,
         tablePrefix = tablePrefix,
-        tempEmulationSchema = tempEmulationSchema,
         cohortTablePrefix = cohortTablePrefix
+      )
+      
+      # get databases
+      databases <- getAggregateFeatureDatabases(
+        connectionHandler = connectionHandler,
+        schema = schema, 
+        tablePrefix = tablePrefix,
+        databaseTable = databaseTable
       )
       
       
       # add buttons
-      output$optionsTable <- reactable::renderReactable({
-        reactable::reactable(
-          data = cbind(
-            view = rep("",nrow(options)),
-            options
-          ),
-          showPageSizeOptions = TRUE,
-          pageSizeOptions = c(10, 50, 100,1000),
-          defaultPageSize = 10,
-          striped = TRUE,
-          highlight = TRUE,
-          elementId = "desc-af-select",
-          
-          columns = list(  
-            view = reactable::colDef(
-              name = "",
-              sortable = FALSE,
-              cell = function() htmltools::tags$button("Select")
-            ),
-            
-            targetCohortId = reactable::colDef(show = F),
-            outcomeCohortId = reactable::colDef(show = F),
-            
-            target = reactable::colDef(
-              filterInput = function(values, name) {
-                shiny::tags$select(
-                  # Set to undefined to clear the filter
-                  onchange = sprintf("Reactable.setFilter('desc-af-select', '%s', event.target.value || undefined)", name),
-                  # "All" has an empty value to clear the filter, and is the default option
-                  shiny::tags$option(value = "", "All"),
-                  lapply(unique(values), shiny::tags$option),
-                  "aria-label" = sprintf("Filter %s", name),
-                  style = "width: 100%; height: 28px;"
+      output$AFinputs <- shiny::renderUI({
+        
+        shiny::fluidPage(
+          shiny::fluidRow(
+            shiny::column(
+              width = 4,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('target'), 
+                label = 'Target: ', 
+                choices = options$targets, 
+                selected = 1,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
                 )
-              }
+              )
             ),
-            outcome = reactable::colDef(
-              filterInput = function(values, name) {
-                shiny::tags$select(
-                  # Set to undefined to clear the filter
-                  onchange = sprintf("Reactable.setFilter('desc-af-select', '%s', event.target.value || undefined)", name),
-                  # "All" has an empty value to clear the filter, and is the default option
-                  shiny::tags$option(value = "", "All"),
-                  lapply(unique(values), shiny::tags$option),
-                  "aria-label" = sprintf("Filter %s", name),
-                  style = "width: 100%; height: 28px;"
+            shiny::column(
+              width = 4,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('outcome'), 
+                label = 'Outcome: ', 
+                choices = options$outcomes, 
+                selected = 1,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
                 )
-              }
-            )
-            
-          ),
-          onClick = reactable::JS(paste0("function(rowInfo, column) {
-    // Only handle click events on the 'details' column
-    if (column.id !== 'view') {
-      return
-    }
-
-    if(column.id == 'view'){
-      Shiny.setInputValue('",session$ns('descAgSelect'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
-  }")
-          ),
-          filterable = TRUE
-        )
-      })
-      
-      # set the reactive vars
-      shiny::observeEvent(
-        eventExpr = input$descAgSelect,{
-          
-          targetId(options$targetCohortId[input$descAgSelect$index])
-          outcomeId(options$outcomeCohortId[input$descAgSelect$index])
-          riskWindowStart(options$riskWindowStart[input$descAgSelect$index])
-          riskWindowEnd(options$riskWindowEnd[input$descAgSelect$index])
-          startAnchor(options$startAnchor[input$descAgSelect$index])
-          endAnchor(options$endAnchor[input$descAgSelect$index])
-          
-          databases <- getAggregateFeatureDatabases(
-            con,
-            schema, 
-            dbms,
-            tablePrefix,
-            tempEmulationSchema,
-            targetId = targetId(),
-            outcomeId = outcomeId(),
-            riskWindowStart = riskWindowStart(),
-            riskWindowEnd = riskWindowEnd(),
-            startAnchor = startAnchor(),
-            endAnchor = endAnchor(),
-            databaseTable = databaseTable
-          )
-          
-          dbVal <- databases$databaseId
-          names(dbVal) <- databases$databaseName
-          
-          output$inputsDesc <- shiny::renderUI({
-            
-            shiny::fluidPage(
-              shiny::fluidRow(
-                shiny::column(width = 3,
-                     shiny::selectInput(
-                       inputId = session$ns('database1'), 
-                       label = 'Database 1: ', 
-                       choices = dbVal, 
-                       selected = 1
-                     ),
-                     shiny::selectInput(
-                       inputId = session$ns('database2'), 
-                       label = 'Database 2: ', 
-                       choices = dbVal, 
-                       selected = 1
-                     )
-              ),
-              shiny::column(width = 7, 
-                     shiny::selectInput(
-                       inputId = session$ns('type1'), 
-                       label = 'Type 1: ', 
-                       choices = types, 
-                       selected = 3
-                     ),
-                     shiny::selectInput(
-                       inputId = session$ns('type2'), 
-                       label = 'Type 2: ', 
-                       choices = types, 
-                       selected = 4
-                     )
-              ),
-              
-              shiny::column(width = 2, 
-                     shiny::actionButton(
-                       inputId = session$ns('ag_plot'), 
-                       label = 'Click'
-                     )
+              )
+            ),
+            shiny::column(
+              width = 4,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('tar'), 
+                label = 'Time at risk: ', 
+                choices = options$tars, 
+                selected = 1,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
               )
             )
+          ),
             
+        shiny::fluidRow(
+          shiny::column(
+            width = 3,
+            shinyWidgets::pickerInput(
+              inputId = session$ns('database1'), 
+              label = 'Database 1: ', 
+              choices = databases, 
+              selected = 1,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
             )
-          })
-          
-        })
+          ),
+          shiny::column(
+            width = 3,
+            shinyWidgets::pickerInput(
+              inputId = session$ns('type1'), 
+              label = 'Type 1: ', 
+              choices = types, 
+              selected = 3,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          shiny::column(
+            width = 3,
+            shinyWidgets::pickerInput(
+              inputId = session$ns('database2'), 
+              label = 'Database 2: ', 
+              choices = databases, 
+              selected = 1,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          shiny::column(
+            width = 3,
+            shinyWidgets::pickerInput(
+              inputId = session$ns('type2'), 
+              label = 'Type 2: ', 
+              choices = types, 
+              selected = 4,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          )
+        ), # end row
+        shiny::actionButton(
+                            inputId = session$ns('generate'), 
+                            label = 'Generate Report'
+                          )
+        
+        )
+        
+      })
       
-      
+      selectedInputs <- shiny::reactiveVal()
+      output$AFinputsText <- shiny::renderUI(selectedInputs())
       
       shiny::observeEvent(
-        eventExpr = input$ag_plot,
+        eventExpr = input$generate,
         {
           
+          ind <- which(options$tars == input$tar)
+          
+          
+          selectedInputs(
+            shinydashboard::box(
+              status = 'warning', 
+              width = "100%",
+              title = 'Selected:',
+              shiny::div(
+                shiny::fluidRow(
+                  shiny::column(
+                    width = 4,
+                    shiny::tags$b("Target:"),
+                    names(options$targets)[options$targets == input$target]
+                  ),
+                  shiny::column(
+                    width = 4,
+                    shiny::tags$b("Outcome:"),
+                    names(options$outcomes)[options$outcomes == input$outcome]
+                  ),
+                  shiny::column(
+                    width = 4,
+                    shiny::tags$b("TAR:"),
+                    options$tars[[ind]]
+                  )
+                ),
+                
+                shiny::fluidRow(
+                  shiny::column(
+                    width = 6,
+                    shiny::tags$b("Selection 1")
+                  ),
+                  shiny::column(
+                    width = 6,
+                    shiny::tags$b("Selection 2")
+                  )
+                ),
+                
+                shiny::fluidRow(
+                  shiny::column(
+                    width = 3,
+                    shiny::tags$b("Database:"),
+                    names(databases)[databases == input$database1]
+                  ),
+                  shiny::column(
+                    width = 3,
+                    shiny::tags$b("Type:"),
+                    types[types == input$type1]
+                  ),
+                  shiny::column(
+                    width = 3,
+                    shiny::tags$b("Database:"),
+                    names(databases)[databases == input$database2]
+                  ),
+                  shiny::column(
+                    width = 3,
+                    shiny::tags$b("Type:"),
+                    types[types == input$type2]
+                  )
+                )
+                
+              )
+            )
+          )
+
           allData <- descriptiveGetAggregateData(
-            con = con,
+            connectionHandler = connectionHandler,
             schema = schema, 
-            dbms = dbms,
             tablePrefix = tablePrefix,
-            tempEmulationSchema = tempEmulationSchema,
-            targetId = targetId(),
-            outcomeId = outcomeId(),
-            riskWindowStart = riskWindowStart(),
-            riskWindowEnd = riskWindowEnd(),
-            startAnchor = startAnchor(),
-            endAnchor = endAnchor(),
+            targetId = input$target,
+            outcomeId = input$outcome,
+            riskWindowStart = options$tarList[[ind]]$riskWindowStart,
+            riskWindowEnd = options$tarList[[ind]]$riskWindowEnd,
+            startAnchor = options$tarList[[ind]]$startAnchor,
+            endAnchor = options$tarList[[ind]]$endAnchor,
             database1 = input$database1,
             database2 = input$database2,
             type1 = typesTranslate[types == input$type1],
@@ -361,7 +440,7 @@ descriptionAggregateFeaturesServer <- function(
               
               showPageSizeOptions = TRUE,
               pageSizeOptions = c(10, 50, 100,1000),
-              defaultPageSize = 50,
+              defaultPageSize = 10,
               striped = TRUE,
               highlight = TRUE,
               
@@ -375,7 +454,7 @@ descriptionAggregateFeaturesServer <- function(
                 comp1 = reactable::colDef(
                   name = "Selection 1 mean", 
                   format = reactable::colFormat(digits = 2, percent = T)
-                ),
+                ), 
                 comp1sd = reactable::colDef(
                   name = "Selection 1 stdev", 
                   format = reactable::colFormat(digits = 2)
@@ -383,11 +462,11 @@ descriptionAggregateFeaturesServer <- function(
                 comp2 = reactable::colDef(
                   name = "Selection 2 mean",
                   format = reactable::colFormat(digits = 2, percent = T)
-                ),
+                ), 
                 comp2sd = reactable::colDef(
                   name = "Selection 2 stdev",
                   format = reactable::colFormat(digits = 2)
-                ),
+                ), 
                 analysisName = reactable::colDef(
                   filterInput = function(values, name) {
                     shiny::tags$select(
@@ -415,7 +494,7 @@ descriptionAggregateFeaturesServer <- function(
               
               showPageSizeOptions = TRUE,
               pageSizeOptions = c(10, 50, 100,1000),
-              defaultPageSize = 50,
+              defaultPageSize = 10,
               striped = TRUE,
               highlight = TRUE,
               
@@ -494,120 +573,125 @@ descriptionAggregateFeaturesServer <- function(
 }
 
 getAggregateFeatureOptions <- function(
-  con,
+  connectionHandler,
   schema, 
-  dbms,
   tablePrefix,
-  tempEmulationSchema = NULL,
   cohortTablePrefix
 ){
   
  
   shiny::withProgress(message = 'Getting feature comparison options', value = 0, {
   
-  sql <- "SELECT DISTINCT t.COHORT_NAME as TARGET, s.TARGET_COHORT_ID, 
-            o.COHORT_NAME as outcome, s.OUTCOME_COHORT_ID, 
+  sql <- "SELECT DISTINCT t.COHORT_NAME as TARGET, cd.TARGET_COHORT_ID, 
+            o.COHORT_NAME as outcome, cd.OUTCOME_COHORT_ID, 
             s.RISK_WINDOW_START,	s.START_ANCHOR,	s.RISK_WINDOW_END,	s.END_ANCHOR  
-          FROM @result_database_schema.@table_prefixSETTINGS s
+          FROM @result_database_schema.@table_prefixCOHORT_DETAILS cd
+          inner join @result_database_schema.@table_prefixSETTINGS s
+          on cd.run_id = s.run_id and cd.database_id = s.database_id
           inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION t
-          on s.TARGET_COHORT_ID = t.COHORT_DEFINITION_ID
+          on cd.TARGET_COHORT_ID = t.COHORT_DEFINITION_ID
           inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION o
-          on s.OUTCOME_COHORT_ID = o.COHORT_DEFINITION_ID
-          WHERE s.TARGET_COHORT_ID != 0 AND s.OUTCOME_COHORT_ID != 0;"
+          on cd.OUTCOME_COHORT_ID = o.COHORT_DEFINITION_ID
+          WHERE cd.TARGET_COHORT_ID != 0 AND cd.OUTCOME_COHORT_ID != 0;"
+
+  shiny::incProgress(1/2, detail = paste("Extracting options"))
   
-  sql <- SqlRender::render(
+  options <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
     cohort_table_prefix = cohortTablePrefix
   )
   
-  shiny::incProgress(1/3, detail = paste("Rendering and translating sql"))
-  
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  shiny::incProgress(2/3, detail = paste("Extracting options"))
-  
-  options <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-  )
-  
-  shiny::incProgress(3/3, detail = paste("Finished"))
+  shiny::incProgress(2/2, detail = paste("Finished"))
   
   })
   
+  targets <- unique(options$targetCohortId)
+  names(targets) <- unique(options$target)
+  
+  outcomes <- unique(options$outcomeCohortId)
+  names(outcomes) <- unique(options$outcome)
+  
+  options <- unique(
+    options %>% 
+      dplyr::select(
+        "riskWindowStart",
+        "riskWindowEnd",
+        "startAnchor",
+        "endAnchor"
+      )
+    )
+  
+  tarList <- lapply(
+    1:nrow(options), 
+    function(i){
+    list(
+      riskWindowStart = options$riskWindowStart[i],
+      riskWindowEnd = options$riskWindowEnd[i],
+      startAnchor = options$startAnchor[i],
+      endAnchor = options$endAnchor[i] 
+    )
+  })
+  
+  tars <- unlist(
+    lapply(
+      1:nrow(options), 
+      function(i){
+        paste0(
+          '(',options$startAnchor[i],' + ', options$riskWindowStart[i],
+          ') - (', options$endAnchor[i],' + ', options$riskWindowEnd[i],
+          ')'
+        )
+      })
+  )
+  
   return(
-    options
+    list(
+      targets = targets,
+      outcomes = outcomes,
+      tars = tars,
+      tarList = tarList
+    )
   )
 }
 
-
 getAggregateFeatureDatabases <- function(
-  con,
-  schema, 
-  dbms,
-  tablePrefix,
-  tempEmulationSchema,
-  targetId,
-  outcomeId,
-  riskWindowStart,
-  riskWindowEnd,
-  startAnchor,
-  endAnchor,
-  databaseTable
+    connectionHandler,
+    schema, 
+    tablePrefix,
+    databaseTable
 ){
   
-  shiny::withProgress(message = 'Finding databases with data', value = 0, {
-  sql <- "SELECT DISTINCT s.DATABASE_ID, d.CDM_SOURCE_ABBREVIATION as database_name  
-          FROM @result_database_schema.@table_prefixSETTINGS s
+  shiny::withProgress(message = 'Finding databases', value = 0, {
+    sql <- "SELECT DISTINCT s.DATABASE_ID, d.CDM_SOURCE_ABBREVIATION as database_name  
+          FROM @result_database_schema.@table_prefixCOHORT_DETAILS cd
           inner join @result_database_schema.@database_table d
+          on cd.database_id = d.database_id
+          inner join @result_database_schema.@table_prefixSETTINGS s
           on s.database_id = d.database_id
-          WHERE s.TARGET_COHORT_ID = @target_id and s.OUTCOME_COHORT_ID = @outcome_id
-          and s.RISK_WINDOW_START = @risk_window_start and s.START_ANCHOR = '@start_anchor'
-          and s.RISK_WINDOW_END = @risk_window_end and	s.END_ANCHOR = '@end_anchor';"
-  
-  sql <- SqlRender::render(
-    sql = sql, 
-    result_database_schema = schema,
-    table_prefix = tablePrefix,
-    target_id = targetId,
-    outcome_id = outcomeId,
-    risk_window_start = riskWindowStart,
-    start_anchor = startAnchor,
-    risk_window_end = riskWindowEnd,
-    end_anchor = endAnchor,
-    database_table = databaseTable
-  )
-  shiny::incProgress(1/3, detail = paste("Rendering and translating sql"))
-  
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  shiny::incProgress(2/3, detail = paste("Extracting databases"))
-  
-  databases <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-  )
-  
-  shiny::incProgress(3/3, detail = paste("Finished"))
-  
+          and s.run_id = cd.run_id;"
+    
+    shiny::incProgress(1/2, detail = paste("Extracting databases"))
+    
+    
+    databases <- connectionHandler$queryDb(
+      sql = sql, 
+      result_database_schema = schema,
+      table_prefix = tablePrefix,
+      database_table = databaseTable
+    )
+    
+    shiny::incProgress(2/2, detail = paste("Finished"))
+    
   }
   )
   
-  return(databases)
+  dbs <- databases$databaseId
+  names(dbs) <- databases$databaseName
+  
+  return(dbs)
 }
-
 
 addTypeEnd <- function(x){
   if(x == 'TnO'){
@@ -624,11 +708,9 @@ return(0)
 
 # pulls all data for a target and outcome
 descriptiveGetAggregateData <- function(
-  con = con,
-  schema = schema, 
-  dbms = dbms,
-  tablePrefix = tablePrefix,
-  tempEmulationSchema = tempEmulationSchema,
+    connectionHandler,
+  schema, 
+  tablePrefix,
   targetId,
   outcomeId,
   riskWindowStart,
@@ -642,13 +724,18 @@ descriptiveGetAggregateData <- function(
 ){
   
   shiny::withProgress(message = 'Getting Feature Comparison Data', value = 0, {
-  sql <- "SELECT RUN_ID
-          FROM @result_database_schema.@table_prefixSETTINGS
-          WHERE TARGET_COHORT_ID = @target_id and OUTCOME_COHORT_ID = @outcome_id
-          and RISK_WINDOW_START = @risk_window_start and START_ANCHOR = '@start_anchor'
-          and RISK_WINDOW_END = @risk_window_end and	END_ANCHOR = '@end_anchor'
-          and DATABASE_ID  = '@database_id' and COHORT_TYPE = '@type';"
-  sql <- SqlRender::render(
+  sql <- "SELECT s.RUN_ID, cd.COHORT_DEFINITION_ID
+          FROM @result_database_schema.@table_prefixSETTINGS s
+          inner join 
+          @result_database_schema.@table_prefixCOHORT_DETAILS cd
+          on cd.database_id = s.database_id and
+          cd.run_id = s.run_id
+          WHERE cd.TARGET_COHORT_ID = @target_id and cd.OUTCOME_COHORT_ID = @outcome_id
+          and s.RISK_WINDOW_START = @risk_window_start and s.START_ANCHOR = '@start_anchor'
+          and s.RISK_WINDOW_END = @risk_window_end and	s.END_ANCHOR = '@end_anchor'
+          and s.DATABASE_ID  = '@database_id' and cd.COHORT_TYPE = '@type';"
+
+  settingsFirst <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
@@ -662,28 +749,22 @@ descriptiveGetAggregateData <- function(
     type = type1
   )
   
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  runId1 <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-  )$runId
-  
-  shiny::incProgress(1/5, detail = paste("Got first runIds"))
+  shiny::incProgress(1/5, detail = paste("Got first runId and cohortId"))
   
   
-  sql <- "SELECT RUN_ID
-          FROM @result_database_schema.@table_prefixSETTINGS
-          WHERE TARGET_COHORT_ID = @target_id and OUTCOME_COHORT_ID = @outcome_id
-          and RISK_WINDOW_START = @risk_window_start and START_ANCHOR = '@start_anchor'
-          and RISK_WINDOW_END = @risk_window_end and	END_ANCHOR = '@end_anchor'
-          and DATABASE_ID  = '@database_id' and COHORT_TYPE = '@type';"
-  sql <- SqlRender::render(
+  sql <- "SELECT s.RUN_ID, cd.COHORT_DEFINITION_ID
+          FROM @result_database_schema.@table_prefixSETTINGS s
+          inner join 
+          @result_database_schema.@table_prefixCOHORT_DETAILS cd
+          on cd.database_id = s.database_id and
+          cd.run_id = s.run_id
+          WHERE cd.TARGET_COHORT_ID = @target_id and cd.OUTCOME_COHORT_ID = @outcome_id
+          and s.RISK_WINDOW_START = @risk_window_start and s.START_ANCHOR = '@start_anchor'
+          and s.RISK_WINDOW_END = @risk_window_end and	s.END_ANCHOR = '@end_anchor'
+          and s.DATABASE_ID  = '@database_id' and cd.COHORT_TYPE = '@type';"
+  
+
+  settingsSecond <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
@@ -697,19 +778,7 @@ descriptiveGetAggregateData <- function(
     type = type2
   )
   
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  runId2 <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-  )$runId
-  
-  shiny::incProgress(2/5, detail = paste("Got second runIds"))
+  shiny::incProgress(2/5, detail = paste("Got second runId and CohortId"))
   
   sql <- "SELECT cov.*, cov_ref.COVARIATE_NAME, an_ref.ANALYSIS_NAME,
   case when (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1)) then 'comp1' else 'comp2' end as label
@@ -730,29 +799,19 @@ descriptiveGetAggregateData <- function(
           OR
           (cov.DATABASE_ID  = '@database_id2' and cov.COHORT_DEFINITION_ID = @cohortDef2 and cov.RUN_ID in (@run_id2))
           );"
-  sql <- SqlRender::render(
+
+  shiny::incProgress(3/5, detail = paste("Getting binary data"))
+  
+  binary <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
-    cohortDef1 = ifelse(type1 == 'O', outcomeId, targetId)*100000 +ifelse(type1 %in% c('T','O'), 0, outcomeId)*10 + addTypeEnd(type1),
-    cohortDef2 = ifelse(type2 == 'O', outcomeId, targetId)*100000 +ifelse(type2 %in% c('T','O'), 0, outcomeId)*10 + addTypeEnd(type2),
+    cohortDef1 = settingsFirst$cohortDefinitionId[1],
+    cohortDef2 = settingsSecond$cohortDefinitionId[1],
     database_id1 = database1,
     database_id2 = database2,
-    run_id1 = paste(runId1, collapse = ','),
-    run_id2 = paste(runId2, collapse = ',')
-  )
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  shiny::incProgress(3/5, detail = paste("Getting binary data"))
-  
-  binary <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
+    run_id1 = paste(settingsFirst$runId, collapse = ','),
+    run_id2 = paste(settingsSecond$runId, collapse = ',')
   )
   
   shiny::incProgress(4/5, detail = paste("Getting continuous data"))
@@ -776,31 +835,19 @@ descriptiveGetAggregateData <- function(
           OR
           (cov.DATABASE_ID  = '@database_id2' and cov.COHORT_DEFINITION_ID = @cohortDef2 and cov.RUN_ID in (@run_id2))
           );"
-  sql <- SqlRender::render(
+
+  continuous <- connectionHandler$queryDb(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
-    #cohortDef1 = ifelse(type1 == 'O', 0, targetId)*100000 +ifelse(type1 == 'T', 0, outcomeId)*10 + addTypeEnd(type1),
-    #cohortDef2 = ifelse(type2 == 'O', 0, targetId)*100000 +ifelse(type2 == 'T', 0, outcomeId)*10 + addTypeEnd(type2),
-    cohortDef1 = ifelse(type1 == 'O', outcomeId, targetId)*100000 +ifelse(type1 %in% c('T','O'), 0, outcomeId)*10 + addTypeEnd(type1),
-    cohortDef2 = ifelse(type2 == 'O', outcomeId, targetId)*100000 +ifelse(type2 %in% c('T','O'), 0, outcomeId)*10 + addTypeEnd(type2),
+    cohortDef1 = settingsFirst$cohortDefinitionId[1],
+    cohortDef2 = settingsSecond$cohortDefinitionId[1],
     database_id1 = database1,
     database_id2 = database2,
-    run_id1 = paste(runId1, collapse = ','),
-    run_id2 = paste(runId2, collapse = ',')
+    run_id1 = paste(settingsFirst$runId, collapse =  ','),
+    run_id2 = paste(settingsSecond$runId, collapse =  ',')
   )
-  sql <- SqlRender::translate(
-    sql = sql, 
-    targetDialect = dbms, 
-    tempEmulationSchema = tempEmulationSchema
-  )
-  
-  continuous <- DatabaseConnector::querySql(
-    connection = con, 
-    sql = sql, 
-    snakeCaseToCamelCase = T
-  )
-  
+
   shiny::incProgress(5/5, detail = paste("Finished"))
   }
   )

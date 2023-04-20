@@ -19,6 +19,9 @@
     <loc>/news/index.html</loc>
   </url>
   <url>
+    <loc>/reference/OhdsiShinyModules.html</loc>
+  </url>
+  <url>
     <loc>/reference/aboutHelperFile.html</loc>
   </url>
   <url>
@@ -28,6 +31,30 @@
     <loc>/reference/aboutViewer.html</loc>
   </url>
   <url>
+    <loc>/reference/characterizationView.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortCountsModule.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortCountsView.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortDefinitionsModule.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortDefinitionsView.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortDiagnosticsHelperFile.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortDiagnosticsSever.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortDiagnosticsView.html</loc>
+  </url>
+  <url>
     <loc>/reference/cohortGeneratorHelperFile.html</loc>
   </url>
   <url>
@@ -35,6 +62,18 @@
   </url>
   <url>
     <loc>/reference/cohortGeneratorViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortOverlapView.html</loc>
+  </url>
+  <url>
+    <loc>/reference/compareCohortCharacterizationView.html</loc>
+  </url>
+  <url>
+    <loc>/reference/conceptsInDataSourceView.html</loc>
+  </url>
+  <url>
+    <loc>/reference/createCdDatabaseDataSource.html</loc>
   </url>
   <url>
     <loc>/reference/dataDiagnosticDrillServer.html</loc>
@@ -56,6 +95,9 @@
   </url>
   <url>
     <loc>/reference/dataDiagnosticViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/databaseInformationView.html</loc>
   </url>
   <url>
     <loc>/reference/descriptionAggregateFeaturesServer.html</loc>
@@ -184,13 +226,28 @@
     <loc>/reference/estimationViewer.html</loc>
   </url>
   <url>
+    <loc>/reference/getCirceRenderedExpression.html</loc>
+  </url>
+  <url>
+    <loc>/reference/getEnabledCdReports.html</loc>
+  </url>
+  <url>
     <loc>/reference/getLogoImage.html</loc>
+  </url>
+  <url>
+    <loc>/reference/incidenceRatesView.html</loc>
+  </url>
+  <url>
+    <loc>/reference/inclusionRulesView.html</loc>
   </url>
   <url>
     <loc>/reference/index.html</loc>
   </url>
   <url>
-    <loc>/reference/OhdsiShinyModules.html</loc>
+    <loc>/reference/indexEventBreakdownView.html</loc>
+  </url>
+  <url>
+    <loc>/reference/orpahanConceptsView.html</loc>
   </url>
   <url>
     <loc>/reference/predictionCalibrationServer.html</loc>
@@ -263,5 +320,11 @@
   </url>
   <url>
     <loc>/reference/predictionViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/timeDistributionsView.html</loc>
+  </url>
+  <url>
+    <loc>/reference/visitContextView.html</loc>
   </url>
 </urlset>

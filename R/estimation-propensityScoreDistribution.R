@@ -47,7 +47,7 @@ estimationPropensityScoreDistViewer <- function(id) {
 #' @param id the unique reference id for the module
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
-#' @param connection the connection to the PLE results database
+#' @param connectionHandler the connection to the PLE results database
 #' @param resultsSchema the schema with the PLE results
 #' @param tablePrefix tablePrefix
 #' @param cohortTablePrefix cohortTablePrefix
@@ -57,7 +57,7 @@ estimationPropensityScoreDistViewer <- function(id) {
 #' the PLE propensity score distribution content server
 #' 
 #' @export
-estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, connection, resultsSchema, tablePrefix, cohortTablePrefix, metaAnalysisDbIds = F) {
+estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix, metaAnalysisDbIds = F) {
   
   shiny::moduleServer(
     id,
@@ -70,7 +70,7 @@ estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, co
         } else {
           if (FALSE && row$databaseId %in% metaAnalysisDbIds) {
             #TODO: update once MA implemented
-            ps <- getEstimationPs(connection = connection,
+            ps <- getEstimationPs(connectionHandler = connectionHandler,
                                   resultsSchema = resultsSchema,
                                   tablePrefix = tablePrefix,
                                   #targetIds = row$targetId,
@@ -79,7 +79,7 @@ estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, co
                                   comparatorId = inputParams()$comparator,
                                   analysisId = row$analysisId)
           } else {
-            ps <- getEstimationPs(connection = connection,
+            ps <- getEstimationPs(connectionHandler = connectionHandler,
                                   resultsSchema = resultsSchema,
                                   tablePrefix = tablePrefix,
                                   targetId = inputParams()$target,
@@ -91,11 +91,11 @@ estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, co
             return(NULL) #TODO: handle more gracefully
           }
           
-          targetName <- getCohortNameFromId(connection = connection,
+          targetName <- getCohortNameFromId(connectionHandler = connectionHandler ,
                                             resultsSchema = resultsSchema,
                                             cohortTablePrefix = cohortTablePrefix,
                                             cohortId = inputParams()$target)
-          comparatorName <- getCohortNameFromId(connection = connection,
+          comparatorName <- getCohortNameFromId(connectionHandler  = connectionHandler ,
                                             resultsSchema = resultsSchema,
                                             cohortTablePrefix = cohortTablePrefix,
                                             cohortId = inputParams()$comparator)
@@ -123,3 +123,41 @@ estimationPropensityScoreDistServer <- function(id, selectedRow, inputParams, co
     }
   )
 }
+
+
+
+# estimation-propensityScoreDist
+plotEstimationPs <- function(ps, targetName, comparatorName) {
+  if (is.null(ps$databaseId)) {
+    ps <- rbind(data.frame(x = ps$preferenceScore, y = ps$targetDensity, group = targetName),
+                data.frame(x = ps$preferenceScore, y = ps$comparatorDensity, group = comparatorName))
+    
+  } else {
+    ps <- rbind(data.frame(x = ps$preferenceScore, y = ps$targetDensity, databaseId = ps$databaseId, group = targetName),
+                data.frame(x = ps$preferenceScore, y = ps$comparatorDensity, databaseId = ps$databaseId, group = comparatorName))
+  }
+  ps$group <- factor(ps$group, levels = c(as.character(targetName), as.character(comparatorName)))
+  theme <- ggplot2::element_text(colour = "#000000", size = 12, margin = ggplot2::margin(0, 0.5, 0, 0.1, "cm"))
+  plot <- ggplot2::ggplot(ps,
+                          ggplot2::aes(x = .data$x, y = .data$y, color = .data$group, group = .data$group, fill = .data$group)) +
+    ggplot2::geom_density(stat = "identity") +
+    ggplot2::scale_fill_manual(values = c(grDevices::rgb(0.8, 0, 0, alpha = 0.5),
+                                          grDevices::rgb(0, 0, 0.8, alpha = 0.5))) +
+    ggplot2::scale_color_manual(values = c(grDevices::rgb(0.8, 0, 0, alpha = 0.5),
+                                           grDevices::rgb(0, 0, 0.8, alpha = 0.5))) +
+    ggplot2::scale_x_continuous("Preference score", limits = c(0, 1)) +
+    ggplot2::scale_y_continuous("Density") +
+    ggplot2::theme(legend.title = ggplot2::element_blank(),
+                   panel.grid.major = ggplot2::element_blank(),
+                   panel.grid.minor = ggplot2::element_blank(),
+                   legend.position = "top",
+                   legend.text = theme,
+                   axis.text = theme,
+                   axis.title = theme)
+  if (!is.null(ps$databaseId)) {
+    plot <- plot + ggplot2::facet_grid(databaseId~., switch = "both") +
+      ggplot2::theme(legend.position = "right")
+  }
+  return(plot)
+}
+
