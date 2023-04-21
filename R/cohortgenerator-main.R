@@ -43,8 +43,6 @@ cohortGeneratorViewer <- function(id) {
   
   ns <- shiny::NS(id)
   
-  
-  
   shiny::div(
     
     shinydashboard::box(

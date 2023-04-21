@@ -556,7 +556,7 @@ sccsView <- function(id = "sccs-module") {
               inputId = ns("exposuresOutcome"), 
               label = "Exposures-outcome", 
               choices = c()
-              )
+            )
           ),
           shiny::column(
             width = 4,
@@ -566,7 +566,7 @@ sccsView <- function(id = "sccs-module") {
               choices = c(),
               choicesOpt = list(style = rep_len("color: black;", 999)),
               multiple = T 
-              )
+            )
           ),
           shiny::column(
             width = 4,

@@ -2,15 +2,45 @@ DBMS:
 postgresql
 
 Error:
-org.postgresql.util.PSQLException: ERROR: relation "ase_01.es_cohort_inclusion" does not exist
-  Position: 95
+org.postgresql.util.PSQLException: ERROR: syntax error at or near ")"
+  Position: 432
 
 SQL:
-SELECT ci.cohort_definition_id, ci.rule_sequence, ci.name as rule_name,
-  cd.cohort_name FROM ase_01.es_COHORT_INCLUSION ci
-  join ase_01.es_COHORT_DEFINITION cd
-  on cd.cohort_definition_id = ci.cohort_definition_id
+select distinct ref.covariate_id, ref.covariate_name, an.analysis_name, c.cohort_name, covs.COUNT_VALUE, covs.AVERAGE_VALUE
+  from
+  (
+  select co.RUN_ID, cd.TARGET_COHORT_ID as COHORT_DEFINITION_ID, co.COVARIATE_ID,	
+  co.SUM_VALUE as COUNT_VALUE,	co.AVERAGE_VALUE*100 as AVERAGE_VALUE from
+   ase_01.c_COVARIATES co
+   inner join 
+   (select * from ase_01.c_cohort_details 
+   where DATABASE_ID = '' and 
+   TARGET_COHORT_ID in () and COHORT_TYPE = 'T'
+   ) as cd
+   on co.COHORT_DEFINITION_ID = cd.COHORT_DEFINITION_ID
+   and co.DATABASE_ID = cd.DATABASE_ID
+  union
+  select cc.RUN_ID, cds.TARGET_COHORT_ID as COHORT_DEFINITION_ID, cc.COVARIATE_ID,	cc.COUNT_VALUE,	cc.AVERAGE_VALUE from
+    ase_01.c_COVARIATES_continuous cc
+    inner join 
+    (select * from ase_01.c_cohort_details 
+   where DATABASE_ID = '' and 
+   TARGET_COHORT_ID in () and COHORT_TYPE = 'T'
+   ) as cds
+   on cc.COHORT_DEFINITION_ID = cds.COHORT_DEFINITION_ID
+    and cc.DATABASE_ID = cds.DATABASE_ID
+  ) covs
+  inner join
+  ase_01.c_covariate_ref ref
+  on covs.RUN_ID = ref.RUN_ID and 
+  covs.COVARIATE_ID = ref.COVARIATE_ID
+  inner join ase_01.c_analysis_ref an
+  on an.RUN_ID = ref.RUN_ID and 
+  an.analysis_id = ref.analysis_id
+  inner join ase_01.cg_cohort_definition c
+  on c.cohort_definition_id = covs.COHORT_DEFINITION_ID
   ;
+  
 
 R version:
 R version 4.2.2 (2022-10-31 ucrt)
@@ -28,8 +58,11 @@ Attached base packages:
 - base
 
 Other attached packages:
+- shinyWidgets (0.7.6)
+- tippy (0.1.0)
+- reactable (0.4.3)
 - OhdsiShinyModules (1.0.4.9000)
-- shiny (1.7.4)
-- ShinyAppBuilder (1.1.1)
 - testthat (3.1.6)
+- shiny (1.7.4)
 - dplyr (1.1.0)
+- ShinyAppBuilder (1.1.2)

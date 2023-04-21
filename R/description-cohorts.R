@@ -54,31 +54,33 @@ descriptionTableViewer <- function(id) {
       
       shiny::uiOutput(ns("TinputsText")),
       
-      shinydashboard::box(
-        status = 'info',
-        width = "100%",
-        # Title can include an icon
-        title = shiny::tagList(shiny::icon("gear"), "Table"),
-        
-        shiny::checkboxGroupInput(
-          inputId = ns("columnSelect"), 
-          label = "Columns to show:",
-          inline = T,
-          choices = c(
-            "Mean" = "averageValue",
-            "Count" = "countValue"
-          ), 
-          selected = c("averageValue", "countValue")
-        ),
-        
-        shiny::downloadButton(
-          ns('downloadCohorts'), 
-          label = "Download"
-        ),
-        shinycssloaders::withSpinner(
-          reactable::reactableOutput(ns('feTable'))
-        )
-      )
+      resultTableViewer(ns("result-table")),
+      
+      # shinydashboard::box(
+      #   status = 'info',
+      #   width = "100%",
+      #   # Title can include an icon
+      #   title = shiny::tagList(shiny::icon("gear"), "Table"),
+      #   
+      #   shiny::checkboxGroupInput(
+      #     inputId = ns("columnSelect"), 
+      #     label = "Columns to show:",
+      #     inline = T,
+      #     choices = c(
+      #       "Mean" = "averageValue",
+      #       "Count" = "countValue"
+      #     ), 
+      #     selected = c("averageValue", "countValue")
+      #   ),
+      #   
+      #   shiny::downloadButton(
+      #     ns('downloadCohorts'), 
+      #     label = "Download"
+      #   ),
+      #   shinycssloaders::withSpinner(
+      #     reactable::reactableOutput(ns('feTable'))
+      #   )
+      # )
     )
   )
 }
@@ -234,131 +236,148 @@ descriptionTableServer <- function(
               shiny::showNotification(paste0('Error: ', e)); return(NULL)
             })
           
-          reactiveAllData(allData)
-          
-          if(!is.null(allData)){
-            
-            # do the plots reactively
-            output$feTable <- reactable::renderReactable(
-              {
-                reactable::reactable(
-                  data = allData,
-                  filterable = TRUE,
-                  showPageSizeOptions = TRUE,
-                  pageSizeOptions = c(10, 50, 100,1000),
-                  defaultPageSize = 50,
-                  striped = TRUE,
-                  highlight = TRUE,
-                  
-                  columns = list(
-                    analysisName = reactable::colDef(
-                      filterInput = function(values, name) {
-                        shiny::tags$select(
-                          # Set to undefined to clear the filter
-                          onchange = sprintf("Reactable.setFilter('desc-analysis-select', '%s', event.target.value || undefined)", name),
-                          # "All" has an empty value to clear the filter, and is the default option
-                          shiny::tags$option(value = "", "All"),
-                          lapply(unique(values), shiny::tags$option),
-                          "aria-label" = sprintf("Filter %s", name),
-                          style = "width: 100%; height: 28px;"
-                        )
-                      }
-                    )
-                  ),
-                  elementId = "desc-analysis-select"
-                  
-                  
-                )
-              }
-            )
-        } else{
-          shiny::showNotification('data NULL')
-        }
+        #   reactiveAllData(allData)
+        #   
+        #   if(!is.null(allData)){
+        #     
+        #     # do the plots reactively
+        #     output$feTable <- reactable::renderReactable(
+        #       {
+        #         reactable::reactable(
+        #           data = allData,
+        #           filterable = TRUE,
+        #           showPageSizeOptions = TRUE,
+        #           pageSizeOptions = c(10, 50, 100,1000),
+        #           defaultPageSize = 50,
+        #           striped = TRUE,
+        #           highlight = TRUE,
+        #           
+        #           columns = list(
+        #             analysisName = reactable::colDef(
+        #               filterInput = function(values, name) {
+        #                 shiny::tags$select(
+        #                   # Set to undefined to clear the filter
+        #                   onchange = sprintf("Reactable.setFilter('desc-analysis-select', '%s', event.target.value || undefined)", name),
+        #                   # "All" has an empty value to clear the filter, and is the default option
+        #                   shiny::tags$option(value = "", "All"),
+        #                   lapply(unique(values), shiny::tags$option),
+        #                   "aria-label" = sprintf("Filter %s", name),
+        #                   style = "width: 100%; height: 28px;"
+        #                 )
+        #               }
+        #             )
+        #           ),
+        #           elementId = "desc-analysis-select"
+        #           
+        #           
+        #         )
+        #       }
+        #     )
+        # } else{
+        #   shiny::showNotification('data NULL')
+        # }
           
         }
       )
       
+
+      # custom_colDefs <- list(
+      #   mpg = colDef(align = "left",
+      #                format = reactable::colFormat(digits = 2),
+      #                header = withTooltip("MPG column name", "MPG tooltip")),
+      #   disp = colDef(align = "center",
+      #                 header = withTooltip("Disp column name", "Disp tooltip"))
+      # )
+      
+      resultTableServer(id="result-table",
+                        df=allData,
+                        colDefsInput = custom_colDefs)
+      
+      
+      
+      
+      
       
       # observed the choices to update table
-      shiny::observeEvent(
-        eventExpr = input$columnSelect,
-        {
-          
-          if(!is.null(reactiveAllData())){
-          # filter columns
-          columnInd <- input$columnSelect # this tells us whether to include count/mean
-          
-          inds <- c()
-          if(!'countValue' %in% columnInd){
-            #remove counts
-            inds <- c(inds, grep('countValue', colnames(reactiveAllData())))
-          }
-          if(!'averageValue' %in% columnInd){
-            #remove averages
-            inds <- c(inds, grep('averageValue', colnames(reactiveAllData())))
-          }
-          
-          if(length(inds)>0){
-            allData <- reactiveAllData()[, -inds]
-          } else{
-            allData <- reactiveAllData()
-          }
-            
-            # do the plots reactively
-            output$feTable <- reactable::renderReactable(
-              {
-                reactable::reactable(
-                  data = allData,
-                  filterable = TRUE,
-                  showPageSizeOptions = TRUE,
-                  pageSizeOptions = c(10, 50, 100,1000),
-                  defaultPageSize = 50,
-                  striped = TRUE,
-                  highlight = TRUE,
-                  
-                  columns = list(
-                    analysisName = reactable::colDef(
-                      filterInput = function(values, name) {
-                        shiny::tags$select(
-                          # Set to undefined to clear the filter
-                          onchange = sprintf("Reactable.setFilter('desc-analysis-select', '%s', event.target.value || undefined)", name),
-                          # "All" has an empty value to clear the filter, and is the default option
-                          shiny::tags$option(value = "", "All"),
-                          lapply(unique(values), shiny::tags$option),
-                          "aria-label" = sprintf("Filter %s", name),
-                          style = "width: 100%; height: 28px;"
-                        )
-                      }
-                    )
-                  ),
-                  elementId = "desc-analysis-select"
-                  
-                )
-              }
-            )
-          } else{
-            shiny::showNotification('data NULL')
-          }
+      # shiny::observeEvent(
+      #   eventExpr = input$columnSelect,
+      #   {
+      #     
+      #     if(!is.null(reactiveAllData())){
+      #     # filter columns
+      #     columnInd <- input$columnSelect # this tells us whether to include count/mean
+      #     
+      #     inds <- c()
+      #     if(!'countValue' %in% columnInd){
+      #       #remove counts
+      #       inds <- c(inds, grep('countValue', colnames(reactiveAllData())))
+      #     }
+      #     if(!'averageValue' %in% columnInd){
+      #       #remove averages
+      #       inds <- c(inds, grep('averageValue', colnames(reactiveAllData())))
+      #     }
+      #     
+      #     if(length(inds)>0){
+      #       allData <- reactiveAllData()[, -inds]
+      #     } else{
+      #       allData <- reactiveAllData()
+      #     }
+      #       
+      #       # do the plots reactively
+      #       output$feTable <- reactable::renderReactable(
+      #         {
+      #           reactable::reactable(
+      #             data = allData,
+      #             filterable = TRUE,
+      #             showPageSizeOptions = TRUE,
+      #             pageSizeOptions = c(10, 50, 100,1000),
+      #             defaultPageSize = 50,
+      #             striped = TRUE,
+      #             highlight = TRUE,
+      #             
+      #             columns = list(
+      #               analysisName = reactable::colDef(
+      #                 filterInput = function(values, name) {
+      #                   shiny::tags$select(
+      #                     # Set to undefined to clear the filter
+      #                     onchange = sprintf("Reactable.setFilter('desc-analysis-select', '%s', event.target.value || undefined)", name),
+      #                     # "All" has an empty value to clear the filter, and is the default option
+      #                     shiny::tags$option(value = "", "All"),
+      #                     lapply(unique(values), shiny::tags$option),
+      #                     "aria-label" = sprintf("Filter %s", name),
+      #                     style = "width: 100%; height: 28px;"
+      #                   )
+      #                 }
+      #               )
+      #             ),
+      #             elementId = "desc-analysis-select"
+      #             
+      #           )
+      #         }
+      #       )
+      #     } else{
+      #       shiny::showNotification('data NULL')
+      #     }
           
         }
       )
       
       
       # download button
-      output$downloadCohorts <- shiny::downloadHandler(
-        filename = function() {
-          paste('cohort-data-', Sys.Date(), '.csv', sep='')
-        },
-        content = function(con) {
-          utils::write.csv(reactiveAllData(), con)
-        }
-      )
-      
-    
-      return(invisible(NULL))
-      
-    }
-  )
+  #     output$downloadCohorts <- shiny::downloadHandler(
+  #       filename = function() {
+  #         paste('cohort-data-', Sys.Date(), '.csv', sep='')
+  #       },
+  #       content = function(con) {
+  #         utils::write.csv(reactiveAllData(), con)
+  #       }
+  #     )
+  #     
+  #   
+  #     return(invisible(NULL))
+  #     
+  #   }
+  # )
 }
 
 
@@ -372,7 +391,7 @@ getDesFEData <- function(
 ){
   
   
-  shiny::withProgress(message = 'Getting target comparison data', value = 0, {
+#  shiny::withProgress(message = 'Getting target comparison data', value = 0, {
     
   sql <- "select distinct ref.covariate_id, ref.covariate_name, an.analysis_name, c.cohort_name, covs.COUNT_VALUE, covs.AVERAGE_VALUE
   from
@@ -410,7 +429,7 @@ getDesFEData <- function(
   ;
   "
   
-  shiny::incProgress(1/3, detail = paste("Created SQL - Extracting..."))
+#  shiny::incProgress(1/3, detail = paste("Created SQL - Extracting..."))
   
   resultTable <- connectionHandler$queryDb(
     sql = sql, 
@@ -421,7 +440,7 @@ getDesFEData <- function(
     database_id = databaseId
   )
   
-  shiny::incProgress(2/3, detail = paste("Formating"))
+#  shiny::incProgress(2/3, detail = paste("Formating"))
   
   #format
   resultTable$averageValue <- round(resultTable$averageValue, digits = 2)
@@ -435,9 +454,9 @@ getDesFEData <- function(
   
   resultTable$analysisName <- as.factor(resultTable$analysisName)
   
-  shiny::incProgress(3/3, detail = paste("Done"))
+#  shiny::incProgress(3/3, detail = paste("Done"))
   
-  })
+ # })
   
   return(resultTable)
 }
@@ -452,7 +471,7 @@ getDecCohortsInputs <- function(
 ){
   
   
-  shiny::withProgress(message = 'Getting target comparison inputs', value = 0, {
+  #shiny::withProgress(message = 'Getting target comparison inputs', value = 0, {
     
     
   sql <- ' select distinct c.cohort_definition_id, c.cohort_name from
@@ -464,7 +483,7 @@ getDecCohortsInputs <- function(
   on ids.id = c.cohort_definition_id
   ;'
 
-  shiny::incProgress(1/4, detail = paste("Extracting targetIds"))
+  #shiny::incProgress(1/4, detail = paste("Extracting targetIds"))
 
   idVals <- connectionHandler$queryDb(
     sql = sql, 
@@ -475,13 +494,13 @@ getDecCohortsInputs <- function(
   ids <- idVals$cohortDefinitionId
   names(ids) <- idVals$cohortName
   
-  shiny::incProgress(2/4, detail = paste("Extracted targetIds"))
+  #shiny::incProgress(2/4, detail = paste("Extracted targetIds"))
   
   
   sql <- 'select d.database_id, d.cdm_source_abbreviation as database_name
   from @result_schema.@database_table d;'
   
-  shiny::incProgress(3/4, detail = paste("Extracting databaseIds"))
+  #shiny::incProgress(3/4, detail = paste("Extracting databaseIds"))
   
   database <- connectionHandler$queryDb(
     sql = sql, 
@@ -491,9 +510,9 @@ getDecCohortsInputs <- function(
   databaseIds <- database$databaseId
   names(databaseIds) <- database$databaseName
   
-  shiny::incProgress(4/4, detail = paste("Done"))
+  #shiny::incProgress(4/4, detail = paste("Done"))
   
-  })
+#  })
   
   return(
     list(
