@@ -222,19 +222,14 @@ descriptionTableServer <- function(
           )
           
           # hide/show columns - make allData react
+
           
-          allData <- tryCatch({
-            getDesFEData(
-              targetIds = input$targetIds,
-              databaseId = input$databaseId,
-              connectionHandler = connectionHandler,
-              schema = schema, 
-              tablePrefix = tablePrefix,
-              cohortTablePrefix = cohortTablePrefix
-            )}, 
-            error = function(e){
-              shiny::showNotification(paste0('Error: ', e)); return(NULL)
-            })
+          
+          
+            #)}, 
+            # error = function(e){
+            #   shiny::showNotification(paste0('Error: ', e)); return(NULL)
+            # })
           
         #   reactiveAllData(allData)
         #   
@@ -289,6 +284,24 @@ descriptionTableServer <- function(
       #                 header = withTooltip("Disp column name", "Disp tooltip"))
       # )
       
+      allData <- shiny::reactive({
+        browser()
+        if(is.null(input$targetIds)){
+          return(data.frame())
+        }
+          getDesFEData(
+            targetIds = input$targetIds,
+            databaseId = input$databaseId,
+            connectionHandler = connectionHandler,
+            schema = schema, 
+            tablePrefix = tablePrefix,
+            cohortTablePrefix = cohortTablePrefix
+                      )
+        })
+      
+      
+      custom_colDefs = NULL
+      #browser()
       resultTableServer(id="result-table",
                         df=allData,
                         colDefsInput = custom_colDefs)

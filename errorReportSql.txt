@@ -58,11 +58,8 @@ Attached base packages:
 - base
 
 Other attached packages:
-- shinyWidgets (0.7.6)
-- tippy (0.1.0)
-- reactable (0.4.3)
 - OhdsiShinyModules (1.0.4.9000)
-- testthat (3.1.6)
 - shiny (1.7.4)
-- dplyr (1.1.0)
 - ShinyAppBuilder (1.1.2)
+- dplyr (1.1.0)
+- testthat (3.1.6)

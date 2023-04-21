@@ -128,8 +128,8 @@ resultTableServer <- function(
         shinyWidgets::pickerInput(
           inputId = session$ns('dataCols'), 
           label = 'Select Columns to Display: ', 
-          choices = colnames(df), 
-          selected = colnames(df),
+          choices = colnames(df()), 
+          selected = colnames(df()),
           choicesOpt = list(style = rep_len("color: black;", 999)),
           multiple = T,
           options = shinyWidgets::pickerOptions(
@@ -147,21 +147,23 @@ resultTableServer <- function(
       
       #need to try adding browser() to all reactives to see why selected cols isnt working
       
-      colDefs <- shiny::reactive(create_colDefs_list(df = df[,input$dataCols],
+      colDefs <- shiny::reactive(create_colDefs_list(df = df()[,input$dataCols],
                                      customColDefs = colDefsInput)
       )
 
       
       output$resultData <- 
 
-        
         reactable::renderReactable({
           if(is.null(input$dataCols)){
-            data = df
+            data = df()
           }
           else{
-            data = df[,input$dataCols]
+            data = df()[,input$dataCols]
           }
+          if(nrow(data)==0)
+            return(NULL)
+          
         reactable::reactable(data,
                                            columns = colDefs(), #these can be turned on/off and will overwrite colDef args
                                            sortable = TRUE,
