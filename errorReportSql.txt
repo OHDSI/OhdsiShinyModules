@@ -1,0 +1,66 @@
+DBMS:
+sqlite
+
+Error:
+table pv_algorithm_performance_results already exists
+
+SQL:
+CREATE TABLE main.pv_algorithm_performance_results (
+  	 database_id TEXT NOT NULL,
+	 phenotype TEXT NOT NULL,
+	 analysis_name TEXT NOT NULL,
+	 run_date_time TEXT,
+	 cohort_id INT NOT NULL,
+	 sensitivity_95_ci TEXT,
+	 ppv_95_ci TEXT,
+	 specificity_95_ci TEXT,
+	 npv_95_ci TEXT,
+	 estimated_prevalence REAL,
+	 f_1_score REAL,
+	 true_positives INT,
+	 true_negatives INT,
+	 false_positives INT,
+	 false_negatives INT,
+	 washout_period INT,
+	 splay_prior INT,
+	 splay_post INT,
+	 cut_point TEXT,
+	 sensitivity REAL,
+	 sensitivity_ci_95_lb REAL,
+	 sensitivity_ci_95_ub REAL,
+	 ppv REAL,
+	 ppv_ci_95_lb REAL,
+	 ppv_ci_95_ub REAL,
+	 specificity REAL,
+	 specificity_ci_95_lb REAL,
+	 specificity_ci_95_ub REAL,
+	 npv REAL,
+	 npv_ci_95_lb REAL,
+	 npv_ci_95_ub REAL,
+	 run_date_time_g_m_t TEXT,
+	 analysis_id INT NOT NULL,
+	 description TEXT,
+	PRIMARY KEY(database_id,phenotype,analysis_name,cohort_id,analysis_id)
+)
+
+R version:
+R version 4.2.2 (2022-10-31 ucrt)
+
+Platform:
+x86_64-w64-mingw32
+
+Attached base packages:
+- stats
+- graphics
+- grDevices
+- utils
+- datasets
+- methods
+- base
+
+Other attached packages:
+- OhdsiShinyModules (1.1.0.9000)
+- shiny (1.7.4)
+- ShinyAppBuilder (1.1.2)
+- dplyr (1.1.0)
+- testthat (3.1.6)
