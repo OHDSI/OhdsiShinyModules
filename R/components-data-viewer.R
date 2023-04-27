@@ -1,50 +1,57 @@
 
+
 #inputs: data, named list of colDef options, where name is name of each column,
-            #potentially:
+#potentially:
 #output: download buttons, table, and column selector
 
 
 
+#' Result Table Viewer
+#'
+#' @param id string
+#'
+#' @return shiny module UI
+#' @export
+#'
 resultTableViewer <- function(id = "result-table") {
   ns <- shiny::NS(id)
-  shiny::div(
-    # UI
-      shinydashboard::box(
-        width = "100%",
-        title = shiny::span(shiny::icon("table"), "Table"),
-          shiny::fluidPage(
-            shiny::fluidRow(
-              shiny::column(
-                width = 8,
-                shiny::uiOutput(ns("columnSelector"))
-              ),
-              shiny::column(
-                width = 2,
-                shiny::downloadButton(
-                  ns('dataFull'),
-                  label = "Download (Full)",
-                  icon = shiny::icon("download")
-                )
-              ),
-              shiny::column(
-                width = 2,
-                shiny::actionButton(
-                  ns('downloadDataFiltered'),
-                  label = "Download (Filtered)",
-                  icon = shiny::icon("download"),
-                  onclick = paste0("Reactable.downloadDataCSV('", ns('dataFiltered'),
-                                   "', 'result-data-filtered-", Sys.Date(), ".csv')")
-                )
+  shiny::div(# UI
+    shinydashboard::box(
+      width = "100%",
+      title = shiny::span(shiny::icon("table"), "Table"),
+      shiny::fluidPage(
+        shiny::fluidRow(
+          shiny::column(width = 7,
+                        shiny::uiOutput(ns("columnSelector"))),
+          shiny::column(
+            width = 2,
+            shiny::downloadButton(
+              ns('downloadDataFull'),
+              label = "Download (Full)",
+              icon = shiny::icon("download")
+            )
+          ),
+          shiny::column(
+            width = 3,
+            shiny::actionButton(
+              ns('downloadDataFiltered'),
+              label = "Download (Filtered)",
+              icon = shiny::icon("download"),
+              onclick = paste0(
+                "Reactable.downloadDataCSV('",
+                ns('resultData'),
+                "', 'result-data-filtered-",
+                Sys.Date(),
+                ".csv')"
               )
-            ),
-          shiny::fluidRow(
-            reactable::reactableOutput(
-              outputId = ns("resultData")
-            )  
+            )
           )
+        ),
+        shiny::fluidRow(
+          shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("resultData")))
         )
       )
-  )
+    ))
 }
 
 
@@ -60,10 +67,10 @@ withTooltip <- function(value, tooltip, ...) {
 # example usage:
 # Define custom colDefs for the Name and Age columns
 # custom_colDefs <- list(
-#   mpg = colDef(align = "left",
+#   mpg = reactable::colDef(align = "left",
 #                format = reactable::colFormat(digits = 2),
 #                header = withTooltip("MPG column name", "MPG tooltip")),
-#   disp = colDef(align = "center",
+#   disp = reactable::colDef(align = "center",
 #                 header = withTooltip("Disp column name", "Disp tooltip"))
 # )
 
@@ -89,7 +96,8 @@ create_colDefs_list <- function(df, customColDefs = NULL) {
       }
       
       if (!is.null(customColDefs[[col_names[col]]]$tooltip)) {
-        colDefs_list[[col]]$header <- withTooltip(colDefs_list[[col]]$header, customColDefs[[col_names[col]]]$tooltip)
+        colDefs_list[[col]]$header <-
+          withTooltip(colDefs_list[[col]]$header, customColDefs[[col_names[col]]]$tooltip)
       }
     }
   } else {
@@ -103,142 +111,115 @@ create_colDefs_list <- function(df, customColDefs = NULL) {
   return(colDefs_list)
 }
 
-
-
-resultTableServer <- function(
-  id, #string
-  df, #data.frame
-  colDefsInput #list of colDefs, can use checkmate::assertList, need a check that makes sure names = columns
-) {
-  shiny::moduleServer(
-    id,
-    function(input, output, session) {
-      
-      
-      output$columnSelector <- shiny::renderUI({
-        
-        # Get the column names from the data frame displayed in the reactable
-        # cols <- if(is.null(input$dataCols)){
-        #   colnames(df)
-        # }
-        # else{
-        #   colnames(df[,input$dataCols])
-        # }
-        # 
-        shinyWidgets::pickerInput(
-          inputId = session$ns('dataCols'), 
-          label = 'Select Columns to Display: ', 
-          choices = colnames(df()), 
-          selected = colnames(df()),
-          choicesOpt = list(style = rep_len("color: black;", 999)),
-          multiple = T,
-          options = shinyWidgets::pickerOptions(
-            actionsBox = TRUE,
-            liveSearch = TRUE,
-            size = 10,
-            liveSearchStyle = "contains",
-            liveSearchPlaceholder = "Type here to search",
-            virtualScroll = 50
-          ),
-          width = "50%"
-        )
-        
-      })
-      
-      #need to try adding browser() to all reactives to see why selected cols isnt working
-      
-      colDefs <- shiny::reactive(create_colDefs_list(df = df()[,input$dataCols],
-                                     customColDefs = colDefsInput)
-      )
-
-      
-      output$resultData <- 
-
-        reactable::renderReactable({
-          if(is.null(input$dataCols)){
-            data = df()
-          }
-          else{
-            data = df()[,input$dataCols]
-          }
-          if(nrow(data)==0)
-            return(NULL)
-          
-        reactable::reactable(data,
-                                           columns = colDefs(), #these can be turned on/off and will overwrite colDef args
-                                           sortable = TRUE,
-                                           resizable = TRUE,
-                                           filterable = TRUE,
-                                           searchable = TRUE,
-                                           showPageSizeOptions = TRUE,
-                                           selection = "multiple",
-                                           outlined = TRUE,
-                                           showSortIcon = TRUE,
-                                           striped = TRUE,
-                                           highlight = TRUE,
-                                           defaultColDef = reactable::colDef(
-                                           align = "left")
-                            )
-        })
-      
-    }
-    
+ohdsiReactableTheme <- reactable::reactableTheme(
+  color = "white",
+  backgroundColor = "#003142",
+  stripedColor = "#333333",
+  highlightColor = "#f19119",
+  style = list(
+    fontFamily = "-apple-system, BlinkMacSystemFont, Segoe UI,
+    Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, 
+    Segoe UI Emoji, Segoe UI Symbol"
   )
-  
-}
+  #,
+  #headerStyle = list(
+  #)
+)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#' Result Table Server
+#'
+#' @param id string, table id must match resultsTableViewer function
+#' @param df reactive that returns a data frame
+#' @param colDefsInput named list of reactable::colDefs
+#'
+#' @return shiny module server
+#' @export
+#'
+resultTableServer <- function(id, #string
+                              df, #data.frame
+                              colDefsInput
+) #list of colDefs, can use checkmate::assertList, need a check that makes sure names = columns) {
+  shiny::moduleServer(id,
+                      function(input, output, session) {
+                        output$columnSelector <- shiny::renderUI({
+                          # Get the column names from the data frame displayed in the reactable
+                          # cols <- if(is.null(input$dataCols)){
+                          #   colnames(df)
+                          # }
+                          # else{
+                          #   colnames(df[,input$dataCols])
+                          # }
+                          #
+                          shinyWidgets::pickerInput(
+                            inputId = session$ns('dataCols'),
+                            label = 'Select Columns to Display: ',
+                            choices = colnames(df()),
+                            selected = colnames(df()),
+                            choicesOpt = list(style = rep_len("color: black;", 999)),
+                            multiple = T,
+                            options = shinyWidgets::pickerOptions(
+                              actionsBox = TRUE,
+                              liveSearch = TRUE,
+                              size = 10,
+                              liveSearchStyle = "contains",
+                              liveSearchPlaceholder = "Type here to search",
+                              virtualScroll = 50
+                            ),
+                            width = "75%"
+                          )
+                          
+                        })
+                        
+                        #need to try adding browser() to all reactives to see why selected cols isnt working
+                        
+                        colDefs <-
+                          shiny::reactive(create_colDefs_list(df = df()[, input$dataCols],
+                                                              customColDefs = colDefsInput))
+                        
+                        fullData <- shiny::reactive(df())
+                        
+                        
+                        output$resultData <-
+                          
+                          reactable::renderReactable({
+                            if (is.null(input$dataCols)) {
+                              data = df()
+                            }
+                            else{
+                              data = df()[, input$dataCols]
+                            }
+                            if (nrow(data) == 0)
+                              return(NULL)
+                            
+                            reactable::reactable(
+                              data,
+                              columns = colDefs(),
+                              #these can be turned on/off and will overwrite colDef args
+                              sortable = TRUE,
+                              resizable = TRUE,
+                              filterable = TRUE,
+                              searchable = TRUE,
+                              showPageSizeOptions = TRUE,
+                              outlined = TRUE,
+                              showSortIcon = TRUE,
+                              striped = TRUE,
+                              highlight = TRUE,
+                              defaultColDef = reactable::colDef(align = "left")
+                              #, experimental
+                              #theme = ohdsiReactableTheme
+                            )
+                          })
+                        
+                        # download full data button
+                        output$downloadDataFull <- shiny::downloadHandler(
+                          filename = function() {
+                            paste('data-full-', Sys.Date(), '.csv', sep = '')
+                          },
+                          content = function(con) {
+                            utils::write.csv(fullData(), con,
+                                             row.names = F)
+                          }
+                        )
+                      })
