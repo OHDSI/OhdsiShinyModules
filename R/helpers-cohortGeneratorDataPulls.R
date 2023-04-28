@@ -161,8 +161,8 @@ getCohortGenerationAttritionTable <- function(
       
       attritionRowsFull <- cbind(attritionRows, rule)
       
-      startingCountsFull <- cbind(startingCounts, rule %>% dplyr::select(cohortName)) %>%
-        dplyr::filter(cohortDefinitionId %in% attritionRows$cohortDefinitionId)
+      startingCountsFull <- cbind(startingCounts, rule %>% dplyr::select("cohortName")) %>%
+        dplyr::filter(.data$cohortDefinitionId %in% !!attritionRows$cohortDefinitionId)
 
       attritionTable <- rbind(attritionTable, attritionRowsFull, startingCountsFull)
       
@@ -174,31 +174,31 @@ getCohortGenerationAttritionTable <- function(
   
   #adding drop counts
   attritionTableFinal <- attritionTableDistinct %>%
-    dplyr::group_by(cdmSourceName, cohortDefinitionId, modeId) %>%
+    dplyr::group_by(.data$cdmSourceName, .data$cohortDefinitionId, .data$modeId) %>%
     dplyr::mutate(dropCount = dplyr::case_when(
-      is.na(lag(personCount, order_by = ruleSequence)) ~ 0,
-      .default = lag(personCount, order_by = ruleSequence) - personCount
+      is.na(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) ~ 0,
+      .default = dplyr::lag(.data$personCount, order_by = .data$ruleSequence) - .data$personCount
       ),
       dropPerc = dplyr::case_when(
-        is.na(lag(personCount, order_by = ruleSequence)) ~ "0.00%",
-        .default = paste(round((dropCount/(lag(personCount,
-                                                 order_by = ruleSequence)) * 100), digits = 2),
+        is.na(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) ~ "0.00%",
+        .default = paste(round((.data$dropCount/(dplyr::lag(.data$personCount,
+                                                 order_by = .data$ruleSequence)) * 100), digits = 2),
                          "%",
                          sep="")
         ),
       retainPerc = dplyr::case_when(
-        is.na(lag(personCount, order_by = ruleSequence)) ~ "100.00%",
-        .default = paste(round((personCount/(lag(personCount,
-                                                order_by = ruleSequence)) * 100), digits = 2),
+        is.na(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) ~ "100.00%",
+        .default = paste(round((.data$personCount/(dplyr::lag(.data$personCount,
+                                                order_by = .data$ruleSequence)) * 100), digits = 2),
         "%",
         sep="")
         
       )
     ) %>%
-    dplyr::arrange(cdmSourceName,
-                   cohortDefinitionId,
-                   modeId,
-                   ruleSequence)
+    dplyr::arrange("cdmSourceName",
+                   "cohortDefinitionId",
+                   "modeId",
+                   "ruleSequence")
   
   return(attritionTableFinal)
   

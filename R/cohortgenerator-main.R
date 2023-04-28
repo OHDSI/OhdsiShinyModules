@@ -391,7 +391,7 @@ cohortGeneratorServer <- function(
       cohortNames <- unique(inputVals$cohortName)
       databaseIds <- unique(inputVals$cdmSourceName)
       inputValsClean <- dplyr::ungroup(inputVals) %>%
-        dplyr::mutate(modeId = case_when(
+        dplyr::mutate(modeId = dplyr::case_when(
           modeId==1 ~ "Subject",
           .default = "Record"
           )
@@ -445,18 +445,18 @@ cohortGeneratorServer <- function(
       #build the reactive data
       data <- shiny::reactive({
         inputValsClean %>%
-          dplyr::filter(cdmSourceName == databaseId() & 
-                          cohortName == cohortName() &
-                          modeId == modeId()
+          dplyr::filter(.data$cdmSourceName == databaseId() & 
+                          .data$cohortName == cohortName() &
+                          .data$modeId == modeId()
           )
       })
       
       output$attritionTable <- reactable::renderReactable(
         reactable::reactable(
           data =  data() %>%
-            dplyr::select(c(cdmSourceName, cohortName, ruleName,
-                            personCount, dropCount,
-                            dropPerc, retainPerc)
+            dplyr::select(c("cdmSourceName", "cohortName", "ruleName",
+                            "personCount", "dropCount",
+                            "dropPerc", "retainPerc")
                           )
           
           ,
