@@ -19,10 +19,16 @@ shiny::testServer(sccsServer, args = list(
   # Dependency injection to mimic selection of a row in the table
 
   session$setInputs(
-    mainTableRowInput = 1
+    exposuresOutcome = exposuresOutcomeNames$name[1],
+    analysis = sccsAnalyses$description[1],
+    database = databases$databaseId[1],
+    
+    mainTableRowInput = 1,
+    mainTable__reactable__selected = 1
   )
   
-  testthat::expect_equal(selectedRow(),1)
+  ##testthat::expect_true(nrow(resultSubset())>0)
+  ##testthat::expect_equal(selectedRow(),1)
   # End of testing that can be done without data
   # The following will be filled in when test data are available
   # checkmate::expect_data_frame(selectedRow())

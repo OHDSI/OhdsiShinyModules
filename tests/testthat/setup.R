@@ -174,7 +174,8 @@ resultDatabaseSettingsES <- list(
   cgTablePrefix = 'cg_',
   cmTablePrefix = 'cm_',
   sccsTablePrefix = 'sccs_',
-  databaseTable = 'DATABASE_META_DATA',
+  databaseTable = 'DATABASE_META_DATA', 
+  databaseMetaData = 'DATABASE_META_DATA', 
   schema = "main",
   tempEmulationSchema = NULL
 )

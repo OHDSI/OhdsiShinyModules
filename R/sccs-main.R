@@ -1,3 +1,195 @@
+#' SCCS shiny module UI code
+#' @description
+#' Load the ui for the sccs module
+#' @param id        id for module
+#' @export
+sccsView <- function(id = "sccs-module") {
+  ns <- shiny::NS(id)
+  tags <- shiny::tags
+  
+  shinydashboard::box(
+    status = 'info', 
+    width = 12,
+    title = shiny::span( shiny::icon("people-arrows"), 'Self Controlled Case Series'),
+    solidHeader = TRUE,
+    
+    shinydashboard::box(
+      collapsible = TRUE,
+      collapsed = TRUE,
+      title = "Self Controlled Case Series Evidence",
+      width = "100%"#,
+      #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
+    ),
+    
+    tags$head(
+      tags$style(
+        type = "text/css", "
+                                 #loadmessage {
+                                 position: fixed;
+                                 top: 0px;
+                                 left: 0px;
+                                 width: 100%;
+                                 padding: 5px 0px 5px 0px;
+                                 text-align: center;
+                                 font-weight: bold;
+                                 font-size: 100%;
+                                 color: #000000;
+                                 background-color: #ADD8E6;
+                                 z-index: 105;
+                                 }
+                                 ")
+    ),
+    shiny::conditionalPanel(
+      condition = "$('html').hasClass('shiny-busy')",
+      ns = ns,
+      tags$div("Processing...", id = "loadmessage")
+    ),
+    
+    # make this a server ui?
+    shinydashboard::box(
+      collapsible = TRUE,
+      title = "Options",
+      width = "100%",
+      
+      shiny::fluidPage(
+        shiny::fluidRow(
+          shiny::column(
+            width = 4,
+            shinyWidgets::pickerInput(
+              inputId = ns("exposuresOutcome"), 
+              label = "Exposures-outcome", 
+              choices = c()
+            )
+          ),
+          shiny::column(
+            width = 4,
+            shinyWidgets::pickerInput(
+              inputId = ns("database"), 
+              label = "Data source",
+              choices = c(),
+              choicesOpt = list(style = rep_len("color: black;", 999)),
+              multiple = T 
+            )
+          ),
+          shiny::column(
+            width = 4,
+            shinyWidgets::pickerInput(
+              inputId = ns("analysis"), 
+              label = "Analysis",
+              choices = c(),
+              choicesOpt = list(style = rep_len("color: black;", 999)),
+              multiple = T
+            )
+          )
+        )
+      )
+    ),
+    
+    # add selected box 
+    
+    
+    shinydashboard::box(
+      width = '100%',
+      
+      # add database/analysis options here
+      
+      reactable::reactableOutput(ns("mainTable")),
+      
+      # move these to new tab?
+      shiny::conditionalPanel(
+        "output.rowIsSelected == true",
+        ns = ns,
+        shiny::tabsetPanel(
+          id = ns("detailsTabsetPanel"),
+          shiny::tabPanel(
+            "Power",
+            shiny::div(shiny::strong("Table 1."), "For each variable of interest: the number of cases (people with at least one outcome), the number of years those people were observed, the number of outcomes, the number of subjects with at least one exposure, the number of patient-years exposed, the number of outcomes while exposed, and the minimum detectable relative risk (MDRR)."),
+            shiny::tableOutput(ns("powerTable"))
+          ),
+          shiny::tabPanel(
+            "Attrition",
+            shiny::plotOutput(ns("attritionPlot"), width = 600, height = 500),
+            shiny::div(
+              shiny::strong("Figure 1."),
+              "Attrition, showing the number of cases (number of subjects with at least one outcome), and number of outcomes (number of ocurrences of the outcome) after each step in the study.")
+          ),
+          shiny::tabPanel(
+            "Model",
+            shiny::tabsetPanel(
+              id = ns("modelTabsetPanel"),
+              shiny::tabPanel(
+                "Model coefficients",
+                shiny::div(
+                  shiny::strong("Table 2."),
+                  "The fitted non-zero coefficent (incidence rate ratio) and 95 percent confidence interval for all variables in the model."
+                ),
+                shiny::tableOutput(ns("modelTable"))
+              ),
+              shiny::tabPanel(
+                "Age spline",
+                shiny::plotOutput(ns("ageSplinePlot")),
+                shiny::div(shiny::strong("Figure 2a."), "Spline fitted for age.")
+              ),
+              shiny::tabPanel(
+                "Season spline",
+                shiny::plotOutput(ns("seasonSplinePlot")),
+                shiny::div(shiny::strong("Figure 2b."), "Spline fitted for season")
+              ),
+              shiny::tabPanel(
+                "Calendar time spline",
+                shiny::plotOutput(ns("calendarTimeSplinePlot")),
+                shiny::div(shiny::strong("Figure 2c."), "Spline fitted for calendar time")
+              )
+            )
+          ),
+          shiny::tabPanel(
+            "Spanning",
+            shiny::radioButtons(ns("spanningType"), label = "Type:", choices = c("Age", "Calendar time")),
+            shiny::plotOutput(ns("spanningPlot")),
+            shiny::div(shiny::strong("Figure 3."), "Number of subjects observed for 3 consecutive months, centered on the indicated month.")
+          ),
+          shiny::tabPanel(
+            "Time trend",
+            shiny::plotOutput(ns("timeTrendPlot"), height = 600),
+            shiny::div(
+              shiny::strong("Figure 4."),
+              "Per calendar month the number of people observed, the unadjusted rate of the outcome, and the rate of the outcome after adjusting for age, season, and calendar time, if specified in the model. Red indicates months where the adjusted rate was significantly different from the mean adjusted rate."
+            )
+          ),
+          shiny::tabPanel(
+            "Time to event",
+            shiny::plotOutput(ns("timeToEventPlot")),
+            shiny::div(
+              shiny::strong("Figure 5."),
+              "The number of events and subjects observed per week relative to the start of the first exposure (indicated by the thick vertical line)."
+            )
+          ),
+          shiny::tabPanel(
+            "Event dep. observation",
+            shiny::plotOutput(ns("eventDepObservationPlot")),
+            shiny::div(shiny::strong("Figure 6."), "Histograms for the number of months between the first occurrence of the outcome and the end of observation, stratified by whether the end of observation was censored (inferred as not being equal to the end of database time), or uncensored (inferred as having the subject still be observed at the end of database time)."
+            )
+          ),
+          shiny::tabPanel(
+            "Systematic error",
+            shiny::plotOutput(ns("controlEstimatesPlot")),
+            shiny::div(shiny::strong("Figure 7."), "Systematic error. Effect size estimates for the negative controls (true incidence rate ratio = 1)
+                                                                                    and positive controls (true incidence rate ratio > 1), before and after calibration. Estimates below the diagonal dashed
+                                                                                    lines are statistically significant (alpha = 0.05) different from the true effect size. A well-calibrated
+                                                                                    estimator should have the true effect size within the 95 percent confidence interval 95 percent of times.")
+          ),
+          shiny::tabPanel(
+            "Diagnostics summary",
+            shiny::tableOutput(ns("diagnosticsSummary"))
+            
+          )
+        )
+      )
+    )
+  )
+}
+
+
 #' The module server for exploring SCCS
 #'
 #' @details
@@ -25,6 +217,7 @@ sccsServer <- function(
   
   exposuresOutcomeSets <- getSccsExposuresOutcomes(connectionHandler, resultDatabaseSettings)
 
+  # separate this into exposures and outcomes for different pickers?
   exposuresOutcomeNames <- exposuresOutcomeSets %>%
     dplyr::group_by(.data$exposuresOutcomeSetId, .data$outcomeName) %>%
     dplyr::summarise(exposures = paste(.data$exposureName, collapse = ", "), .groups = "drop") %>%
@@ -40,6 +233,9 @@ sccsServer <- function(
 
   shiny::moduleServer(id, function(input, output, session) {
 
+    
+    # replace this with a server UI that doesnt need to update as this is not
+    # dynamic
     shiny::observe({
       # Dynamic loading of user selections
 
@@ -92,6 +288,7 @@ sccsServer <- function(
       
     })
 
+    # currently reacts to database, analysis and exposure/outcomes to return data
     resultSubset <- shiny::reactive({
       exposuresOutcomeSetId <- exposuresOutcomeNames$exposuresOutcomeSetId[exposuresOutcomeNames$name == input$exposuresOutcome]
       analysisIds <- sccsAnalyses$analysisId[sccsAnalyses$description %in% input$analysis]
@@ -141,6 +338,8 @@ sccsServer <- function(
       return(results)
     })
 
+    
+    # add database/analysis select above result table?
     output$mainTable <- reactable::renderReactable({
        reactable::reactable(
         data = resultSubset() %>%
@@ -247,6 +446,8 @@ sccsServer <- function(
     
     shiny::outputOptions(output, "rowIsSelected", suspendWhenHidden = FALSE)
 
+    
+    # move these to a different submodule?
     output$powerTable <- shiny::renderTable({
       row <- selectedRow()
       if (is.null(row)) {
@@ -496,189 +697,7 @@ sccsServer <- function(
   })
 }
 
-#' SCCS shiny module UI code
-#' @description
-#' Load the ui for the sccs module
-#' @param id        id for module
-#' @export
-sccsView <- function(id = "sccs-module") {
-  ns <- shiny::NS(id)
-  tags <- shiny::tags
-  
-  shinydashboard::box(
-    status = 'info', 
-    width = 12,
-    title = shiny::span( shiny::icon("people-arrows"), 'Self Controlled Case Series'),
-    solidHeader = TRUE,
-    
-    shinydashboard::box(
-      collapsible = TRUE,
-      collapsed = TRUE,
-      title = "Self Controlled Case Series Evidence",
-      width = "100%"#,
-      #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
-    ),
-    
-    tags$head(
-      tags$style(
-        type = "text/css", "
-                                 #loadmessage {
-                                 position: fixed;
-                                 top: 0px;
-                                 left: 0px;
-                                 width: 100%;
-                                 padding: 5px 0px 5px 0px;
-                                 text-align: center;
-                                 font-weight: bold;
-                                 font-size: 100%;
-                                 color: #000000;
-                                 background-color: #ADD8E6;
-                                 z-index: 105;
-                                 }
-                                 ")
-    ),
-    shiny::conditionalPanel(
-      condition = "$('html').hasClass('shiny-busy')",
-      ns = ns,
-      tags$div("Processing...", id = "loadmessage")
-    ),
-    
-    shinydashboard::box(
-      collapsible = TRUE,
-      title = "Options",
-      width = "100%",
-      
-      shiny::fluidPage(
-        shiny::fluidRow(
-          shiny::column(
-            width = 4,
-            shinyWidgets::pickerInput(
-              inputId = ns("exposuresOutcome"), 
-              label = "Exposures-outcome", 
-              choices = c()
-              )
-          ),
-          shiny::column(
-            width = 4,
-            shinyWidgets::pickerInput(
-              inputId = ns("database"), 
-              label = "Data source",
-              choices = c(),
-              choicesOpt = list(style = rep_len("color: black;", 999)),
-              multiple = T 
-              )
-          ),
-          shiny::column(
-            width = 4,
-            shinyWidgets::pickerInput(
-              inputId = ns("analysis"), 
-              label = "Analysis",
-              choices = c(),
-              choicesOpt = list(style = rep_len("color: black;", 999)),
-              multiple = T
-              )
-          )
-        )
-      )
-    ),
-    
-    
-    shinydashboard::box(
-      width = '100%',
-      reactable::reactableOutput(ns("mainTable")),
-      
-      shiny::conditionalPanel(
-        "output.rowIsSelected == true",
-        ns = ns,
-        shiny::tabsetPanel(
-          id = ns("detailsTabsetPanel"),
-          shiny::tabPanel(
-            "Power",
-            shiny::div(shiny::strong("Table 1."), "For each variable of interest: the number of cases (people with at least one outcome), the number of years those people were observed, the number of outcomes, the number of subjects with at least one exposure, the number of patient-years exposed, the number of outcomes while exposed, and the minimum detectable relative risk (MDRR)."),
-            shiny::tableOutput(ns("powerTable"))
-          ),
-          shiny::tabPanel(
-            "Attrition",
-            shiny::plotOutput(ns("attritionPlot"), width = 600, height = 500),
-            shiny::div(
-              shiny::strong("Figure 1."),
-              "Attrition, showing the number of cases (number of subjects with at least one outcome), and number of outcomes (number of ocurrences of the outcome) after each step in the study.")
-          ),
-          shiny::tabPanel(
-            "Model",
-            shiny::tabsetPanel(
-              id = ns("modelTabsetPanel"),
-              shiny::tabPanel(
-                "Model coefficients",
-                shiny::div(
-                  shiny::strong("Table 2."),
-                  "The fitted non-zero coefficent (incidence rate ratio) and 95 percent confidence interval for all variables in the model."
-                ),
-                shiny::tableOutput(ns("modelTable"))
-              ),
-              shiny::tabPanel(
-                "Age spline",
-                shiny::plotOutput(ns("ageSplinePlot")),
-                shiny::div(shiny::strong("Figure 2a."), "Spline fitted for age.")
-              ),
-              shiny::tabPanel(
-                "Season spline",
-                shiny::plotOutput(ns("seasonSplinePlot")),
-                shiny::div(shiny::strong("Figure 2b."), "Spline fitted for season")
-              ),
-              shiny::tabPanel(
-                "Calendar time spline",
-                shiny::plotOutput(ns("calendarTimeSplinePlot")),
-                shiny::div(shiny::strong("Figure 2c."), "Spline fitted for calendar time")
-              )
-            )
-          ),
-          shiny::tabPanel(
-            "Spanning",
-            shiny::radioButtons(ns("spanningType"), label = "Type:", choices = c("Age", "Calendar time")),
-            shiny::plotOutput(ns("spanningPlot")),
-            shiny::div(shiny::strong("Figure 3."), "Number of subjects observed for 3 consecutive months, centered on the indicated month.")
-          ),
-          shiny::tabPanel(
-            "Time trend",
-            shiny::plotOutput(ns("timeTrendPlot"), height = 600),
-            shiny::div(
-              shiny::strong("Figure 4."),
-              "Per calendar month the number of people observed, the unadjusted rate of the outcome, and the rate of the outcome after adjusting for age, season, and calendar time, if specified in the model. Red indicates months where the adjusted rate was significantly different from the mean adjusted rate."
-            )
-          ),
-          shiny::tabPanel(
-            "Time to event",
-            shiny::plotOutput(ns("timeToEventPlot")),
-            shiny::div(
-              shiny::strong("Figure 5."),
-              "The number of events and subjects observed per week relative to the start of the first exposure (indicated by the thick vertical line)."
-            )
-          ),
-          shiny::tabPanel(
-            "Event dep. observation",
-            shiny::plotOutput(ns("eventDepObservationPlot")),
-            shiny::div(shiny::strong("Figure 6."), "Histograms for the number of months between the first occurrence of the outcome and the end of observation, stratified by whether the end of observation was censored (inferred as not being equal to the end of database time), or uncensored (inferred as having the subject still be observed at the end of database time)."
-            )
-          ),
-          shiny::tabPanel(
-            "Systematic error",
-            shiny::plotOutput(ns("controlEstimatesPlot")),
-            shiny::div(shiny::strong("Figure 7."), "Systematic error. Effect size estimates for the negative controls (true incidence rate ratio = 1)
-                                                                                    and positive controls (true incidence rate ratio > 1), before and after calibration. Estimates below the diagonal dashed
-                                                                                    lines are statistically significant (alpha = 0.05) different from the true effect size. A well-calibrated
-                                                                                    estimator should have the true effect size within the 95 percent confidence interval 95 percent of times.")
-          ),
-          shiny::tabPanel(
-            "Diagnostics summary",
-            shiny::tableOutput(ns("diagnosticsSummary"))
-            
-          )
-        )
-      )
-    )
-  )
-}
+
 
 #' The location of the description module helper file
 #'
