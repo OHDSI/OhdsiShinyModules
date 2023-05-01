@@ -261,6 +261,7 @@ test_that("Test getSccsDiagnosticsSummary", {
     resultDatabaseSettings = resultDatabaseSettingsSccs,
     outcomeId = 11123,
     databaseId = 1,
+    exposureId = 1,
     analysisId = 13, 
     covariateId = 1001 # could have era_id and outcome_id instead?
   )
