@@ -567,7 +567,8 @@ getSccsAllDiagnosticsSummary <- function(
   @database_schema.@table_prefixcovariate cov
   on cov.covariate_id = ds.covariate_id and 
   cov.exposures_outcome_set_id = ds.exposures_outcome_set_id and
-  cov.analysis_id = ds.analysis_id 
+  cov.analysis_id = ds.analysis_id and
+  cov.database_id = ds.database_id
   
    inner join
    @database_schema.@cg_table_prefixcohort_definition as c2
