@@ -511,17 +511,27 @@ getSccsDiagnosticsSummary <- function(connectionHandler,
                                       outcomeId,
                                       databaseId,
                                       analysisId,
-                                      covariateId) {
+                                      covariateId,
+                                      exposureId) {
   sql <- "
   SELECT ds.*
   FROM @database_schema.@table_prefixdiagnostics_summary ds
             inner join
   @database_schema.@table_prefixexposures_outcome_set eos
   on ds.exposures_outcome_set_id = eos.exposures_outcome_set_id
+  
+  inner join
+  @database_schema.@table_prefixcovariate cov
+  on cov.covariate_id = ds.covariate_id and 
+  cov.exposures_outcome_set_id = ds.exposures_outcome_set_id and
+  cov.analysis_id = ds.analysis_id and
+  cov.database_id = ds.database_id
+  
   WHERE ds.database_id = '@database_id'
   AND ds.analysis_id = @analysis_id
   AND ds.covariate_id = @covariate_id
   AND eos.outcome_id = @outcome_id
+  AND cov.era_id = @exposure_id
   "
   connectionHandler$queryDb(sql,
                             database_schema = resultDatabaseSettings$schema,
@@ -530,6 +540,7 @@ getSccsDiagnosticsSummary <- function(connectionHandler,
                             covariate_id = covariateId,
                             analysis_id = analysisId,
                             outcome_id = outcomeId,
+                            exposure_id = exposureId,
                             snakeCaseToCamelCase = TRUE)
 
 }

@@ -666,6 +666,7 @@ sccsServer <- function(
       }
     })
 
+    
     output$diagnosticsSummary <- shiny::renderTable({
       row <- selectedRow()
       if (is.null(row)) {
@@ -677,8 +678,10 @@ sccsServer <- function(
           outcomeId = row$outcomeId,
           covariateId = row$covariateId,
           databaseId = row$databaseId,
-          analysisId = row$analysisId
+          analysisId = row$analysisId,
+          exposureId = row$eraId
         )
+        
         resTargetTable <- renderDiagnosticsSummary(diagnosticsSummary)
         return(resTargetTable)
       }
