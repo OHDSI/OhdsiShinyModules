@@ -11,13 +11,7 @@ sccsDiagnosticsSummaryServer(id, connectionHandler, resultDatabaseSettings)
 
 \item{connectionHandler}{the connection to the PLE results database}
 
-\item{resultsSchema}{the schema with the PLE results}
-
-\item{tablePrefix}{tablePrefix}
-
-\item{cohortTablePrefix}{cohortTablePrefix}
-
-\item{databaseTable}{databaseTable}
+\item{resultDatabaseSettings}{the resultDatabaseSettings with the schemas, prefix and table names}
 }
 \value{
 the SCCS diagnostics summary results

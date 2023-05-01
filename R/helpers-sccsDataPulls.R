@@ -583,7 +583,7 @@ getSccsAllDiagnosticsSummary <- function(
                             snakeCaseToCamelCase = TRUE)
   
   result <- result %>% 
-    select(-c("analysisId","exposuresOutcomeSetId","databaseId","covariateId"))
+    dplyr::select(-c("analysisId","exposuresOutcomeSetId","databaseId","covariateId"))
   
   return(result)
   

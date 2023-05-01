@@ -39,10 +39,7 @@ sccsDiagnosticsSummaryViewer <- function(id) {
 #'
 #' @param id the unique reference id for the module
 #' @param connectionHandler the connection to the PLE results database
-#' @param resultsSchema the schema with the PLE results
-#' @param tablePrefix tablePrefix
-#' @param cohortTablePrefix cohortTablePrefix
-#' @param databaseTable databaseTable
+#' @param resultDatabaseSettings the resultDatabaseSettings with the schemas, prefix and table names
 #'
 #' @return
 #' the SCCS diagnostics summary results
