@@ -546,7 +546,7 @@ getSccsAllDiagnosticsSummary <- function(
   c.cohort_name as outcome, 
   c2.cohort_name as exposure,
   a.description as analysis,
-  cov.covariate_name
+  cov.covariate_name,
   ds.*
   FROM @database_schema.@table_prefixdiagnostics_summary ds
             inner join
