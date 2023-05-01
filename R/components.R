@@ -123,11 +123,11 @@ inputSelectionServer <- function(
               lapply(which(rowNumbers == i), function(x){
                 shiny::column(
                   width = inputSettingList[[x]]$columnWidth,
-                  shiny::tags$b(paste0(inputSettingList[[x]]$uiInputs$label, ': ')),
+                  shiny::tags$b(paste0(inputSettingList[[x]]$uiInputs$label)),
                   if(!is.null(inputSettingList[[x]]$uiInputs$choices)){
-                    names(inputSettingList[[x]]$uiInputs$choices)[inputSettingList[[x]]$uiInputs$choices == input[[paste0('input_',x)]]]
+                    paste(names(inputSettingList[[x]]$uiInputs$choices)[inputSettingList[[x]]$uiInputs$choices %in% input[[paste0('input_',x)]]], collapse = ',')
                   } else{
-                    input[[paste0('input_',x)]]
+                    paste(input[[paste0('input_',x)]], collapse = ',')
                   }
                 )
               }

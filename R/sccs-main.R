@@ -16,174 +16,126 @@ sccsView <- function(id = "sccs-module") {
     shinydashboard::box(
       collapsible = TRUE,
       collapsed = TRUE,
-      title = "Self Controlled Case Series Evidence",
+      title = "Info",
       width = "100%"#,
       #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
     ),
     
-    tags$head(
-      tags$style(
-        type = "text/css", "
-                                 #loadmessage {
-                                 position: fixed;
-                                 top: 0px;
-                                 left: 0px;
-                                 width: 100%;
-                                 padding: 5px 0px 5px 0px;
-                                 text-align: center;
-                                 font-weight: bold;
-                                 font-size: 100%;
-                                 color: #000000;
-                                 background-color: #ADD8E6;
-                                 z-index: 105;
-                                 }
-                                 ")
-    ),
-    shiny::conditionalPanel(
-      condition = "$('html').hasClass('shiny-busy')",
-      ns = ns,
-      tags$div("Processing...", id = "loadmessage")
-    ),
     
-    # make this a server ui?
-    shinydashboard::box(
-      collapsible = TRUE,
-      title = "Options",
-      width = "100%",
-      
-      shiny::fluidPage(
-        shiny::fluidRow(
-          shiny::column(
-            width = 4,
-            shinyWidgets::pickerInput(
-              inputId = ns("exposuresOutcome"), 
-              label = "Exposures-outcome", 
-              choices = c()
-            )
-          ),
-          shiny::column(
-            width = 4,
-            shinyWidgets::pickerInput(
-              inputId = ns("database"), 
-              label = "Data source",
-              choices = c(),
-              choicesOpt = list(style = rep_len("color: black;", 999)),
-              multiple = T 
-            )
-          ),
-          shiny::column(
-            width = 4,
-            shinyWidgets::pickerInput(
-              inputId = ns("analysis"), 
-              label = "Analysis",
-              choices = c(),
-              choicesOpt = list(style = rep_len("color: black;", 999)),
-              multiple = T
-            )
-          )
-        )
-      )
-    ),
-    
-    # add selected box 
-    
-    
-    shinydashboard::box(
-      width = '100%',
-      
-      # add database/analysis options here
-      
-      reactable::reactableOutput(ns("mainTable")),
-      
-      # move these to new tab?
-      shiny::conditionalPanel(
-        "output.rowIsSelected == true",
-        ns = ns,
-        shiny::tabsetPanel(
-          id = ns("detailsTabsetPanel"),
-          shiny::tabPanel(
-            "Power",
-            shiny::div(shiny::strong("Table 1."), "For each variable of interest: the number of cases (people with at least one outcome), the number of years those people were observed, the number of outcomes, the number of subjects with at least one exposure, the number of patient-years exposed, the number of outcomes while exposed, and the minimum detectable relative risk (MDRR)."),
-            shiny::tableOutput(ns("powerTable"))
-          ),
-          shiny::tabPanel(
-            "Attrition",
-            shiny::plotOutput(ns("attritionPlot"), width = 600, height = 500),
-            shiny::div(
-              shiny::strong("Figure 1."),
-              "Attrition, showing the number of cases (number of subjects with at least one outcome), and number of outcomes (number of ocurrences of the outcome) after each step in the study.")
-          ),
-          shiny::tabPanel(
-            "Model",
-            shiny::tabsetPanel(
-              id = ns("modelTabsetPanel"),
-              shiny::tabPanel(
-                "Model coefficients",
-                shiny::div(
-                  shiny::strong("Table 2."),
-                  "The fitted non-zero coefficent (incidence rate ratio) and 95 percent confidence interval for all variables in the model."
+    shiny::tabsetPanel(
+      type = 'pills',
+      id = ns("mainTabsetPanel"),
+      shiny::tabPanel(
+        title = "Diagnostics",
+        sccsDiagnosticsSummaryViewer(ns("sccsDiganostics"))
+      ),
+      shiny::tabPanel(
+        title = "Results",
+        
+        inputSelectionViewer(ns("input-selection-sccs")),
+        
+        shiny::conditionalPanel(
+          condition = 'input.generate != 0',
+          ns = shiny::NS(ns("input-selection-sccs")),
+          
+          shinydashboard::box(
+            width = '100%',
+            
+            # add database/analysis options here
+            
+            reactable::reactableOutput(ns("mainTable")),
+            
+            # move these to new tab?
+            shiny::conditionalPanel(
+              "output.rowIsSelected == true",
+              ns = ns,
+              shiny::tabsetPanel(
+                id = ns("detailsTabsetPanel"),
+                shiny::tabPanel(
+                  "Power",
+                  shiny::div(shiny::strong("Table 1."), "For each variable of interest: the number of cases (people with at least one outcome), the number of years those people were observed, the number of outcomes, the number of subjects with at least one exposure, the number of patient-years exposed, the number of outcomes while exposed, and the minimum detectable relative risk (MDRR)."),
+                  shiny::tableOutput(ns("powerTable"))
                 ),
-                shiny::tableOutput(ns("modelTable"))
-              ),
-              shiny::tabPanel(
-                "Age spline",
-                shiny::plotOutput(ns("ageSplinePlot")),
-                shiny::div(shiny::strong("Figure 2a."), "Spline fitted for age.")
-              ),
-              shiny::tabPanel(
-                "Season spline",
-                shiny::plotOutput(ns("seasonSplinePlot")),
-                shiny::div(shiny::strong("Figure 2b."), "Spline fitted for season")
-              ),
-              shiny::tabPanel(
-                "Calendar time spline",
-                shiny::plotOutput(ns("calendarTimeSplinePlot")),
-                shiny::div(shiny::strong("Figure 2c."), "Spline fitted for calendar time")
-              )
-            )
-          ),
-          shiny::tabPanel(
-            "Spanning",
-            shiny::radioButtons(ns("spanningType"), label = "Type:", choices = c("Age", "Calendar time")),
-            shiny::plotOutput(ns("spanningPlot")),
-            shiny::div(shiny::strong("Figure 3."), "Number of subjects observed for 3 consecutive months, centered on the indicated month.")
-          ),
-          shiny::tabPanel(
-            "Time trend",
-            shiny::plotOutput(ns("timeTrendPlot"), height = 600),
-            shiny::div(
-              shiny::strong("Figure 4."),
-              "Per calendar month the number of people observed, the unadjusted rate of the outcome, and the rate of the outcome after adjusting for age, season, and calendar time, if specified in the model. Red indicates months where the adjusted rate was significantly different from the mean adjusted rate."
-            )
-          ),
-          shiny::tabPanel(
-            "Time to event",
-            shiny::plotOutput(ns("timeToEventPlot")),
-            shiny::div(
-              shiny::strong("Figure 5."),
-              "The number of events and subjects observed per week relative to the start of the first exposure (indicated by the thick vertical line)."
-            )
-          ),
-          shiny::tabPanel(
-            "Event dep. observation",
-            shiny::plotOutput(ns("eventDepObservationPlot")),
-            shiny::div(shiny::strong("Figure 6."), "Histograms for the number of months between the first occurrence of the outcome and the end of observation, stratified by whether the end of observation was censored (inferred as not being equal to the end of database time), or uncensored (inferred as having the subject still be observed at the end of database time)."
-            )
-          ),
-          shiny::tabPanel(
-            "Systematic error",
-            shiny::plotOutput(ns("controlEstimatesPlot")),
-            shiny::div(shiny::strong("Figure 7."), "Systematic error. Effect size estimates for the negative controls (true incidence rate ratio = 1)
+                shiny::tabPanel(
+                  "Attrition",
+                  shiny::plotOutput(ns("attritionPlot"), width = 600, height = 500),
+                  shiny::div(
+                    shiny::strong("Figure 1."),
+                    "Attrition, showing the number of cases (number of subjects with at least one outcome), and number of outcomes (number of ocurrences of the outcome) after each step in the study.")
+                ),
+                shiny::tabPanel(
+                  "Model",
+                  shiny::tabsetPanel(
+                    id = ns("modelTabsetPanel"),
+                    shiny::tabPanel(
+                      "Model coefficients",
+                      shiny::div(
+                        shiny::strong("Table 2."),
+                        "The fitted non-zero coefficent (incidence rate ratio) and 95 percent confidence interval for all variables in the model."
+                      ),
+                      shiny::tableOutput(ns("modelTable"))
+                    ),
+                    shiny::tabPanel(
+                      "Age spline",
+                      shiny::plotOutput(ns("ageSplinePlot")),
+                      shiny::div(shiny::strong("Figure 2a."), "Spline fitted for age.")
+                    ),
+                    shiny::tabPanel(
+                      "Season spline",
+                      shiny::plotOutput(ns("seasonSplinePlot")),
+                      shiny::div(shiny::strong("Figure 2b."), "Spline fitted for season")
+                    ),
+                    shiny::tabPanel(
+                      "Calendar time spline",
+                      shiny::plotOutput(ns("calendarTimeSplinePlot")),
+                      shiny::div(shiny::strong("Figure 2c."), "Spline fitted for calendar time")
+                    )
+                  )
+                ),
+                shiny::tabPanel(
+                  "Spanning",
+                  shiny::radioButtons(ns("spanningType"), label = "Type:", choices = c("Age", "Calendar time")),
+                  shiny::plotOutput(ns("spanningPlot")),
+                  shiny::div(shiny::strong("Figure 3."), "Number of subjects observed for 3 consecutive months, centered on the indicated month.")
+                ),
+                shiny::tabPanel(
+                  "Time trend",
+                  shiny::plotOutput(ns("timeTrendPlot"), height = 600),
+                  shiny::div(
+                    shiny::strong("Figure 4."),
+                    "Per calendar month the number of people observed, the unadjusted rate of the outcome, and the rate of the outcome after adjusting for age, season, and calendar time, if specified in the model. Red indicates months where the adjusted rate was significantly different from the mean adjusted rate."
+                  )
+                ),
+                shiny::tabPanel(
+                  "Time to event",
+                  shiny::plotOutput(ns("timeToEventPlot")),
+                  shiny::div(
+                    shiny::strong("Figure 5."),
+                    "The number of events and subjects observed per week relative to the start of the first exposure (indicated by the thick vertical line)."
+                  )
+                ),
+                shiny::tabPanel(
+                  "Event dep. observation",
+                  shiny::plotOutput(ns("eventDepObservationPlot")),
+                  shiny::div(shiny::strong("Figure 6."), "Histograms for the number of months between the first occurrence of the outcome and the end of observation, stratified by whether the end of observation was censored (inferred as not being equal to the end of database time), or uncensored (inferred as having the subject still be observed at the end of database time)."
+                  )
+                ),
+                shiny::tabPanel(
+                  "Systematic error",
+                  shiny::plotOutput(ns("controlEstimatesPlot")),
+                  shiny::div(shiny::strong("Figure 7."), "Systematic error. Effect size estimates for the negative controls (true incidence rate ratio = 1)
                                                                                     and positive controls (true incidence rate ratio > 1), before and after calibration. Estimates below the diagonal dashed
                                                                                     lines are statistically significant (alpha = 0.05) different from the true effect size. A well-calibrated
                                                                                     estimator should have the true effect size within the 95 percent confidence interval 95 percent of times.")
-          ),
-          shiny::tabPanel(
-            "Diagnostics summary",
-            shiny::tableOutput(ns("diagnosticsSummary"))
-            
-          )
-        )
+                ),
+                shiny::tabPanel(
+                  "Diagnostics summary",
+                  shiny::tableOutput(ns("diagnosticsSummary"))
+                  
+                )
+              )
+            )
+          ))
       )
     )
   )
@@ -215,99 +167,135 @@ sccsServer <- function(
                tippy::tippy(value, tooltip, ...))
   }
   
-  exposuresOutcomeSets <- getSccsExposuresOutcomes(connectionHandler, resultDatabaseSettings)
-
-  # separate this into exposures and outcomes for different pickers?
-  exposuresOutcomeNames <- exposuresOutcomeSets %>%
-    dplyr::group_by(.data$exposuresOutcomeSetId, .data$outcomeName) %>%
-    dplyr::summarise(exposures = paste(.data$exposureName, collapse = ", "), .groups = "drop") %>%
-    dplyr::mutate(name = sprintf("%s - %s", .data$exposures, .data$outcomeName))
-
-  sccsAnalyses <- connectionHandler$tbl(paste0(resultDatabaseSettings$tablePrefix,"analysis"), databaseSchema = resultDatabaseSettings$schema) %>%
-    dplyr::collect() %>%
-    SqlRender::snakeCaseToCamelCaseNames()
-
-  databases <- connectionHandler$tbl(resultDatabaseSettings$databaseTable, databaseSchema = resultDatabaseSettings$schema) %>%
-    dplyr::collect() %>%
-    SqlRender::snakeCaseToCamelCaseNames()
+  # create functions to result list
+  outcomes <- sccsGetOutcomes(
+    connectionHandler = connectionHandler, 
+    resultDatabaseSettings = resultDatabaseSettings
+    )
+  exposures <- sccsGetExposures(
+    connectionHandler = connectionHandler, 
+    resultDatabaseSettings = resultDatabaseSettings
+  )
+  databases <- sccsGetDatabases(
+    connectionHandler = connectionHandler, 
+    resultDatabaseSettings = resultDatabaseSettings
+  )
+  analyses <- sccsGetAnalyses(
+    connectionHandler = connectionHandler, 
+    resultDatabaseSettings = resultDatabaseSettings
+  )
+    
 
   shiny::moduleServer(id, function(input, output, session) {
+    
+    
+    sccsDiagnosticsSummaryServer(
+      id = "sccsDiganostics",
+      connectionHandler = connectionHandler,
+      resultDatabaseSettings
+    )
+    
+    inputSelected <- inputSelectionServer(
+      id = "input-selection-sccs", 
+      inputSettingList = list(
+        createInputSetting(
+          rowNumber = 1,                           
+          columnWidth = 6,
+          varName = 'exposure',
+          uiFunction = 'shinyWidgets::pickerInput',
+          uiInputs = list(
+            label = 'Exposure: ',
+            choices = exposures,
+            selected = exposures[1],
+            multiple = F,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
+          )
+        ),
+        createInputSetting(
+          rowNumber = 1,                           
+          columnWidth = 6,
+          varName = 'outcome',
+          uiFunction = 'shinyWidgets::pickerInput',
+          uiInputs = list(
+            label = 'Outcome: ',
+            choices = outcomes,
+            selected = outcomes[1],
+            multiple = F,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
+          )
+        ),
+        createInputSetting(
+          rowNumber = 2,                           
+          columnWidth = 6,
+          varName = 'database',
+          uiFunction = 'shinyWidgets::pickerInput',
+          uiInputs = list(
+            label = 'Database: ',
+            choices = databases,
+            selected = databases,
+            multiple = T,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
+          )
+        ),
+        createInputSetting(
+          rowNumber = 2,                           
+          columnWidth = 6,
+          varName = 'analysis',
+          uiFunction = 'shinyWidgets::pickerInput',
+          uiInputs = list(
+            label = 'Analysis: ',
+            choices = analyses,
+            selected = analyses,
+            multiple = T,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
+          )
+        )
+      )
+    )
 
     
-    # replace this with a server UI that doesnt need to update as this is not
-    # dynamic
-    shiny::observe({
-      # Dynamic loading of user selections
-
-      databaseIds <- databases$databaseId
-      names(databaseIds) <- databases$cdmSourceAbbreviation
-      shinyWidgets::updatePickerInput(
-        session = session, 
-        inputId = "exposuresOutcome", 
-        choices = exposuresOutcomeNames$name, 
-        selected = exposuresOutcomeNames$name[1],
-        options = shinyWidgets::pickerOptions(
-          actionsBox = TRUE,
-          liveSearch = TRUE,
-          size = 10,
-          liveSearchStyle = "contains",
-          liveSearchPlaceholder = "Type here to search",
-          virtualScroll = 50
-        )
-        )
-      
-      shinyWidgets::updatePickerInput(
-        session = session, 
-        inputId = "database", 
-        choices = databaseIds, 
-        selected = databaseIds,
-        options = shinyWidgets::pickerOptions(
-          actionsBox = TRUE,
-          liveSearch = TRUE,
-          size = 10,
-          liveSearchStyle = "contains",
-          liveSearchPlaceholder = "Type here to search",
-          virtualScroll = 50
-        )
-      )
-      
-      shinyWidgets::updatePickerInput(
-        session = session, 
-        inputId = "analysis", 
-        choices = sccsAnalyses$description, 
-        selected = sccsAnalyses$description,
-        options = shinyWidgets::pickerOptions(
-          actionsBox = TRUE,
-          liveSearch = TRUE,
-          size = 10,
-          liveSearchStyle = "contains",
-          liveSearchPlaceholder = "Type here to search",
-          virtualScroll = 50
-        )
-      )
-      
-    })
-
+    # inputSelected()$analysis
+    # inputSelected()$outcome
+    # inputSelected()$exposure
+    # inputSelected()$database
+    
     # currently reacts to database, analysis and exposure/outcomes to return data
     resultSubset <- shiny::reactive({
-      exposuresOutcomeSetId <- exposuresOutcomeNames$exposuresOutcomeSetId[exposuresOutcomeNames$name == input$exposuresOutcome]
-      analysisIds <- sccsAnalyses$analysisId[sccsAnalyses$description %in% input$analysis]
-      databaseIds <- input$database
-
-      if (length(analysisIds) == 0) {
-        analysisIds <- -1
-      }
-      if (length(databaseIds) == 0) {
-        databaseIds <- "none"
-      }
       results <- getSccsResults(connectionHandler = connectionHandler,
                                 resultDatabaseSettings = resultDatabaseSettings,
-                                exposuresOutcomeSetId = exposuresOutcomeSetId,
-                                databaseIds = databaseIds,
-                                analysisIds = analysisIds)
+                                exposureIds = inputSelected()$exposure,
+                                outcomeIds = inputSelected()$outcome,
+                                databaseIds = inputSelected()$database,
+                                analysisIds = inputSelected()$analysis)
                                 
-      results$description <- sccsAnalyses$description[match(results$analysisId, sccsAnalyses$analysisId)]
-      
       results <- results[order(results$analysisId),]
 
       idx <- (results$unblind == 0)
@@ -488,7 +476,7 @@ sccsServer <- function(
         attrition <- getSccsAttrition(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          exposuresOutcomeSetId = row$exposuresOutcomeSetId,
+          outcomeId = row$outcomeId,
           databaseId = row$databaseId,
           analysisId = row$analysisId,
           covariateId = row$covariateId
@@ -505,7 +493,8 @@ sccsServer <- function(
         resTargetTable <- getSccsModel(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          exposuresOutcomeSetId = row$exposuresOutcomeSetId,
+          exposureId = row$eraId,
+          outcomeId = row$outcomeId,
           databaseId = row$databaseId,
           analysisId = row$analysisId
         )
@@ -530,7 +519,8 @@ sccsServer <- function(
         timeTrend <- getSccsTimeTrend(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          exposuresOutcomeSetId = row$exposuresOutcomeSetId,
+          exposureId = row$eraId,
+          outcomeId = row$outcomeId,
           databaseId = row$databaseId,
           analysisId = row$analysisId
         )
@@ -545,9 +535,9 @@ sccsServer <- function(
       } else {
         timeToEvent <- getSccsTimeToEvent(
           connectionHandler = connectionHandler,
-          resultsDatabaseSettings = resultDatabaseSettings,
-          exposuresOutcomeSetId = row$exposuresOutcomeSetId,
-          eraId = row$eraId,
+          resultDatabaseSettings = resultDatabaseSettings,
+          outcomeId = row$outcomeId,
+          exposureId = row$eraId,
           covariateId = row$covariateId,
           databaseId = row$databaseId,
           analysisId = row$analysisId
@@ -564,7 +554,7 @@ sccsServer <- function(
         eventDepObservation <- getSccsEventDepObservation(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          exposuresOutcomeSetId = row$exposuresOutcomeSetId,
+          outcomeId = row$outcomeId,
           databaseId = row$databaseId,
           analysisId = row$analysisId
         )
@@ -581,7 +571,7 @@ sccsServer <- function(
           ageSpanning <- getSccsAgeSpanning(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            exposuresOutcomeSetId = row$exposuresOutcomeSetId,
+            outcomeId = row$outcomeId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
           )
@@ -590,7 +580,7 @@ sccsServer <- function(
           calendarTimeSpanning <- getSccsCalendarTimeSpanning(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            exposuresOutcomeSetId = row$exposuresOutcomeSetId,
+            outcomeId = row$outcomeId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
           )
@@ -608,7 +598,7 @@ sccsServer <- function(
         ageSpline <- getSccsSpline(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          exposuresOutcomeSetId = row$exposuresOutcomeSetId,
+          outcomeId = row$outcomeId,
           databaseId = row$databaseId,
           analysisId = row$analysisId,
           splineType = "age"
@@ -628,7 +618,7 @@ sccsServer <- function(
         seasonSpline <- getSccsSpline(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          exposuresOutcomeSetId = row$exposuresOutcomeSetId,
+          outcomeId = row$outcomeId,
           databaseId = row$databaseId,
           analysisId = row$analysisId,
           splineType = "season"
@@ -648,7 +638,7 @@ sccsServer <- function(
         calendarTimeSpline <- getSccsSpline(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          exposuresOutcomeSetId = row$exposuresOutcomeSetId,
+          outcomeId = row$outcomeId,
           databaseId = row$databaseId,
           analysisId = row$analysisId,
           splineType = "calendar time"
@@ -684,7 +674,7 @@ sccsServer <- function(
         diagnosticsSummary <- getSccsDiagnosticsSummary(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          exposuresOutcomeSetId = row$exposuresOutcomeSetId,
+          outcomeId = row$outcomeId,
           covariateId = row$covariateId,
           databaseId = row$databaseId,
           analysisId = row$analysisId
