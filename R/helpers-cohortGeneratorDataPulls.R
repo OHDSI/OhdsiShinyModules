@@ -204,13 +204,9 @@ getCohortGenerationAttritionTable <- function(
           sep="")
         
       )
-    ) %>%
-    dplyr::arrange("cdmSourceName",
-                   "cohortDefinitionId",
-                   "modeId",
-                   "ruleSequence")
-  
-  return(attritionTableFinal)
+    )
+  #newdata <- mtcars[order(mpg, -cyl),]
+  return(attritionTableFinal[order(attritionTableFinal$ruleSequence),])
   
 }
 
