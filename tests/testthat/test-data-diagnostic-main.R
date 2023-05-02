@@ -15,3 +15,9 @@ shiny::testServer(
     
     
   })
+
+test_that("Test data-diag ui", {
+  # Test ui
+  ui <- dataDiagnosticViewer()
+  checkmate::expect_list(ui)
+})

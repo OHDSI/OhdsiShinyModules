@@ -6,10 +6,18 @@ shiny::testServer(evidenceSynthesisServer, args = list(
   resultDatabaseSettings = resultDatabaseSettingsES
 ), {
   
+  expect_true(length(targetIds) > 0)
+  expect_true(length(outcomeIds) > 0)
+  
   #session$setInputs(
+  # `input-selection-targetId` = 1, 
+  # `input-selection-outcomeId` = 3, 
+  # `input-selection-generate` = 1
   #)
   
-  testthat::expect_equal(as.double(outcomeId()), 3)
+  inputSelected(list(targetId = targetIds[1], outcomeId = 3))
+  testthat::expect_true( nrow(unique(rbind(data(),data2()))) >0 )
+  testthat::expect_equal(as.double(inputSelected()$outcomeId), 3)
   
 })
 

@@ -162,18 +162,28 @@ descriptionAggregateFeaturesServer <- function(
       )
       
       types <- c(
-        'Target',
-        'Outcome',
-        'Target with outcome during TAR (T index)',
-        'Target with outcome during TAR (O index)',
-        'Target without outcome during TAR'
+        'Target (first exposure)',
+        'Outcome (all exposures)',
+        'Target with outcome (all exposures) during TAR (T index)',
+        'Target with outcome (all exposures) during TAR (O index)',
+        'Target without outcome (all exposures) during TAR',
+        'Target (all exposures)',
+        'Outcome (first exposure)',
+        'Target with outcome (first exposure) during TAR (T index)',
+        'Target without outcome (first exposure) during TAR',
+        'Target with outcome (first exposure) during TAR (O index)'
       )
       typesTranslate <- c(
         'T',
         'O',
         'TnO',
         'OnT',
-        'TnOc'
+        'TnOc',
+        'allT',
+        'firstO',
+        'TnfirstO',
+        'TnfirstOc',
+        'firstOnT'
       )
       
       # get the possible options
@@ -693,19 +703,6 @@ getAggregateFeatureDatabases <- function(
   return(dbs)
 }
 
-addTypeEnd <- function(x){
-  if(x == 'TnO'){
-    return(1)
-  }
-  if(x == 'TnOc'){
-    return(2)
-  }
-  if(x == 'OnT'){
-    return(3)
-  }
-return(0)
-}
-
 # pulls all data for a target and outcome
 descriptiveGetAggregateData <- function(
     connectionHandler,
@@ -739,8 +736,8 @@ descriptiveGetAggregateData <- function(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
-    target_id = ifelse(type1 == 'O', 0, targetId),
-    outcome_id = ifelse(type1 == 'T', 0, outcomeId),
+    target_id = ifelse(type1 %in% c('firstO','O'), 0, targetId),
+    outcome_id = ifelse(type1 %in% c('T', 'allT'), 0, outcomeId),
     risk_window_start = riskWindowStart,
     start_anchor = startAnchor,
     risk_window_end = riskWindowEnd,
@@ -768,8 +765,8 @@ descriptiveGetAggregateData <- function(
     sql = sql, 
     result_database_schema = schema,
     table_prefix = tablePrefix,
-    target_id = ifelse(type2 == 'O', 0, targetId),
-    outcome_id = ifelse(type2 == 'T', 0, outcomeId),
+    target_id = ifelse(type1 %in% c('firstO','O'), 0, targetId),
+    outcome_id = ifelse(type1 %in% c('T', 'allT'), 0, outcomeId),
     risk_window_start = riskWindowStart,
     start_anchor = startAnchor,
     risk_window_end = riskWindowEnd,

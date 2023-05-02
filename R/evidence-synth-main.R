@@ -27,45 +27,55 @@ evidenceSynthesisHelperFile <- function(){
 evidenceSynthesisViewer <- function(id=1) {
   ns <- shiny::NS(id)
   
-
     shinydashboard::box(
       status = 'info', 
       width = 12,
       title = shiny::span( shiny::icon("sliders"), 'Evidence Synthesis'),
       solidHeader = TRUE,
       
-      shiny::uiOutput(ns('esCohortMethodSelect')),
-
-    
-    #shiny::fluidRow(
-      #shinydashboard::tabBox(
+      shinydashboard::box(
+        collapsible = TRUE,
+        collapsed = TRUE,
+        title = "Info",
+        width = "100%"#,
+        #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
+      ),
+      
+      inputSelectionViewer(ns("input-selection")),
+      
+      #shiny::uiOutput(ns('esCohortMethodSelect')),
+      
+      shiny::conditionalPanel(
+        condition = 'input.generate != 0',
+        ns = shiny::NS(ns("input-selection")),
+        
         shiny::tabsetPanel(
           type = 'pills',
-        #width = 12,
-        #title = shiny::tagList(shiny::icon("gear"), "Plot and Table"),
-        id = ns('esCohortTabs'),
-        
-        shiny::tabPanel(
-          "Cohort Method Plot",
-          shiny::plotOutput(ns('esCohortMethodPlot'))
-        ),
-        shiny::tabPanel(
-          "Cohort Method Table",
-          reactable::reactableOutput(ns('esCohortMethodTable')),
-          shiny::downloadButton(
-            ns('downloadCohortMethodTable'), 
-            label = "Download"
+          #width = 12,
+          #title = shiny::tagList(shiny::icon("gear"), "Plot and Table"),
+          id = ns('esCohortTabs'),
+          
+          shiny::tabPanel(
+            "Cohort Method Plot",
+            shiny::plotOutput(ns('esCohortMethodPlot'))
+          ),
+          shiny::tabPanel(
+            "Cohort Method Table",
+            reactable::reactableOutput(ns('esCohortMethodTable')),
+            shiny::downloadButton(
+              ns('downloadCohortMethodTable'), 
+              label = "Download"
+            )
+          ),
+          shiny::tabPanel("SCCS Plot",
+                          shiny::plotOutput(ns('esSccsPlot'))
+          ),
+          shiny::tabPanel("SCCS Table",
+                          reactable::reactableOutput(ns('esSccsTable'))
           )
-        ),
-        shiny::tabPanel("SCCS Plot",
-                        shiny::plotOutput(ns('esSccsPlot'))
-        ),
-        shiny::tabPanel("SCCS Table",
-                        reactable::reactableOutput(ns('esSccsTable'))
         )
       )
-    #)
-    
+
   )
   
 }
@@ -112,40 +122,51 @@ evidenceSynthesisServer <- function(
         cgTablePrefix = resultDatabaseSettings$cgTablePrefix
       )
       
-      targetId <- shiny::reactiveVal(targetIds[1])
-      outcomeId <- shiny::reactiveVal(outcomeIds[1])
-      
-      output$esCohortMethodSelect <- shiny::renderUI({
-        
-        shiny::tagList(
-          shiny::selectInput(
-            inputId = session$ns('selectedTargetId'), 
-            label = 'Target:', 
-            choices = targetIds, 
-            selected = 1,
-            multiple = F, 
-            selectize=FALSE
+      inputSelected <- inputSelectionServer(
+        id = "input-selection", 
+        inputSettingList = list(
+          createInputSetting(
+            rowNumber = 1,                           
+            columnWidth = 6,
+            varName = 'targetId',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Target: ',
+              choices = targetIds,
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
           ),
-          shiny::selectInput(
-            inputId = session$ns('selectedOutcomeId'), 
-            label = 'Outcome:', 
-            choices = outcomeIds, 
-            selected = 1,
-            multiple = F, 
-            selectize=FALSE
+          createInputSetting(
+            rowNumber = 1,                           
+            columnWidth = 6,
+            varName = 'outcomeId',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Outcome: ',
+              choices = outcomeIds,
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
           )
         )
-      })
+        )
       
-      shiny::observeEvent(input$selectedTargetId,{
-        targetId(input$selectedTargetId)
-      })
-      shiny::observeEvent(input$selectedOutcomeId,{
-        outcomeId(input$selectedOutcomeId)
-      })
-      
-      # Cohort Method plots and tables
-      
+      # plots and tables
       data <- shiny::reactive({
         getCMEstimation(
           connectionHandler = connectionHandler,
@@ -153,8 +174,8 @@ evidenceSynthesisServer <- function(
           cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
           cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
           databaseMetaData = resultDatabaseSettings$databaseMetaData,
-          targetId = targetId(),
-          outcomeId = outcomeId()
+          targetId = inputSelected()$targetId,
+          outcomeId = inputSelected()$outcomeId
         )
       })
       
@@ -165,8 +186,8 @@ evidenceSynthesisServer <- function(
           cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
           cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
           esTablePrefix = resultDatabaseSettings$tablePrefix,
-          targetId = targetId(),
-          outcomeId = outcomeId()
+          targetId = inputSelected()$targetId,
+          outcomeId = inputSelected()$outcomeId
         )
       })
       
@@ -265,8 +286,8 @@ evidenceSynthesisServer <- function(
           cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
           esTablePrefix = resultDatabaseSettings$tablePrefix,
           databaseMetaData = resultDatabaseSettings$databaseMetaData,
-          targetId = targetId(),
-          outcomeId = outcomeId()
+          targetId = inputSelected()$targetId,
+          outcomeId = inputSelected()$outcomeId
         )
       })
       
@@ -429,6 +450,11 @@ getCMEstimation <- function(
     targetId,
     outcomeId
     ){
+  
+  if(is.null(targetId)){
+    return(NULL)
+  }
+  
   sql <- "select 
   c1.cohort_name as target,
   c2.cohort_name as comparator,
@@ -519,6 +545,10 @@ getMetaEstimation <- function(
     targetId,
     outcomeId
 ){
+  
+  if(is.null(targetId)){
+    return(NULL)
+  }
 
 sql <- "select 
   c1.cohort_name as target,

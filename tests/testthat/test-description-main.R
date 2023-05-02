@@ -14,3 +14,10 @@ shiny::testServer(
     testthat::expect_true(mainPanelTab() == 'testing')
     
   })
+
+
+test_that("Test description ui", {
+  # Test ui
+  ui <- descriptionViewer()
+  checkmate::expect_list(ui)
+})

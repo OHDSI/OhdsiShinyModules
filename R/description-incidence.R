@@ -217,8 +217,8 @@ descriptionIncidenceServer <- function(
             {
               reactable::reactable(
                 data = allData %>% 
-                  dplyr::relocate("tarId", .after = "cdmSourceAbbreviation") %>%
-                  dplyr::relocate("personsAtRisk", .after = "tarEndOffset") %>% 
+                  dplyr::relocate("tar", .after = "cdmSourceAbbreviation") %>%
+                  dplyr::relocate("personsAtRisk", .after = "tar") %>% 
                   dplyr::relocate("personDays", .after = "personsAtRisk") %>% 
                   dplyr::relocate("personOutcomes", .after = "personDays") %>% 
                   dplyr::relocate("incidenceProportionP100p", .after = "personOutcomes") %>% 
@@ -247,7 +247,7 @@ descriptionIncidenceServer <- function(
                       )
                     }
                   ),
-                  tarId = reactable::colDef( 
+                  tar = reactable::colDef( 
                     filterInput = function(values, name) {
                       shiny::tags$select(
                         # Set to undefined to clear the filter
@@ -341,6 +341,13 @@ getIncidenceData <- function(
   
   })
   
+  # format the tar
+  resultTable$tar <- paste0('(',resultTable$tarStartWith, " + ", resultTable$tarStartOffset, ') - (', resultTable$tarEndWith, " + ", resultTable$tarEndOffset, ')')
+  resultTable <- resultTable %>% 
+    dplyr::select(-c("tarStartWith","tarStartOffset","tarEndWith","tarEndOffset", "tarId", "subgroupName"))
+  
+  resultTable[is.na(resultTable)] <- 'All'
+  resultTable <- unique(resultTable)
   
   return(resultTable)
 }

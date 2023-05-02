@@ -49,59 +49,131 @@ cohortGeneratorViewer <- function(id) {
     
     shinydashboard::box(
       status = 'info', 
-      width = 12,
-      title = 'Cohort Generator Results',
+      width = '100%',
+      title = shiny::span( shiny::icon("user-gear"),'Cohort Generator Viewer'),
       solidHeader = TRUE,
+      
+      shinydashboard::box(
+        collapsible = TRUE,
+        collapsed = TRUE,
+        title = shiny::span( shiny::icon("circle-question"), "Help & Information"),
+        width = "100%",
+        shiny::htmlTemplate(system.file("cohort-generator-www", "cohort-generator.html", package = utils::packageName()))
+      ),
+      
     
     shiny::tabsetPanel(
       id = ns("cohortGeneratorTabs"),
       type = "pills",
       
+      
       shiny::tabPanel(
         title = "Cohort Counts",
-        shiny::downloadButton(
-          ns('downloadCohortCounts'),
-          label = "Download",
-          icon = shiny::icon("download"),
-          style="float:right"
-        ),
-        reactable::reactableOutput(
-          outputId = ns("cohortCounts")
+        
+        shinydashboard::box(
+          status = 'info', 
+          width = '100%',
+          title = shiny::span( shiny::icon("file-arrow-down"),'Download Data'),
+          solidHeader = TRUE,
+          
+          shiny::downloadButton(
+            ns('downloadCohortCounts'),
+            label = "Download",
+            icon = shiny::icon("download")
           )
+        ),
+        
+        shinydashboard::box(
+          status = 'info', 
+          width = '100%',
+          title = shiny::span( shiny::icon("table"), 'Counts Table'),
+          solidHeader = TRUE,
+          
+          reactable::reactableOutput(
+            outputId = ns("cohortCounts")
+          )  
+        )
         # ,
         # shiny::downloadButton(
         #   ns('downloadCohortCounts'),
         #   label = "Download"
         # )
       ),
+      
       shiny::tabPanel(
         title = "Cohort Generation",
-        reactable::reactableOutput(
-          outputId = ns("cohortGeneration")
+        
+        shinydashboard::box(
+          status = 'info', 
+          width = '100%',
+          title = shiny::span( shiny::icon("file-arrow-down"),'Download Data'),
+          solidHeader = TRUE,
+          
+          shiny::downloadButton(
+            ns('downloadCohortGeneration'),
+            label = "Download",
+            icon = shiny::icon("download")
+          )
+        ),
+        
+        shinydashboard::box(
+          status = 'info', 
+          width = '100%',
+          title = shiny::span( shiny::icon("table"), 'Generation Table'),
+          solidHeader = TRUE,
+          
+          reactable::reactableOutput(
+            outputId = ns("cohortGeneration")
+            )  
           )
       ),
-      shiny::tabPanel(
-        title = "Cohort Summary",
-        reactable::reactableOutput(
-          outputId = ns("inclusionSummary")
-          )
-      )
       
+      shiny::tabPanel(
+        title = "Inclusion Rules & Attrition"
+        ,
+
+        shinydashboard::box(
+          status = 'info', 
+          width = '100%',
+          title = shiny::span( shiny::icon("gear"), 'Options'),
+          solidHeader = TRUE,
+          
+          shiny::uiOutput(ns('attritionTableSelect'))
+          ),
+        
+        shinydashboard::box(
+          status = 'info', 
+          width = '100%',
+          title = shiny::span( shiny::icon("file-arrow-down"),'Download Data'),
+          solidHeader = TRUE,
+          
+          shiny::downloadButton(
+            ns('downloadAttritionTable'),
+            label = "Download",
+            icon = shiny::icon("download")
+          )
+        ),
+        
+        shinydashboard::box(
+          status = 'info', 
+          width = '100%',
+          title = shiny::span( shiny::icon("table"), 'Attrition Table'),
+          solidHeader = TRUE,
+          
+          reactable::reactableOutput(ns('attritionTable'))
+        ),
+        
+        shinydashboard::box(
+          status = 'info', 
+          width = '100%',
+          title = shiny::span( shiny::icon("chart-area"), 'Attrition Plot'),
+          solidHeader = TRUE,
+          
+          plotly::plotlyOutput(ns('attritionPlot'))
+        )
+      )
     )
-    
    )
-   # ,
-   # shinydashboard::box(
-   #   status = 'info',
-   #   width = 12,
-   #   # Title can include an icon
-   #   title = shiny::tagList(shiny::icon("gear"), "Download"),
-   # 
-   #   shiny::downloadButton(
-   #     ns('downloadCohortCounts'),
-   #     label = "Download"
-   #   )
-   # )
   )
 }
 
@@ -198,7 +270,7 @@ cohortGeneratorServer <- function(
                              )
       })
       
-      # download button
+      # download button - counts
       output$downloadCohortCounts <- shiny::downloadHandler(
         filename = function() {
           paste('cohort-count-data-', Sys.Date(), '.csv', sep='')
@@ -275,75 +347,279 @@ cohortGeneratorServer <- function(
         )
       })
       
-      output$inclusionSummary <- reactable::renderReactable({
-        data <- getCohortGeneratorCohortInclusionSummary(
-          connectionHandler = connectionHandler, 
-          resultsSchema = resultsSchema,
-          tablePrefix = resultDatabaseSettings$tablePrefix,
-          databaseTable = resultDatabaseSettings$databaseTable,
-          databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
-        ) %>%
-          dplyr::select("cdmSourceName",
-                        "cohortDefinitionId",
-                        "cohortName",
-                        "baseCount",
-                        "finalCount",
-                        "modeId") %>%
-          dplyr::mutate(modeId = 
-                          dplyr::case_when(
-                            modeId == 1 ~ "Subjects",
-                            .default = "Records"
-                          )
-                        )
-        reactable::reactable(data,
-                             columns = list(
-                               # Render a "show details" button in the last column of the table.
-                               # This button won't do anything by itself, but will trigger the custom
-                               # click action on the column.
-                               cdmSourceName = reactable::colDef( 
-                                 header = withTooltip(
-                                   "Database Name", 
-                                   "The name of the database"
-                                 )),
-                               cohortDefinitionId = reactable::colDef( 
-                                 header = withTooltip(
-                                   "Cohort ID", 
-                                   "The unique numeric identifier of the cohort"
-                                 )),
-                               cohortName = reactable::colDef( 
-                                 header = withTooltip(
-                                   "Cohort Name", 
-                                   "The name of the cohort"
-                                 )),
-                               baseCount = reactable::colDef( 
-                                 header = withTooltip(
-                                   "Base Count", 
-                                   "The number of records before any inclusion criteria are applied (entry events)"
-                                 ),
-                                 format = reactable::colFormat(separators = TRUE
-                                 )),
-                               finalCount = reactable::colDef( 
-                                 header = withTooltip(
-                                   "Final Count", 
-                                   "The number of records after all inclusion criteria are applied"
-                                 ),
-                                 format = reactable::colFormat(separators = TRUE
-                                 )),
-                               modeId = reactable::colDef( 
-                                 header = withTooltip(
-                                   "Records or Subjects?", 
-                                   "An indicator of whether the counts shown are the number of subjects or the number of records"
-                                 ),
-                                 format = reactable::colFormat(separators = TRUE
-                                 ))
-                             ),
-                             filterable = TRUE,
-                             sortable = TRUE,
-                             defaultColDef = reactable::colDef(
-                               align = "left"
-                             )
+      # download button - generation
+      output$downloadCohortGeneration <- shiny::downloadHandler(
+        filename = function() {
+          paste('cohort-generation-data-', Sys.Date(), '.csv', sep='')
+        },
+        content = function(con) {
+          utils::write.csv(getCohortGeneratorCohortMeta(
+            connectionHandler = connectionHandler, 
+            resultsSchema = resultsSchema,
+            tablePrefix = resultDatabaseSettings$tablePrefix
+          ) %>%
+            dplyr::select("cohortId",
+                          "cohortName",
+                          "generationStatus",
+                          "startTime",
+                          "endTime"), con)
+        }
+      )
+      
+      #building attrition table using inclusion rules & stats tables
+      rules <- getCohortGeneratorInclusionRules(
+        connectionHandler = connectionHandler, 
+        resultsSchema = resultsSchema,
+        tablePrefix = resultDatabaseSettings$tablePrefix
+      )
+      
+      stats <- getCohortGeneratorInclusionStats(
+        connectionHandler = connectionHandler, 
+        resultsSchema = resultsSchema,
+        tablePrefix = resultDatabaseSettings$tablePrefix,
+        databaseTable = resultDatabaseSettings$databaseTable,
+        databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
+      )
+      
+      #this gets the full attrition table
+      inputVals <- getCohortGenerationAttritionTable(
+        rules, 
+        stats
+      )
+      
+      #making a "clean" version where modeId is renamed to sensible values
+      cohortNames <- unique(inputVals$cohortName)
+      databaseIds <- unique(inputVals$cdmSourceName)
+      inputValsClean <- dplyr::ungroup(inputVals) %>%
+        dplyr::mutate(modeId = dplyr::case_when(
+          modeId==1 ~ "Subject",
+          TRUE ~ "Record"
+          )
+        )
+      modeIds <- unique(inputValsClean$modeId)
+        
+      
+      cohortName <- shiny::reactiveVal(cohortNames[1])
+      databaseId <- shiny::reactiveVal(databaseIds[1])
+      modeId <- shiny::reactiveVal(modeIds[1])
+      
+      #build the selector
+      output$attritionTableSelect <- shiny::renderUI({
+        
+        shiny::tagList(
+          shiny::selectInput(
+            inputId = session$ns('selectedCohortName'), 
+            label = 'Cohort:', 
+            choices = cohortNames, 
+            selected = 1,
+            multiple = F, 
+            selectize=FALSE
+          ),
+          shiny::selectInput(
+            inputId = session$ns('selectedDatabaseId'), 
+            label = 'Database:', 
+            choices = databaseIds, 
+            selected = 1,
+            multiple = F, 
+            selectize=FALSE
+          ),
+          shiny::radioButtons(
+            inputId = session$ns('selectedModeId'),
+            label = "Subject-level or Record-level?",
+            choices = modeIds,
+            selected = "Subject"
+          )
         )
       })
+      
+      shiny::observeEvent(input$selectedCohortName,{
+        cohortName(input$selectedCohortName)
+      })
+      shiny::observeEvent(input$selectedDatabaseId,{
+        databaseId(input$selectedDatabaseId)
+      })
+      shiny::observeEvent(input$selectedModeId,{
+        modeId(input$selectedModeId)
+      })
+      
+      #build the reactive data
+      data <- shiny::reactive({
+        inputValsClean %>%
+          dplyr::filter(.data$cdmSourceName == databaseId() & 
+                          .data$cohortName == cohortName() &
+                          .data$modeId == modeId()
+          )
+      })
+      
+      output$attritionTable <- reactable::renderReactable(
+        reactable::reactable(
+          data =  data() %>%
+            dplyr::select(c("cdmSourceName", "cohortName", "ruleName",
+                            "personCount", "dropCount",
+                            "dropPerc", "retainPerc")
+                          )
+          
+          ,
+          rownames = FALSE, 
+          defaultPageSize = 5,
+          showPageSizeOptions = T, 
+          striped = T,
+          columns = list(
+            cdmSourceName = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Database Name", 
+                "The name of the database"
+              )),
+            cohortName = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Cohort Name", 
+                "The name of the cohort"
+              )),
+            ruleName = reactable::colDef( 
+              header = withTooltip(
+                "Inclusion Rule Name", 
+                "The name of the inclusion rule"
+              )),
+            personCount = reactable::colDef( 
+              format = reactable::colFormat(separators = TRUE),
+              header = withTooltip(
+                "Subject/Record Count", 
+                "The number of subjects or records (depending on your selection) remaining after the inclusion rule was applied"
+              )),
+            dropCount = reactable::colDef( 
+              format = reactable::colFormat(separators = TRUE),
+              header = withTooltip(
+                "Number Lost", 
+                "The number of subjects or records (depending on your selection) removed/lost after the inclusion rule was applied"
+              )),
+            dropPerc = reactable::colDef( 
+              format = reactable::colFormat(separators = TRUE),
+              header = withTooltip(
+                "Percentage Lost", 
+                "The percentage of subjects or records (depending on your selection) removed/lost after the inclusion rule was applied compared to the previous rule count"
+              )),
+            retainPerc = reactable::colDef( 
+              format = reactable::colFormat(separators = TRUE),
+              header = withTooltip(
+                "Number Retained", 
+                "The number of subjects or records (depending on your selection) retained after the inclusion rule was applied compared to the previous rule count"
+              ))
+          ),
+          
+          filterable = TRUE,
+          sortable = TRUE,
+          defaultColDef = reactable::colDef(
+            align = "left"
+          )
+        )
+      )
+      
+      #attrition plot
+      output$attritionPlot <- plotly::renderPlotly(
+        getCohortAttritionPlot(
+          data()
+        )
+      )
+      
+      # download button
+      output$downloadAttritionTable <- shiny::downloadHandler(
+        filename = function() {
+          paste('cohort-attrition-data-', Sys.Date(), '.csv', sep='')
+        },
+        content = function(con) {
+          utils::write.csv(data()
+                           , con)
+        }
+      )
+      
+      #testing funnel plot for attrition visualization
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      # output$inclusionSummary <- reactable::renderReactable({
+      #   data <- getCohortGeneratorCohortInclusionSummary(
+      #     connectionHandler = connectionHandler, 
+      #     resultsSchema = resultsSchema,
+      #     tablePrefix = resultDatabaseSettings$tablePrefix,
+      #     databaseTable = resultDatabaseSettings$databaseTable,
+      #     databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
+      #   ) %>%
+      #     dplyr::select("cdmSourceName",
+      #                   "cohortDefinitionId",
+      #                   "cohortName",
+      #                   "baseCount",
+      #                   "finalCount",
+      #                   "modeId") %>%
+      #     dplyr::mutate(modeId = 
+      #                     dplyr::case_when(
+      #                       modeId == 1 ~ "Subjects",
+      #                       .default = "Records"
+      #                     )
+      #                   )
+      #   reactable::reactable(data,
+      #                        columns = list(
+      #                          # Render a "show details" button in the last column of the table.
+      #                          # This button won't do anything by itself, but will trigger the custom
+      #                          # click action on the column.
+      #                          cdmSourceName = reactable::colDef( 
+      #                            header = withTooltip(
+      #                              "Database Name", 
+      #                              "The name of the database"
+      #                            )),
+      #                          cohortDefinitionId = reactable::colDef( 
+      #                            header = withTooltip(
+      #                              "Cohort ID", 
+      #                              "The unique numeric identifier of the cohort"
+      #                            )),
+      #                          cohortName = reactable::colDef( 
+      #                            header = withTooltip(
+      #                              "Cohort Name", 
+      #                              "The name of the cohort"
+      #                            )),
+      #                          baseCount = reactable::colDef( 
+      #                            header = withTooltip(
+      #                              "Base Count", 
+      #                              "The number of records before any inclusion criteria are applied (entry events)"
+      #                            ),
+      #                            format = reactable::colFormat(separators = TRUE
+      #                            )),
+      #                          finalCount = reactable::colDef( 
+      #                            header = withTooltip(
+      #                              "Final Count", 
+      #                              "The number of records after all inclusion criteria are applied"
+      #                            ),
+      #                            format = reactable::colFormat(separators = TRUE
+      #                            )),
+      #                          modeId = reactable::colDef( 
+      #                            header = withTooltip(
+      #                              "Records or Subjects?", 
+      #                              "An indicator of whether the counts shown are the number of subjects or the number of records"
+      #                            ),
+      #                            format = reactable::colFormat(separators = TRUE
+      #                            ))
+      #                        ),
+      #                        filterable = TRUE,
+      #                        sortable = TRUE,
+      #                        defaultColDef = reactable::colDef(
+      #                          align = "left"
+      #                        )
+      #   )
+      # })
       
     }
   )
