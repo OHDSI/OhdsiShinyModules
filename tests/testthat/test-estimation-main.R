@@ -23,3 +23,10 @@ shiny::testServer(
 
     
   })
+
+
+test_that("Test estimation ui", {
+  # Test ui
+  ui <- estimationViewer('test')
+  checkmate::expect_list(ui)
+})
