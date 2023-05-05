@@ -29,16 +29,35 @@ getCohortGeneratorCohortCounts <- function(
 getCohortGeneratorCohortMeta <- function(
     connectionHandler, 
   resultsSchema,
-  tablePrefix = 'cg_'
+  tablePrefix = 'cg_',
+  databaseTable,
+  databaseTablePrefix
   ) {
   
-  sql <- "SELECT * FROM @results_schema.@table_prefixCOHORT_GENERATION;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix
+  sql <- "SELECT cg.cohort_id, cg.cohort_name,
+  cg.generation_status, cg.start_time, cg.end_time, dt.cdm_source_name
+  from @results_schema.@table_prefixCOHORT_GENERATION cg
+  join @results_schema.@database_table_prefix@database_table dt
+  on cg.database_id = dt.database_id
+  ;"
+  
+  df <- connectionHandler$queryDb(
+    sql = sql,
+    results_schema = resultsSchema,
+    table_prefix = tablePrefix,
+    database_table = databaseTable,
+    database_table_prefix = databaseTablePrefix
+  )
+  
+  df2 <- df %>%
+    dplyr::mutate(generationDuration = case_when(
+      generationStatus == "COMPLETE" ~ difftime(endTime, startTime, units="mins"),
+      .default = NA
     )
+                  )
+  
+  return(
+    df2
   )
 }
 
