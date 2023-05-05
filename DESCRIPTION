@@ -41,11 +41,11 @@ Imports:
     tidyr,
     tidyselect,
     tippy,
-    RColorBrewer
+    RColorBrewer,
+    markdown
 Suggests:
     kableExtra,
     knitr,
-    markdown,
     ResultModelManager,
     RSQLite,
     testthat,

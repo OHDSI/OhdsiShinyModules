@@ -154,10 +154,14 @@ dataDiagnosticDrillServer <- function(
               return(
                 reactable::colDef(
                   style = function(value) {
-                    if (value > 0) {
-                      color <- '#e00000'
+                    if(is.na(value)){
+                      color <- '#84848c'
                     } else {
-                      color <- "#008000"
+                      if (value > 0) {
+                        color <- '#e00000'
+                      } else {
+                        color <- "#008000"
+                      }
                     }
                     list(color = color, fontWeight = "bold")
                   }
