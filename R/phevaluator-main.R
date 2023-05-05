@@ -17,32 +17,30 @@
 # limitations under the License.
 
 
-#' The location of the description module helper file
+
+#' The location of the phevaluator module helper file
+#' 
+#' @details Returns the location of the cohort-generator helper file
+#' 
+#' @return String location of the phevaluator helper file
+#' 
+#' @export 
 #'
-#' @details
-#' Returns the location of the phevaluator helper file
-#'
-#' @return
-#' string location of the phevaluator helper file
-#'
-#' @export
 phevaluatorHelperFile <- function() {
   fileLoc <-
     system.file('phevaluator-www', "phevaluator.html", package = "OhdsiShinyModules")
   return(fileLoc)
 }
 
-#' The module viewer for exploring description studies
+
+#' The viewer of the phevaluator module
 #'
-#' @details
-#' The user specifies the id for the module
+#' @param id The unique reference id for the module
 #'
-#' @param id  the unique reference id for the module
-#'
-#' @return
-#' The user interface to the description viewer module
-#'
+#' @return The user interface to the phevaluator results viewer
+#' 
 #' @export
+#'
 phevaluatorViewer <- function(id = "phevaluatorViewer") {
   ns <- shiny::NS(id)
   
@@ -198,6 +196,18 @@ phevaluatorViewer <- function(id = "phevaluatorViewer") {
     )
   )
 }
+
+
+#' The module server for the main phevaluator module
+#'
+#' @param id The unique reference id for the module
+#' @param connectionHandler A connection to the database with the results
+#' @param resultDatabaseSettings A named list containing the cohort generator results database details (schema, table prefix) 
+#'
+#' @return The phevaluator main module server
+#' 
+#' @export
+#'
 
 phevaluatorServer <- function(
   id = "phevaluatorServer", 
