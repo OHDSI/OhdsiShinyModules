@@ -6,7 +6,7 @@ getCohortGeneratorCohortCounts <- function(
   tablePrefix = 'cg_',
   databaseTable,
   databaseTablePrefix
-  ) {
+) {
   
   sql <- "SELECT cc.cohort_id, cc.cohort_entries, cc.cohort_subjects,
   dt.cdm_source_name, cd.cohort_name FROM @results_schema.@table_prefixCOHORT_COUNT cc
@@ -27,18 +27,37 @@ getCohortGeneratorCohortCounts <- function(
 }
 
 getCohortGeneratorCohortMeta <- function(
-    connectionHandler, 
+  connectionHandler, 
   resultsSchema,
-  tablePrefix = 'cg_'
-  ) {
+  tablePrefix = 'cg_',
+  databaseTable,
+  databaseTablePrefix
+) {
   
-  sql <- "SELECT * FROM @results_schema.@table_prefixCOHORT_GENERATION;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix
+  sql <- "SELECT cg.cohort_id, cg.cohort_name,
+  cg.generation_status, cg.start_time, cg.end_time, dt.cdm_source_name
+  from @results_schema.@table_prefixCOHORT_GENERATION cg
+  join @results_schema.@database_table_prefix@database_table dt
+  on cg.database_id = dt.database_id
+  ;"
+  
+  df <- connectionHandler$queryDb(
+    sql = sql,
+    results_schema = resultsSchema,
+    table_prefix = tablePrefix,
+    database_table = databaseTable,
+    database_table_prefix = databaseTablePrefix
+  )
+  
+  df2 <- df %>%
+    dplyr::mutate(generationDuration = case_when(
+      generationStatus == "COMPLETE" ~ difftime(endTime, startTime, units="mins"),
+      .default = NA
     )
+    )
+  
+  return(
+    df2
   )
 }
 
@@ -46,12 +65,12 @@ getCohortGeneratorCohortMeta <- function(
 
 
 getCohortGeneratorCohortInclusionSummary <- function(
-    connectionHandler, 
+  connectionHandler, 
   resultsSchema,
   tablePrefix = 'cg_',
   databaseTable,
   databaseTablePrefix
-  ) {
+) {
   
   sql <- "SELECT css.cohort_definition_id, css.base_count, css.final_count, css.mode_id,
   dt.cdm_source_name, cd.cohort_name FROM @results_schema.@table_prefixCOHORT_SUMMARY_STATS css
@@ -147,20 +166,98 @@ getCohortGenerationAttritionTable <- function(
         ) %>% 
         dplyr::select(-c("databaseId")) %>%
         dplyr::group_by(.data$cdmSourceName, .data$cohortDefinitionId, .data$modeId) %>%
-        dplyr::summarise(personCount = sum(.data$personCount))
+        dplyr::summarise(personCount = sum(.data$personCount),
+        )
+      
+      startingCounts <- stats %>%
+        dplyr::select(-c("databaseId")) %>%
+        dplyr::group_by(.data$cdmSourceName, .data$cohortDefinitionId, .data$modeId) %>%
+        dplyr::summarise(personCount = sum(.data$personCount),
+        ) %>%
+        dplyr::mutate(ruleSequence = -1,
+                      ruleName = "Before any inclusion criteria",
+        )
       
       attritionRowsFull <- cbind(attritionRows, rule)
       
-      attritionTable <- rbind(attritionTable, attritionRowsFull)  
+      startingCountsFull <- cbind(startingCounts, rule %>% dplyr::select("cohortName")) %>%
+        dplyr::filter(.data$cohortDefinitionId %in% !!attritionRows$cohortDefinitionId)
+      
+      attritionTable <- rbind(attritionTable, attritionRowsFull, startingCountsFull)
       
     }
     
   }
   
-  return(attritionTable)
+  attritionTableDistinct <- dplyr::distinct(attritionTable)
+  
+  #adding drop counts
+  attritionTableFinal <- attritionTableDistinct %>%
+    dplyr::group_by(
+      .data$cdmSourceName, 
+      .data$cohortDefinitionId, 
+      .data$modeId) %>%
+    dplyr::mutate(
+      dropCount = dplyr::case_when(
+        is.na(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) ~ 0,
+        TRUE ~ dplyr::lag(.data$personCount, order_by = .data$ruleSequence) - .data$personCount
+      ),
+      dropPerc = dplyr::case_when(
+        is.na(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) ~ "0.00%",
+        TRUE ~  paste(
+          round(
+            (.data$dropCount/(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) * 100), 
+            digits = 2
+          ),
+          "%",
+          sep="")
+      ),
+      retainPerc = dplyr::case_when(
+        is.na(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) ~ "100.00%",
+        TRUE ~ paste(
+          round(
+            (.data$personCount/(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) * 100), 
+            digits = 2
+          ),
+          "%",
+          sep="")
+        
+      )
+    )
+  #newdata <- mtcars[order(mpg, -cyl),]
+  return(attritionTableFinal[order(attritionTableFinal$ruleSequence),])
   
 }
 
+# test <- inputValsClean %>%
+#   dplyr::filter(cohortDefinitionId == 11057 & cdmSourceName == "Optum EHR" & 
+#            modeId == "Subject")
+
+getCohortAttritionPlot <- function(data) {
+  
+  #colorPal <- colorRampPalette(c("darkgreen", "green", "yellow", "orange", "red"))
+  
+  fig <- plotly::plot_ly() 
+  fig %>%
+    plotly::add_trace(
+      type = "funnel",
+      y = data$ruleName,
+      x = data$personCount,
+      texttemplate = "N: %{value:,d}<br>Number Lost: %{text:,d}",
+      marker = list(color = RColorBrewer::brewer.pal(length(unique(data$ruleName)),
+                                                     "Greens"
+      )
+      ),
+      connector = list(fillcolor = "#e9e9bf"),
+      text = data$dropCount,
+      hoverinfo = "percent initial+percent previous" ,
+      hovertemplate='% of Previous: %{percentPrevious:.2%}<br> % of Initial: %{percentInitial:.2%}</b><extra></extra>'
+    ) %>%
+    plotly::layout(title = "Cohort Attrition by Inclusion Rules",
+                   yaxis = list(categoryarray = c(order(data$personCount, decreasing = T)))
+    )
+  
+}
 
 
 

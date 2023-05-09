@@ -41,7 +41,7 @@ phevaluatorHelperFile <- function() {
 #' 
 #' @export
 #'
-phevaluatorViewer <- function(id = "phevaluatorViewer") {
+phevaluatorViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shinydashboard::box(
@@ -50,151 +50,77 @@ phevaluatorViewer <- function(id = "phevaluatorViewer") {
     title =  shiny::span(shiny::icon("gauge"), "PheValuator"),
     solidHeader = TRUE,
     
-    shiny::tabsetPanel(
-      type = 'pills',
-      id = ns('mainPanel'),
-      
-      shiny::tabPanel(
-        title = "Phenotypes",
-        shinydashboard::box(
-          width = "100%",
-          title = 'Options',
-          collapsible = TRUE,
-          collapsed = F,
-          shiny::uiOutput(ns('cohortDefinitionSetInputs'))
-        ),
+    shinydashboard::box(
+      collapsible = TRUE,
+      collapsed = FALSE,
+      title = shiny::span( shiny::icon("circle-question"), "Help & Information"),
+      width = "100%",
+      shiny::htmlTemplate(system.file("phevaluator-www", "phevaluator.html", package = utils::packageName()))
+    ),
+    
+    shinydashboard::box(
+      collapsible = TRUE,
+      collapsed = FALSE,
+      title = shiny::span( shiny::icon("gear"), "Options"),
+      width = "100%",
+      shiny::uiOutput(ns('phevalOptionsSelector'))
+    ),
+    
+    shiny::conditionalPanel(
+      condition = "input.generate != 0",
+      ns = ns,
+     
+      shiny::uiOutput(ns("inputsText")), 
+     
+      shiny::tabsetPanel(
+        type = 'pills',
+        id = ns('mainPanel'),
         
-        shiny::conditionalPanel(
-          condition = "input.generate != 0",
-          ns = ns,
-          
-          shiny::uiOutput(ns("cohortDefinitionSetInputsText")),
-          
-          reactable::reactableOutput(outputId = ns("cohortDefinitionSetTable"))
-        ),
-      ),
+        shiny::tabPanel(
+          title = "Phenotypes",
+            
+            resultTableViewer(ns("cohortDefinitionSetTable"))
+          ),
+        
+        shiny::tabPanel(
+          title = "Model Input Parameters",
 
-      shiny::tabPanel(
-        title = "Model Input Parameters",
-        shinydashboard::box(
-          width = "100%",
-          title = 'Options',
-          collapsible = TRUE,
-          collapsed = F,
-          shiny::uiOutput(ns('modelInputParametersInputs'))
-        ),
+            
+            resultTableViewer(ns("modelInputParametersTable"))
+          ),
         
-        shiny::conditionalPanel(
-          condition = "input.generate != 0",
-          ns = ns,
-          
-          shiny::uiOutput(ns("modelInputParametersInputsText")),
-          
-          reactable::reactableOutput(outputId = ns("modelInputParametersTable"))
-        ),
-      ),
-      
-      shiny::tabPanel(
-        title = "Model Performance",
-        shinydashboard::box(
-          width = "100%",
-          title = 'Options',
-          collapsible = TRUE,
-          collapsed = F,
-          shiny::uiOutput(ns('modelPerformanceInputs'))
-        ),
+        shiny::tabPanel(
+          title = "Model Performance",
+
+            resultTableViewer(ns("modelPerformanceTable"))
+          ),
         
-        shiny::conditionalPanel(
-          condition = "input.generate != 0",
-          ns = ns,
+        shiny::tabPanel(
+          title = "Model Covariates",
           
-          shiny::uiOutput(ns("modelPerformanceInputsText")),
-          
-          reactable::reactableOutput(outputId = ns("modelPerformanceTable"))
-        ),
-      ),
-      
-      shiny::tabPanel(
-        title = "Model Covariates",
-        shinydashboard::box(
-          width = "100%",
-          title = 'Options',
-          collapsible = TRUE,
-          collapsed = F,
-          shiny::uiOutput(ns('modelCovariatesInputs'))
-        ),
+            resultTableViewer(ns("modelCovariatesTable"))
+          ),
         
-        shiny::conditionalPanel(
-          condition = "input.generate != 0",
-          ns = ns,
+        shiny::tabPanel(
+          title = "Evaluation Cohort Parameters",
           
-          shiny::uiOutput(ns("modelCovariatesInputsText")),
-          
-          reactable::reactableOutput(outputId = ns("modelCovariatesTable"))
-        ),
-      ),
-      
-      shiny::tabPanel(
-        title = "Evaluation Cohort Parameters",
-        shinydashboard::box(
-          width = "100%",
-          title = 'Options',
-          collapsible = TRUE,
-          collapsed = F,
-          shiny::uiOutput(ns('evaluationCohortParametersInputs'))
-        ),
+            resultTableViewer(ns("evaluationCohortParametersTable"))
+          ),
         
-        shiny::conditionalPanel(
-          condition = "input.generate != 0",
-          ns = ns,
+        shiny::tabPanel(
+          title = "Test Subjects and Covariates",
           
-          shiny::uiOutput(ns("evaluationCohortParametersInputsText")),
-          
-          reactable::reactableOutput(outputId = ns("evaluationCohortParametersTable"))
-        ),
-      ),
-      
-      shiny::tabPanel(
-        title = "Test Subjects and Covariates",
-        shinydashboard::box(
-          width = "100%",
-          title = 'Options',
-          collapsible = TRUE,
-          collapsed = F,
-          shiny::uiOutput(ns('testSubjectsCovariatesInputs'))
-        ),
+            resultTableViewer(ns("testSubjectsCovariatesTable"))
+          ),
         
-        shiny::conditionalPanel(
-          condition = "input.generate != 0",
-          ns = ns,
+        shiny::tabPanel(
+          title = "Phenotype Performance Characteristics",
           
-          shiny::uiOutput(ns("testSubjectsCovariatesInputsText")),
-          
-          reactable::reactableOutput(outputId = ns("testSubjectsCovariatesTable"))
-        ),
-      ),
-      
-      shiny::tabPanel(
-        title = "Phenotype Performance Characteristics",
-        shinydashboard::box(
-          width = "100%",
-          title = 'Options',
-          collapsible = TRUE,
-          collapsed = F,
-          shiny::uiOutput(ns('algorithmPerformanceResultsInputs'))
-        ),
-        
-        shiny::conditionalPanel(
-          condition = "input.generate != 0",
-          ns = ns,
-          
-          shiny::uiOutput(ns("algorithmPerformanceResultsInputsText")),
-          
-          reactable::reactableOutput(outputId = ns("algorithmPerformanceResultsTable"))
+            resultTableViewer(ns("algorithmPerformanceResultsTable"))
+          )
         )
       )
     )
-  )
 }
 
 
@@ -210,7 +136,7 @@ phevaluatorViewer <- function(id = "phevaluatorViewer") {
 #'
 
 phevaluatorServer <- function(
-  id = "phevaluatorServer", 
+  id, 
   connectionHandler, 
   resultDatabaseSettings
 ) {
@@ -223,10 +149,157 @@ phevaluatorServer <- function(
         shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
                    tippy::tippy(value, tooltip, ...))
       }
-    }
-  )
+      
+      optionCols <- getPhevalAlgorithmPerformance(
+        connectionHandler = connection,
+        resultsSchema = resultDatabaseDetails$schema,
+        tablePrefix = resultDatabaseDetails$tablePrefix
+      ) %>%
+        dplyr::select(databaseId, phenotype)
+      
+      databaseIds = unique(optionCols$databaseId)
+      phenotypeNames = unique(optionCols$phenotype)
+      
+      #build the selector
+      output$phevalOptionsSelector <- shiny::renderUI({
+        
+        shiny::fluidPage(
+          shiny::fluidRow(
+            shiny::column(
+              width = 6,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('selectedDatabaseIds'), 
+                label = 'Database(s):', 
+                choices = databaseIds, 
+                selected = databaseIds,
+                choicesOpt = list(style = rep_len("color: black;", 999)),
+                multiple = T,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                ),
+                width = "100%"
+              )
+            ),
+            shiny::column(
+              width = 6,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('selectedPhenotypes'), 
+                label = 'Phenotype(s):', 
+                choices = phenotypeNames, 
+                selected = phenotypeNames,
+                choicesOpt = list(style = rep_len("color: black;", 999)),
+                multiple = T,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                ),
+                width = "100%"
+              )
+            )
+          ),
+          shiny::actionButton(
+            inputId = session$ns('generate'),
+            label = 'Generate Results'
+          )
+        )
+      })
+      
+      
+      dataAlgorithmPerformance <- shiny::eventReactive(         #we care about returning this value, so we use eventReactive
+        eventExpr = input$generate,                     #could add complexity to event if desired
+        {
+          if (is.null(input$selectedDatabaseIds) |
+              is.null(input$selectedPhenotypes)) {
+            data.frame()
+          }
+          
+          getPhevalAlgorithmPerformance(
+            connectionHandler = connection,
+            resultsSchema = resultDatabaseDetails$schema,
+            tablePrefix = resultDatabaseDetails$tablePrefix
+          ) %>%
+            dplyr::filter(databaseId %in% input$selectedDatabaseIds &
+                            phenotype %in% input$selectedPhenotypes
+            )
+        }
+      )
+      
+      
+      selectedInputs <- shiny::reactiveVal()
+      output$inputsText <- shiny::renderUI(selectedInputs())
+      
+      shiny::observeEvent(
+        eventExpr = input$generate,
+        {
+          
+          # if(length(input$selectedCohortName) == 0 | is.null(input$selectedDatabaseId |
+          #                                                    is.null(input$selectedModeId))){
+          #   print('Null ids value')
+          #   return(invisible(NULL))
+          # }
+          
+          selectedInputs(
+            shinydashboard::box(
+              status = 'warning',
+              width = "100%",
+              title = 'Selected:',
+              shiny::div(shiny::fluidRow(
+                shiny::column(
+                  width = 8,
+                  shiny::tags$b("Phenotype(s):"),
+                  
+                  paste(unique(optionCols$databaseId[optionCols$databaseId %in% input$selectedDatabaseIds]),
+                        collapse = ',')
+                  
+                ),
+                shiny::column(
+                  width = 4,
+                  shiny::tags$b("Database(s):"),
+                  paste(unique(optionCols$phenotype[optionCols$phenotype %in% input$selectedPhenotypes]),
+                        collapse = ',')
+                )
+              ))
+            )
+          )
+        }
+      )
+          
+          
+      custom_colDefs <- list(
+        covariateId = reactable::colDef(
+          header = withTooltip("Covariate ID",
+                               "Unique identifier of the covariate"
+        )),
+        covariateName = reactable::colDef(
+          header = withTooltip(
+          "Covariate Name",
+          "The name of the covariate"
+        )),
+        analysisName = reactable::colDef(
+          header = withTooltip(
+          "Covariate Class",
+          "Class/type of the covariate"
+        ))
+      )
+          
+          
+          resultTableServer(id = "algorithmPerformanceResultsTable",
+                            df = dataAlgorithmPerformance,
+                            colDefsInput = custom_colDefs)
+          
+          return(invisible(NULL))
+          
+})
 }
-
 
 
 

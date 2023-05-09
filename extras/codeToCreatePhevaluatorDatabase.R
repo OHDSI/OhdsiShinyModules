@@ -17,25 +17,27 @@
  #create the schema
  connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = "sqlite",
                                                                  server = serverPV)
- qns <- ResultModelManager::createQueryNamespace(connectionDetails = connectionDetails,
-                                                 tableSpecification = specification,
-                                                 tablePrefix = "",
-                                                 database_schema = "main")
- #execut the SQL
- qns$executeSql(sql)
-
-#DBI::dbConnect(RSQLite::SQLite(), dbname = "phevaluator.sqlite")
-
-#create connection to DB
-connection <- DatabaseConnector::connect(connectionDetails = connectionDetails)
-
-#upload the results to the schema
+ 
+ #upload the results to the schema
  ResultModelManager::uploadResults(connectionDetails = connectionDetails,
                                    schema = "main",
                                    resultsFolder = file.path(mypath, "results"),
                                    tablePrefix = "",
                                    specifications = specification,
                                    purgeSiteDataBeforeUploading = F)
+ 
+ # qns <- ResultModelManager::createQueryNamespace(connectionDetails = connectionDetails,
+ #                                                 tableSpecification = specification,
+ #                                                 tablePrefix = "",
+ #                                                 database_schema = "main")
+ # #execute the SQL
+ # qns$executeSql(sql)
+
+#DBI::dbConnect(RSQLite::SQLite(), dbname = "phevaluator.sqlite")
+
+#create connection to DB
+connection <- DatabaseConnector::connect(connectionDetails = connectionDetails)
+
 #disconnect
 DatabaseConnector::disconnect(connection)
  
