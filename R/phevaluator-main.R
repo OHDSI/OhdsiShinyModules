@@ -69,58 +69,48 @@ phevaluatorViewer <- function(id) {
     shiny::conditionalPanel(
       condition = "input.generate != 0",
       ns = ns,
-     
+      
       shiny::uiOutput(ns("inputsText")), 
-     
+      
       shiny::tabsetPanel(
         type = 'pills',
         id = ns('mainPanel'),
         
         shiny::tabPanel(
           title = "Phenotypes",
-            
-            resultTableViewer(ns("cohortDefinitionSetTable"))
-          ),
-        
+          resultTableViewer(ns("cohortDefinitionSetTable"))
+        ),
         shiny::tabPanel(
           title = "Model Input Parameters",
-
-            
-            resultTableViewer(ns("modelInputParametersTable"))
-          ),
-        
+          resultTableViewer(ns("modelInputParametersTable"))
+        ),
         shiny::tabPanel(
           title = "Model Performance",
-
-            resultTableViewer(ns("modelPerformanceTable"))
-          ),
-        
+          resultTableViewer(ns("modelPerformanceTable"))
+        ),
         shiny::tabPanel(
           title = "Model Covariates",
-          
-            resultTableViewer(ns("modelCovariatesTable"))
-          ),
-        
+          resultTableViewer(ns("modelCovariatesTable"))
+        ),
         shiny::tabPanel(
           title = "Evaluation Cohort Parameters",
-          
-            resultTableViewer(ns("evaluationCohortParametersTable"))
-          ),
-        
+          resultTableViewer(ns("evaluationCohortParametersTable"))
+        ),
+        shiny::tabPanel(
+          title = "Test Subjects",
+          resultTableViewer(ns("testSubjectsTable"))
+        ),
         shiny::tabPanel(
           title = "Test Subjects and Covariates",
-          
-            resultTableViewer(ns("testSubjectsCovariatesTable"))
-          ),
-        
+          resultTableViewer(ns("testSubjectsCovariatesTable"))
+        ),
         shiny::tabPanel(
           title = "Phenotype Performance Characteristics",
-          
-            resultTableViewer(ns("algorithmPerformanceResultsTable"))
-          )
+          resultTableViewer(ns("algorithmPerformanceResultsTable"))
         )
       )
     )
+  )
 }
 
 
@@ -150,10 +140,14 @@ phevaluatorServer <- function(
                    tippy::tippy(value, tooltip, ...))
       }
       
+      #use algorithm performance table to get "option columns",
+      #which will be used to make choices before generating result(s)
       optionCols <- getPhevalAlgorithmPerformance(
         connectionHandler = connection,
         resultsSchema = resultDatabaseDetails$schema,
-        tablePrefix = resultDatabaseDetails$tablePrefix
+        tablePrefix = resultDatabaseDetails$tablePrefix,
+        databaseIds = NULL,
+        phenotypes = NULL
       ) %>%
         dplyr::select(databaseId, phenotype)
       
@@ -213,7 +207,7 @@ phevaluatorServer <- function(
         )
       })
       
-      
+      #if generate is pushed, extract the data
       dataAlgorithmPerformance <- shiny::eventReactive(         #we care about returning this value, so we use eventReactive
         eventExpr = input$generate,                     #could add complexity to event if desired
         {
@@ -225,28 +219,201 @@ phevaluatorServer <- function(
           getPhevalAlgorithmPerformance(
             connectionHandler = connection,
             resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix
-          ) %>%
-            dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-                            phenotype %in% input$selectedPhenotypes
-            )
+            tablePrefix = resultDatabaseDetails$tablePrefix,
+            databaseIds = input$selectedDatabaseIds,
+            phenotypes = input$selectedPhenoypes
+          )
+          # %>%
+          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
+          #                   phenotype %in% input$selectedPhenotypes
+          #   )
         }
       )
+      
+      dataCohortDefinitionSet <- shiny::eventReactive(
+        eventExpr = input$generate,                     
+        {
+          if (is.null(input$selectedDatabaseIds) |
+              is.null(input$selectedPhenotypes)) {
+            data.frame()
+          }
+          
+          getPhevalCohortDefinitionSet(
+            connectionHandler = connection,
+            resultsSchema = resultDatabaseDetails$schema,
+            tablePrefix = resultDatabaseDetails$tablePrefix,
+            phenotypes = input$selectedPhenoypes
+          ) 
+          # %>%
+          #   dplyr::filter(phenotype %in% input$selectedPhenotypes
+          #   )
+        }
+      )
+      
+      dataDiagnostics <- shiny::eventReactive(
+        eventExpr = input$generate,                     
+        {
+          if (is.null(input$selectedDatabaseIds) |
+              is.null(input$selectedPhenotypes)) {
+            data.frame()
+          }
+          
+          getPhevalDiagnostics(
+            connectionHandler = connection,
+            resultsSchema = resultDatabaseDetails$schema,
+            tablePrefix = resultDatabaseDetails$tablePrefix,
+            databaseIds = input$selectedDatabaseIds,
+            phenotypes = input$selectedPhenoypes
+          ) 
+          # %>%
+          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
+          #                   phenotype %in% input$selectedPhenotypes
+          #   )
+        }
+      )
+      
+      dataEvalInputParams <- shiny::eventReactive(
+        eventExpr = input$generate,                     
+        {
+          if (is.null(input$selectedDatabaseIds) |
+              is.null(input$selectedPhenotypes)) {
+            data.frame()
+          }
+          
+          getPhevalEvalInputParams(
+            connectionHandler = connection,
+            resultsSchema = resultDatabaseDetails$schema,
+            tablePrefix = resultDatabaseDetails$tablePrefix,
+            databaseIds = input$selectedDatabaseIds,
+            phenotypes = input$selectedPhenoypes
+          ) 
+          # %>%
+          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
+          #                   phenotype %in% input$selectedPhenotypes
+          #   )
+        }
+      )
+      
+      dataModelCovars <- shiny::eventReactive(
+        eventExpr = input$generate,                     
+        {
+          if (is.null(input$selectedDatabaseIds) |
+              is.null(input$selectedPhenotypes)) {
+            data.frame()
+          }
+          
+          getPhevalModelCovars(
+            connectionHandler = connection,
+            resultsSchema = resultDatabaseDetails$schema,
+            tablePrefix = resultDatabaseDetails$tablePrefix,
+            databaseIds = input$selectedDatabaseIds,
+            phenotypes = input$selectedPhenoypes
+          ) 
+          # %>%
+          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
+          #                   phenotype %in% input$selectedPhenotypes
+          #   )
+        }
+      )
+      
+      dataModelInputParams <- shiny::eventReactive(
+        eventExpr = input$generate,                     
+        {
+          if (is.null(input$selectedDatabaseIds) |
+              is.null(input$selectedPhenotypes)) {
+            data.frame()
+          }
+          
+          getPhevalModelInputParams(
+            connectionHandler = connection,
+            resultsSchema = resultDatabaseDetails$schema,
+            tablePrefix = resultDatabaseDetails$tablePrefix,
+            databaseIds = input$selectedDatabaseIds,
+            phenotypes = input$selectedPhenoypes
+          ) 
+          # %>%
+          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
+          #                   phenotype %in% input$selectedPhenotypes
+          #   )
+        }
+      )
+      
+      dataModelPerformance <- shiny::eventReactive(
+        eventExpr = input$generate,                     
+        {
+          if (is.null(input$selectedDatabaseIds) |
+              is.null(input$selectedPhenotypes)) {
+            data.frame()
+          }
+          
+          getPhevalModelPerformance(
+            connectionHandler = connection,
+            resultsSchema = resultDatabaseDetails$schema,
+            tablePrefix = resultDatabaseDetails$tablePrefix,
+            databaseIds = input$selectedDatabaseIds,
+            phenotypes = input$selectedPhenoypes
+          ) 
+          # %>%
+          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
+          #                   phenotype %in% input$selectedPhenotypes
+          #   )
+        }
+      )
+      
+      dataTestSubjects <- shiny::eventReactive(
+        eventExpr = input$generate,                     
+        {
+          if (is.null(input$selectedDatabaseIds) |
+              is.null(input$selectedPhenotypes)) {
+            data.frame()
+          }
+          
+          getPhevalTestSubjects(
+            connectionHandler = connection,
+            resultsSchema = resultDatabaseDetails$schema,
+            tablePrefix = resultDatabaseDetails$tablePrefix,
+            databaseIds = input$selectedDatabaseIds,
+            phenotypes = input$selectedPhenoypes
+          ) 
+          # %>%
+          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
+          #                   phenotype %in% input$selectedPhenotypes
+          #   )
+        }
+      )
+      
+      dataTestSubjectsCovars <- shiny::eventReactive(
+        eventExpr = input$generate,                     
+        {
+          if (is.null(input$selectedDatabaseIds) |
+              is.null(input$selectedPhenotypes)) {
+            data.frame()
+          }
+          
+          getPhevalTestSubjectsCovars(
+            connectionHandler = connection,
+            resultsSchema = resultDatabaseDetails$schema,
+            tablePrefix = resultDatabaseDetails$tablePrefix,
+            databaseIds = input$selectedDatabaseIds,
+            phenotypes = input$selectedPhenoypes
+          ) 
+          # %>%
+          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
+          #                   phenotype %in% input$selectedPhenotypes
+          #   )
+        }
+      )
+      
+      
       
       
       selectedInputs <- shiny::reactiveVal()
       output$inputsText <- shiny::renderUI(selectedInputs())
       
+      #when generate is pushed, return as text what was selected
       shiny::observeEvent(
         eventExpr = input$generate,
         {
-          
-          # if(length(input$selectedCohortName) == 0 | is.null(input$selectedDatabaseId |
-          #                                                    is.null(input$selectedModeId))){
-          #   print('Null ids value')
-          #   return(invisible(NULL))
-          # }
-          
           selectedInputs(
             shinydashboard::box(
               status = 'warning',
@@ -272,35 +439,68 @@ phevaluatorServer <- function(
           )
         }
       )
-          
-          
-      custom_colDefs <- list(
-        covariateId = reactable::colDef(
-          header = withTooltip("Covariate ID",
-                               "Unique identifier of the covariate"
-        )),
-        covariateName = reactable::colDef(
-          header = withTooltip(
-          "Covariate Name",
-          "The name of the covariate"
-        )),
-        analysisName = reactable::colDef(
-          header = withTooltip(
-          "Covariate Class",
-          "Class/type of the covariate"
-        ))
+      
+      #read in custom column name colDef list from rds file, generated by 
+      #heplers-componentsCreateCustomColDefList.R
+      phevalColListOrig <- readRDS(system.file("components-columnInformation",
+                                             "phevaluator-colDefNamesList.rds", package = "OhdsiShinyModules")
       )
-          
-          
-          resultTableServer(id = "algorithmPerformanceResultsTable",
-                            df = dataAlgorithmPerformance,
-                            colDefsInput = custom_colDefs)
-          
-          return(invisible(NULL))
-          
-})
+      
+      # phevalColList <- readColDefsFromJSON("phevaluator-colDefs.json", 
+      #                                      "D:/shiny_test/GitHub Desktop/standardization/OhdsiShinyModules/inst/components-columnInformation"
+      # )
+      
+      #renaming names of columns in list to have cases match
+      names(phevalColList) <-  SqlRender::snakeCaseToCamelCase(names(phevalColList))
+      
+      
+      #define custom column definitions and render the result table
+      customColDefs <- phevalColListOrig
+      
+      resultTableServer(id = "algorithmPerformanceResultsTable",
+                        df = dataAlgorithmPerformance,
+                        colDefsInput = customColDefs)
+      
+      resultTableServer(id = "cohortDefinitionSetTable",
+                        df = dataCohortDefinitionSet,
+                        colDefsInput = customColDefs)
+      
+      resultTableServer(id = "diagnosticsTable",
+                        df = dataDiagnostics,
+                        colDefsInput = customColDefs)
+      
+      resultTableServer(id = "evaluationInputParametersTable",
+                        df = dataEvalInputParams,
+                        colDefsInput = customColDefs)
+      
+      resultTableServer(id = "modelCovariatesTable",
+                        df = dataModelCovars,
+                        colDefsInput = customColDefs)
+      
+      resultTableServer(id = "modelInputParametersTable",
+                        df = dataModelInputParams,
+                        colDefsInput = customColDefs)
+      
+      resultTableServer(id = "modelPerformanceTable",
+                        df = dataModelPerformance,
+                        colDefsInput = customColDefs)
+      
+      resultTableServer(id = "testSubjectsTable",
+                        df = dataTestSubjects,
+                        colDefsInput = customColDefs)
+      
+      resultTableServer(id = "testSubjectsCovariatesTable",
+                        df = dataTestSubjectsCovars,
+                        colDefsInput = customColDefs)
+      
+      
+      return(invisible(NULL))
+      
+      
+      
+      
+    })
 }
-
 
 
 
