@@ -4,7 +4,7 @@
 \alias{phevaluatorViewer}
 \title{The viewer of the phevaluator module}
 \usage{
-phevaluatorViewer(id = "phevaluatorViewer")
+phevaluatorViewer(id)
 }
 \arguments{
 \item{id}{The unique reference id for the module}

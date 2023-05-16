@@ -82,11 +82,11 @@ withTooltip <- function(value, tooltip, ...) {
 create_colDefs_list <- function(df, customColDefs = NULL) {
   # Get the column names of the input data frame
   col_names <- colnames(df)
-
+  
   # Create an empty list to store the colDefs
   colDefs_list <- vector("list", length = length(col_names))
   names(colDefs_list) <- col_names
-
+  
   # Define custom colDefs for each column if provided
   if (!is.null(customColDefs)) {
     for (col in seq_along(col_names)) {
@@ -95,11 +95,11 @@ create_colDefs_list <- function(df, customColDefs = NULL) {
       } else {
         colDefs_list[[col]] <- reactable::colDef(name = col_names[col])
       }
-
+      
       if (!is.null(customColDefs[[col_names[col]]]$header)) {
         colDefs_list[[col]]$header <- customColDefs[[col_names[col]]]$header
       }
-
+      
       if (!is.null(customColDefs[[col_names[col]]]$tooltip)) {
         colDefs_list[[col]]$header <-
           withTooltip(colDefs_list[[col]]$header, customColDefs[[col_names[col]]]$tooltip)
@@ -111,7 +111,7 @@ create_colDefs_list <- function(df, customColDefs = NULL) {
       colDefs_list[[col]] <- reactable::colDef(name = col_names[col])
     }
   }
-
+  
   # Return the list of colDefs
   return(colDefs_list)
 }
@@ -289,15 +289,22 @@ resultTableServer <- function(id, #string
                                 defaultColDef = reactable::colDef(align = "left")
                                 #, experimental
                                 #theme = ohdsiReactableTheme
-                              )},
-                              
+                              )}
+                              ,
+                              # 
+                              # warning = function(w){
+                              #   shiny::showNotification("Select at least 2 columns!"); return(NULL)
+                              # 
+                              # },
+                              # 
                               warning = function(w){
-                                shiny::showNotification("Select at least 2 columns!"); return(NULL)
-                                
-                              },
-                              
-                              error = function(e){
-                                shiny::showNotification("Select at least 2 columns!"); return(NULL)
+                                if(w$message == 
+                                   "Error in reactable::reactable: `data` must have at least one column"){
+                                  shiny::showNotification("No columns selected!")
+                                }
+                                if(w$message == 
+                                   "Error in reactable::reactable: `data` must be a data frame or matrix")
+                                  shiny::showNotification("Please select at least 2 columns!"); return(NULL)
                                 
                               }
                               
