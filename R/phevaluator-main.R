@@ -143,9 +143,9 @@ phevaluatorServer <- function(
       #use algorithm performance table to get "option columns",
       #which will be used to make choices before generating result(s)
       optionCols <- getPhevalAlgorithmPerformance(
-        connectionHandler = connection,
-        resultsSchema = resultDatabaseDetails$schema,
-        tablePrefix = resultDatabaseDetails$tablePrefix,
+        connectionHandler = connectionHandler,
+        resultsSchema = resultDatabaseSettings$schema,
+        tablePrefix = resultDatabaseSettings$tablePrefix,
         databaseIds = NULL,
         phenotypes = NULL
       ) %>%
@@ -217,9 +217,9 @@ phevaluatorServer <- function(
           }
           
           getPhevalAlgorithmPerformance(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix,
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           )
@@ -239,9 +239,9 @@ phevaluatorServer <- function(
           }
           
           getPhevalCohortDefinitionSet(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix,
             phenotypes = input$selectedPhenoypes
           ) 
           # %>%
@@ -259,9 +259,9 @@ phevaluatorServer <- function(
           }
           
           getPhevalDiagnostics(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix,
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           ) 
@@ -281,9 +281,9 @@ phevaluatorServer <- function(
           }
           
           getPhevalEvalInputParams(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix,
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           ) 
@@ -303,9 +303,9 @@ phevaluatorServer <- function(
           }
           
           getPhevalModelCovars(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix,
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           ) 
@@ -325,9 +325,9 @@ phevaluatorServer <- function(
           }
           
           getPhevalModelInputParams(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix,
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           ) 
@@ -347,9 +347,9 @@ phevaluatorServer <- function(
           }
           
           getPhevalModelPerformance(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix,
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           ) 
@@ -369,9 +369,9 @@ phevaluatorServer <- function(
           }
           
           getPhevalTestSubjects(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix,
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           ) 
@@ -391,9 +391,9 @@ phevaluatorServer <- function(
           }
           
           getPhevalTestSubjectsCovars(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix,
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           ) 
