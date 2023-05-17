@@ -24,8 +24,6 @@ getPhevalAlgorithmPerformance <- function(
       table_prefix = tablePrefix,
       databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
       phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-      # ,
-      # snakeCaseToCamelCase = F
     )
   )
   }
@@ -42,8 +40,6 @@ getPhevalAlgorithmPerformance <- function(
         table_prefix = tablePrefix,
         databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
         phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-        # ,
-        # snakeCaseToCamelCase = F
       )
     )
   }
