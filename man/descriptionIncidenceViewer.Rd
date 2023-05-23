@@ -17,4 +17,5 @@ The module viewer for exploring incidence results
 }
 \details{
 The user specifies the id for the module
++
 }

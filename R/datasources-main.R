@@ -62,7 +62,7 @@ datasourcesViewer <- function(id) {
         
         shiny::tabPanel(
           title = "Data Source Information",
-          resultTableViewer(ns("datasourcesTable"))
+          # resultTableViewer(ns("datasourcesTable"))
         )
        )
       )
