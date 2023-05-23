@@ -62,6 +62,9 @@ evidenceSynthesisViewer <- function(id=1) {
         ),
         shiny::tabPanel("SCCS Table",
                         reactable::reactableOutput(ns('esSccsTable'))
+        ),
+        shiny::tabPanel("Diagnostics Dashboard",
+                        reactable::reactableOutput(ns('diagnosticsTable'))
         )
       )
     #)
@@ -339,7 +342,6 @@ evidenceSynthesisServer <- function(
           )
         )
       )
-      
     }
     )
   

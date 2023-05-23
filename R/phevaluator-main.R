@@ -223,10 +223,6 @@ phevaluatorServer <- function(
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           )
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
         }
       )
       
@@ -243,10 +239,9 @@ phevaluatorServer <- function(
             resultsSchema = resultDatabaseSettings$schema,
             tablePrefix = resultDatabaseSettings$tablePrefix,
             phenotypes = input$selectedPhenoypes
-          ) 
-          # %>%
-          #   dplyr::filter(phenotype %in% input$selectedPhenotypes
-          #   )
+          ) %>%
+            dplyr::mutate(buttonSQL = makeButtonLabel("SQL"),
+                          buttonJSON = makeButtonLabel("JSON"))
         }
       )
       
@@ -265,10 +260,6 @@ phevaluatorServer <- function(
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           ) 
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
         }
       )
       
@@ -287,10 +278,6 @@ phevaluatorServer <- function(
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           ) 
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
         }
       )
       
@@ -309,10 +296,6 @@ phevaluatorServer <- function(
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           ) 
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
         }
       )
       
@@ -331,10 +314,6 @@ phevaluatorServer <- function(
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           ) 
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
         }
       )
       
@@ -353,10 +332,6 @@ phevaluatorServer <- function(
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           ) 
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
         }
       )
       
@@ -375,10 +350,6 @@ phevaluatorServer <- function(
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           ) 
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
         }
       )
       
@@ -397,10 +368,6 @@ phevaluatorServer <- function(
             databaseIds = input$selectedDatabaseIds,
             phenotypes = input$selectedPhenoypes
           ) 
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
         }
       )
       
@@ -448,9 +415,21 @@ phevaluatorServer <- function(
                                                                         package = "OhdsiShinyModules")
       )
       
-     
+      #define custom colDefs for SQL and JSON buttons
+      buttonColDefs <- list(
+        buttonSQL = reactable::colDef(header = withTooltip("SQL", "Downloads SQL code for the cohort"),
+                                html = T
+                                ),
+        buttonJSON = reactable::colDef(header = withTooltip("JSON", "Downloads JSON code for the cohort"),
+                                 html = T
+                                 ),
+        sql = reactable::colDef(show = F),
+        json = reactable::colDef(show = F)
+      )
+      
       #define custom column definitions and render the result table
-      customColDefs <- phevalColList
+      customColDefs <- modifyList(phevalColList, buttonColDefs)
+
       
       resultTableServer(id = "algorithmPerformanceResultsTable",
                         df = dataAlgorithmPerformance,
@@ -458,7 +437,7 @@ phevaluatorServer <- function(
       
       resultTableServer(id = "cohortDefinitionSetTable",
                         df = dataCohortDefinitionSet,
-                        colDefsInput = customColDefs)
+                        colDefsInput = buttonColDefs)
       
       resultTableServer(id = "diagnosticsTable",
                         df = dataDiagnostics,

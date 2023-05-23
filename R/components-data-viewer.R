@@ -76,9 +76,6 @@ withTooltip <- function(value, tooltip, ...) {
 # )
 
 
-
-
-
 create_colDefs_list <- function(df, customColDefs = NULL) {
   # Get the column names of the input data frame
   col_names <- colnames(df)
@@ -115,93 +112,6 @@ create_colDefs_list <- function(df, customColDefs = NULL) {
   # Return the list of colDefs
   return(colDefs_list)
 }
-
-# Function to check if a column is formatted like a JSON file
-# is_JSON_column <- function(column) {
-#   all(sapply(column, function(value) {
-#     suppressWarnings(jsonlite::fromJSON(value))
-#     !is.null(jsonlite::validate(value))
-#   }))
-# }
-# 
-# downloadJSON <- function(jsonData) {
-#   json <- jsonlite::fromJSON(jsonData)
-#   filename <- paste0("data-", Sys.Date(), ".json")
-#   jsonlite::write_json(json, file = filename)
-#   shiny::downloadHandler(
-#     filename = filename,
-#     content = function(file) {
-#       file.copy(filename, file)
-#     },
-#     contentType = "application/json"
-#   )
-# }
-
-# create_colDefs_list <- function(df, customColDefs = NULL) {
-#   # Get the column names of the input data frame
-#   col_names <- colnames(df)
-#   
-#   # Create an empty list to store the colDefs
-#   colDefs_list <- vector("list", length = length(col_names))
-#   names(colDefs_list) <- col_names
-#   
-#   # Define custom colDefs for each column if provided
-#   if (!is.null(customColDefs)) {
-#     for (col in seq_along(col_names)) {
-#       if (col_names[col] %in% names(customColDefs)) {
-#         colDefs_list[[col]] <- customColDefs[[col_names[col]]]
-#       } else {
-#         colDefs_list[[col]] <- reactable::colDef(name = col_names[col])
-#       }
-#       
-#       if (!is.null(customColDefs[[col_names[col]]]$header)) {
-#         colDefs_list[[col]]$header <- customColDefs[[col_names[col]]]$header
-#       }
-#       
-#       if (!is.null(customColDefs[[col_names[col]]]$tooltip)) {
-#         colDefs_list[[col]]$header <-
-#           withTooltip(colDefs_list[[col]]$header, customColDefs[[col_names[col]]]$tooltip)
-#       }
-#       
-#       # Check if the column is formatted like a JSON file
-#       if (is_JSON_column(df[[col_names[col]]])) {
-#         colDefs_list[[col]]$cell <- function(value) {
-#           tags$button(
-#             "Download JSON",
-#             onclick = paste0("downloadJSON('", value, "')")
-#           )
-#         }
-#       }
-#     }
-#   } else {
-#     # Define default colDefs if customColDefs is not provided
-#     for (col in seq_along(col_names)) {
-#       colDefs_list[[col]] <- reactable::colDef(name = col_names[col])
-#       
-#       # Check if the column is formatted like a JSON file
-#       if (is_JSON_column(df[[col_names[col]]])) {
-#         colDefs_list[[col]]$cell <- function(value) {
-#           tags$button(
-#             "Download JSON",
-#             onclick = paste0("downloadJSON('", value, "')")
-#           )
-#         }
-#       }
-#     }
-#   }
-#   
-#   # Return the list of colDefs
-#   return(colDefs_list)
-# }
-
-
-
-
-
-
-
-
-
 
 
 ohdsiReactableTheme <- reactable::reactableTheme(
