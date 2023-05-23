@@ -29,16 +29,35 @@ getCohortGeneratorCohortCounts <- function(
 getCohortGeneratorCohortMeta <- function(
     connectionHandler, 
   resultsSchema,
-  tablePrefix = 'cg_'
+  tablePrefix = 'cg_',
+  databaseTable,
+  databaseTablePrefix
   ) {
   
-  sql <- "SELECT * FROM @results_schema.@table_prefixCOHORT_GENERATION;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix
+  sql <- "SELECT cg.cohort_id, cg.cohort_name,
+  cg.generation_status, cg.start_time, cg.end_time, dt.cdm_source_name
+  from @results_schema.@table_prefixCOHORT_GENERATION cg
+  join @results_schema.@database_table_prefix@database_table dt
+  on cg.database_id = dt.database_id
+  ;"
+  
+  df <- connectionHandler$queryDb(
+    sql = sql,
+    results_schema = resultsSchema,
+    table_prefix = tablePrefix,
+    database_table = databaseTable,
+    database_table_prefix = databaseTablePrefix
+  )
+  
+  df2 <- df %>%
+    dplyr::mutate(generationDuration = case_when(
+      generationStatus == "COMPLETE" ~ difftime(endTime, startTime, units="mins"),
+      .default = NA
     )
+                  )
+  
+  return(
+    df2
   )
 }
 
@@ -128,8 +147,8 @@ getCohortGenerationAttritionTable <- function(
   
   for(cohortId in uniqueCohortIDs){
     
-    cohortRules <- rules %>%
-      dplyr::filter(.data$cohortDefinitionId == !!cohortId) %>%
+    cohortRules <- rules %>% 
+      dplyr::filter(.data$cohortDefinitionId==cohortId) %>%
       dplyr::select("ruleSequence", "ruleName", "cohortName") %>%
       dplyr::arrange("ruleSequence")
     
@@ -144,7 +163,7 @@ getCohortGenerationAttritionTable <- function(
       attritionRows <- stats %>%
         dplyr::filter((.data$cohortDefinitionId == !!cohortId) &
                         (bitwAnd(.data$inclusionRuleMask, !!testMask) == !!testMask)
-        ) %>%
+        ) %>% 
         dplyr::select(-c("databaseId")) %>%
         dplyr::group_by(.data$cdmSourceName, .data$cohortDefinitionId, .data$modeId) %>%
         dplyr::summarise(personCount = sum(.data$personCount),
@@ -175,8 +194,8 @@ getCohortGenerationAttritionTable <- function(
   #adding drop counts
   attritionTableFinal <- attritionTableDistinct %>%
     dplyr::group_by(
-      .data$cdmSourceName,
-      .data$cohortDefinitionId,
+      .data$cdmSourceName, 
+      .data$cohortDefinitionId, 
       .data$modeId) %>%
     dplyr::mutate(
       dropCount = dplyr::case_when(
@@ -185,9 +204,9 @@ getCohortGenerationAttritionTable <- function(
       ),
       dropPerc = dplyr::case_when(
         is.na(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) ~ "0.00%",
-        TRUE ~ paste(
+        TRUE ~  paste(
           round(
-            (.data$dropCount/(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) * 100),
+            (.data$dropCount/(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) * 100), 
             digits = 2
           ),
           "%",
@@ -197,7 +216,7 @@ getCohortGenerationAttritionTable <- function(
         is.na(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) ~ "100.00%",
         TRUE ~ paste(
           round(
-            (.data$personCount/(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) * 100),
+            (.data$personCount/(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) * 100), 
             digits = 2
           ),
           "%",
@@ -205,6 +224,7 @@ getCohortGenerationAttritionTable <- function(
         
       )
     )
+  #newdata <- mtcars[order(mpg, -cyl),]
   return(attritionTableFinal[order(attritionTableFinal$ruleSequence),])
   
 }
