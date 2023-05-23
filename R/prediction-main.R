@@ -106,20 +106,11 @@ predictionViewer <- function(id=1) {
         shiny::tabsetPanel(
           type = 'pills',
           id = ns('singleView'),
-          shiny::tabPanel(
-            "Design Settings",
-            predictionSettingsViewer(ns('settings'))
-          ),
           
           shiny::tabPanel(
             "Model",
             predictionCovariateSummaryViewer(ns('covariateSummary'))
           ),
-          
-          shiny::tabPanel(
-            "Threshold Dependant", 
-            predictionCutoffViewer(ns('cutoff'))
-          ), 
           
           shiny::tabPanel(
             "Discrimination",  
@@ -132,6 +123,11 @@ predictionViewer <- function(id=1) {
           ),
           
           shiny::tabPanel(
+            "Threshold Dependant", 
+            predictionCutoffViewer(ns('cutoff'))
+          ), 
+          
+          shiny::tabPanel(
             "Net Benefit", 
             predictionNbViewer(ns('netBenefit'))
           ),
@@ -140,6 +136,11 @@ predictionViewer <- function(id=1) {
           shiny::tabPanel(
             "Validation",
             predictionValidationViewer(ns('validation'))
+          ),
+          
+          shiny::tabPanel(
+            "Design Settings",
+            predictionSettingsViewer(ns('settings'))
           )
           
           

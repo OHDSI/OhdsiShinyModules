@@ -56,7 +56,9 @@ test_that("Test getCohortGeneratorCohortMeta ", {
   result <- getCohortGeneratorCohortMeta(
     connectionHandler = connectionHandlerCG, 
     resultsSchema = 'main',
-    tablePrefix = 'cg_'
+    tablePrefix = 'cg_',
+    databaseTable = 'DATABASE_META_DATA',
+    databaseTablePrefix = ''
   )
   
   testthat::expect_true( nrow(result) > 0 )

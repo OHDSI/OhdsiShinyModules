@@ -76,167 +76,179 @@ descriptionTableViewer <- function(id) {
 #' The server to the cohorts features server
 #'
 #' @export
-descriptionTableServer <- function(id,
-                                   connectionHandler,
-                                   mainPanelTab,
-                                   schema,
-                                   tablePrefix,
-                                   cohortTablePrefix,
-                                   databaseTable = 'DATABASE_META_DATA') {
-  shiny::moduleServer(id,
-                      function(input, output, session) {
-                        #if(mainPanelTab() != 'Time To Event'){
-                        #  return(invisible(NULL))
-                        #}
-                        
-                        inputVals <- getDecCohortsInputs(connectionHandler,
-                                                         schema,
-                                                         tablePrefix,
-                                                         cohortTablePrefix,
-                                                         databaseTable)
-                        
-                        # update UI
-                        output$cohortInputs <- shiny::renderUI({
-                          shiny::fluidPage(
-                            shiny::fluidRow(
-                              shiny::column(
-                                width = 6,
-                                shinyWidgets::pickerInput(
-                                  inputId = session$ns('targetIds'),
-                                  label = 'Targets: ',
-                                  choices = inputVals$cohortIds,
-                                  selected = inputVals$cohortIds,
-                                  choicesOpt = list(style = rep_len("color: black;", 999)),
-                                  multiple = T,
-                                  options = shinyWidgets::pickerOptions(
-                                    actionsBox = TRUE,
-                                    liveSearch = TRUE,
-                                    size = 10,
-                                    liveSearchStyle = "contains",
-                                    liveSearchPlaceholder = "Type here to search",
-                                    virtualScroll = 50
-                                  )
-                                )
-                              ),
-                              shiny::column(
-                                width = 6,
-                                shinyWidgets::pickerInput(
-                                  inputId = session$ns('databaseId'),
-                                  label = 'Database: ',
-                                  choices = inputVals$databaseIds,
-                                  selected = 1,
-                                  choicesOpt = list(style = rep_len("color: black;", 999)),
-                                  options = shinyWidgets::pickerOptions(
-                                    actionsBox = TRUE,
-                                    liveSearch = TRUE,
-                                    size = 10,
-                                    liveSearchStyle = "contains",
-                                    liveSearchPlaceholder = "Type here to search",
-                                    virtualScroll = 50
-                                  )
-                                )
-                              )
-                            ),
-                            
-                            shiny::actionButton(inputId = session$ns('generate'),
-                                                label = 'Generate Report')
-                          )
-                        })
-                        
-                        allData <-
-                          shiny::eventReactive(#we care about returning this value, so we use eventReactive
-                            eventExpr = input$generate,  #could add complexity to event if desired
-                            {
-                              if (is.null(input$targetIds)) {
-                                data.frame()
-                              }
-                              getDesFEData(
-                                targetIds = input$targetIds,
-                                databaseId = input$databaseId,
-                                connectionHandler = connectionHandler,
-                                schema = schema,
-                                tablePrefix = tablePrefix,
-                                cohortTablePrefix = cohortTablePrefix
-                              )
-                            })
-                        
-                        
-                        selectedInputs <- shiny::reactiveVal()
-                        output$TinputsText <- shiny::renderUI(selectedInputs())
-                        
-                        shiny::observeEvent(eventExpr = input$generate,
-                                            {
-                                              if (length(input$targetIds) == 0 | is.null(input$databaseId)) {
-                                                print('Null ids value')
-                                                return(invisible(NULL))
-                                              }
-                                              
-                                              selectedInputs(
-                                                shinydashboard::box(
-                                                  status = 'warning',
-                                                  width = "100%",
-                                                  title = 'Selected:',
-                                                  shiny::div(shiny::fluidRow(
-                                                    shiny::column(
-                                                      width = 8,
-                                                      shiny::tags$b("Target/s:"),
-                                                      
-                                                      paste(names(inputVals$cohortIds)[inputVals$cohortIds %in% input$targetIds],
-                                                            collapse = ',')
-                                                      
-                                                    ),
-                                                    shiny::column(
-                                                      width = 4,
-                                                      shiny::tags$b("Database:"),
-                                                      names(inputVals$databaseIds)[inputVals$databaseIds == input$databaseId]
-                                                    )
-                                                  ))
-                                                )
-                                              )
-                                              
-                                              
-                                              
-                                            })
-                        
-                        
-                        #cols: covariateId, covariateName, analysisName,
-                        #averageValue_"target", countValue_"target"
-                        
-                        custom_colDefs <- list(
-                          covariateId = reactable::colDef(
-                            header = withTooltip("Covariate ID",
-                                                 "Unique identifier of the covariate")
-                          ),
-                          covariateName = reactable::colDef(header = withTooltip(
-                            "Covariate Name",
-                            "The name of the covariate"
-                          )),
-                          analysisName = reactable::colDef(header = withTooltip(
-                            "Covariate Class",
-                            "Class/type of the covariate"
-                          ))
-                        )
-                        
-                        ##custom_colDefs = NULL
-                        resultTableServer(id = "result-table",
-                                          df = allData,
-                                          colDefsInput = custom_colDefs)
-                        
-                        
-                        
-                        return(invisible(NULL))
-                        
-                      })
+descriptionTableServer <- function(
+    id,
+    connectionHandler,
+    mainPanelTab,
+    schema,
+    tablePrefix,
+    cohortTablePrefix,
+    databaseTable = 'DATABASE_META_DATA'
+) {
+  shiny::moduleServer(
+    id,
+    function(input, output, session) {
+      
+      inputVals <- getDecCohortsInputs(
+        connectionHandler,
+        schema,
+        tablePrefix,
+        cohortTablePrefix,
+        databaseTable
+      )
+      
+      # update UI
+      output$cohortInputs <- shiny::renderUI({
+        shiny::fluidPage(
+          shiny::fluidRow(
+            shiny::column(
+              width = 6,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('targetIds'),
+                label = 'Targets: ',
+                choices = inputVals$cohortIds,
+                selected = inputVals$cohortIds,
+                choicesOpt = list(style = rep_len("color: black;", 999)),
+                multiple = T,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
+            ),
+            shiny::column(
+              width = 6,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('databaseId'),
+                label = 'Database: ',
+                choices = inputVals$databaseIds,
+                selected = 1,
+                choicesOpt = list(
+                  style = rep_len("color: black;", 999)
+                ),
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
+            )
+          ),
+          
+          shiny::actionButton(
+            inputId = session$ns('generate'),
+            label = 'Generate Report'
+          )
+        )
+      })
+      
+      allData <-
+        shiny::eventReactive(#we care about returning this value, so we use eventReactive
+          eventExpr = input$generate,  #could add complexity to event if desired
+          {
+            if (is.null(input$targetIds)) {
+              data.frame()
+            }
+            getDesFEData(
+              targetIds = input$targetIds,
+              databaseId = input$databaseId,
+              connectionHandler = connectionHandler,
+              schema = schema,
+              tablePrefix = tablePrefix,
+              cohortTablePrefix = cohortTablePrefix
+            )
+          })
+      
+      
+      selectedInputs <- shiny::reactiveVal()
+      output$TinputsText <- shiny::renderUI(
+        selectedInputs()
+      )
+      
+      shiny::observeEvent(
+        eventExpr = input$generate,
+        {
+          if (length(input$targetIds) == 0 | is.null(input$databaseId)) {
+            print('Null ids value')
+            return(invisible(NULL))
+          }
+          
+          selectedInputs(
+            shinydashboard::box(
+              status = 'warning',
+              width = "100%",
+              title = 'Selected:',
+              shiny::div(shiny::fluidRow(
+                shiny::column(
+                  width = 8,
+                  shiny::tags$b("Target/s:"),
+                  
+                  paste(names(inputVals$cohortIds)[inputVals$cohortIds %in% input$targetIds],
+                        collapse = ',')
+                  
+                ),
+                shiny::column(
+                  width = 4,
+                  shiny::tags$b("Database:"),
+                  names(inputVals$databaseIds)[inputVals$databaseIds == input$databaseId]
+                )
+              ))
+            )
+          )
+
+        })
+      
+      
+      #cols: covariateId, covariateName, analysisName,
+      #averageValue_"target", countValue_"target"
+      
+      custom_colDefs <- list(
+        covariateId = reactable::colDef(
+          header = withTooltip("Covariate ID",
+                               "Unique identifier of the covariate")
+        ),
+        covariateName = reactable::colDef(
+          header = withTooltip(
+            "Covariate Name",
+            "The name of the covariate"
+          )
+        ),
+        analysisName = reactable::colDef(
+          header = withTooltip(
+            "Covariate Class",
+            "Class/type of the covariate"
+          )
+        )
+      )
+      
+      resultTableServer(
+        id = "result-table",
+        df = allData,
+        colDefsInput = custom_colDefs
+      )
+
+      return(invisible(NULL))
+      
+    })
   
 }
 
 
-getDesFEData <- function(targetIds,
-                         databaseId,
-                         connectionHandler,
-                         schema,
-                         tablePrefix,
-                         cohortTablePrefix) {
+getDesFEData <- function(
+    targetIds,
+    databaseId,
+    connectionHandler,
+    schema,
+    tablePrefix,
+    cohortTablePrefix
+) {
   #  shiny::withProgress(message = 'Getting target comparison data', value = 0, {
   
   sql <-
@@ -290,8 +302,10 @@ getDesFEData <- function(targetIds,
   #  shiny::incProgress(2/3, detail = paste("Formating"))
   
   #format
-  resultTable$averageValue <-
-    round(resultTable$averageValue, digits = 2)
+  resultTable$averageValue <- round(
+    x = resultTable$averageValue, 
+    digits = 2
+    )
   
   resultTable <- resultTable %>%
     tidyr::pivot_wider(
@@ -312,11 +326,13 @@ getDesFEData <- function(targetIds,
 }
 
 
-getDecCohortsInputs <- function(connectionHandler,
-                                schema,
-                                tablePrefix,
-                                cohortTablePrefix,
-                                databaseTable) {
+getDecCohortsInputs <- function(
+    connectionHandler,
+    schema,
+    tablePrefix,
+    cohortTablePrefix,
+    databaseTable
+) {
   #shiny::withProgress(message = 'Getting target comparison inputs', value = 0, {
   
   
@@ -344,15 +360,16 @@ getDecCohortsInputs <- function(connectionHandler,
   #shiny::incProgress(2/4, detail = paste("Extracted targetIds"))
   
   
-  sql <-
-    'select d.database_id, d.cdm_source_abbreviation as database_name
+  sql <- 'select d.database_id, d.cdm_source_abbreviation as database_name
   from @result_schema.@database_table d;'
   
   #shiny::incProgress(3/4, detail = paste("Extracting databaseIds"))
   
-  database <- connectionHandler$queryDb(sql = sql,
-                                        result_schema = schema,
-                                        database_table = databaseTable)
+  database <- connectionHandler$queryDb(
+    sql = sql,
+    result_schema = schema,
+    database_table = databaseTable
+  )
   databaseIds <- database$databaseId
   names(databaseIds) <- database$databaseName
   
@@ -360,7 +377,11 @@ getDecCohortsInputs <- function(connectionHandler,
   
   #  })
   
-  return(list(cohortIds = ids,
-              databaseIds = databaseIds))
+  return(
+    list(
+      cohortIds = ids,
+      databaseIds = databaseIds
+    )
+  )
   
 }

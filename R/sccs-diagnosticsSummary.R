@@ -17,34 +17,16 @@
 # limitations under the License.
 
 
-#' The module viewer for rendering the SCCS diagnostics results
-#'
-#' @param id the unique reference id for the module
-#'
-#' @return
-#' The user interface to the estimation diagnostics viewer
-#' 
-#' @export
 sccsDiagnosticsSummaryViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    # div(HTML("<em>Enhancements to come...</em>")),
-    reactable::reactableOutput(outputId = ns("diagnosticsTable"))
+    resultTableViewer(ns("diagnosticsTable"))
   )
 }
 
 
-#' The module server for rendering the SCCS diagnostics summary
-#'
-#' @param id the unique reference id for the module
-#' @param connectionHandler the connection to the PLE results database
-#' @param resultDatabaseSettings the resultDatabaseSettings with the schemas, prefix and table names
-#'
-#' @return
-#' the SCCS diagnostics summary results
-#' 
-#' @export
+
 sccsDiagnosticsSummaryServer <- function(
     id,
     connectionHandler,
@@ -54,20 +36,106 @@ sccsDiagnosticsSummaryServer <- function(
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      output$diagnosticsTable <- reactable::renderReactable({
+    
         data <- getSccsAllDiagnosticsSummary(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings
         )
         
-        reactable::reactable(data,
-                             striped = TRUE,
-                             filterable = TRUE,
-                             searchable = TRUE,
-                             bordered = TRUE
+        customColDefs <- list(
+          databaseName = reactable::colDef(
+            header = withTooltip(
+              "Database",
+              "The database name"
+            )
+          ),
+          exposure = reactable::colDef(
+            header = withTooltip(
+              "Exposure",
+              "The exposure of interest "
+            )
+          ),
+          outcome = reactable::colDef(
+            header = withTooltip(
+              "Outcome",
+              "The outcome of interest "
+            )
+          ),
+          analysis = reactable::colDef(
+            header = withTooltip(
+              "Analysis",
+              "The analysis name "
+            )
+          ),
+          covariateName = reactable::colDef(
+            header = withTooltip(
+              "Time Period",
+              "The time period of interest"
+            )
+          ),
+          mdrr = reactable::colDef(
+            header = withTooltip(
+              "mdrr",
+              "The minimum detectible relative risk"
+            )
+          ),
+          ease = reactable::colDef(
+            header = withTooltip(
+              "ease",
+              "The ..."
+            )
+          ),
+          timeTrendP = reactable::colDef(
+            header = withTooltip(
+              "timeTrendP",
+              "The ..."
+            )
+          ),
+          preExposureP = reactable::colDef(
+            header = withTooltip(
+              "preExposureP",
+              "The ..."
+            )
+          ),
+          mdrrDiagnostic = reactable::colDef(
+            header = withTooltip(
+              "mdrrDiagnostic",
+              "The ..."
+            )
+          ),
+          easeDiagnostic = reactable::colDef(
+            header = withTooltip(
+              "easeDiagnostic",
+              "The ..."
+            )
+          ),
+          timeTrendDiagnostic = reactable::colDef(
+            header = withTooltip(
+              "timeTrendDiagnostic",
+              "The ..."
+            )
+          ),
+          preExposureDiagnostic = reactable::colDef(
+            header = withTooltip(
+              "preExposureDiagnostic",
+              "The ..."
+            )
+          ),
+          
+          unblind = reactable::colDef(
+            header = withTooltip(
+              "unblind",
+              "If the value is 1 then the diagnostics passed and results can be unblinded"
+            )
+          )
+          
         )
-      })
+        
+        resultTableServer(
+          id = "diagnosticsTable",
+          df = data,
+          colDefsInput = customColDefs
+        )
       
     }
   )
