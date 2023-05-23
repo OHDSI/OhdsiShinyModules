@@ -542,63 +542,10 @@ getSccsDiagnosticsSummary <- function(connectionHandler,
                             outcome_id = outcomeId,
                             exposure_id = exposureId,
                             snakeCaseToCamelCase = TRUE)
-
-}
-
-
-
-getSccsAllDiagnosticsSummary <- function(
-    connectionHandler,
-    resultDatabaseSettings
-) {
-  sql <- "
-  SELECT 
-  d.cdm_source_abbreviation as database_name,
-  c.cohort_name as outcome, 
-  c2.cohort_name as exposure,
-  a.description as analysis,
-  cov.covariate_name,
-  ds.*
-  FROM @database_schema.@table_prefixdiagnostics_summary ds
-            inner join
-  @database_schema.@table_prefixexposures_outcome_set eos
-  on ds.exposures_outcome_set_id = eos.exposures_outcome_set_id
-     inner join
-   @database_schema.@cg_table_prefixcohort_definition as c
-   on c.cohort_definition_id = eos.outcome_id
-   
-   INNER JOIN
-  @database_schema.@database_table_prefix@database_table d
-  on d.database_id = ds.database_id
-  
-  INNER JOIN
-  @database_schema.@table_prefixanalysis a
-  on a.analysis_id = ds.analysis_id
-  
-  INNER JOIN
-  @database_schema.@table_prefixcovariate cov
-  on cov.covariate_id = ds.covariate_id and 
-  cov.exposures_outcome_set_id = ds.exposures_outcome_set_id and
-  cov.analysis_id = ds.analysis_id and
-  cov.database_id = ds.database_id
-  
-   inner join
-   @database_schema.@cg_table_prefixcohort_definition as c2
-   on cov.era_id = c2.cohort_definition_id
-  ;
-  "
-  result <- connectionHandler$queryDb(sql,
-                            database_schema = resultDatabaseSettings$schema,
-                            cg_table_prefix = resultDatabaseSettings$cohortTablePrefix,
-                            table_prefix = resultDatabaseSettings$tablePrefix,
-                            database_table_prefix = resultDatabaseSettings$databaseTablePrefix,
-                            database_table = resultDatabaseSettings$databaseTable,
-                            snakeCaseToCamelCase = TRUE)
-  
-  result <- result %>% 
-    dplyr::select(-c("analysisId","exposuresOutcomeSetId","databaseId","covariateId"))
-  
-  return(result)
   
 }
+
+
+
+
 
