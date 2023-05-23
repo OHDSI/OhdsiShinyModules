@@ -18,13 +18,11 @@
 
 
 
-#' The location of the datasources module helper file
-#' 
-#' @details Returns the location of the datasources helper file
-#' 
-#' @return String location of the datasources helper file
-#' 
-#' @export 
+
+#' Define the helper file for the module
+#'
+#' @return The helper html file for the datasources module
+#' @export
 #'
 datasourcesHelperFile <- function() {
   fileLoc <-
@@ -33,12 +31,12 @@ datasourcesHelperFile <- function() {
 }
 
 
-#' The viewer of the datasources module
+
+#' The viewer function for hte datasources module
 #'
-#' @param id The unique reference id for the module
+#' @param id The unique id for the datasources viewer namespace
 #'
-#' @return The user interface to the datasources results viewer
-#' 
+#' @return The UI for the datasources module
 #' @export
 #'
 datasourcesViewer <- function(id) {
@@ -71,17 +69,17 @@ datasourcesViewer <- function(id) {
 }
 
 
-#' The module server for the main datasources module
+
+
+#' The server function for the datasources module
 #'
-#' @param id The unique reference id for the module
+#' @param id The unique id for the datasources server namespace
 #' @param connectionHandler A connection to the database with the results
-#' @param resultDatabaseSettings A named list containing the datasources results database details (schema, table prefix) 
+#' @param resultDatabaseSettings A named list containing the cohort generator results database details (schema, table prefix)
 #'
-#' @return The datasourcesmain module server
-#' 
+#' @return The server for the datasources module
 #' @export
 #'
-
 datasourcesServer <- function(
   id, 
   connectionHandler, 
