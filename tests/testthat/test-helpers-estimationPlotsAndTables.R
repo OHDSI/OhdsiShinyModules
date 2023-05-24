@@ -188,4 +188,3 @@ test_that("plotEstimationScatter", {
 # getEstimationControlResults
 # getEstimationStudyPeriod 
 # getEstimationNegativeControlEstimates 
-# getDiagnosticsData

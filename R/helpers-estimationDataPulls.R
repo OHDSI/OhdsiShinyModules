@@ -626,43 +626,4 @@ getEstimationNegativeControlEstimates <- function(cohortMethodResult, connection
 
 
 
-getDiagnosticsData <- function(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix, databaseTable) {
-  sql <- "
-    SELECT
-      dmd.cdm_source_abbreviation database_name,
-      cma.description analysis_desc,
-      cgcd1.cohort_name target,
-      cgcd2.cohort_name comparator,
-      cgcd3.cohort_name outcome,
-      cmds.max_sdm,
-      cmds.shared_max_sdm,
-      cmds.equipoise,
-      cmds.mdrr,
-      cmds.attrition_fraction,
-      cmds.ease,
-      cmds.balance_diagnostic,
-      cmds.shared_balance_diagnostic,
-      cmds.equipoise_diagnostic,
-      cmds.mdrr_diagnostic,
-      cmds.attrition_diagnostic,
-      cmds.ease_diagnostic,
-      cmds.unblind
-    FROM
-      @results_schema.@table_prefixdiagnostics_summary cmds
-      JOIN @results_schema.@table_prefixanalysis cma ON cmds.analysis_id = cma.analysis_id
-      JOIN @results_schema.@database_table dmd ON dmd.database_id = cmds.database_id
-      JOIN @results_schema.@cohort_table_prefixcohort_definition cgcd1 ON cmds.target_id = cgcd1.cohort_definition_id
-      JOIN @results_schema.@cohort_table_prefixcohort_definition cgcd2 ON cmds.comparator_id = cgcd2.cohort_definition_id
-      JOIN @results_schema.@cohort_table_prefixcohort_definition cgcd3 ON cmds.outcome_id = cgcd3.cohort_definition_id
-  "
-  
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      cohort_table_prefix = cohortTablePrefix,
-      database_table = databaseTable
-    )
-  )
-}
+

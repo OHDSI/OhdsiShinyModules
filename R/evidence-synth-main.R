@@ -922,3 +922,46 @@ createPlotForSccsAnalysis <- function(
   return(plot)
 }
 
+
+
+getEvidenceSynthDiagnostics <- function(
+    connectionHandler, 
+    resultDatabaseSettings,
+    resultsSchema, 
+    tablePrefix, 
+    cohortTablePrefix, 
+    databaseTable,
+    targetIds,
+    outcomeIds,
+    comparatorIds,
+    analysisIdsSccs,
+    analysisIdsCm
+    ){
+  
+  sccsDiag <- getSccsAllDiagnosticsSummary(
+    connectionHandler,
+    resultDatabaseSettings,
+    targetIds,
+    outcomeIds,
+    analysisIds = analysisIdsSccs
+  ) 
+  
+  cmDiag <- getCmDiagnosticsData(
+    connectionHandler, 
+    resultsSchema, 
+    tablePrefix, 
+    cohortTablePrefix, 
+    databaseTable,
+    targetIds,
+    outcomeIds,
+    comparatorIds,
+    analysisIds = analysisIdsCm
+  )
+  
+  # select columns of interest and rename for consistency
+  
+  # rbind
+  
+  # return
+  
+}

@@ -27,7 +27,18 @@ sccsDiagnosticsSummaryViewer <- function(id) {
       condition = 'input.generate != 0',
       ns = shiny::NS(ns("input-selection")),
       
-      resultTableViewer(ns("diagnosticsTable"))
+      shiny::tabsetPanel(
+        type = 'pills',
+        id = ns('diagnosticsTablePanel'),
+        shiny::tabPanel(
+          title = 'Summary',
+          resultTableViewer(ns("diagnosticsSummaryTable"))
+        ),
+        shiny::tabPanel(
+          title = 'Full',
+          resultTableViewer(ns("diagnosticsTable"))
+        )
+      )
     )
   )
   
@@ -132,6 +143,14 @@ sccsDiagnosticsSummaryServer <- function(
           analysisIds = inputSelected()$analysisIds
         )
       })
+      
+      data2 <- shiny::reactive({ # use CM diag function
+        diagnosticSummaryFormat(
+          data = data,
+          idCols = c('databaseName','exposure','covariateName'),
+          namesFrom = c('outcome','analysis')
+          )
+      })
         
         customColDefs <- list(
           databaseName = reactable::colDef(
@@ -226,6 +245,35 @@ sccsDiagnosticsSummaryServer <- function(
           id = "diagnosticsTable",
           df = data,
           colDefsInput = customColDefs
+        )
+        
+        
+        # Summary table
+        customColDefs2 <- list(
+          databaseName = reactable::colDef(
+            header = withTooltip(
+              "Database",
+              "The database name"
+            )
+          ),
+          exposure = reactable::colDef(
+            header = withTooltip(
+              "exposure",
+              "The exposure cohort of interest "
+            )
+          ),
+          covariateName = reactable::colDef(
+            header = withTooltip(
+              "Time Period",
+              "The time period of interest"
+            )
+          )
+        )
+        
+        resultTableServer(
+          id = "diagnosticsSummaryTable",
+          df = data2,
+          colDefsInput = styleColumns(customColDefs2, outcomeIds, analysisIds)
         )
       
     }
@@ -402,6 +450,20 @@ getSccsAllDiagnosticsSummary <- function(
   result <- result %>% 
     dplyr::select(-c("analysisId","exposuresOutcomeSetId","databaseId","covariateId"))
   
+  result$summaryValue <- apply(
+    X = result[, grep('Diagnostic', colnames(result))], 
+    MARGIN = 1, 
+    FUN = function(x){
+      
+      if(sum(x %in% c('FAIL'))>0){
+        return('Fail')
+      } else if(sum(x %in% c('WARNING')) >0){
+        return(sum(x %in% c('WARNING'), na.rm = T))
+      } else{
+        return('Pass')
+      }
+    }
+  )
   return(result)
   
 }
