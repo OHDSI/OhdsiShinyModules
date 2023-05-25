@@ -312,19 +312,22 @@ estimationDiagnosticsSummaryServer <- function(
           header = withTooltip(
             "Database",
             "The database name"
-          )
+          ),
+          sticky = "left"
         ),
         target = reactable::colDef(
           header = withTooltip(
             "Target",
             "The target cohort of interest "
-          )
+          ),
+          sticky = "left"
         ),
         comparator = reactable::colDef(
           header = withTooltip(
             "Comparator",
             "The comparator cohort of interest "
-          )
+          ),
+          sticky = "left"
         )
       )
       

@@ -235,6 +235,7 @@ descriptionIncidenceServer <- function(
                 columns = list(
                   cdmSourceAbbreviation = reactable::colDef( 
                     name = 'Database',
+                    sticky = "left",
                     filterInput = function(values, name) {
                       shiny::tags$select(
                         # Set to undefined to clear the filter

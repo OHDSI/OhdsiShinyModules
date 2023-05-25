@@ -254,19 +254,22 @@ sccsDiagnosticsSummaryServer <- function(
             header = withTooltip(
               "Database",
               "The database name"
-            )
+            ),
+            sticky = "left"
           ),
           target = reactable::colDef(
             header = withTooltip(
               "Target",
               "The target cohort of interest "
-            )
+            ),
+            sticky = "left"
           ),
           covariateName = reactable::colDef(
             header = withTooltip(
               "Time Period",
               "The time period of interest"
-            )
+            ),
+            sticky = "left"
           )
         )
         

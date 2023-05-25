@@ -224,13 +224,15 @@ evidenceSynthesisServer <- function(
           header = withTooltip(
             "Database",
             "The database name"
-          )
+          ), 
+          sticky = "left"
         ),
         target = reactable::colDef(
           header = withTooltip(
             "Target",
             "The target cohort of interest "
-          )
+          ), 
+          sticky = "left"
         )
       )
       
