@@ -352,6 +352,10 @@ styleColumns <- function(
     colnameFormat, 
     FUN = function(x){
       reactable::colDef(
+        header = withTooltip(
+          substring(x,1,40),
+          x
+        ),
         style = function(value) {
           color <- 'orange'
           if(is.na(value)){
@@ -465,8 +469,8 @@ getCmDiagnosticsData <- function(
     databaseTable,
     targetIds,
     outcomeIds,
-    comparatorIds,
-    analysisIds
+    comparatorIds = NULL,
+    analysisIds = NULL
 ) {
   sql <- "
     SELECT DISTINCT
@@ -497,9 +501,9 @@ getCmDiagnosticsData <- function(
       INNER JOIN @results_schema.@cohort_table_prefixcohort_definition cgcd3 ON cmds.outcome_id = cgcd3.cohort_definition_id
       
       where cgcd1.cohort_definition_id in (@targets)
-      and cgcd2.cohort_definition_id in (@comparators)
+      {@use_comparators}?{and cgcd2.cohort_definition_id in (@comparators)}
       and cgcd3.cohort_definition_id in (@outcomes)
-      and cma.analysis_id in (@analyses)
+      {@use_analyses}?{and cma.analysis_id in (@analyses)}
       ;
   "
   
@@ -513,7 +517,10 @@ getCmDiagnosticsData <- function(
     targets = paste0(targetIds, collapse = ','),
     comparators = paste0(comparatorIds, collapse = ','),
     outcomes = paste0(outcomeIds, collapse = ','),
-    analyses = paste0(analysisIds, collapse = ',')
+    analyses = paste0(analysisIds, collapse = ','),
+    
+    use_comparators = !is.null(comparatorIds),
+    use_analyses = !is.null(analysisIds)
   )
   
   # adding percent fail for summary

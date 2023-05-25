@@ -147,7 +147,7 @@ sccsDiagnosticsSummaryServer <- function(
       data2 <- shiny::reactive({ # use CM diag function
         diagnosticSummaryFormat(
           data = data,
-          idCols = c('databaseName','exposure','covariateName'),
+          idCols = c('databaseName','target','covariateName'),
           namesFrom = c('outcome','analysis')
           )
       })
@@ -159,10 +159,10 @@ sccsDiagnosticsSummaryServer <- function(
               "The database name"
             )
           ),
-          exposure = reactable::colDef(
+          target = reactable::colDef(
             header = withTooltip(
-              "Exposure",
-              "The exposure of interest "
+              "Target",
+              "The target cohort of interest "
             )
           ),
           outcome = reactable::colDef(
@@ -256,10 +256,10 @@ sccsDiagnosticsSummaryServer <- function(
               "The database name"
             )
           ),
-          exposure = reactable::colDef(
+          target = reactable::colDef(
             header = withTooltip(
-              "exposure",
-              "The exposure cohort of interest "
+              "Target",
+              "The target cohort of interest "
             )
           ),
           covariateName = reactable::colDef(
@@ -387,13 +387,13 @@ getSccsAllDiagnosticsSummary <- function(
     resultDatabaseSettings,
     targetIds,
     outcomeIds,
-    analysisIds
+    analysisIds = NULL
 ) {
   sql <- "
   SELECT 
   d.cdm_source_abbreviation as database_name,
   c.cohort_name as outcome, 
-  c2.cohort_name as exposure,
+  c2.cohort_name as target,
   a.description as analysis,
   cov.covariate_name,
   ds.*
@@ -427,9 +427,9 @@ getSccsAllDiagnosticsSummary <- function(
    
    where
    
-   c2.cohort_definition_id in (@target_ids) and
-   c.cohort_definition_id in (@outcome_ids) and
-   a.analysis_id in (@analysis_ids) 
+   c2.cohort_definition_id in (@target_ids)
+   and c.cohort_definition_id in (@outcome_ids)
+   {@use_analysis}?{and a.analysis_id in (@analysis_ids)}
   ;
   "
   result <- connectionHandler$queryDb(
@@ -443,6 +443,7 @@ getSccsAllDiagnosticsSummary <- function(
     target_ids = paste0(targetIds, collapse = ','),
     outcome_ids = paste0(outcomeIds, collapse = ','),
     analysis_ids = paste0(analysisIds, collapse = ','),
+    use_analysis = !is.null(analysisIds),
     
     snakeCaseToCamelCase = TRUE
   )

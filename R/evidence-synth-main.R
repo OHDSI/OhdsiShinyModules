@@ -55,6 +55,12 @@ evidenceSynthesisViewer <- function(id=1) {
           #title = shiny::tagList(shiny::icon("gear"), "Plot and Table"),
           id = ns('esCohortTabs'),
           
+          # diagnostic view
+          shiny::tabPanel(
+            title = 'Diagnostics',
+            resultTableViewer(ns("diagnosticsSummaryTable"))
+          ),
+          
           shiny::tabPanel(
             "Cohort Method Plot",
             shiny::plotOutput(ns('esCohortMethodPlot'))
@@ -120,6 +126,15 @@ evidenceSynthesisServer <- function(
         mySchema = resultDatabaseSettings$schema, 
         cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
         cgTablePrefix = resultDatabaseSettings$cgTablePrefix
+      )
+      
+      diagnosticColumnNames <- getOACcombinations(
+        connectionHandler = connectionHandler, 
+        resultsSchema = resultDatabaseSettings$schema,
+        sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
+        cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+        cohortTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+        databaseTable = resultDatabaseSettings$databaseMetaData
       )
       
       inputSelected <- inputSelectionServer(
@@ -190,6 +205,40 @@ evidenceSynthesisServer <- function(
           outcomeId = inputSelected()$outcomeId
         )
       })
+      
+      diagSumData <- shiny::reactive({
+        getEvidenceSynthDiagnostics(
+          connectionHandler = connectionHandler, 
+          resultDatabaseSettings = resultDatabaseSettings,
+          resultsSchema = resultDatabaseSettings$schema, 
+          cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+          cohortTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+          databaseTable = resultDatabaseSettings$databaseTable,
+          targetIds = inputSelected()$targetId,
+          outcomeIds = inputSelected()$outcomeId
+        )
+      })
+      
+      customColDefs2 <- list(
+        databaseName = reactable::colDef(
+          header = withTooltip(
+            "Database",
+            "The database name"
+          )
+        ),
+        target = reactable::colDef(
+          header = withTooltip(
+            "Target",
+            "The target cohort of interest "
+          )
+        )
+      )
+      
+      resultTableServer(
+        id = "diagnosticsSummaryTable",
+        df = diagSumData,
+        colDefsInput = styleColumns(customColDefs2, diagnosticColumnNames, outcomeIds)
+      )
       
       output$esCohortMethodPlot <- shiny::renderPlot(
         createPlotForAnalysis(
@@ -923,45 +972,108 @@ createPlotForSccsAnalysis <- function(
 }
 
 
+getOACcombinations <- function(
+    connectionHandler, 
+    resultsSchema,
+    sccsTablePrefix,
+    cmTablePrefix, 
+    cohortTablePrefix, 
+    databaseTable
+    ){
+  
+  sql <- "SELECT DISTINCT
+      CONCAT(cma.description, '_', cgcd2.cohort_name) as col_names
+    FROM
+      @results_schema.@cm_table_prefixdiagnostics_summary cmds
+      INNER JOIN @results_schema.@cm_table_prefixanalysis cma 
+      ON cmds.analysis_id = cma.analysis_id
+      INNER JOIN @results_schema.@cohort_table_prefixcohort_definition cgcd2 
+      ON cmds.comparator_id = cgcd2.cohort_definition_id
+      
+      union
+      
+      SELECT 
+  CONCAT(a.description, '_', cov.covariate_name) as col_names
+
+  FROM @results_schema.@sccs_table_prefixdiagnostics_summary ds
+
+  INNER JOIN
+  @results_schema.@sccs_table_prefixanalysis a
+  on a.analysis_id = ds.analysis_id
+  
+  INNER JOIN
+  @results_schema.@sccs_table_prefixcovariate cov
+  on cov.covariate_id = ds.covariate_id and 
+  cov.exposures_outcome_set_id = ds.exposures_outcome_set_id and
+  cov.analysis_id = ds.analysis_id
+      ;"
+  
+  result <- connectionHandler$queryDb(
+    sql = sql,
+    results_schema = resultsSchema,
+    sccs_table_prefix = sccsTablePrefix,
+    cm_table_prefix = cmTablePrefix,
+    cohort_table_prefix = cohortTablePrefix,
+    database_table = databaseTable
+  )
+  
+  res <- result$colNames
+  names(res) <- result$colNames
+  
+  return(res)
+}
 
 getEvidenceSynthDiagnostics <- function(
     connectionHandler, 
     resultDatabaseSettings,
     resultsSchema, 
-    tablePrefix, 
+    cmTablePrefix, 
     cohortTablePrefix, 
     databaseTable,
     targetIds,
-    outcomeIds,
-    comparatorIds,
-    analysisIdsSccs,
-    analysisIdsCm
+    outcomeIds
     ){
   
-  sccsDiag <- getSccsAllDiagnosticsSummary(
-    connectionHandler,
-    resultDatabaseSettings,
-    targetIds,
-    outcomeIds,
-    analysisIds = analysisIdsSccs
+  resultDatabaseSettings$tablePrefix <- resultDatabaseSettings$sccsTablePrefix
+  resultDatabaseSettings$databaseTable <- resultDatabaseSettings$databaseMetaData
+  resultDatabaseSettings$cohortTablePrefix <- resultDatabaseSettings$cgTablePrefix
+  sccsDiagTemp <- getSccsAllDiagnosticsSummary(
+    connectionHandler = connectionHandler,
+    resultDatabaseSettings = resultDatabaseSettings,
+    targetIds = targetIds,
+    outcomeIds = outcomeIds
   ) 
   
-  cmDiag <- getCmDiagnosticsData(
-    connectionHandler, 
-    resultsSchema, 
-    tablePrefix, 
-    cohortTablePrefix, 
-    databaseTable,
-    targetIds,
-    outcomeIds,
-    comparatorIds,
-    analysisIds = analysisIdsCm
+  cmDiagTemp <- getCmDiagnosticsData(
+    connectionHandler = connectionHandler, 
+    resultsSchema = resultsSchema, 
+    tablePrefix = cmTablePrefix, 
+    cohortTablePrefix = cohortTablePrefix, 
+    databaseTable = resultDatabaseSettings$databaseMetaData,
+    targetIds = targetIds,
+    outcomeIds = outcomeIds
   )
   
   # select columns of interest and rename for consistency
+  sccsDiagTemp <- diagnosticSummaryFormat(
+    data = shiny::reactive({sccsDiagTemp}),
+    idCols = c('databaseName','target'),
+    namesFrom = c('analysis','covariateName','outcome')
+  )
+
+  cmDiagTemp <- diagnosticSummaryFormat(
+    data = shiny::reactive({cmDiagTemp}),
+    idCols = c('databaseName','target'),
+    namesFrom = c('analysis','comparator','outcome')
+  )
   
-  # rbind
+  allResult <- merge(
+    x = sccsDiagTemp, 
+    y = cmDiagTemp, 
+    by = c('databaseName','target'),
+    all = T
+    )
   
   # return
-  
+  return(allResult)
 }
