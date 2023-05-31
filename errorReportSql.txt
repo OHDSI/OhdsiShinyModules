@@ -1,11 +1,12 @@
 DBMS:
-sqlite
+postgresql
 
 Error:
-no such table: main.pv_COHORT_DEFINTION_SET
+org.postgresql.util.PSQLException: ERROR: relation "main.pv_algorithm_performance_results" does not exist
+  Position: 15
 
 SQL:
-SELECT * FROM main.pv_COHORT_DEFINTION_SET
+SELECT * FROM main.pv_ALGORITHM_PERFORMANCE_RESULTS
   ;
 
 R version:
@@ -26,6 +27,6 @@ Attached base packages:
 Other attached packages:
 - OhdsiShinyModules (1.1.0.9000)
 - shiny (1.7.4)
-- testthat (3.1.6)
 - ShinyAppBuilder (1.1.2)
 - dplyr (1.1.0)
+- testthat (3.1.6)

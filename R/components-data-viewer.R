@@ -179,7 +179,7 @@ resultTableServer <- function(id, #string
                         output$resultData <-
                           reactable::renderReactable({
                             
-                            data = df()[, input$dataCols]
+                            data = df()[, input$dataCols, drop = F]
                             
                             tryCatch({
                               
@@ -201,23 +201,11 @@ resultTableServer <- function(id, #string
                                 #theme = ohdsiReactableTheme
                               )}
                               ,
-                              # 
-                              # warning = function(w){
-                              #   shiny::showNotification("Select at least 2 columns!"); return(NULL)
-                              # 
-                              # },
-                              # 
-                              warning = function(w){
-                                if(w$message == 
-                                   "Error in reactable::reactable: `data` must have at least one column"){
-                                  shiny::showNotification("No columns selected!")
-                                }
-                                if(w$message == 
-                                   "Error in reactable::reactable: `data` must be a data frame or matrix")
-                                  shiny::showNotification("Please select at least 2 columns!"); return(NULL)
-                                
+
+                              error = function(e){
+                                shiny::showNotification("No columns selected!"); return(NULL)
+
                               }
-                              
                             )
                             
                             

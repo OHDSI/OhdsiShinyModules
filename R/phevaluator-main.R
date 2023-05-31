@@ -143,7 +143,7 @@ phevaluatorServer <- function(
       #use algorithm performance table to get "option columns",
       #which will be used to make choices before generating result(s)
       optionCols <- getPhevalAlgorithmPerformance(
-        connectionHandler = connectionHandler,
+        connectionHandler = connection,
         resultsSchema = resultDatabaseSettings$schema,
         tablePrefix = resultDatabaseSettings$tablePrefix,
         databaseIds = NULL,
@@ -437,7 +437,7 @@ phevaluatorServer <- function(
       
       resultTableServer(id = "cohortDefinitionSetTable",
                         df = dataCohortDefinitionSet,
-                        colDefsInput = buttonColDefs)
+                        colDefsInput = customColDefs)
       
       resultTableServer(id = "diagnosticsTable",
                         df = dataDiagnostics,
