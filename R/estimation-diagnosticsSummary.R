@@ -489,7 +489,7 @@ getCmDiagnosticsData <- function(
       cmds.attrition_fraction,
       cmds.ease,
       cmds.balance_diagnostic,
-      cmds.shared_balance_diagnostic,
+      --cmds.shared_balance_diagnostic,
       cmds.equipoise_diagnostic,
       cmds.mdrr_diagnostic,
       cmds.attrition_diagnostic,
