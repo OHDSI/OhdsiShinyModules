@@ -4,7 +4,7 @@
 \alias{resultTableServer}
 \title{Result Table Server}
 \usage{
-resultTableServer(id, df, colDefsInput)
+resultTableServer(id, df, colDefsInput, downloadedFileName)
 }
 \arguments{
 \item{id}{string, table id must match resultsTableViewer function}
@@ -12,6 +12,8 @@ resultTableServer(id, df, colDefsInput)
 \item{df}{reactive that returns a data frame}
 
 \item{colDefsInput}{named list of reactable::colDefs}
+
+\item{downloadedFileName}{string, desired name of downloaded data file. can use the name from the module that is being used}
 }
 \value{
 shiny module server

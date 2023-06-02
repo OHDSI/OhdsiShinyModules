@@ -9,11 +9,13 @@
 #' Result Table Viewer
 #'
 #' @param id string
+#' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #'
 #' @return shiny module UI
 #' @export
 #'
-resultTableViewer <- function(id = "result-table") {
+resultTableViewer <- function(id = "result-table",
+                              downloadedFileName = NULL) {
   ns <- shiny::NS(id)
   shiny::div(# UI
     shinydashboard::box(
@@ -41,6 +43,7 @@ resultTableViewer <- function(id = "result-table") {
                 "Reactable.downloadDataCSV('",
                 ns('resultData'),
                 "', 'result-data-filtered-",
+                downloadedFileName,
                 Sys.Date(),
                 ".csv')"
               )
@@ -136,13 +139,15 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param id string, table id must match resultsTableViewer function
 #' @param df reactive that returns a data frame
 #' @param colDefsInput named list of reactable::colDefs
+#' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #'
 #' @return shiny module server
 #' @export
 #'
 resultTableServer <- function(id, #string
                               df, #data.frame
-                              colDefsInput
+                              colDefsInput, #named list
+                              downloadedFileName = NULL #string
 ) #list of colDefs, can use checkmate::assertList, need a check that makes sure names = columns) {
   shiny::moduleServer(id,
                       function(input, output, session) {
@@ -168,12 +173,17 @@ resultTableServer <- function(id, #string
                         })
                         
                         #need to try adding browser() to all reactives to see why selected cols isnt working
+                    
                         
                         colDefs <-
-                          shiny::reactive(create_colDefs_list(df = df()[, input$dataCols],
-                                                              customColDefs = colDefsInput))
+                          shiny::reactive({
+                            create_colDefs_list(df = df()[, input$dataCols],
+                                                              customColDefs = colDefsInput)
+                          })
                         
-                        fullData <- shiny::reactive(df())
+                        fullData <- shiny::reactive({
+                          df()
+                          })
                         
                         
                         output$resultData <-
@@ -214,7 +224,7 @@ resultTableServer <- function(id, #string
                         # download full data button
                         output$downloadDataFull <- shiny::downloadHandler(
                           filename = function() {
-                            paste('data-full-', Sys.Date(), '.csv', sep = '')
+                            paste('data-full-', downloadedFileName, Sys.Date(), '.csv', sep = '')
                           },
                           content = function(con) {
                             utils::write.csv(fullData(), con,

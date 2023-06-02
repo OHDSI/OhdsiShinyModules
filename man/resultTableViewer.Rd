@@ -4,10 +4,12 @@
 \alias{resultTableViewer}
 \title{Result Table Viewer}
 \usage{
-resultTableViewer(id = "result-table")
+resultTableViewer(id = "result-table", downloadedFileName)
 }
 \arguments{
 \item{id}{string}
+
+\item{downloadedFileName}{string, desired name of downloaded data file. can use the name from the module that is being used}
 }
 \value{
 shiny module UI
