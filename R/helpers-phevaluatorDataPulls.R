@@ -24,10 +24,10 @@ getPhevalAlgorithmPerformance <- function(
 # databaseIds = c("CCAE_RS", "Germany_RS")
 # phenotypes = c("hyperprolactinemia", )
 # 
-getPhevalAlgorithmPerformance(connectionHandler = connection,
-                          resultsSchema = resultDatabaseDetails$schema,
-                          tablePrefix = resultDatabaseDetails$tablePrefix
-                          )
+# getPhevalAlgorithmPerformance(connectionHandler = connectionHandler,
+#                           resultsSchema = resultDatabaseDetails$schema,
+#                           tablePrefix = resultDatabaseDetails$tablePrefix
+#                           )
 
 
 getPhevalCohortDefinitionSet <- function(
@@ -107,7 +107,7 @@ getPhevalModelCovars <- function(
       )
 }
 
-# d <- getPhevalModelCovars(connectionHandler = connection,
+# d <- getPhevalModelCovars(connectionHandler = connectionHandler,
 #                                    resultsSchema = resultDatabaseDetails$schema,
 #                                    tablePrefix = resultDatabaseDetails$tablePrefix,
 #                                    databaseIds = databaseIds,
