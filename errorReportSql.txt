@@ -2,11 +2,11 @@ DBMS:
 postgresql
 
 Error:
-org.postgresql.util.PSQLException: ERROR: relation "main.pv_algorithm_performance_results" does not exist
+org.postgresql.util.PSQLException: ERROR: relation "main.database_meta_data" does not exist
   Position: 15
 
 SQL:
-SELECT * FROM main.pv_ALGORITHM_PERFORMANCE_RESULTS
+SELECT * from main.DATABASE_META_DATA
   ;
 
 R version:
@@ -28,5 +28,5 @@ Other attached packages:
 - OhdsiShinyModules (1.1.0.9000)
 - shiny (1.7.4)
 - ShinyAppBuilder (1.1.2)
-- dplyr (1.1.0)
+- dplyr (1.1.2)
 - testthat (3.1.6)
