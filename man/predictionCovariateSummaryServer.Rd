@@ -11,8 +11,8 @@ predictionCovariateSummaryServer(
   performanceId,
   connectionHandler,
   inputSingleView,
-  mySchema,
-  myTableAppend = ""
+  schema,
+  plpTablePrefix = ""
 )
 }
 \arguments{
@@ -28,9 +28,9 @@ predictionCovariateSummaryServer(
 
 \item{inputSingleView}{the current tab}
 
-\item{mySchema}{the database schema for the model results}
+\item{schema}{the database schema for the model results}
 
-\item{myTableAppend}{a string that appends the tables in the result schema}
+\item{plpTablePrefix}{a string that appends the tables in the result schema}
 }
 \value{
 The server to the covariate summary module

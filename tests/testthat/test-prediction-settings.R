@@ -8,8 +8,8 @@ shiny::testServer(
     performanceId = shiny::reactiveVal(1),
     connectionHandler = connectionHandlerPlp,
     inputSingleView = shiny::reactiveVal('Design Settings'), # only works with this
-    mySchema = resultDatabaseSettingsPlp$schema,
-    myTableAppend = resultDatabaseSettingsPlp$tablePrefix
+    schema = resultDatabaseSettingsPlp$schema,
+    plpTablePrefix = resultDatabaseSettingsPlp$plpTablePrefix
   ), 
   expr = {
     
@@ -31,10 +31,10 @@ shiny::testServer(
     design <- getModelDesign(
       inputSingleView = inputSingleView,
       modelDesignId = modelDesignId,
-      mySchema = mySchema, 
+      schema = schema, 
       connectionHandler = connectionHandler,
-      myTableAppend = myTableAppend, 
-      cohortTableAppend = ''  # add as input?
+      plpTablePrefix = plpTablePrefix, 
+      cohortTablePrefix = ''  # add as input?
     )
     expect_true(class(design) == 'list')
     expect_true(!is.null(design$RestrictPlpData))

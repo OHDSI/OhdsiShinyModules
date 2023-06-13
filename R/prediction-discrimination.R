@@ -142,8 +142,8 @@ predictionDiscriminationViewer <- function(id) {
 #' @param performanceId the performance id in the database
 #' @param connectionHandler the connection to the prediction result database
 #' @param inputSingleView the current tab 
-#' @param mySchema the database schema for the model results
-#' @param myTableAppend a string that appends the tables in the result schema
+#' @param schema the database schema for the model results
+#' @param plpTablePrefix a string that appends the tables in the result schema
 #' 
 #' @return
 #' The server to the model discrimination module
@@ -154,8 +154,8 @@ predictionDiscriminationServer <- function(
   performanceId, 
   connectionHandler,
   inputSingleView,
-  mySchema, 
-  myTableAppend
+  schema, 
+  plpTablePrefix
 ) {
   shiny::moduleServer(
     id,
@@ -167,8 +167,8 @@ predictionDiscriminationServer <- function(
           data <- getPredictionResult(
             performanceId = performanceId, 
             connectionHandler = connectionHandler,
-            tableName = paste0(myTableAppend,'evaluation_statistics'), 
-            mySchema = mySchema
+            tableName = paste0(plpTablePrefix,'evaluation_statistics'), 
+            schema = schema
           )
           print('Discrimination ended')
         } else{
@@ -253,16 +253,16 @@ predictionDiscriminationServer <- function(
             value <- getPredictionResult(
               performanceId = performanceId, 
               connectionHandler = connectionHandler,
-              tableName = paste0(myTableAppend,'prediction_distribution'), 
-              mySchema = mySchema
+              tableName = paste0(plpTablePrefix,'prediction_distribution'), 
+              schema = schema
             )
             predictionDistribution(value)
             
             value <- getPredictionResult(
               performanceId = performanceId, 
               connectionHandler = connectionHandler,
-              tableName = paste0(myTableAppend,'threshold_summary'), 
-              mySchema = mySchema
+              tableName = paste0(plpTablePrefix,'threshold_summary'), 
+              schema = schema
             )
             thresholdSummary(value)
           }

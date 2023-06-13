@@ -78,7 +78,10 @@ withTooltip <- function(value, tooltip, ...) {
 #                 header = withTooltip("Disp column name", "Disp tooltip"))
 # )
 
-create_colDefs_list <- function(df, customColDefs = NULL) {
+create_colDefs_list <- function(
+    df, 
+    customColDefs = NULL
+    ) {
   # Get the column names of the input data frame
   col_names <- colnames(df)
   
@@ -137,6 +140,8 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param id string, table id must match resultsTableViewer function
 #' @param df reactive that returns a data frame
 #' @param colDefsInput named list of reactable::colDefs
+#' @param addActions add a button row selector column to the table to a column called 'actions'.  
+#'                   actions must be a column in df
 #'
 #' @return shiny module server
 #' @export
@@ -144,7 +149,8 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 resultTableServer <- function(
     id, #string
     df, #data.frame
-    colDefsInput
+    colDefsInput,
+    addActions = NULL
 ) #list of colDefs, can use checkmate::assertList, need a check that makes sure names = columns) {
   shiny::moduleServer(
     id,
@@ -152,6 +158,29 @@ resultTableServer <- function(
       
       if(inherits(df, 'data.frame')){
         df <- shiny::reactiveVal(df)
+      }
+      
+      # add a new entry to colDefs with an action dropdown menu
+      # add a onClick action
+      if(!is.null(addActions)){
+        
+        onClickText <- paste0(
+          "function(rowInfo, column) {",
+          paste("if(column.id == 'actions'){
+      Shiny.setInputValue('",session$ns(paste0('action_index')),"', { index: rowInfo.index + 1 }, { priority: 'event' })
+    }", collapse = ' ', sep = ''),
+          "}"
+        )
+        onClick <- reactable::JS(onClickText)
+        
+        colDefsInput <- addTableActions(
+          colDefsInput = colDefsInput,
+          addActions = addActions,
+          session = session
+          )
+      
+      } else{
+        onClick <- NULL
       }
       
       output$columnSelector <- shiny::renderUI({
@@ -198,6 +227,7 @@ resultTableServer <- function(
           reactable::reactable(
             data,
             columns = colDefs(),
+            onClick = onClick,
             #these can be turned on/off and will overwrite colDef args
             sortable = TRUE,
             resizable = TRUE,
@@ -227,4 +257,89 @@ resultTableServer <- function(
             )
         }
       )
+      
+      
+      # capture the actions
+      actionCount <- shiny::reactiveVal(0)
+      actionIndex <- shiny::reactiveVal(0)
+      actionType <- shiny::reactiveVal('none')
+      shiny::observeEvent(input$action_index, {
+        actionIndex(input$action_index)
+      })
+      
+      shiny::observeEvent(input$action_type, {
+          # update type
+          actionType(input$action_type$value)
+          # update count
+          actionCount(input$action_type$seed)
+        })
+      
+      return(
+        list(
+          actionType = actionType, 
+          actionIndex = actionIndex,
+          actionCount = actionCount 
+        )
+      )
     })
+
+
+
+
+
+# HELPERS
+addTableActions <- function(
+    colDefsInput,
+    addActions,
+    session
+){
+  
+  args <- list(
+    label = "Actions",
+    status = "primary",
+    circle = FALSE,
+    width = "300px",
+    margin = "5px"
+  )
+  
+  args <- append(
+    args, 
+    lapply(
+    X = addActions,
+    FUN = function(x){
+      shiny::actionLink(
+        inputId = session$ns(x),
+        label = paste0('View ',x),
+        icon = shiny::icon("play"),
+        onClick = reactable::JS(
+          paste0(
+            "function() {
+                  Shiny.setInputValue('",session$ns(paste0('action_type')),"', { value: '",x,"', seed: Math.random()})
+                  }"
+          )
+        )
+      )
+    })
+  )
+  
+  tableActionfunction <- function(){ 
+  
+  cellFunction <- do.call(
+    args = args,
+    what = shinyWidgets::dropdownButton
+  )
+  return(cellFunction)
+  }
+  
+  # add the actions dropdown
+  colDefsInput[[length(colDefsInput) + 1 ]] <- reactable::colDef(
+    name = "",
+    sortable = FALSE,
+    filterable = FALSE,
+    minWidth = 150,
+    cell = tableActionfunction
+  ) 
+  names(colDefsInput)[length(colDefsInput)] <- 'actions'
+  
+  return(colDefsInput)
+}

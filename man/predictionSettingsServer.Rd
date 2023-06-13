@@ -11,10 +11,10 @@ predictionSettingsServer(
   performanceId,
   connectionHandler,
   inputSingleView,
-  mySchema,
-  myTableAppend,
-  cohortTableAppend = myTableAppend,
-  databaseTableAppend = myTableAppend
+  schema,
+  plpTablePrefix,
+  cohortTablePrefix = plpTablePrefix,
+  databaseTablePrefix = plpTablePrefix
 )
 }
 \arguments{
@@ -30,13 +30,13 @@ predictionSettingsServer(
 
 \item{inputSingleView}{the current tab}
 
-\item{mySchema}{the database schema for the model results}
+\item{schema}{the database schema for the model results}
 
-\item{myTableAppend}{a string that appends the tables in the result schema}
+\item{plpTablePrefix}{a string that appends the tables in the result schema}
 
-\item{cohortTableAppend}{a string that appends the cohort_definition table}
+\item{cohortTablePrefix}{a string that appends the cohort_definition table}
 
-\item{databaseTableAppend}{a string that appends the database_meta_data table}
+\item{databaseTablePrefix}{a string that appends the database_meta_data table}
 }
 \value{
 The server to the settings module

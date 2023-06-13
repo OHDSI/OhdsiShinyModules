@@ -65,10 +65,10 @@ predictionSettingsViewer <- function(id) {
 #' @param performanceId unique id for the performance results
 #' @param connectionHandler the connection to the prediction result database
 #' @param inputSingleView the current tab 
-#' @param mySchema the database schema for the model results
-#' @param myTableAppend a string that appends the tables in the result schema
-#' @param cohortTableAppend a string that appends the cohort_definition table
-#' @param databaseTableAppend a string that appends the database_meta_data table
+#' @param schema the database schema for the model results
+#' @param plpTablePrefix a string that appends the tables in the result schema
+#' @param cohortTablePrefix a string that appends the cohort_definition table
+#' @param databaseTablePrefix a string that appends the database_meta_data table
 #' 
 #' @return
 #' The server to the settings module
@@ -81,10 +81,10 @@ predictionSettingsServer <- function(
   performanceId,
   connectionHandler,
   inputSingleView,
-  mySchema, 
-  myTableAppend, 
-  cohortTableAppend = myTableAppend,
-  databaseTableAppend = myTableAppend
+  schema, 
+  plpTablePrefix, 
+  cohortTablePrefix = plpTablePrefix,
+  databaseTablePrefix = plpTablePrefix
 ) {
   
   shiny::moduleServer(
@@ -97,28 +97,28 @@ predictionSettingsServer <- function(
         getModelDesign(
         inputSingleView = inputSingleView,
         modelDesignId = modelDesignId,
-        mySchema, 
+        schema = schema, 
         connectionHandler = connectionHandler,
-        myTableAppend, 
-        cohortTableAppend
+        plpTablePrefix = plpTablePrefix, 
+        cohortTablePrefix = cohortTablePrefix
       )})
       
       hyperParamSearch <- shiny::reactive({getHyperParamSearch(
         inputSingleView = inputSingleView,
         modelDesignId = modelDesignId,
         databaseId = developmentDatabaseId,
-        mySchema, 
+        schema = schema, 
         connectionHandler = connectionHandler,
-        myTableAppend
+        plpTablePrefix  = plpTablePrefix
       ) })
       
       attrition <- shiny::reactive({
         getAttrition(
         inputSingleView = inputSingleView,
         performanceId = performanceId,
-        mySchema, 
+        schema = schema, 
         connectionHandler = connectionHandler,
-        myTableAppend 
+        plpTablePrefix = plpTablePrefix 
       ) 
       })
       
@@ -127,10 +127,10 @@ predictionSettingsServer <- function(
         getPlpSettingDatabase(
         inputSingleView = inputSingleView,
         performanceId = performanceId,
-        mySchema = mySchema, 
+        schema = schema, 
         connectionHandler = connectionHandler,
-        myTableAppend = myTableAppend, 
-        databaseTableAppend = databaseTableAppend 
+        plpTablePrefix = plpTablePrefix, 
+        databaseTablePrefix = databaseTablePrefix 
       )
       })
       
@@ -438,10 +438,10 @@ predictionSettingsServer <- function(
 getPlpSettingDatabase <- function(
   inputSingleView,
   performanceId,
-  mySchema, 
+  schema, 
   connectionHandler,
-  myTableAppend,
-  databaseTableAppend = myTableAppend
+  plpTablePrefix,
+  databaseTablePrefix = plpTablePrefix
 ){
   
   if(!is.null(performanceId()) & inputSingleView() == 'Design Settings'){
@@ -480,10 +480,10 @@ getPlpSettingDatabase <- function(
   
   databaseNames <- connectionHandler$queryDb(
     sql = sql,
-    my_schema = mySchema,
+    my_schema = schema,
     performance_id = performanceId(),
-    my_table_append = myTableAppend,
-    database_table_append = databaseTableAppend
+    my_table_append = plpTablePrefix,
+    database_table_append = databaseTablePrefix
   )
   
   return(databaseNames)
@@ -497,10 +497,10 @@ getPlpSettingDatabase <- function(
 getModelDesign <- function(
     inputSingleView,
   modelDesignId,
-  mySchema, 
+  schema, 
   connectionHandler,
-  myTableAppend, 
-  cohortTableAppend = myTableAppend
+  plpTablePrefix, 
+  cohortTablePrefix = plpTablePrefix
 ){
   if(!is.null(modelDesignId()) & inputSingleView() == 'Design Settings'){
 
@@ -516,9 +516,9 @@ getModelDesign <- function(
     
     ids <- connectionHandler$queryDb(
       sql = sql,
-      my_schema = mySchema,
+      my_schema = schema,
       model_design_id = modelDesignId(),
-      my_table_append = myTableAppend
+      my_table_append = plpTablePrefix
     )
     
  
@@ -539,9 +539,9 @@ getModelDesign <- function(
 
     tempModSettings <- connectionHandler$queryDb(
       sql = sql,
-      my_schema = mySchema,
+      my_schema = schema,
       model_setting_id = modSetId,
-      my_table_append = myTableAppend
+      my_table_append = plpTablePrefix
     )
     
     modelDesign$modelSettings <- ParallelLogger::convertJsonToSettings(
@@ -554,9 +554,9 @@ getModelDesign <- function(
 
     tempSettings <- connectionHandler$queryDb(
       sql = sql, 
-      my_schema = mySchema,
+      my_schema = schema,
       setting_id = covSetId,
-      my_table_append = myTableAppend
+      my_table_append = plpTablePrefix
     )
     modelDesign$covariateSettings <- ParallelLogger::convertJsonToSettings(
       tempSettings$covariateSettingsJson
@@ -569,9 +569,9 @@ getModelDesign <- function(
 
     tempSettings <- connectionHandler$queryDb(
       sql = sql, 
-      my_schema = mySchema,
+      my_schema = schema,
       setting_id = popSetId,
-      my_table_append = myTableAppend
+      my_table_append = plpTablePrefix
     )
     
     modelDesign$populationSettings <- ParallelLogger::convertJsonToSettings(
@@ -584,9 +584,9 @@ getModelDesign <- function(
 
     tempSettings <- connectionHandler$queryDb(
       sql = sql, 
-      my_schema = mySchema,
+      my_schema = schema,
       setting_id = feSetId,
-      my_table_append = myTableAppend
+      my_table_append = plpTablePrefix
     )
     modelDesign$featureEngineeringSettings <- tempSettings$featureEngineeringSettingsJson
     
@@ -596,9 +596,9 @@ getModelDesign <- function(
 
     tempSettings <- connectionHandler$queryDb(
       sql = sql, 
-      my_schema = mySchema,
+      my_schema = schema,
       setting_id = tidyCovariatesSettingId,
-      my_table_append = myTableAppend
+      my_table_append = plpTablePrefix
     )
     modelDesign$preprocessSettings <- tempSettings$tidyCovariatesSettingsJson
     
@@ -609,9 +609,9 @@ getModelDesign <- function(
     
     tempSettings <- connectionHandler$queryDb(
       sql = sql, 
-      my_schema = mySchema,
+      my_schema = schema,
       setting_id = plpDataSettingId,
-      my_table_append = myTableAppend
+      my_table_append = plpTablePrefix
     )
     modelDesign$RestrictPlpData <- tempSettings$plpDataSettingsJson
     
@@ -622,9 +622,9 @@ getModelDesign <- function(
     
     tempSettings <- connectionHandler$queryDb(
       sql = sql, 
-      my_schema = mySchema,
+      my_schema = schema,
       setting_id = sampleSetId,
-      my_table_append = myTableAppend
+      my_table_append = plpTablePrefix
     )
     modelDesign$sampleSettings <- tempSettings$sampleSettingsJson
     
@@ -635,9 +635,9 @@ getModelDesign <- function(
 
     tempSettings <- connectionHandler$queryDb(
       sql = sql, 
-      my_schema = mySchema,
+      my_schema = schema,
       setting_id = splitId,
-      my_table_append = myTableAppend
+      my_table_append = plpTablePrefix
     )
     modelDesign$splitSettings <- tempSettings$splitSettingsJson
     
@@ -652,10 +652,10 @@ getModelDesign <- function(
     
     tempSettings <- connectionHandler$queryDb(
       sql = sql, 
-      my_schema = mySchema,
+      my_schema = schema,
       setting_id = tId,
-      my_table_append = myTableAppend,
-      cohort_table_append = cohortTableAppend
+      my_table_append = plpTablePrefix,
+      cohort_table_append = cohortTablePrefix
     )
     modelDesign$cohort <- tempSettings
     
@@ -670,10 +670,10 @@ getModelDesign <- function(
     
     tempSettings <- connectionHandler$queryDb(
       sql = sql, 
-      my_schema = mySchema,
+      my_schema = schema,
       setting_id = oId,
-      my_table_append = myTableAppend,
-      cohort_table_append = cohortTableAppend
+      my_table_append = plpTablePrefix,
+      cohort_table_append = cohortTablePrefix
     )
     modelDesign$outcome <- tempSettings
     
@@ -691,9 +691,9 @@ getHyperParamSearch <- function(
     inputSingleView,
   modelDesignId,
   databaseId,
-  mySchema, 
+  schema, 
   connectionHandler,
-  myTableAppend
+  plpTablePrefix
 ){
   
   if(!is.null(modelDesignId()) & inputSingleView() == 'Design Settings'){
@@ -703,10 +703,10 @@ getHyperParamSearch <- function(
 
   models <- connectionHandler$queryDb(
     sql = sql, 
-    my_schema = mySchema,
+    my_schema = schema,
     database_id = databaseId(),
     model_design_id = modelDesignId(),
-    my_table_append = myTableAppend
+    my_table_append = plpTablePrefix
   )
   trainDetails <- ParallelLogger::convertJsonToSettings(models$trainDetails)
   
@@ -718,9 +718,9 @@ getHyperParamSearch <- function(
 getAttrition <- function(
     inputSingleView,
   performanceId,
-  mySchema, 
+  schema, 
   connectionHandler,
-  myTableAppend 
+  plpTablePrefix 
 ){
 
   if(!is.null(performanceId()) & inputSingleView() == 'Design Settings'){
@@ -729,9 +729,9 @@ getAttrition <- function(
 
   attrition  <- connectionHandler$queryDb(
     sql = sql, 
-    my_schema = mySchema,
+    my_schema = schema,
     performance_id = performanceId(),
-    my_table_append = myTableAppend
+    my_table_append = plpTablePrefix
   )
   
   return(attrition)

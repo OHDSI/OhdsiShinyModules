@@ -37,7 +37,7 @@ connectionHandlerPlp <- ResultModelManager::ConnectionHandler$new(connectionDeta
 
 resultDatabaseSettingsPlp <- list(
   dbms = 'sqlite', # should this be removed - can use connection
-  tablePrefix = '',
+  plpTablePrefix = '',
   cohortTablePrefix = '',
   databaseTablePrefix = '',
   schema = 'main'

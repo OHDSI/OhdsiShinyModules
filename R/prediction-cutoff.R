@@ -95,8 +95,8 @@ predictionCutoffViewer <- function(id) {
 #' @param performanceId the performance id in the database
 #' @param connectionHandler the connection to the prediction result database
 #' @param inputSingleView the current tab 
-#' @param mySchema the database schema for the model results
-#' @param myTableAppend a string that appends the tables in the result schema
+#' @param schema the database schema for the model results
+#' @param plpTablePrefix a string that appends the tables in the result schema
 #' 
 #' @return
 #' The server to the prediction cut-off module
@@ -107,8 +107,8 @@ predictionCutoffServer <- function(
   performanceId, 
   connectionHandler,
   inputSingleView,
-  mySchema, 
-  myTableAppend
+  schema, 
+  plpTablePrefix
 ) {
   shiny::moduleServer(
     id,
@@ -122,8 +122,8 @@ predictionCutoffServer <- function(
           value <- getPredictionResult(
             performanceId = performanceId,
             connectionHandler = connectionHandler,
-            mySchema = mySchema,
-            tableName = paste0(myTableAppend, 'threshold_summary')
+            schema = schema,
+            tableName = paste0(plpTablePrefix, 'threshold_summary')
           )
           return(value)
         } else{

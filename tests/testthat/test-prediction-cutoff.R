@@ -6,8 +6,8 @@ shiny::testServer(
     performanceId = shiny::reactiveVal(1),
     connectionHandler = connectionHandlerPlp,
     inputSingleView = shiny::reactiveVal("Threshold Dependant"),
-    mySchema = resultDatabaseSettingsPlp$schema,
-    myTableAppend = resultDatabaseSettingsPlp$tablePrefix
+    schema = resultDatabaseSettingsPlp$schema,
+    plpTablePrefix = resultDatabaseSettingsPlp$plpTablePrefix
   ), 
   expr = {
     

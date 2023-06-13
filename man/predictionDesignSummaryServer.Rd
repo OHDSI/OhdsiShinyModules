@@ -4,16 +4,24 @@
 \alias{predictionDesignSummaryServer}
 \title{The module server for exploring prediction designs in the results}
 \usage{
-predictionDesignSummaryServer(id, connectionHandler, mySchema, myTableAppend)
+predictionDesignSummaryServer(
+  id,
+  connectionHandler,
+  schema,
+  plpTablePrefix,
+  cohortTablePrefix
+)
 }
 \arguments{
 \item{id}{the unique reference id for the module}
 
 \item{connectionHandler}{the connection to the prediction result database}
 
-\item{mySchema}{the database schema for the model results}
+\item{schema}{the database schema for the model results}
 
-\item{myTableAppend}{a string that appends the tables in the result schema}
+\item{plpTablePrefix}{a string that appends the plp tables in the result schema}
+
+\item{cohortTablePrefix}{a string that appends the cohort tables in the result schema}
 }
 \value{
 The server to the prediction design module

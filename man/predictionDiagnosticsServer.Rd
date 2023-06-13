@@ -7,10 +7,10 @@
 predictionDiagnosticsServer(
   id,
   modelDesignId,
-  mySchema,
+  schema,
   connectionHandler,
-  myTableAppend,
-  databaseTableAppend
+  plpTablePrefix,
+  databaseTablePrefix
 )
 }
 \arguments{
@@ -18,13 +18,13 @@ predictionDiagnosticsServer(
 
 \item{modelDesignId}{the unique id for the model design}
 
-\item{mySchema}{the database schema for the model results}
+\item{schema}{the database schema for the model results}
 
 \item{connectionHandler}{the connection to the prediction result database}
 
-\item{myTableAppend}{a string that appends the tables in the result schema}
+\item{plpTablePrefix}{a string that appends the tables in the result schema}
 
-\item{databaseTableAppend}{a string that appends the database_meta_data table}
+\item{databaseTablePrefix}{a string that appends the database_meta_data table}
 }
 \value{
 The server to the predcition diagnostic module

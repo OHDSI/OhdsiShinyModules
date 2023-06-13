@@ -8,8 +8,8 @@ shiny::testServer(
     performanceId = shiny::reactiveVal(NULL),
     connectionHandler = connectionHandlerPlp,
     inputSingleView = shiny::reactiveVal("Discrimination"),
-    mySchema = resultDatabaseSettingsPlp$schema,
-    myTableAppend = resultDatabaseSettingsPlp$tablePrefix
+    schema = resultDatabaseSettingsPlp$schema,
+    plpTablePrefix = resultDatabaseSettingsPlp$plpTablePrefix
   ), 
   expr = {
     expect_true(is.null(covariateSummary()))

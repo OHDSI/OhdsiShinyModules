@@ -79,8 +79,8 @@ predictionCalibrationViewer <- function(id) {
 #' @param performanceId the performance id in the database
 #' @param connectionHandler the connection to the prediction result database
 #' @param inputSingleView the current tab 
-#' @param mySchema the database schema for the model results
-#' @param myTableAppend a string that appends the tables in the result schema
+#' @param schema the database schema for the model results
+#' @param plpTablePrefix a string that appends the tables in the result schema
 #' 
 #' @return
 #' The server to the prediction calibration module
@@ -91,8 +91,8 @@ predictionCalibrationServer <- function(
   performanceId,
   connectionHandler,
   inputSingleView,
-  mySchema, 
-  myTableAppend
+  schema, 
+  plpTablePrefix
 ) {
   shiny::moduleServer(
     id,
@@ -104,8 +104,8 @@ predictionCalibrationServer <- function(
           data <- getPredictionResult(
             performanceId = performanceId, 
             connectionHandler = connectionHandler,
-            tableName = paste0(myTableAppend,'evaluation_statistics'), 
-            mySchema = mySchema
+            tableName = paste0(plpTablePrefix,'evaluation_statistics'), 
+            schema = schema
           )
         } else{
           data <- NULL
@@ -194,16 +194,16 @@ predictionCalibrationServer <- function(
             value <- getPredictionResult(
               performanceId = performanceId,
               connectionHandler = connectionHandler,
-              tableName = paste0(myTableAppend,'calibration_summary'), 
-              mySchema = mySchema
+              tableName = paste0(plpTablePrefix,'calibration_summary'), 
+              schema = schema
             )
             calibrationSummary(value)
             
             value <- getPredictionResult(
               performanceId = performanceId,
               connectionHandler = connectionHandler,
-              tableName = paste0(myTableAppend,'demographic_summary'), 
-              mySchema = mySchema 
+              tableName = paste0(plpTablePrefix,'demographic_summary'), 
+              schema = schema 
             )
             demographicSummary(value)
           }

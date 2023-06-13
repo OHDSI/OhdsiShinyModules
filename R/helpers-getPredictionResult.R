@@ -2,7 +2,7 @@ getPredictionResult <- function(
     connectionHandler, 
     tableName, 
     performanceId, 
-    mySchema
+    schema
     ){
   
   shiny::withProgress(message = paste('Extracting PLP results from', tableName), value = 0, {
@@ -15,7 +15,7 @@ getPredictionResult <- function(
   
   result <- connectionHandler$queryDb(
     sql = sql, 
-    my_schema = mySchema,
+    my_schema = schema,
     table_name = tableName,
     performance_id = performanceId()
   )

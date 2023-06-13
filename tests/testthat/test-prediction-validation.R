@@ -8,9 +8,9 @@ shiny::testServer(
     performanceId = shiny::reactiveVal(1),
     connectionHandler = connectionHandlerPlp,
     inputSingleView = shiny::reactiveVal('No Validation'),
-    mySchema = resultDatabaseSettingsPlp$schema,
-    myTableAppend = resultDatabaseSettingsPlp$tablePrefix,
-    databaseTableAppend = resultDatabaseSettingsPlp$tablePrefix
+    schema = resultDatabaseSettingsPlp$schema,
+    plpTablePrefix = resultDatabaseSettingsPlp$plpTablePrefix,
+    databaseTablePrefix = resultDatabaseSettingsPlp$plpTablePrefix
     ), 
   expr = {
     

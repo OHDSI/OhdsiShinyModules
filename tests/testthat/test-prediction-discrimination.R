@@ -6,8 +6,8 @@ shiny::testServer(
     performanceId = shiny::reactiveVal(1),
     connectionHandler = connectionHandlerPlp,
     inputSingleView = shiny::reactiveVal("Discrimination"),
-    mySchema = resultDatabaseSettingsPlp$schema,
-    myTableAppend = resultDatabaseSettingsPlp$tablePrefix
+    schema = resultDatabaseSettingsPlp$schema,
+    plpTablePrefix = resultDatabaseSettingsPlp$plpTablePrefix
   ), 
   expr = {
     

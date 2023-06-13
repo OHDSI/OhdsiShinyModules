@@ -45,10 +45,10 @@ predictionDiagnosticsViewer <- function(id) {
 #'
 #' @param id  the unique reference id for the module
 #' @param modelDesignId the unique id for the model design
-#' @param mySchema the database schema for the model results
+#' @param schema the database schema for the model results
 #' @param connectionHandler the connection to the prediction result database
-#' @param myTableAppend a string that appends the tables in the result schema
-#' @param databaseTableAppend a string that appends the database_meta_data table
+#' @param plpTablePrefix a string that appends the tables in the result schema
+#' @param databaseTablePrefix a string that appends the database_meta_data table
 #' 
 #' @return
 #' The server to the predcition diagnostic module
@@ -57,10 +57,10 @@ predictionDiagnosticsViewer <- function(id) {
 predictionDiagnosticsServer <- function(
   id,
   modelDesignId, 
-  mySchema, 
+  schema, 
   connectionHandler,
-  myTableAppend, 
-  databaseTableAppend
+  plpTablePrefix, 
+  databaseTablePrefix
 ) {
   shiny::moduleServer(
     id,
@@ -76,10 +76,10 @@ predictionDiagnosticsServer <- function(
           
           diagnosticTable <- getDiagnostics(
             modelDesignId = modelDesignId(),
-            mySchema, 
+            schema = schema, 
             connectionHandler = connectionHandler,
-            myTableAppend, 
-            databaseTableAppend = databaseTableAppend
+            plpTablePrefix = plpTablePrefix, 
+            databaseTablePrefix = databaseTablePrefix
           )
           # input tables
           output$diagnosticSummaryTable <- reactable::renderReactable({
@@ -235,9 +235,9 @@ predictionDiagnosticsServer <- function(
             {
               participants <- getDiagnosticParticipants(
                 diagnosticId = diagnosticTable$diagnosticId[input$show_participants$index],
-                mySchema, 
+                schema = schema,  
                 connectionHandler = connectionHandler,
-                myTableAppend
+                plpTablePrefix = plpTablePrefix
               )
               
               output$participants <- reactable::renderReactable({
@@ -285,9 +285,9 @@ predictionDiagnosticsServer <- function(
               
               predTable <- getDiagnosticPredictors(
                 diagnosticId = diagnosticTable$diagnosticId[input$show_predictors$index],
-                mySchema, 
+                schema = schema, 
                 connectionHandler = connectionHandler,
-                myTableAppend
+                plpTablePrefix = plpTablePrefix
               )
               
               output$predictorPlot <- plotly::renderPlotly({
@@ -362,9 +362,9 @@ predictionDiagnosticsServer <- function(
               
               outcomeTable <- getDiagnosticOutcomes(
                 diagnosticId = diagnosticTable$diagnosticId[input$show_outcomes$index],
-                mySchema, 
+                schema = schema, 
                 connectionHandler = connectionHandler,
-                myTableAppend  
+                plpTablePrefix = plpTablePrefix  
               )
               
               #output$predictorPlot <-  
@@ -427,10 +427,10 @@ predictionDiagnosticsServer <- function(
 # get the data
 getDiagnostics <- function(
   modelDesignId,
-  mySchema, 
+  schema, 
   connectionHandler,
-  myTableAppend, 
-  databaseTableAppend = myTableAppend,
+  plpTablePrefix, 
+  databaseTablePrefix = plpTablePrefix,
   threshold1_2 = 0.9
 ){
   if(!is.null(modelDesignId)){
@@ -473,10 +473,10 @@ getDiagnostics <- function(
   
   summaryTable <- connectionHandler$queryDb(
     sql = sql, 
-    my_schema = mySchema,
-    my_table_append = myTableAppend,
+    my_schema = schema,
+    my_table_append = plpTablePrefix,
     model_design_id = modelDesignId,
-    database_table_append = databaseTableAppend
+    database_table_append = databaseTablePrefix
   )
   
   if(nrow(summaryTable)==0){
@@ -510,18 +510,18 @@ getDiagnostics <- function(
 
 getDiagnosticParticipants <- function(
   diagnosticId,
-  mySchema, 
+  schema, 
   connectionHandler,
-  myTableAppend
+  plpTablePrefix
 ){
   
   sql <- "SELECT * FROM @my_schema.@my_table_append@table_name WHERE diagnostic_id = @diagnostic_id;"
 
   participants <- connectionHandler$queryDb(
     sql = sql, 
-    my_schema = mySchema,
+    my_schema = schema,
     table_name = 'diagnostic_participants',
-    my_table_append = myTableAppend,
+    my_table_append = plpTablePrefix,
     diagnostic_id = diagnosticId
   )
   
@@ -544,18 +544,18 @@ getDiagnosticParticipants <- function(
 
 getDiagnosticPredictors <- function(
   diagnosticId,
-  mySchema, 
+  schema, 
   connectionHandler,
-  myTableAppend
+  plpTablePrefix
 ){
   
   sql <- "SELECT * FROM @my_schema.@my_table_append@table_name WHERE diagnostic_id = @diagnostic_id;"
 
   predictors <- connectionHandler$queryDb(
     sql = sql, 
-    my_schema = mySchema,
+    my_schema = schema,
     table_name = 'diagnostic_predictors',
-    my_table_append = myTableAppend,
+    my_table_append = plpTablePrefix,
     diagnostic_id = diagnosticId
   )
   
@@ -564,18 +564,18 @@ getDiagnosticPredictors <- function(
 
 getDiagnosticOutcomes <- function(
   diagnosticId,
-  mySchema, 
+  schema, 
   connectionHandler,
-  myTableAppend 
+  plpTablePrefix 
 ){
   
   sql <- "SELECT * FROM @my_schema.@my_table_append@table_name WHERE diagnostic_id = @diagnostic_id;"
 
   outcomes <- connectionHandler$queryDb(
     sql = sql, 
-    my_schema = mySchema,
+    my_schema = schema,
     table_name = 'diagnostic_outcomes',
-    my_table_append = myTableAppend,
+    my_table_append = plpTablePrefix,
     diagnostic_id = diagnosticId
   )
   

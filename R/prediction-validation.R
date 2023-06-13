@@ -65,9 +65,9 @@ predictionValidationViewer <- function(id) {
 #' @param performanceId identifier for the performance
 #' @param connectionHandler the connection to the prediction result database
 #' @param inputSingleView the current tab 
-#' @param mySchema the database schema for the model results
-#' @param myTableAppend a string that appends the tables in the result schema
-#' @param databaseTableAppend a string that appends the database_meta_data table
+#' @param schema the database schema for the model results
+#' @param plpTablePrefix a string that appends the tables in the result schema
+#' @param databaseTablePrefix a string that appends the database_meta_data table
 #' 
 #' @return
 #' The server to the validation module
@@ -80,9 +80,9 @@ predictionValidationServer <- function(
   performanceId, # reactive
   connectionHandler, 
   inputSingleView,
-  mySchema,
-  myTableAppend = NULL,
-  databaseTableAppend = myTableAppend
+  schema,
+  plpTablePrefix = NULL,
+  databaseTablePrefix = plpTablePrefix
 ) {
   shiny::moduleServer(
     
@@ -95,11 +95,11 @@ predictionValidationServer <- function(
           
           getValSummary(
             connectionHandler = connectionHandler, 
-            mySchema, 
+            schema = schema, 
             modelDesignId = modelDesignId(),
             developmentDatabaseId = developmentDatabaseId(),
-            myTableAppend = myTableAppend,
-            databaseTableAppend = databaseTableAppend,
+            plpTablePrefix = plpTablePrefix,
+            databaseTablePrefix = databaseTablePrefix,
             inputSingleView = inputSingleView()
           )  
 
@@ -133,8 +133,8 @@ predictionValidationServer <- function(
           validationTable = validationTable,
           validationRowIds = input$validationTable_rows_selected,
           connectionHandler = connectionHandler,
-          myTableAppend = myTableAppend,
-          mySchema = mySchema
+          plpTablePrefix = plpTablePrefix,
+          schema = schema
           )
       })
       
@@ -172,8 +172,8 @@ getValidationResults <- function(
   validationTable,
   validationRowIds,
   connectionHandler,
-  myTableAppend,
-  mySchema
+  plpTablePrefix,
+  schema
   ){
   
   if(!is.null(validationTable()) & !is.null(validationRowIds)){
@@ -185,14 +185,14 @@ getValidationResults <- function(
       thresholdSummaryList[[i]] <- getPredictionResult(
         performanceId = shiny::reactiveVal(valTable$performanceId[i]), 
         connectionHandler = connectionHandler,
-        tableName = paste0(myTableAppend,'threshold_summary'), 
-        mySchema = mySchema
+        tableName = paste0(plpTablePrefix,'threshold_summary'), 
+        schema = schema
       )
       calibrationSummaryList[[i]] <- getPredictionResult(
         performanceId = shiny::reactiveVal(valTable$performanceId[i]), 
         connectionHandler = connectionHandler,
-        tableName = paste0(myTableAppend,'calibration_summary'), 
-        mySchema = mySchema
+        tableName = paste0(plpTablePrefix,'calibration_summary'), 
+        schema = schema
       )
     }
     return(
@@ -218,11 +218,11 @@ getValidationResults <- function(
 
 getValSummary <- function(
     connectionHandler, 
-  mySchema, 
+  schema, 
   modelDesignId, 
   developmentDatabaseId,
-  myTableAppend = '',
-  databaseTableAppend = myTableAppend,
+  plpTablePrefix = '',
+  databaseTablePrefix = plpTablePrefix,
   inputSingleView
 ){
 
@@ -283,11 +283,11 @@ getValSummary <- function(
   
   valTable <- connectionHandler$queryDb(
     sql = sql,
-    my_schema = mySchema, 
+    my_schema = schema, 
     model_design_id = modelDesignId,
     development_database_id = developmentDatabaseId,
-    my_table_append = myTableAppend,
-    database_table_append = databaseTableAppend
+    my_table_append = plpTablePrefix,
+    database_table_append = databaseTablePrefix
   )
   
   valTable$target <- trimws(valTable$target) # not needed

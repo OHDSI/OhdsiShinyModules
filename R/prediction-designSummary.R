@@ -30,7 +30,14 @@
 #' @export
 predictionDesignSummaryViewer <- function(id) {
   ns <- shiny::NS(id)
-  reactable::reactableOutput(ns('designSummaryTable'))
+  shiny::div(
+    inputSelectionViewer(ns("input-selection")),
+    shiny::conditionalPanel(
+      condition = 'input.generate != 0',
+      ns = shiny::NS(ns("input-selection")),
+      resultTableViewer(ns('designSummaryTable'))
+    )
+  )
 }
 
 #' The module server for exploring prediction designs in the results
@@ -40,8 +47,9 @@ predictionDesignSummaryViewer <- function(id) {
 #'
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
-#' @param mySchema the database schema for the model results
-#' @param myTableAppend a string that appends the tables in the result schema
+#' @param schema the database schema for the model results
+#' @param plpTablePrefix a string that appends the plp tables in the result schema
+#' @param cohortTablePrefix a string that appends the cohort tables in the result schema
 #' 
 #' @return
 #' The server to the prediction design module
@@ -50,37 +58,88 @@ predictionDesignSummaryViewer <- function(id) {
 predictionDesignSummaryServer <- function(
   id, 
   connectionHandler,
-  mySchema,
-  myTableAppend
+  schema,
+  plpTablePrefix,
+  cohortTablePrefix
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      withTooltip <- function(value, tooltip, ...) {
-        shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
-                   tippy::tippy(value, tooltip, ...))
-      }
-      
-      designSummaryTable <- getDesignSummary(
-        connectionHandler = connectionHandler, 
-        mySchema = mySchema, 
-        myTableAppend = myTableAppend 
+      targetIds <- getPlpCohortIds(
+        connectionHandler = connectionHandler,
+        schema = schema, 
+        plpTablePrefix = plpTablePrefix,
+        cohortTablePrefix = cohortTablePrefix,
+        type = 'target'
+      )
+      outcomeIds <- getPlpCohortIds(
+        connectionHandler = connectionHandler,
+        schema = schema, 
+        plpTablePrefix = plpTablePrefix,
+        cohortTablePrefix = cohortTablePrefix,
+        type = 'outcome'
       )
       
-      # check if this makes drpdwn filter
-      designSummaryTable$target <- as.factor(designSummaryTable$target)
-      designSummaryTable$outcome <- as.factor(designSummaryTable$outcome)
+      # input selection component
+      inputSelected <- inputSelectionServer(
+        id = "input-selection", 
+        inputSettingList = list(
+          createInputSetting(
+            rowNumber = 1,                           
+            columnWidth = 6,
+            varName = 'targetIds',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Target: ',
+              choices = targetIds,
+              selected = targetIds[1],
+              multiple = T,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          createInputSetting(
+            rowNumber = 1,                           
+            columnWidth = 6,
+            varName = 'outcomeIds',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Outcome: ',
+              choices = outcomeIds,
+              selected = outcomeIds[1],
+              multiple = T,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          )
+        )
+      )
       
-      output$designSummaryTable <- reactable::renderReactable({
-        reactable::reactable(
-          data = cbind(
-            designSummaryTable,
-            diagnostic = rep("",nrow(designSummaryTable)),
-            details = rep("",nrow(designSummaryTable)),
-            report = rep("",nrow(designSummaryTable))
-          ), 
-          columns = list(
+      designSummaryTable <- shiny::reactive({
+        getDesignSummary(
+          connectionHandler = connectionHandler, 
+          schema = schema, 
+          plpTablePrefix = plpTablePrefix,
+          cohortTablePrefix = cohortTablePrefix,
+          targetIds = inputSelected()$targetIds,
+          outcomeIds = inputSelected()$outcomeIds
+        )
+      })
+      
+      colDefsInput = list(
             # Render a "show details" button in the last column of the table.
             # This button won't do anything by itself, but will trigger the custom
             # click action on the column.
@@ -162,89 +221,40 @@ predictionDesignSummaryServer <- function(
               ),
               sortable = TRUE,
               filterable = FALSE
-            ),
-            diagnostic = reactable::colDef(
-              name = "",
-              sortable = FALSE,
-              filterable = FALSE,
-              cell = function() htmltools::tags$button("View Diagnostics")
-            ),
-            details = reactable::colDef(
-              name = "",
-              sortable = FALSE,
-              filterable = FALSE,
-              cell = function() htmltools::tags$button("View Results")
-            ),
-            report = reactable::colDef(
-              name = "",
-              sortable = FALSE,
-              filterable = FALSE,
-              cell = function() htmltools::tags$button("View Report")
             )
-          ),
-          onClick = reactable::JS(paste0("function(rowInfo, column) {
-    // Only handle click events on the 'details' column
-    if (column.id !== 'details' & column.id !== 'report' & column.id !== 'diagnostic') {
-      return
-    }
-
-    // Display an alert dialog with details for the row
-    //window.alert('Details for row ' + rowInfo.index + ':\\n' + JSON.stringify(rowInfo.values, null, 2))
-
-    // Send the click event to Shiny, which will be available in input$show_details
-    // Note that the row index starts at 0 in JavaScript, so we add 1
-    if(column.id == 'details'){
-      Shiny.setInputValue('",session$ns('show_details'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
-    if(column.id == 'report'){
-      Shiny.setInputValue('",session$ns('show_report'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
-    if(column.id == 'diagnostic'){
-      Shiny.setInputValue('",session$ns('show_diagnostic'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
-  }")
-          ),
-          #groupBy = c("outcome","TAR", "target"), feedback was this wasnt nice
-          filterable = TRUE
-        )
-      })
+          )
       
+      tableOutputs <- resultTableServer(
+        id = "designSummaryTable", # how is this working without session$ns
+        df = designSummaryTable,
+        colDefsInput = colDefsInput,
+        addActions = c('models', 'diagnostics', 'report')
+      )
+          
       # reactive of modelDesignId for exporing results
       modelDesignId <- shiny::reactiveVal(value = NULL)
-      
-      shiny::observeEvent(input$show_details, {
-        #print(designSummaryTable$modelDesignId[input$show_details$index])
-        if(designSummaryTable$devDatabases[input$show_details$index] > 0){
-          modelDesignId(NULL)
-          modelDesignId(designSummaryTable$modelDesignId[input$show_details$index])
-        } else{
-          shiny::showNotification("No models available for this model design.")
-        }
-      })
-      
       reportId <- shiny::reactiveVal(NULL)
-      shiny::observeEvent(input$show_report, {
-        reportId(NULL)
-        idForReport <- designSummaryTable$modelDesignId[input$show_report$index]
-        reportId(idForReport)
-        #writeLines('Testing123', file.path(tempdir(), 'report.html'))
-        #createProtocol(connection = connection, modelDesignId = idForReport, outputLocation = file.path(tempdir(), 'report.html'))
-      })
-      
       diagnosticId <- shiny::reactiveVal(value = NULL)
-      shiny::observeEvent(input$show_diagnostic, {
-        
-        if(designSummaryTable$diagDatabases[input$show_diagnostic$index] > 0){
-          diagnosticId(NULL)
-          diagnosticId(designSummaryTable$modelDesignId[input$show_diagnostic$index])
-        } else{
-          shiny::showNotification("No diagnostic results available for this model design.")
+      
+      shiny::observeEvent(tableOutputs$actionCount(), {
+        if(!is.null(tableOutputs$actionType())){
+          if(tableOutputs$actionType() == 'diagnostics'){
+            diagnosticId(NULL)
+            diagnosticId(designSummaryTable()$modelDesignId[tableOutputs$actionIndex()$index])
+          }
+          if(tableOutputs$actionType() == 'report'){
+            reportId(NULL)
+            reportId(designSummaryTable()$modelDesignId[tableOutputs$actionIndex()$index])
+          }
+          if(tableOutputs$actionType() == 'models'){
+            modelDesignId(NULL)
+            modelDesignId(designSummaryTable()$modelDesignId[tableOutputs$actionIndex()$index])
+          }
         }
       })
-      
+
       return(
         list(
-          designSummaryTable = designSummaryTable,
           modelDesignId = modelDesignId, # a reactive 
           diagnosticId = diagnosticId, # a reactive 
           reportId = reportId # a reactive
@@ -256,12 +266,52 @@ predictionDesignSummaryServer <- function(
 }
 
 
+getPlpCohortIds <- function(
+  connectionHandler,
+  schema, 
+  plpTablePrefix,
+  cohortTablePrefix,
+  type = 'target'
+){
+  
+  sql <- "SELECT distinct cohorts.cohort_id, cohorts.cohort_name
+          
+       FROM 
+          @my_schema.@my_table_appendmodel_designs as model_designs 
+          inner join
+        (SELECT c.cohort_id, cd.cohort_name FROM @my_schema.@my_table_appendcohorts c
+        inner join @my_schema.@cohort_table_appendcohort_definition cd
+        on c.cohort_definition_id = cd.cohort_definition_id
+        ) AS cohorts
+        ON model_designs.@type_id = cohorts.cohort_id
+        ;"
+  
+  result <- connectionHandler$queryDb(
+    sql = sql, 
+    my_schema = schema,
+    my_table_append = plpTablePrefix,
+    cohort_table_append = cohortTablePrefix,
+    type = type
+  )
+  
+  res <- result$cohortId
+  names(res) <- result$cohortName
+  
+  return(res)
+}
 
 getDesignSummary <- function(
     connectionHandler, 
-    mySchema, 
-    myTableAppend = '' 
+    schema, 
+    plpTablePrefix = 'plp_',
+    cohortTablePrefix = 'plp_',
+    targetIds,
+    outcomeIds
     ){
+
+  if(length(targetIds) == 0 | length(outcomeIds) == 0){
+    return(data.frame())
+  }
 
   shiny::withProgress(message = 'Generating model design summary', value = 0, {
     
@@ -295,14 +345,31 @@ getDesignSummary <- function(
         LEFT JOIN (select * from @my_schema.@my_table_appendEVALUATION_STATISTICS where EVALUATION = 'Test' and METRIC = 'AUROC') p
            on p.performance_id = results.performance_id
              
-        LEFT JOIN (SELECT cohort_id, cohort_name FROM @my_schema.@my_table_appendcohorts) AS targets ON model_designs.target_id = targets.cohort_id
-        LEFT JOIN (SELECT cohort_id, cohort_name FROM @my_schema.@my_table_appendcohorts) AS outcomes ON model_designs.outcome_id = outcomes.cohort_id
-        LEFT JOIN @my_schema.@my_table_appendtars AS tars ON model_designs.tar_id = tars.tar_id
+        LEFT JOIN 
+        (SELECT c.cohort_id, cd.cohort_name FROM @my_schema.@my_table_appendcohorts c
+        inner join @my_schema.@cohort_table_appendcohort_definition cd
+        on c.cohort_definition_id = cd.cohort_definition_id
+        ) AS targets 
+        ON model_designs.target_id = targets.cohort_id
+        LEFT JOIN 
+        (SELECT c.cohort_id, cd.cohort_name FROM @my_schema.@my_table_appendcohorts c
+        inner join @my_schema.@cohort_table_appendcohort_definition cd
+        on c.cohort_definition_id = cd.cohort_definition_id
+        ) AS outcomes 
+        ON model_designs.outcome_id = outcomes.cohort_id
+        LEFT JOIN @my_schema.@my_table_appendtars AS tars 
+        ON model_designs.tar_id = tars.tar_id
          
-        LEFT JOIN @my_schema.@my_table_appenddatabase_details AS d ON results.development_database_id = d.database_id 
-        LEFT JOIN @my_schema.@my_table_appenddatabase_details AS v ON results.validation_database_id = v.database_id 
+        LEFT JOIN @my_schema.@my_table_appenddatabase_details AS d 
+        ON results.development_database_id = d.database_id 
+        LEFT JOIN @my_schema.@my_table_appenddatabase_details AS v 
+        ON results.validation_database_id = v.database_id 
         
-        LEFT JOIN @my_schema.@my_table_appenddiagnostics AS diag ON results.development_database_id = diag.database_id 
+        LEFT JOIN @my_schema.@my_table_appenddiagnostics AS diag 
+        ON results.development_database_id = diag.database_id 
+        
+        WHERE targets.cohort_id in (@target_ids)
+        AND outcomes.cohort_id in (@outcome_ids)
         
         GROUP BY model_designs.model_design_id, model_settings.model_type, targets.cohort_name, 
           outcomes.cohort_name, tars.tar_start_day, tars.tar_start_anchor, 
@@ -313,8 +380,11 @@ getDesignSummary <- function(
   
   summaryTable <- connectionHandler$queryDb(
     sql = sql, 
-    my_schema = mySchema,
-    my_table_append = myTableAppend
+    my_schema = schema,
+    my_table_append = plpTablePrefix,
+    cohort_table_append = cohortTablePrefix,
+    target_ids = paste(targetIds, collapse = ','),
+    outcome_ids = paste(outcomeIds, collapse = ',')
   )
   
   shiny::incProgress(2/3, detail = paste("Extracted data"))
@@ -324,10 +394,14 @@ getDesignSummary <- function(
     dplyr::relocate("devDatabases", .before = "valDatabases") %>%
     dplyr::relocate("diagDatabases", .before = "devDatabases")
   
+  summaryTable <- cbind(
+    actions = rep("",nrow(summaryTable)),
+    summaryTable
+  )
+  
   shiny::incProgress(3/3, detail = paste("Finished"))
   
   })
-  
   
   return(summaryTable)
   

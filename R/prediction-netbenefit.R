@@ -75,8 +75,8 @@ predictionNbViewer <- function(id) {
 #' @param performanceId the performance id in the database
 #' @param connectionHandler the connection to the prediction result database
 #' @param inputSingleView the current tab 
-#' @param mySchema the database schema for the model results
-#' @param myTableAppend a string that appends the tables in the result schema
+#' @param schema the database schema for the model results
+#' @param plpTablePrefix a string that appends the tables in the result schema
 #' 
 #' @return
 #' The server to the net-benefit module
@@ -87,8 +87,8 @@ predictionNbServer <- function(
   performanceId, # reactive
   connectionHandler,
   inputSingleView,
-  mySchema, 
-  myTableAppend
+  schema, 
+  plpTablePrefix
 ) {
   shiny::moduleServer(
     id,
@@ -101,8 +101,8 @@ predictionNbServer <- function(
            getPredictionResult(
               performanceId = performanceId, 
               connectionHandler= connectionHandler,
-              tableName = paste0(myTableAppend,'threshold_summary'), 
-              mySchema = mySchema
+              tableName = paste0(plpTablePrefix,'threshold_summary'), 
+              schema = schema
             )
           } else{
             NULL

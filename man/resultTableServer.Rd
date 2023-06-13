@@ -4,7 +4,7 @@
 \alias{resultTableServer}
 \title{Result Table Server}
 \usage{
-resultTableServer(id, df, colDefsInput)
+resultTableServer(id, df, colDefsInput, addActions = NULL)
 }
 \arguments{
 \item{id}{string, table id must match resultsTableViewer function}
@@ -12,6 +12,9 @@ resultTableServer(id, df, colDefsInput)
 \item{df}{reactive that returns a data frame}
 
 \item{colDefsInput}{named list of reactable::colDefs}
+
+\item{addActions}{add a button row selector column to the table to a column called 'actions'.
+actions must be a column in df}
 }
 \value{
 shiny module server

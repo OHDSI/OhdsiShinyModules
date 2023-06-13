@@ -46,7 +46,7 @@ predictionModelSummaryViewer <- function(id) {
     ),
     shinydashboard::box(
       width = "100%",
-      reactable::reactableOutput(ns('performanceSummaryTable'))
+      resultTableViewer(ns('performanceSummaryTable'))
     )
   )
 }
@@ -58,10 +58,10 @@ predictionModelSummaryViewer <- function(id) {
 #'
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
-#' @param mySchema the database schema for the model results
-#' @param myTableAppend a string that appends the tables in the result schema
+#' @param schema the database schema for the model results
+#' @param plpTablePrefix a string that appends the tables in the result schema
 #' @param modelDesignId a reactable id specifying the prediction model design identifier
-#' @param databaseTableAppend a string that appends the database_meta_data table
+#' @param databaseTablePrefix a string that appends the database_meta_data table
 #' 
 #' @return
 #' The server to the summary module
@@ -70,136 +70,108 @@ predictionModelSummaryViewer <- function(id) {
 predictionModelSummaryServer <- function(
   id, 
   connectionHandler,
-  mySchema,
-  myTableAppend,
+  schema,
+  plpTablePrefix,
   modelDesignId,
-  databaseTableAppend = myTableAppend
+  databaseTablePrefix = plpTablePrefix
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      withTooltip <- function(value, tooltip, ...) {
-        shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
-                   tippy::tippy(value, tooltip, ...))
-      }
-      
       selectedModelDesign <- shiny::reactive(
         getModelDesignInfo(
           connectionHandler = connectionHandler, 
-          mySchema = mySchema, 
-          myTableAppend = myTableAppend,
+          schema = schema, 
+          plpTablePrefix = plpTablePrefix,
           modelDesignId = modelDesignId,
-          databaseTableAppend = databaseTableAppend
+          databaseTablePrefix = databaseTablePrefix
           )
       )
       output$performanceSummaryText <- shiny::renderUI(selectedModelDesign())
 
-
       resultTable <- shiny::reactive(
         getModelDesignPerformanceSummary(
           connectionHandler = connectionHandler, 
-          mySchema = mySchema, 
-          myTableAppend = myTableAppend,
+          schema = schema, 
+          plpTablePrefix = plpTablePrefix,
           modelDesignId = modelDesignId,
-          databaseTableAppend = databaseTableAppend
+          databaseTablePrefix = databaseTablePrefix
         )
       )
       
-      shinyInput <- function(FUN,id,num,label = NULL,...) {
-        inputs <- character(num)
-        for (i in seq_len(num)) {
-          inputs[i] <- as.character(FUN(paste0(id,i),label=label,...))
-        }
-        inputs
-      }
-      
-      output$performanceSummaryTable <- reactable::renderReactable({
-        reactable::reactable(
-          data = cbind(
-              view = rep("",nrow(resultTable())),
-              resultTable()[,!colnames(resultTable())%in% c('performanceId', 'developmentDatabaseId', 'modelDevelopment', 'modelDesignId')]
-            ),
-          
-          columns = list(
-            Dev = reactable::colDef( 
-              filterable = TRUE,
-              header = withTooltip(
-                "Dev Db", 
-                "The database used to develop the model"
-              )),
-            Val = reactable::colDef( 
-              filterable = TRUE,
-              header = withTooltip(
-                "Val Db", 
-                "The database used to evaluate the model"
-              )),
-            T = reactable::colDef( 
-              filterable = TRUE,
-              header = withTooltip(
-                "Target Pop", 
-                "The patients who the risk model is applied to"
-              )),
-            O = reactable::colDef( 
-              filterable = TRUE,
-              header = withTooltip(
-                "Outcome", 
-                "The outcome being predicted"
-              )),
-            TAR = reactable::colDef( 
-              filterable = TRUE,
-              header = withTooltip(
-                "TAR", 
-                "The time-at-risk when the outcome is being predicted relative to the target pop index"
-              ),
-              sortable = TRUE
-            ),
-            type = reactable::colDef( 
-              filterable = TRUE,
-              header = withTooltip(
-                "Type", 
-                "Development contains the model and internal validation; Validation contains the external validation"
-              ),
-              sortable = TRUE
-            ),
-            
-            view = reactable::colDef(
-              name = "",
-              sortable = FALSE,
-              filterable = FALSE,
-              cell = function() htmltools::tags$button("View Result")
-            )
+      colDefsInput = list(
+        Dev = reactable::colDef( 
+          filterable = TRUE,
+          header = withTooltip(
+            "Dev Db", 
+            "The database used to develop the model"
+          )),
+        Val = reactable::colDef( 
+          filterable = TRUE,
+          header = withTooltip(
+            "Val Db", 
+            "The database used to evaluate the model"
+          )),
+        T = reactable::colDef( 
+          filterable = TRUE,
+          header = withTooltip(
+            "Target Pop", 
+            "The patients who the risk model is applied to"
+          )),
+        O = reactable::colDef( 
+          filterable = TRUE,
+          header = withTooltip(
+            "Outcome", 
+            "The outcome being predicted"
+          )),
+        TAR = reactable::colDef( 
+          filterable = TRUE,
+          header = withTooltip(
+            "TAR", 
+            "The time-at-risk when the outcome is being predicted relative to the target pop index"
           ),
-          onClick = reactable::JS(paste0("function(rowInfo, column) {
-    // Only handle click events on the 'details' column
-    if (column.id !== 'view') {
-      return
-    }
-
-
-    // Send the click event to Shiny, which will be available in input$show_details
-    // Note that the row index starts at 0 in JavaScript, so we add 1
-    // if (window.Shiny) {
-    if(column.id == 'view'){
-      Shiny.setInputValue('",session$ns('view_details'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
-    // }
-  }")
-          )
-          
+          sortable = TRUE
+        ),
+        type = reactable::colDef( 
+          filterable = TRUE,
+          header = withTooltip(
+            "Type", 
+            "Development contains the model and internal validation; Validation contains the external validation"
+          ),
+          sortable = TRUE
+        ),
+        modelDevelopment = reactable::colDef( 
+          show = F
+        ),
+        performanceId = reactable::colDef( 
+          show = F
+        ),
+        modelDesignId = reactable::colDef( 
+          show = F
+        ),
+        developmentDatabaseId = reactable::colDef( 
+          show = F
         )
-        
-      })
+      )
+      
+      modelTableOutputs <- resultTableServer(
+        id = "performanceSummaryTable",
+        df = resultTable,
+        colDefsInput = colDefsInput,
+        addActions = c('results')
+      )
       
       performanceId <- shiny::reactiveVal(value = NULL)
       developmentDatabaseId <- shiny::reactiveVal(value = NULL)
       modelDevelopment <- shiny::reactiveVal(value = NULL)
-      shiny::observeEvent(input$view_details, {
-        #print('perf updated')
-        performanceId(NULL)
-        performanceId(resultTable()$performanceId[input$view_details$index])
-        developmentDatabaseId(resultTable()$developmentDatabaseId[input$view_details$index])
-        modelDevelopment(resultTable()$modelDevelopment[input$view_details$index])
+      shiny::observeEvent(modelTableOutputs$actionCount(), {
+          if(modelTableOutputs$actionType() == 'results'){
+            performanceId(NULL)
+            performanceId(resultTable()$performanceId[modelTableOutputs$actionIndex()$index])
+            developmentDatabaseId(resultTable()$developmentDatabaseId[modelTableOutputs$actionIndex()$index])
+            modelDevelopment(resultTable()$modelDevelopment[modelTableOutputs$actionIndex()$index])
+          }
       })
       
       return(
@@ -218,10 +190,10 @@ predictionModelSummaryServer <- function(
 
 getModelDesignPerformanceSummary <- function(
     connectionHandler, 
-  mySchema, 
-  myTableAppend = '',
+  schema, 
+  plpTablePrefix = '',
   modelDesignId,
-  databaseTableAppend
+  databaseTablePrefix
 ){
   
   if(is.null(modelDesignId())){
@@ -286,10 +258,10 @@ getModelDesignPerformanceSummary <- function(
 
   summaryTable <- connectionHandler$queryDb(
     sql = sql, 
-    my_schema = mySchema,
-    my_table_append = myTableAppend,
+    my_schema = schema,
+    my_table_append = plpTablePrefix,
     model_design_id = modelDesignId(),
-    database_table_append = databaseTableAppend
+    database_table_append = databaseTablePrefix
   )
   
   shiny::incProgress(2/3, detail = paste("Data extracted"))
@@ -320,7 +292,13 @@ getModelDesignPerformanceSummary <- function(
   
   })
   
-  return(summaryTable[,c('Dev', 'Val', 'T','O', 'modelDesignId',
+  # adding actions column to left
+  summaryTable <- cbind(
+    actions = rep("", nrow(summaryTable)),
+    summaryTable
+  )
+  
+  return(summaryTable[,c('actions','Dev', 'Val', 'T','O', 'modelDesignId',
                          'TAR', 'AUROC', 'AUPRC', 
                          'T Size', 'O Count','Val (%)', 'O Incidence (%)', 'timeStamp', 'performanceId', 'developmentDatabaseId', 'modelDevelopment', 'type')])
   
@@ -350,16 +328,16 @@ editColnames <- function(cnames, edits){
 
 getModelDesignInfo <- function(
   connectionHandler, 
-  mySchema, 
-  myTableAppend,
+  schema, 
+  plpTablePrefix,
   modelDesignId,
-  databaseTableAppend
+  databaseTablePrefix # not used?
 ){
   
   modelType <- connectionHandler$queryDb(
     'select distinct model_type from @my_schema.@my_table_appendmodels where model_design_id = @model_design_id;',
-    my_schema = mySchema,
-    my_table_append = myTableAppend,
+    my_schema = schema,
+    my_table_append = plpTablePrefix,
     model_design_id = modelDesignId()
   )
   

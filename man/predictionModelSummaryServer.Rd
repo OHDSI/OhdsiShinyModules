@@ -7,10 +7,10 @@
 predictionModelSummaryServer(
   id,
   connectionHandler,
-  mySchema,
-  myTableAppend,
+  schema,
+  plpTablePrefix,
   modelDesignId,
-  databaseTableAppend = myTableAppend
+  databaseTablePrefix = plpTablePrefix
 )
 }
 \arguments{
@@ -18,13 +18,13 @@ predictionModelSummaryServer(
 
 \item{connectionHandler}{the connection to the prediction result database}
 
-\item{mySchema}{the database schema for the model results}
+\item{schema}{the database schema for the model results}
 
-\item{myTableAppend}{a string that appends the tables in the result schema}
+\item{plpTablePrefix}{a string that appends the tables in the result schema}
 
 \item{modelDesignId}{a reactable id specifying the prediction model design identifier}
 
-\item{databaseTableAppend}{a string that appends the database_meta_data table}
+\item{databaseTablePrefix}{a string that appends the database_meta_data table}
 }
 \value{
 The server to the summary module

@@ -189,7 +189,7 @@ predictionServer <- function(
             shiny::updateTabsetPanel(
               session = session,
               inputId = 'singleView',
-              selected = 'Design Settings'
+              selected = 'Model'
             )
             
             # 
@@ -235,8 +235,9 @@ predictionServer <- function(
       designSummary <- predictionDesignSummaryServer(
         id = 'designSummaryTab',
         connectionHandler = connectionHandler, 
-        mySchema = resultDatabaseSettings$schema, 
-        myTableAppend = resultDatabaseSettings$tablePrefix
+        schema = resultDatabaseSettings$schema, 
+        plpTablePrefix = resultDatabaseSettings$plpTablePrefix,
+        cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix
       )
       
       
@@ -267,13 +268,13 @@ predictionServer <- function(
       performance <- predictionModelSummaryServer(
           id = 'modelSummaryTab', 
           connectionHandler = connectionHandler,  
-          mySchema = resultDatabaseSettings$schema, 
-          myTableAppend = resultDatabaseSettings$tablePrefix,
+          schema = resultDatabaseSettings$schema, 
+          plpTablePrefix = resultDatabaseSettings$plpTablePrefix,
           modelDesignId = modelDesignId,
-          databaseTableAppend = ifelse(
+          databaseTablePrefix = ifelse(
             !is.null(resultDatabaseSettings$databaseTablePrefix), 
             resultDatabaseSettings$databaseTablePrefix,
-            resultDatabaseSettings$tablePrefix
+            resultDatabaseSettings$plpTablePrefix
           )
         )
 
@@ -314,13 +315,13 @@ predictionServer <- function(
       predictionDiagnosticsServer(
         id = 'diagnostics', 
         modelDesignId = designSummary$diagnosticId, 
-        mySchema = resultDatabaseSettings$schema, 
+        schema = resultDatabaseSettings$schema, 
         connectionHandler = connectionHandler, 
-        myTableAppend = resultDatabaseSettings$tablePrefix, 
-        databaseTableAppend = ifelse(
+        plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
+        databaseTablePrefix = ifelse(
           !is.null(resultDatabaseSettings$databaseTablePrefix), 
           resultDatabaseSettings$databaseTablePrefix,
-          resultDatabaseSettings$tablePrefix
+          resultDatabaseSettings$plpTablePrefix
         )
       )
       
@@ -351,19 +352,19 @@ predictionServer <- function(
             file.remove(file.path(protocolOutputLoc, 'main.html'))
           }
           tryCatch(
-            {createPredictionProtocol( # add database_table_append and cohort_table_append
+            {createPredictionProtocol( 
               connectionHandler = connectionHandler, 
-              mySchema = resultDatabaseSettings$schema, 
-              myTableAppend = resultDatabaseSettings$tablePrefix,
-              databaseTableAppend = ifelse(
+              schema = resultDatabaseSettings$schema, 
+              plpTablePrefix = resultDatabaseSettings$plpTablePrefix,
+              databaseTablePrefix = ifelse(
                 !is.null(resultDatabaseSettings$databaseTablePrefix), 
                 resultDatabaseSettings$databaseTablePrefix,
-                resultDatabaseSettings$tablePrefix
+                resultDatabaseSettings$plpTablePrefix
               ),
-              cohortTableAppend = ifelse(
+              cohortTablePrefix= ifelse(
                 !is.null(resultDatabaseSettings$cohortTablePrefix), 
                 resultDatabaseSettings$cohortTablePrefix,
-                resultDatabaseSettings$tablePrefix
+                resultDatabaseSettings$plpTablePrefix
               ),
               modelDesignId = designSummary$reportId(),
               output = protocolOutputLoc,
@@ -415,19 +416,19 @@ predictionServer <- function(
           ),  
           intermediates_dir = file.path(tempdir(), 'plp-prot'),
           output_dir = file.path(input$plpProtocolDownload, paste0('plp_report',designSummary$reportId())), 
-          params = list(
+          params = list( #TODO UPDATE DOC
             connectionHandler = connectionHandler, 
             resultSchema = resultDatabaseSettings$schema, 
-            myTableAppend = resultDatabaseSettings$tablePrefix,
+            myTableAppend = resultDatabaseSettings$plpTablePrefix,
             databaseTableAppend = ifelse(
               !is.null(resultDatabaseSettings$databaseTablePrefix), 
               resultDatabaseSettings$databaseTablePrefix,
-              resultDatabaseSettings$tablePrefix
+              resultDatabaseSettings$plpTablePrefix
             ),
             cohortTableAppend = ifelse(
               !is.null(resultDatabaseSettings$cohortTablePrefix), 
               resultDatabaseSettings$cohortTablePrefix,
-              resultDatabaseSettings$tablePrefix
+              resultDatabaseSettings$plpTablePrefix
             ),
             modelDesignIds = designSummary$reportId()
           )
@@ -442,19 +443,19 @@ predictionServer <- function(
       output$resultSelectText <- shiny::renderUI(
           getResultSelection(
             connectionHandler = connectionHandler, 
-            mySchema = resultDatabaseSettings$schema, 
-            myTableAppend = resultDatabaseSettings$tablePrefix,
+            schema = resultDatabaseSettings$schema, 
+            plpTablePrefix = resultDatabaseSettings$plpTablePrefix,
             modelDesignId = modelDesignId,
             performanceId = performanceId,
-            cohortTableAppend = ifelse(
+            cohortTablePrefix = ifelse(
               !is.null(resultDatabaseSettings$cohortTablePrefix), 
               resultDatabaseSettings$cohortTablePrefix,
-              resultDatabaseSettings$tablePrefix
+              resultDatabaseSettings$plpTablePrefix
             ),
-            databaseTableAppend = ifelse(
+            databaseTablePrefix = ifelse(
               !is.null(resultDatabaseSettings$databaseTablePrefix), 
               resultDatabaseSettings$databaseTablePrefix,
-              resultDatabaseSettings$tablePrefix
+              resultDatabaseSettings$plpTablePrefix
             )
           )
       )
@@ -466,8 +467,8 @@ predictionServer <- function(
         performanceId = performanceId, # reactive
         connectionHandler = connectionHandler,
         inputSingleView = singleViewValue,
-        mySchema = resultDatabaseSettings$schema, 
-        myTableAppend = resultDatabaseSettings$tablePrefix
+        schema = resultDatabaseSettings$schema, 
+        plpTablePrefix = resultDatabaseSettings$plpTablePrefix
       ) 
       
       predictionSettingsServer(
@@ -475,56 +476,56 @@ predictionServer <- function(
         modelDesignId = modelDesignId, # reactive
         developmentDatabaseId = developmentDatabaseId, # reactive
         performanceId = performanceId, # reactive
-        mySchema = resultDatabaseSettings$schema, 
+        schema = resultDatabaseSettings$schema, 
         connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
-        myTableAppend = resultDatabaseSettings$tablePrefix, 
-        cohortTableAppend = ifelse(
+        plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
+        cohortTablePrefix = ifelse(
           !is.null(resultDatabaseSettings$cohortTablePrefix), 
           resultDatabaseSettings$cohortTablePrefix,
-          resultDatabaseSettings$tablePrefix
+          resultDatabaseSettings$plpTablePrefix
         ),
-        databaseTableAppend = ifelse(
+        databaseTablePrefix = ifelse(
           !is.null(resultDatabaseSettings$databaseTablePrefix), 
           resultDatabaseSettings$databaseTablePrefix,
-          resultDatabaseSettings$tablePrefix
+          resultDatabaseSettings$plpTablePrefix
         )
       )
       
       predictionCutoffServer(
         id = 'cutoff', 
         performanceId = performanceId, 
-        mySchema = resultDatabaseSettings$schema, 
+        schema = resultDatabaseSettings$schema, 
         connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
-        myTableAppend = resultDatabaseSettings$tablePrefix
+        plpTablePrefix = resultDatabaseSettings$plpTablePrefix
       )
       
       predictionDiscriminationServer(
         id = 'discrimination', 
         performanceId = performanceId, 
-        mySchema = resultDatabaseSettings$schema, 
+        schema = resultDatabaseSettings$schema, 
         connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
-        myTableAppend = resultDatabaseSettings$tablePrefix
+        plpTablePrefix = resultDatabaseSettings$plpTablePrefix
       )
       
       predictionCalibrationServer(
         id = 'calibration', 
         performanceId = performanceId, 
-        mySchema = resultDatabaseSettings$schema, 
+        schema = resultDatabaseSettings$schema, 
         connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
-        myTableAppend = resultDatabaseSettings$tablePrefix
+        plpTablePrefix = resultDatabaseSettings$plpTablePrefix
       ) 
       
       predictionNbServer(
         id = 'netBenefit', 
         performanceId = performanceId, 
-        mySchema = resultDatabaseSettings$schema, 
+        schema = resultDatabaseSettings$schema, 
         connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
-        myTableAppend = resultDatabaseSettings$tablePrefix
+        plpTablePrefix = resultDatabaseSettings$plpTablePrefix
       ) 
       
       predictionValidationServer(
@@ -534,12 +535,12 @@ predictionServer <- function(
         performanceId = performanceId, # reactive
         connectionHandler = connectionHandler, 
         inputSingleView = singleViewValue,
-        mySchema = resultDatabaseSettings$schema,
-        myTableAppend = resultDatabaseSettings$tablePrefix, 
-        databaseTableAppend = ifelse(
+        schema = resultDatabaseSettings$schema,
+        plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
+        databaseTablePrefix = ifelse(
           !is.null(resultDatabaseSettings$databaseTablePrefix), 
           resultDatabaseSettings$databaseTablePrefix,
-          resultDatabaseSettings$tablePrefix
+          resultDatabaseSettings$plpTablePrefix
         )
       ) 
       
@@ -551,23 +552,29 @@ predictionServer <- function(
 
 getResultSelection <- function(
   connectionHandler, 
-  mySchema, 
-  myTableAppend,
+  schema, 
+  plpTablePrefix,
   modelDesignId,
   performanceId,
-  cohortTableAppend,
-  databaseTableAppend
+  cohortTablePrefix,
+  databaseTablePrefix
 ){
+  
+  if(!inherits(modelDesignId, 'reactive')){
+    modelDesignId <- shiny::reactiveVal(modelDesignId)
+  }
+  if(!inherits(performanceId, 'reactive')){
+    performanceId <- shiny::reactiveVal(performanceId)
+  }
+  
   if(!is.null(modelDesignId()) & !is.null(performanceId())){
   
   modelType <- connectionHandler$queryDb(
     'select distinct model_type from @my_schema.@my_table_appendmodels where model_design_id = @model_design_id;',
-    my_schema = mySchema,
-    my_table_append = myTableAppend,
+    my_schema = schema,
+    my_table_append = plpTablePrefix,
     model_design_id = modelDesignId()
   )
-  
-  print(modelType)
   
   developmentDb = connectionHandler$queryDb(
     'select distinct d.cdm_source_abbreviation from 
@@ -579,14 +586,12 @@ getResultSelection <- function(
     @my_schema.@my_table_appendperformances p 
     on dd.database_id = p.development_database_id
     where p.performance_id = @performance_id;',
-    my_schema = mySchema,
-    my_table_append = myTableAppend,
+    my_schema = schema,
+    my_table_append = plpTablePrefix,
     performance_id = performanceId(),
-    database_table_append = databaseTableAppend
+    database_table_append = databaseTablePrefix
   )
-  
-  print(developmentDb)
-  
+
   validationDb = connectionHandler$queryDb(
     'select distinct d.cdm_source_abbreviation from 
     @my_schema.@database_table_appenddatabase_meta_data d
@@ -597,13 +602,12 @@ getResultSelection <- function(
     @my_schema.@my_table_appendperformances p 
     on dd.database_id = p.validation_database_id
     where p.performance_id = @performance_id;',
-    my_schema = mySchema,
-    my_table_append = myTableAppend,
+    my_schema = schema,
+    my_table_append = plpTablePrefix,
     performance_id = performanceId(),
-    database_table_append = databaseTableAppend
+    database_table_append = databaseTablePrefix
   )
-  print(validationDb)
-  
+
   target <- connectionHandler$queryDb(
     'select distinct c.cohort_name from 
     @my_schema.@my_table_appendcohorts c
@@ -611,11 +615,10 @@ getResultSelection <- function(
     @my_schema.@my_table_appendperformances p 
     on c.cohort_id = p.target_id
     where p.performance_id = @performance_id;',
-    my_schema = mySchema,
-    my_table_append = myTableAppend,
+    my_schema = schema,
+    my_table_append = plpTablePrefix,
     performance_id = performanceId()
   )
-  print(target)
   outcome <- connectionHandler$queryDb(
     'select distinct c.cohort_name from 
     @my_schema.@my_table_appendcohorts c
@@ -623,12 +626,11 @@ getResultSelection <- function(
     @my_schema.@my_table_appendperformances p 
     on c.cohort_id = p.outcome_id
     where p.performance_id = @performance_id;',
-    my_schema = mySchema,
-    my_table_append = myTableAppend,
+    my_schema = schema,
+    my_table_append = plpTablePrefix,
     performance_id = performanceId()
   )
-  print(outcome)
-  
+
   return(
     shiny::fluidPage(
       shiny::fluidRow(

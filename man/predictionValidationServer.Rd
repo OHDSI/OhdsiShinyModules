@@ -11,9 +11,9 @@ predictionValidationServer(
   performanceId,
   connectionHandler,
   inputSingleView,
-  mySchema,
-  myTableAppend = NULL,
-  databaseTableAppend = myTableAppend
+  schema,
+  plpTablePrefix = NULL,
+  databaseTablePrefix = plpTablePrefix
 )
 }
 \arguments{
@@ -29,11 +29,11 @@ predictionValidationServer(
 
 \item{inputSingleView}{the current tab}
 
-\item{mySchema}{the database schema for the model results}
+\item{schema}{the database schema for the model results}
 
-\item{myTableAppend}{a string that appends the tables in the result schema}
+\item{plpTablePrefix}{a string that appends the tables in the result schema}
 
-\item{databaseTableAppend}{a string that appends the database_meta_data table}
+\item{databaseTablePrefix}{a string that appends the database_meta_data table}
 }
 \value{
 The server to the validation module

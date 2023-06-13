@@ -89,8 +89,8 @@ predictionCovariateSummaryViewer <- function(id) {
 #' @param performanceId unique id for the performance results
 #' @param connectionHandler the connection to the prediction result database
 #' @param inputSingleView the current tab 
-#' @param mySchema the database schema for the model results
-#' @param myTableAppend a string that appends the tables in the result schema
+#' @param schema the database schema for the model results
+#' @param plpTablePrefix a string that appends the tables in the result schema
 #' 
 #' @return
 #' The server to the covariate summary module
@@ -103,8 +103,8 @@ predictionCovariateSummaryServer <- function(
   performanceId,
   connectionHandler,
   inputSingleView,
-  mySchema, 
-  myTableAppend = ''
+  schema, 
+  plpTablePrefix = ''
 ) {
   shiny::moduleServer(
     id,
@@ -117,9 +117,9 @@ predictionCovariateSummaryServer <- function(
           ){
           loadCovSumFromDb(
             performanceId = performanceId, 
-            mySchema = mySchema, 
+            schema = schema, 
             connectionHandler = connectionHandler, 
-            myTableAppend = myTableAppend
+            plpTablePrefix = plpTablePrefix
           )
         } else{
           NULL
@@ -136,8 +136,8 @@ predictionCovariateSummaryServer <- function(
             modelDesignId = modelDesignId,
             databaseId = developmentDatabaseId,
             connectionHandler = connectionHandler,
-            mySchema = mySchema,
-            myTableAppend = myTableAppend
+            schema = schema,
+            plpTablePrefix = plpTablePrefix
           )
         } else{
           NULL
@@ -341,9 +341,9 @@ plotCovariateSummary <- function(covariateSummary){
 # code for database covariate extract
 loadCovSumFromDb <- function(
     performanceId, 
-    mySchema, 
+    schema, 
     connectionHandler, 
-    myTableAppend = ''
+    plpTablePrefix = ''
     ){
   ParallelLogger::logInfo("starting covsum")
   
@@ -357,9 +357,9 @@ loadCovSumFromDb <- function(
 
   covariateSummary <- connectionHandler$queryDb(
     sql = sql,
-    my_schema = mySchema,
+    my_schema = schema,
     performance_id = performanceId(),
-    my_table_append = myTableAppend
+    my_table_append = plpTablePrefix
     )
   
   # format
@@ -382,18 +382,18 @@ getIntercept <- function(
   modelDesignId,
   databaseId,
   connectionHandler,
-  mySchema,
-  myTableAppend
+  schema,
+  plpTablePrefix
 ){
   sql <- "SELECT intercept FROM @my_schema.@my_table_appendmodels WHERE database_id = @database_id
        and model_design_id = @model_design_id"
 
   models <- connectionHandler$queryDb(
     sql = sql,
-    my_schema = mySchema,
+    my_schema = schema,
     database_id = databaseId(),
     model_design_id = modelDesignId(),
-    my_table_append = myTableAppend
+    my_table_append = plpTablePrefix
   )
   
   intercept <- models$intercept
