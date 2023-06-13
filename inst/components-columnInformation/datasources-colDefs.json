@@ -166,6 +166,7 @@
   },
   "sourceDescription": {
     "name": "sourceDescription",
+    "show": false,
     "header": {
       "name": "div",
       "attribs": {
@@ -221,6 +222,7 @@
   },
   "sourceDocumentationReference": {
     "name": "sourceDocumentationReference",
+    "cell": "\n    function(cellInfo) {\n      // Render as a link\n      const url = cellInfo.value;\n      return `<a href=\"${url}\" target=\"_blank\">RHEALTH Description<\/a>`;\n    }\n  ",
     "header": {
       "name": "div",
       "attribs": {
@@ -272,10 +274,12 @@
       ],
       "attr_class": "shiny.tag"
     },
+    "html": true,
     "attr_class": "colDef"
   },
   "cdmEtlReference": {
     "name": "cdmEtlReference",
+    "cell": "\n    function(cellInfo) {\n      // Render as a link\n      const url = cellInfo.value;\n      return `<a href=\"${url}\" target=\"_blank\">ETL<\/a>`;\n    }\n  ",
     "header": {
       "name": "div",
       "attribs": {
@@ -327,6 +331,7 @@
       ],
       "attr_class": "shiny.tag"
     },
+    "html": true,
     "attr_class": "colDef"
   },
   "sourceReleaseDate": {

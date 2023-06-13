@@ -224,7 +224,7 @@ resultTableServer <- function(id, #string
                         # download full data button
                         output$downloadDataFull <- shiny::downloadHandler(
                           filename = function() {
-                            paste('data-full-', downloadedFileName, Sys.Date(), '.csv', sep = '')
+                            paste('result-data-full-', downloadedFileName, Sys.Date(), '.csv', sep = '')
                           },
                           content = function(con) {
                             utils::write.csv(fullData(), con,

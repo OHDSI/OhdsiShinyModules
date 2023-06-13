@@ -104,57 +104,73 @@ datasourcesServer <- function(
       )
       })
       
-      #defining column definitions
-      # datasourcesColDefs <- createCustomColDefList(
-      #   rawColNames = colnames(datasourcesData),
-      #   niceColNames = c("DB Name",
-      #                    "DB Abbreviation",
-      #                    "DB Holder",
-      #                    "DB Description",
-      #                    "DB Description Link",
-      #                    "DB ETL Link",
-      #                    "Source Data Release Date",
-      #                    "CDM DB Release Date",
-      #                    "CDM Version",
-      #                    "Vocabulary Version",
-      #                    "DB ID",
-      #                    "Max Obs. Period End Date"),
-      #   tooltipText = c("Name of the database (DB)",
-      #                   "Abbreviation for the database (DB)",
-      #                   "Holder of the database (DB)",
-      #                   "Description of the database (DB)",
-      #                   "HTML link to the database (DB) description",
-      #                   "HTML link to the ETL for the database (DB)",
-      #                   "Date the source data was released",
-      #                   "Date the CDM database (DB) was accessible",
-      #                   "Version of the common data model (CDM)",
-      #                   "Version of the vocabulary used in the database (DB)",
-      #                   "Unique identifier (ID) of the database (DB)",
-      #                   "Maximum/Latest observation period date in the database (DB)"),
-      #   customColDefOptions = list(
-      #     list(NULL), 
-      #     list(NULL),  
-      #     list(NULL),
-      #     list(NULL),
-      #     list(NULL),
-      #     list(NULL),
-      #     list(format = reactable::colFormat(date = T)),
-      #     list(format = reactable::colFormat(date = T)),
-      #     list(NULL),
-      #     list(NULL),
-      #     list(NULL),
-      #     list(NULL),
-      #     list(format = reactable::colFormat(date = T))
-      #   )
-      # )
-      
-      #save the colDefs as json
-      #ParallelLogger::saveSettingsToJson(datasourcesColDefs, "./inst/components-columnInformation/datasources-colDefs.json")
+  # # defining column definitions
+  #     datasourcesColDefs <- createCustomColDefList(
+  #       rawColNames = colnames(datasourcesData),
+  #       niceColNames = c("DB Name",
+  #                        "DB Abbreviation",
+  #                        "DB Holder",
+  #                        "DB Description",
+  #                        "DB Description Link",
+  #                        "DB ETL Link",
+  #                        "Source Data Release Date",
+  #                        "CDM DB Release Date",
+  #                        "CDM Version",
+  #                        "Vocabulary Version",
+  #                        "DB ID",
+  #                        "Max Obs. Period End Date"),
+  #       tooltipText = c("Name of the database (DB)",
+  #                       "Abbreviation for the database (DB)",
+  #                       "Holder of the database (DB)",
+  #                       "Description of the database (DB)",
+  #                       "HTML link to the database (DB) description",
+  #                       "HTML link to the ETL for the database (DB)",
+  #                       "Date the source data was released",
+  #                       "Date the CDM database (DB) was accessible",
+  #                       "Version of the common data model (CDM)",
+  #                       "Version of the vocabulary used in the database (DB)",
+  #                       "Unique identifier (ID) of the database (DB)",
+  #                       "Maximum/Latest observation period date in the database (DB)"),
+  #       customColDefOptions = list(
+  #         list(NULL),
+  #         list(NULL),
+  #         list(NULL),
+  #         list(show = F),
+  #         list(html = TRUE, cell = htmlwidgets::JS('
+  #   function(cellInfo) {
+  #     // Render as a link
+  #     const url = cellInfo.value;
+  #     return `<a href="${url}" target="_blank">RHEALTH Description</a>`;
+  #   }
+  # ')),
+  #         list(html = TRUE, cell = htmlwidgets::JS('
+  #   function(cellInfo) {
+  #     // Render as a link
+  #     const url = cellInfo.value;
+  #     return `<a href="${url}" target="_blank">ETL</a>`;
+  #   }
+  # ')),
+  #         list(format = reactable::colFormat(date = T)),
+  #         list(format = reactable::colFormat(date = T)),
+  #         list(NULL),
+  #         list(NULL),
+  #         list(NULL),
+  #         list(NULL),
+  #         list(format = reactable::colFormat(date = T))
+  #       )
+  #     )
+  # 
+  #     #save the colDefs as json
+  #     ParallelLogger::saveSettingsToJson(datasourcesColDefs, "./inst/components-columnInformation/datasources-colDefs.json")
       
       datasourcesColList <- ParallelLogger::loadSettingsFromJson(system.file("components-columnInformation",
                                                                         "datasources-colDefs.json",
                                                                         package = "OhdsiShinyModules")
       )
+      
+      #need to do for any colDefs that have JS and that are getting loaded in from a JSON
+      class(datasourcesColList[["sourceDocumentationReference"]]$cell) <- "JS_EVAL"
+      class(datasourcesColList[["cdmEtlReference"]]$cell) <- "JS_EVAL"
       
       
       resultTableServer(id = "datasourcesTable",
