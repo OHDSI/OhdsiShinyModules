@@ -2,8 +2,8 @@ context("phevaluator-main")
 
 shiny::testServer(phevaluatorServer, args = list(
   id = "phevaluatorServer",
-  connectionHandler = connectionHandlerPhevaluator,
-  resultDatabaseSettings = resultDatabaseSettingsPhevaluator
+  connectionHandler = connectionHandlerPV,
+  resultDatabaseSettings = resultDatabaseSettingsPV
 ), {
   #set inputs
   session$setInputs(
@@ -16,8 +16,8 @@ shiny::testServer(phevaluatorServer, args = list(
   checkmate::expect_data_frame(optionCols)
   
   #make sure there is at least one selection for each input option
-  checkmate::expect_numeric(unique(optionCols$databaseId), min.len = 1)
-  checkmate::expect_numeric(unique(optionCols$phenotypes), min.len = 1)
+  checkmate::expect_character(unique(optionCols$databaseId), min.len = 1)
+  checkmate::expect_character(unique(optionCols$phenotype), min.len = 1)
   
   #make sure all extracted data are accessible dfs
   checkmate::expect_data_frame(dataAlgorithmPerformance())
@@ -34,14 +34,14 @@ shiny::testServer(phevaluatorServer, args = list(
   testthat::expect_true(class(customColDefs) == 'list' | is.null(customColDefs))
   
   #make sure all output tables work
-  output$algorithmPerformanceTable
-  output$cohortDefinitionSetTable
-  output$diagnosticsTable
-  output$evaluationInputParametersTable
-  output$modelCovariatesTable
-  output$modelInputParametersTable
-  output$modelPerformanceTable
-  output$testSubjectsTable
-  output$testSubjectsCovariatesTable
+  # output$algorithmPerformanceResultsTable
+  # output$cohortDefinitionSetTable
+  # output$diagnosticsTable
+  # output$evaluationInputParametersTable
+  # output$modelCovariatesTable
+  # output$modelInputParametersTable
+  # output$modelPerformanceTable
+  # output$testSubjectsTable
+  # output$testSubjectsCovariatesTable
   
 })

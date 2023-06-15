@@ -51,8 +51,8 @@ getCohortGeneratorCohortMeta <- function(
   
   df2 <- df %>%
     dplyr::mutate(generationDuration = dplyr::case_when(
-      generationStatus == "COMPLETE" ~ difftime(endTime, startTime, units="mins"),
-      .default = NA
+      generationStatus == "COMPLETE" ~ as.numeric(difftime(endTime, startTime, units="mins")),
+      .default = NA_character_
     )
     )
   

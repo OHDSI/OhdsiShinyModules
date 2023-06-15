@@ -193,7 +193,7 @@ connectionHandlerPV  <- ResultModelManager::ConnectionHandler$new(
   loadConnection = FALSE
 )
 
-resultDatabaseDetails = list(
+resultDatabaseSettingsPV = list(
   dbms = 'sqlite',
   tablePrefix = 'pv_',
   schema = 'main'
@@ -213,7 +213,7 @@ connectionHandlerDS  <- ResultModelManager::ConnectionHandler$new(
   loadConnection = FALSE
 )
 
-resultDatabaseDetails = list(
+resultDatabaseSettingsDS = list(
   dbms = 'sqlite',
   tablePrefix = 'ds_',
   schema = 'main',

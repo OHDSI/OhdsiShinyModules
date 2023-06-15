@@ -505,7 +505,7 @@ cohortGeneratorServer <- function(
                                    "Generation Start Time", 
                                    "The time and date the cohort started generating"
                                  ),
-                                 format = reactable::colFormat(datetime = TRUE
+                                 format = reactable::colFormat(suffix = " mins"
                                  )),
                                endTime = reactable::colDef( 
                                  header = withTooltip(

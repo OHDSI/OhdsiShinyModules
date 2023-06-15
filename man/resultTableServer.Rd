@@ -4,7 +4,7 @@
 \alias{resultTableServer}
 \title{Result Table Server}
 \usage{
-resultTableServer(id, df, colDefsInput, downloadedFileName)
+resultTableServer(id, df, colDefsInput, downloadedFileName = NULL)
 }
 \arguments{
 \item{id}{string, table id must match resultsTableViewer function}
