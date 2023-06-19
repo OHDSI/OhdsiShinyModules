@@ -162,7 +162,7 @@ datasourcesServer <- function(
   # 
   #     #save the colDefs as json
   #     ParallelLogger::saveSettingsToJson(datasourcesColDefs, "./inst/components-columnInformation/datasources-colDefs.json")
-      
+
       datasourcesColList <- ParallelLogger::loadSettingsFromJson(system.file("components-columnInformation",
                                                                         "datasources-colDefs.json",
                                                                         package = "OhdsiShinyModules")
