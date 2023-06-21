@@ -157,7 +157,7 @@ phevaluatorServer <- function(
         resultsSchema = resultDatabaseSettings$schema,
         tablePrefix = resultDatabaseSettings$tablePrefix
       ) %>%
-        dplyr::select(databaseId, phenotype)
+        dplyr::select("databaseId", "phenotype")
       
       databaseIds = unique(optionCols$databaseId)
       phenotypeNames = unique(optionCols$phenotype)
@@ -437,7 +437,7 @@ phevaluatorServer <- function(
       )
       
       #define custom column definitions and render the result table
-      customColDefs <- modifyList(phevalColList, buttonColDefs)
+      customColDefs <- utils::modifyList(phevalColList, buttonColDefs)
 
       
       resultTableServer(id = ns("algorithmPerformanceResultsTable"),

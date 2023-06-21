@@ -574,8 +574,8 @@ cohortGeneratorServer <- function(
       cohortNames <- unique(inputVals$cohortName)
       databaseIds <- unique(inputVals$cdmSourceName)
       inputValsClean <- dplyr::ungroup(inputVals) %>%
-        dplyr::mutate(modeId = dplyr::case_when(
-          modeId==1 ~ "Subject",
+        dplyr::mutate('modeId' = dplyr::case_when(
+          .data$modeId==1 ~ "Subject",
           TRUE ~ "Record"
         )
         )

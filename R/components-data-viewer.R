@@ -213,7 +213,8 @@ resultTableServer <- function(id, #string
                               ,
 
                               error = function(e){
-                                shiny::showNotification("No columns selected!"); return(NULL)
+                             #   shiny::showNotification("No columns selected!"); 
+                                return(NULL)
 
                               }
                             )
