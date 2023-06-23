@@ -561,7 +561,6 @@ cohortDiagnosticsSever <- function(id,
       if (!hasData(targetCohortId())) {
         return(NULL)
       }
-      browser()
       dataSource$conceptSets %>%
         dplyr::filter(.data$cohortId == targetCohortId()) %>%
         dplyr::mutate(name = .data$conceptSetName) %>%
