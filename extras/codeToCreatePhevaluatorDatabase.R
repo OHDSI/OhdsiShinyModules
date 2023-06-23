@@ -1,6 +1,6 @@
 #load specification
 
- mypath <- "D:/shiny_test/GitHub Desktop/standardization/phevaluator"
+ mypath <- "D:/shiny/resultModelSpecs"
  serverPV <- "tests/resources/pvDatabase/phevaluator.sqlite"
  
  #delete entire database
@@ -8,7 +8,7 @@
  
  #load tje results data model spec
  specification <- ResultModelManager::loadResultsDataModelSpecifications(file.path(mypath,
-                                                                                   "resultsDataModelSpecification.csv")
+                                                                                   "resultsDataModelSpecificationReordered.csv")
  )
  
  #create sql to generate schema
@@ -18,6 +18,16 @@
  connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = "sqlite",
                                                                  server = serverPV)
  
+ 
+ # #need to re run the below qns when re-making the database
+ # qns <- ResultModelManager::createQueryNamespace(connectionDetails = connectionDetails,
+ #                                                 tableSpecification = specification,
+ #                                                 tablePrefix = "",
+ #                                                 database_schema = "main")
+ # #execute the SQL
+ # qns$executeSql(sql)
+ 
+ 
  #upload the results to the schema
  ResultModelManager::uploadResults(connectionDetails = connectionDetails,
                                    schema = "main",
@@ -25,13 +35,6 @@
                                    tablePrefix = "",
                                    specifications = specification,
                                    purgeSiteDataBeforeUploading = F)
- 
- # qns <- ResultModelManager::createQueryNamespace(connectionDetails = connectionDetails,
- #                                                 tableSpecification = specification,
- #                                                 tablePrefix = "",
- #                                                 database_schema = "main")
- # #execute the SQL
- # qns$executeSql(sql)
 
 #DBI::dbConnect(RSQLite::SQLite(), dbname = "phevaluator.sqlite")
 
@@ -40,7 +43,7 @@ connection <- DatabaseConnector::connect(connectionDetails = connectionDetails)
 
 #disconnect
 DatabaseConnector::disconnect(connection)
- 
+
  
  
  

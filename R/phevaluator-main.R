@@ -82,9 +82,14 @@ phevaluatorViewer <- function(id) {
                             downloadedFileName = "cohortDefinitionSetTable-")
         ),
         shiny::tabPanel(
-          title = "Model Input Parameters",
-          resultTableViewer(ns("modelInputParametersTable"),
-                            downloadedFileName = "modelInputParametersTable-")
+          title = "Phenotype Performance Characteristics",
+          resultTableViewer(ns("algorithmPerformanceResultsTable"),
+                            downloadedFileName = "algorithmPerformanceResultsTable-")
+        ),
+        shiny::tabPanel(
+          title = "Model Covariates",
+          resultTableViewer(ns("modelCovariatesTable"),
+                            downloadedFileName = "modelCovariatesTable-")
         ),
         shiny::tabPanel(
           title = "Model Performance",
@@ -92,9 +97,14 @@ phevaluatorViewer <- function(id) {
                             downloadedFileName = "modelPerformanceTable-")
         ),
         shiny::tabPanel(
-          title = "Model Covariates",
-          resultTableViewer(ns("modelCovariatesTable"),
-                            downloadedFileName = "modelCovariatesTable-")
+          title = "Model Input Parameters",
+          resultTableViewer(ns("modelInputParametersTable"),
+                            downloadedFileName = "modelInputParametersTable-")
+        ),
+        shiny::tabPanel(
+          title = "Evaluation Cohort Diagnostics",
+          resultTableViewer(ns("diagnosticsTable"),
+                            downloadedFileName = "diagnosticsTable-")
         ),
         shiny::tabPanel(
           title = "Evaluation Cohort Parameters",
@@ -107,14 +117,9 @@ phevaluatorViewer <- function(id) {
                             downloadedFileName = "testSubjectsTable-")
         ),
         shiny::tabPanel(
-          title = "Test Subjects and Covariates",
+          title = "Test Subjects Covariates",
           resultTableViewer(ns("testSubjectsCovariatesTable"),
                             downloadedFileName = "testSubjectsCovariatesTable-")
-        ),
-        shiny::tabPanel(
-          title = "Phenotype Performance Characteristics",
-          resultTableViewer(ns("algorithmPerformanceResultsTable"),
-                            downloadedFileName = "algorithmPerformanceResultsTable-")
         )
       )
     )
