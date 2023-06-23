@@ -423,13 +423,14 @@ plotSeasonSpline <- function(seasonSpline, rrLim = c(0.1, 10)) {
 
 # unknown function?
 convertMonthToStartDate <- function(x){
-  return(x)
+  return(as.Date(x, origin = "1950-01-01"))
 }
 # adding missing sccsModel as input
-plotCalendarTimeSpline <- function(calendarTimeSpline, rrLim = c(0.1, 10), sccsModel) {
+plotCalendarTimeSpline <- function(calendarTimeSpline, rrLim = c(0.1, 10)) {
+
   splineCoefs <- c(0, log(calendarTimeSpline$rr))
   ageKnots <- calendarTimeSpline$ageMonth
-  calendarTimeKnots <- sccsModel$metaData$calendarTime$calendarTimeKnots
+  calendarTimeKnots <- calendarTimeSpline$knotMonth
   calendarTime <- seq(min(calendarTimeKnots), max(calendarTimeKnots), length.out = 100)
   calendarTimeDesignMatrix <- splines::bs(calendarTime,
                                           knots = calendarTimeKnots[2:(length(calendarTimeKnots) - 1)],

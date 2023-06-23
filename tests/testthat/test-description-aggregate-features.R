@@ -26,8 +26,8 @@ shiny::testServer(
     session$setInputs(outcome = options$outcomes[1]) 
     session$setInputs(database1 = 'eunomia')
     session$setInputs(database2 = 'eunomia')
-    session$setInputs(type1 = 'Target')
-    session$setInputs(type2 = 'Outcome')
+    session$setInputs(type1 = types[1])
+    session$setInputs(type2 = types[2])
     session$setInputs(generate = TRUE)
     
     testthat::expect_true(binaryData()$covariateName[1] != '')
