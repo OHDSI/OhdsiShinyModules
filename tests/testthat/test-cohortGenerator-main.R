@@ -1,4 +1,4 @@
-context("cohortgenerator-main")
+context("cohort-generator-main")
 
 shiny::testServer(
   app = cohortGeneratorServer, 
