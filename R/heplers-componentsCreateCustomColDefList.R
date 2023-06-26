@@ -13,7 +13,7 @@
 #' @export
 #'
 #' @examples
-#' createCustomColDefList(rawColNames = c("firstName", "lastName), niceColNames = c("First Name", "Last Name"), tooltipText = c("The person's first name", "The person's last name"))
+#' createCustomColDefList(rawColNames = c("firstName", "lastName"), niceColNames = c("First Name", "Last Name"), tooltipText = c("The person's first name", "The person's last name"))
 #' 
 createCustomColDefList <- function(rawColNames, niceColNames, tooltipText) {
   withTooltip <- function(value, tooltip, ...) {
@@ -81,12 +81,11 @@ saveColDefsAsJSON <- function(colDefs, filename, path = "") {
 
 
 #' Read reactable::colDefs froma  JSON file 
-#'
+#' @description Reads in a JSON file and saves it into the environment as a named list of colDefs
 #' @param filename The dname of the input JSON file
 #' @param path The path to where the JSON is located
-#'
-#' @return
-#' @expors Reads in a JSON file and saves it into the environment as a named list of colDefs
+#' @export
+#' @return colDefs list
 #'
 readColDefsFromJSON <- function(filename, path = "") {
   # Construct the file path
