@@ -418,7 +418,7 @@ cohortDiagnosticsSever <- function(id,
       if ("temporalCovariateValue" %in% dataSource$enabledReports) {
         selection["Cohort Characterization"] <- "characterization"
         selection["Compare Cohort Characterization"] <- "compareCohortCharacterization"
-        selection["Time Distributions"] <- "timeDistributions"
+        selection["Time Distributions"] <- "timeDistribution"
       }
 
       if ("relationship" %in% dataSource$enabledReports)
