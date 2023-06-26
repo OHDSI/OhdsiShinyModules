@@ -613,10 +613,12 @@ cohortDefinitionsModule <- function(id,
         if (!hasData(data)) {
           return(NULL)
         }
+
         data <- data %>%
+          dplyr::inner_join(databaseTable, by = "databaseId") %>%
           dplyr::filter(.data$cohortId == selectedCohortDefinitionRow()$cohortId) %>%
           dplyr::filter(.data$databaseId %in% databaseTable$databaseId) %>%
-          dplyr::select("databaseId",
+          dplyr::select("databaseName",
                         "cohortSubjects",
                         "cohortEntries") %>%
           dplyr::rename("persons" = "cohortSubjects",
@@ -624,7 +626,7 @@ cohortDefinitionsModule <- function(id,
 
         shiny::validate(shiny::need(hasData(data), "There is no data for this cohort."))
 
-        keyColumns <- c("databaseId")
+        keyColumns <- c("databaseName")
         dataColumns <- c("persons", "events")
 
         displayTable <- getDisplayTableSimple(data = data,
