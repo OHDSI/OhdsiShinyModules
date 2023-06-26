@@ -439,6 +439,9 @@ cohortDiagnosticsSever <- function(id,
       if ("orphanConcepts" %in% dataSource$enabledReports)
         selection["Orphan Concepts"] <- "orphanConcepts"
 
+      if ("indexEventBreakdown" %in% dataSource$enabledReports)
+        selection["Index Event Breakdown"] <- "indexEventBreakdown"
+
       shiny::updateSelectInput(
         inputId = "tabs",
         label = "Select Report",
