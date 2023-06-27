@@ -11,7 +11,6 @@
 #' @param id string
 #'
 #' @return shiny module UI
-#' @export
 #'
 resultTableViewer <- function(id = "result-table") {
   ns <- shiny::NS(id)
@@ -228,7 +227,6 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param colDefsInput named list of reactable::colDefs
 #'
 #' @return shiny module server
-#' @export
 #'
 resultTableServer <- function(id, #string
                               df, #data.frame

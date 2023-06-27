@@ -43,7 +43,6 @@ createCustomColDefList <- function(rawColNames, niceColNames, tooltipText) {
 #' @param path The path to where the JSON should be saved
 #'
 #' @return Saves a JSON file
-#' @export 
 #'
 # saveColDefsAsJSON <- function(colDefs, filename, path = "") {
 #   # Extract the raw column names
@@ -59,7 +58,6 @@ createCustomColDefList <- function(rawColNames, niceColNames, tooltipText) {
 #   filepath <- file.path(path, filename)
 #   writeLines(col_defs_json, filepath)
 # }
-
 saveColDefsAsJSON <- function(colDefs, filename, path = "") {
   # Convert colDefs to a list of serializable objects
   colDefsData <- lapply(colDefs, function(colDef) list(header = as.character(colDef$header)))
@@ -84,7 +82,6 @@ saveColDefsAsJSON <- function(colDefs, filename, path = "") {
 #' @description Reads in a JSON file and saves it into the environment as a named list of colDefs
 #' @param filename The dname of the input JSON file
 #' @param path The path to where the JSON is located
-#' @export
 #' @return colDefs list
 #'
 readColDefsFromJSON <- function(filename, path = "") {
