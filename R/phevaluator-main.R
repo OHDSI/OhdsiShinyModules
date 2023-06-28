@@ -78,35 +78,48 @@ phevaluatorViewer <- function(id) {
         
         shiny::tabPanel(
           title = "Phenotypes",
-          resultTableViewer(ns("cohortDefinitionSetTable"))
-        ),
-        shiny::tabPanel(
-          title = "Model Input Parameters",
-          resultTableViewer(ns("modelInputParametersTable"))
-        ),
-        shiny::tabPanel(
-          title = "Model Performance",
-          resultTableViewer(ns("modelPerformanceTable"))
-        ),
-        shiny::tabPanel(
-          title = "Model Covariates",
-          resultTableViewer(ns("modelCovariatesTable"))
-        ),
-        shiny::tabPanel(
-          title = "Evaluation Cohort Parameters",
-          resultTableViewer(ns("evaluationCohortParametersTable"))
-        ),
-        shiny::tabPanel(
-          title = "Test Subjects",
-          resultTableViewer(ns("testSubjectsTable"))
-        ),
-        shiny::tabPanel(
-          title = "Test Subjects and Covariates",
-          resultTableViewer(ns("testSubjectsCovariatesTable"))
+          resultTableViewer(ns("cohortDefinitionSetTable"),
+                            downloadedFileName = "cohortDefinitionSetTable-")
         ),
         shiny::tabPanel(
           title = "Phenotype Performance Characteristics",
-          resultTableViewer(ns("algorithmPerformanceResultsTable"))
+          resultTableViewer(ns("algorithmPerformanceResultsTable"),
+                            downloadedFileName = "algorithmPerformanceResultsTable-")
+        ),
+        shiny::tabPanel(
+          title = "Model Covariates",
+          resultTableViewer(ns("modelCovariatesTable"),
+                            downloadedFileName = "modelCovariatesTable-")
+        ),
+        shiny::tabPanel(
+          title = "Model Performance",
+          resultTableViewer(ns("modelPerformanceTable"),
+                            downloadedFileName = "modelPerformanceTable-")
+        ),
+        shiny::tabPanel(
+          title = "Model Input Parameters",
+          resultTableViewer(ns("modelInputParametersTable"),
+                            downloadedFileName = "modelInputParametersTable-")
+        ),
+        shiny::tabPanel(
+          title = "Evaluation Cohort Diagnostics",
+          resultTableViewer(ns("diagnosticsTable"),
+                            downloadedFileName = "diagnosticsTable-")
+        ),
+        shiny::tabPanel(
+          title = "Evaluation Cohort Parameters",
+          resultTableViewer(ns("evaluationInputParametersTable"),
+                            downloadedFileName = "evaluationInputParametersTable-")
+        ),
+        shiny::tabPanel(
+          title = "Test Subjects",
+          resultTableViewer(ns("testSubjectsTable"),
+                            downloadedFileName = "testSubjectsTable-")
+        ),
+        shiny::tabPanel(
+          title = "Test Subjects Covariates",
+          resultTableViewer(ns("testSubjectsCovariatesTable"),
+                            downloadedFileName = "testSubjectsCovariatesTable-")
         )
       )
     )
@@ -135,6 +148,8 @@ phevaluatorServer <- function(
     id,
     function(input, output, session) {
       
+      ns <- session$ns
+      
       withTooltip <- function(value, tooltip, ...) {
         shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
                    tippy::tippy(value, tooltip, ...))
@@ -143,13 +158,11 @@ phevaluatorServer <- function(
       #use algorithm performance table to get "option columns",
       #which will be used to make choices before generating result(s)
       optionCols <- getPhevalAlgorithmPerformance(
-        connectionHandler = connection,
-        resultsSchema = resultDatabaseDetails$schema,
-        tablePrefix = resultDatabaseDetails$tablePrefix,
-        databaseIds = NULL,
-        phenotypes = NULL
+        connectionHandler = connectionHandler,
+        resultsSchema = resultDatabaseSettings$schema,
+        tablePrefix = resultDatabaseSettings$tablePrefix
       ) %>%
-        dplyr::select(databaseId, phenotype)
+        dplyr::select("databaseId", "phenotype")
       
       databaseIds = unique(optionCols$databaseId)
       phenotypeNames = unique(optionCols$phenotype)
@@ -217,16 +230,13 @@ phevaluatorServer <- function(
           }
           
           getPhevalAlgorithmPerformance(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
-            databaseIds = input$selectedDatabaseIds,
-            phenotypes = input$selectedPhenoypes
-          )
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix
+          ) %>%
+            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
+                            phenotype %in% input$selectedPhenotypes) %>%
+            dplyr::select("databaseId":"cohortId", "description", "sensitivity95Ci":"analysisId")
         }
       )
       
@@ -239,14 +249,13 @@ phevaluatorServer <- function(
           }
           
           getPhevalCohortDefinitionSet(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
-            phenotypes = input$selectedPhenoypes
-          ) 
-          # %>%
-          #   dplyr::filter(phenotype %in% input$selectedPhenotypes
-          #   )
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix
+          ) %>%
+            dplyr::mutate(buttonSQL = makeButtonLabel("SQL"),
+                          buttonJSON = makeButtonLabel("JSON")) %>%
+            dplyr::filter(phenotype %in% input$selectedPhenotypes)
         }
       )
       
@@ -259,16 +268,12 @@ phevaluatorServer <- function(
           }
           
           getPhevalDiagnostics(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
-            databaseIds = input$selectedDatabaseIds,
-            phenotypes = input$selectedPhenoypes
-          ) 
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix
+          ) %>%
+            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
+                            phenotype %in% input$selectedPhenotypes)
         }
       )
       
@@ -281,16 +286,12 @@ phevaluatorServer <- function(
           }
           
           getPhevalEvalInputParams(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
-            databaseIds = input$selectedDatabaseIds,
-            phenotypes = input$selectedPhenoypes
-          ) 
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix
+          ) %>%
+            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
+                            phenotype %in% input$selectedPhenotypes)
         }
       )
       
@@ -303,16 +304,12 @@ phevaluatorServer <- function(
           }
           
           getPhevalModelCovars(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
-            databaseIds = input$selectedDatabaseIds,
-            phenotypes = input$selectedPhenoypes
-          ) 
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix
+          ) %>%
+            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
+                            phenotype %in% input$selectedPhenotypes)
         }
       )
       
@@ -325,16 +322,12 @@ phevaluatorServer <- function(
           }
           
           getPhevalModelInputParams(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
-            databaseIds = input$selectedDatabaseIds,
-            phenotypes = input$selectedPhenoypes
-          ) 
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix
+          ) %>%
+            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
+                            phenotype %in% input$selectedPhenotypes)
         }
       )
       
@@ -347,16 +340,12 @@ phevaluatorServer <- function(
           }
           
           getPhevalModelPerformance(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
-            databaseIds = input$selectedDatabaseIds,
-            phenotypes = input$selectedPhenoypes
-          ) 
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix
+          ) %>%
+            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
+                            phenotype %in% input$selectedPhenotypes)
         }
       )
       
@@ -369,16 +358,12 @@ phevaluatorServer <- function(
           }
           
           getPhevalTestSubjects(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
-            databaseIds = input$selectedDatabaseIds,
-            phenotypes = input$selectedPhenoypes
-          ) 
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix
+          ) %>%
+            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
+                            phenotype %in% input$selectedPhenotypes)
         }
       )
       
@@ -389,18 +374,14 @@ phevaluatorServer <- function(
               is.null(input$selectedPhenotypes)) {
             data.frame()
           }
-          
+
           getPhevalTestSubjectsCovars(
-            connectionHandler = connection,
-            resultsSchema = resultDatabaseDetails$schema,
-            tablePrefix = resultDatabaseDetails$tablePrefix,
-            databaseIds = input$selectedDatabaseIds,
-            phenotypes = input$selectedPhenoypes
-          ) 
-          # %>%
-          #   dplyr::filter(databaseId %in% input$selectedDatabaseIds &
-          #                   phenotype %in% input$selectedPhenotypes
-          #   )
+            connectionHandler = connectionHandler,
+            resultsSchema = resultDatabaseSettings$schema,
+            tablePrefix = resultDatabaseSettings$tablePrefix
+          ) %>%
+            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
+                            phenotype %in% input$selectedPhenotypes)
         }
       )
       
@@ -425,14 +406,14 @@ phevaluatorServer <- function(
                   shiny::tags$b("Phenotype(s):"),
                   
                   paste(unique(optionCols$databaseId[optionCols$databaseId %in% input$selectedDatabaseIds]),
-                        collapse = ',')
+                        collapse = ', ')
                   
                 ),
                 shiny::column(
                   width = 4,
                   shiny::tags$b("Database(s):"),
                   paste(unique(optionCols$phenotype[optionCols$phenotype %in% input$selectedPhenotypes]),
-                        collapse = ',')
+                        collapse = ', ')
                 )
               ))
             )
@@ -442,62 +423,74 @@ phevaluatorServer <- function(
       
       #read in custom column name colDef list from rds file, generated by 
       #heplers-componentsCreateCustomColDefList.R
-      phevalColListOrig <- readRDS(system.file("components-columnInformation",
-                                             "phevaluator-colDefNamesList.rds", package = "OhdsiShinyModules")
+      
+      phevalColList <- ParallelLogger::loadSettingsFromJson(system.file("components-columnInformation",
+                                                                        "phevaluator-colDefs.json",
+                                                                        package = "OhdsiShinyModules")
       )
       
-      # phevalColList <- readColDefsFromJSON("phevaluator-colDefs.json", 
-      #                                      "D:/shiny_test/GitHub Desktop/standardization/OhdsiShinyModules/inst/components-columnInformation"
-      # )
-      
-      #renaming names of columns in list to have cases match
-      names(phevalColList) <-  SqlRender::snakeCaseToCamelCase(names(phevalColList))
-      
+      #define custom colDefs for SQL and JSON buttons
+      buttonColDefs <- list(
+        buttonSQL = reactable::colDef(header = withTooltip("SQL", "Downloads SQL code for the cohort"),
+                                html = T
+                                ),
+        buttonJSON = reactable::colDef(header = withTooltip("JSON", "Downloads JSON code for the cohort"),
+                                 html = T
+                                 ),
+        sql = reactable::colDef(show = F),
+        json = reactable::colDef(show = F)
+      )
       
       #define custom column definitions and render the result table
-      customColDefs <- phevalColListOrig
+      customColDefs <- utils::modifyList(phevalColList, buttonColDefs)
+
       
-      resultTableServer(id = "algorithmPerformanceResultsTable",
+      resultTableServer(id = ns("algorithmPerformanceResultsTable"),
                         df = dataAlgorithmPerformance,
-                        colDefsInput = customColDefs)
+                        colDefsInput = customColDefs,
+                        downloadedFileName = "algorithmPerformanceResultsTable-")
       
-      resultTableServer(id = "cohortDefinitionSetTable",
+      resultTableServer(id = ns("cohortDefinitionSetTable"),
                         df = dataCohortDefinitionSet,
-                        colDefsInput = customColDefs)
+                        colDefsInput = customColDefs,
+                        downloadedFileName = "cohortDefinitionSetTable-")
       
-      resultTableServer(id = "diagnosticsTable",
+      resultTableServer(id = ns("diagnosticsTable"),
                         df = dataDiagnostics,
-                        colDefsInput = customColDefs)
+                        colDefsInput = customColDefs,
+                        downloadedFileName = "diagnosticsTable-")
       
-      resultTableServer(id = "evaluationInputParametersTable",
+      resultTableServer(id = ns("evaluationInputParametersTable"),
                         df = dataEvalInputParams,
-                        colDefsInput = customColDefs)
+                        colDefsInput = customColDefs,
+                        downloadedFileName = "evaluationInputParametersTable-")
       
-      resultTableServer(id = "modelCovariatesTable",
+      resultTableServer(id = ns("modelCovariatesTable"),
                         df = dataModelCovars,
-                        colDefsInput = customColDefs)
+                        colDefsInput = customColDefs,
+                        downloadedFileName = "modelCovariatesTable-")
       
-      resultTableServer(id = "modelInputParametersTable",
+      resultTableServer(id = ns("modelInputParametersTable"),
                         df = dataModelInputParams,
-                        colDefsInput = customColDefs)
+                        colDefsInput = customColDefs,
+                        downloadedFileName = "modelInputParametersTable-")
       
-      resultTableServer(id = "modelPerformanceTable",
+      resultTableServer(id = ns("modelPerformanceTable"),
                         df = dataModelPerformance,
-                        colDefsInput = customColDefs)
+                        colDefsInput = customColDefs,
+                        downloadedFileName = "modelPerformanceTable-")
       
-      resultTableServer(id = "testSubjectsTable",
+      resultTableServer(id = ns("testSubjectsTable"),
                         df = dataTestSubjects,
-                        colDefsInput = customColDefs)
+                        colDefsInput = customColDefs,
+                        downloadedFileName = "testSubjectsTable-")
       
-      resultTableServer(id = "testSubjectsCovariatesTable",
+      resultTableServer(id = ns("testSubjectsCovariatesTable"),
                         df = dataTestSubjectsCovars,
-                        colDefsInput = customColDefs)
-      
+                        colDefsInput = customColDefs,
+                        downloadedFileName = "testSubjectsCovariatesTable-")
       
       return(invisible(NULL))
-      
-      
-      
       
     })
 }

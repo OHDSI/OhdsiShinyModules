@@ -182,6 +182,47 @@ resultDatabaseSettingsES <- list(
 
 #  ====
 
+# ====== PheValuator
+
+connectionDetailsPV <- DatabaseConnector::createConnectionDetails(
+  dbms = 'sqlite',
+  server = "../resources/pvDatabase/phevaluator.sqlite"
+)
+
+connectionHandlerPV  <- ResultModelManager::ConnectionHandler$new(
+  connectionDetailsPV, 
+  loadConnection = FALSE
+)
+
+resultDatabaseSettingsPV = list(
+  dbms = 'sqlite',
+  tablePrefix = 'pv_',
+  schema = 'main'
+)
+
+#  ====
+
+# ====== DataSources
+
+connectionDetailsDS <- DatabaseConnector::createConnectionDetails(
+  dbms = 'sqlite',
+  server = "../resources/DSDatabase/databaseFile.sqlite"
+)
+
+connectionHandlerDS  <- ResultModelManager::ConnectionHandler$new(
+  connectionDetailsDS, 
+  loadConnection = FALSE
+)
+
+resultDatabaseSettingsDS = list(
+  dbms = 'sqlite',
+  tablePrefix = 'ds_',
+  schema = 'main',
+  databaseMetaData = 'DATABASE_META_DATA'
+)
+
+#  ====
+
 ## cleanup after tests complete
 withr::defer({
   options("shiny-test-env-enabled" = FALSE)
@@ -193,4 +234,6 @@ withr::defer({
   connectionHandlerCohortDiag$finalize()
   connectionHandlerSccs$finalize()
   connectionHandlerES$finalize()
+  connectionHandlerPV$finalize()
+  connectionHandlerDS$finalize()
 }, testthat::teardown_env())

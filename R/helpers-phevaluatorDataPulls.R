@@ -4,33 +4,8 @@
 getPhevalAlgorithmPerformance <- function(
   connectionHandler, 
   resultsSchema,
-  tablePrefix = 'pv_',
-  databaseIds,
-  phenotypes
+  tablePrefix = 'pv_'
 ) {
-  
-  if(!is.null(databaseIds) & !is.null(phenotypes)){
-    
-    sql <- "SELECT * FROM @results_schema.@table_prefixALGORITHM_PERFORMANCE_RESULTS
-            WHERE( @results_schema.@table_prefixALGORITHM_PERFORMANCE_RESULTS.DATABASE_ID IN (@databaseIds)
-              AND @results_schema.@table_prefixALGORITHM_PERFORMANCE_RESULTS.PHENOTYPE IN (@phenotypes)
-            )
-  ;"
-  
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-      phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-      # ,
-      # snakeCaseToCamelCase = F
-    )
-  )
-  }
-  
-  else {
     
     sql <- "SELECT * FROM @results_schema.@table_prefixALGORITHM_PERFORMANCE_RESULTS
   ;"
@@ -39,14 +14,9 @@ getPhevalAlgorithmPerformance <- function(
       connectionHandler$queryDb(
         sql = sql,
         results_schema = resultsSchema,
-        table_prefix = tablePrefix,
-        databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-        phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-        # ,
-        # snakeCaseToCamelCase = F
+        table_prefix = tablePrefix
       )
     )
-  }
 }
 
 #test it
@@ -54,349 +24,174 @@ getPhevalAlgorithmPerformance <- function(
 # databaseIds = c("CCAE_RS", "Germany_RS")
 # phenotypes = c("hyperprolactinemia")
 # 
-# d <- getPhevalAlgorithmPerformance(connectionHandler = connection,
+# getPhevalAlgorithmPerformance(connectionHandler = connectionHandler,
 #                           resultsSchema = resultDatabaseDetails$schema,
-#                           tablePrefix = resultDatabaseDetails$tablePrefix,
-#                           databaseIds = databaseIds,
-#                           phenotypes = phenotypes
+#                           tablePrefix = resultDatabaseDetails$tablePrefix
 #                           )
+
 
 getPhevalCohortDefinitionSet <- function(
   connectionHandler, 
   resultsSchema,
-  tablePrefix = 'pv_',
-  phenotypes
+  tablePrefix = 'pv_'
 ) {
   
-  if(!is.null(phenotypes)){
-  sql <- "SELECT * FROM @results_schema.@table_prefixCOHORT_DEFINITION_SET
-            WHERE( @results_schema.@table_prefixCOHORT_DEFINITION_SET.PHENOTYPE IN (@phenotypes)
-            )
-  ;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-    )
-  )
-  }
-  
-  else {
     sql <- "SELECT * FROM @results_schema.@table_prefixCOHORT_DEFINITION_SET
   ;"
+    
     return(
       connectionHandler$queryDb(
         sql = sql,
         results_schema = resultsSchema,
-        table_prefix = tablePrefix,
-        phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-        # ,
-        # snakeCaseToCamelCase = F
-      )
+        table_prefix = tablePrefix
+     )
     )
-  }
 }
 
 getPhevalDiagnostics <- function(
   connectionHandler, 
   resultsSchema,
-  tablePrefix = 'pv_',
-  databaseIds,
-  phenotypes
+  tablePrefix = 'pv_'
 ) {
-  
-  if(!is.null(databaseIds) & !is.null(phenotypes)){
-  sql <- "SELECT * FROM @results_schema.@table_prefixDIAGNOSTICS
-            WHERE( @results_schema.@table_prefixDIAGNOSTICS.DATABASE_ID IN (@databaseIds)
-              AND @results_schema.@table_prefixDIAGNOSTICS.PHENOTYPE IN (@phenotypes)
-            )
-  ;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-      phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-    )
-  )
-  }
-  
-  else{
-    
+
     sql <- "SELECT * FROM @results_schema.@table_prefixDIAGNOSTICS
   ;"
     return(
       connectionHandler$queryDb(
         sql = sql,
         results_schema = resultsSchema,
-        table_prefix = tablePrefix,
-        databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-        phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-        # ,
-        # snakeCaseToCamelCase = F
+        table_prefix = tablePrefix
       )
     )
-  }
 }
 
 getPhevalEvalInputParams <- function(
   connectionHandler, 
   resultsSchema,
-  tablePrefix = 'pv_',
-  databaseIds,
-  phenotypes
+  tablePrefix = 'pv_'
 ) {
   
-  if(!is.null(databaseIds) & !is.null(phenotypes)){
-  sql <- "SELECT * FROM @results_schema.@table_prefixEVALUATION_INPUT_PARAMETERS
-            WHERE( @results_schema.@table_prefixEVALUATION_INPUT_PARAMETERS.DATABASE_ID IN (@databaseIds)
-              AND @results_schema.@table_prefixEVALUATION_INPUT_PARAMETERS.PHENOTYPE IN (@phenotypes)
-            )
-  ;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-      phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-    )
-  )
-  }
-  
-  else{
     sql <- "SELECT * FROM @results_schema.@table_prefixEVALUATION_INPUT_PARAMETERS
   ;"
     return(
       connectionHandler$queryDb(
         sql = sql,
         results_schema = resultsSchema,
-        table_prefix = tablePrefix,
-        databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-        phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-        # ,
-        # snakeCaseToCamelCase = F
+        table_prefix = tablePrefix
       )
     )
-  }
 }
 
 getPhevalModelCovars <- function(
   connectionHandler, 
   resultsSchema,
-  tablePrefix = 'pv_',
-  databaseIds,
-  phenotypes
+  tablePrefix = 'pv_'
 ) {
-  
-  if(!is.null(databaseIds) & !is.null(phenotypes)){
-  sql <- "SELECT * FROM @results_schema.@table_prefixMODEL_COVARIATES
-            WHERE( @results_schema.@table_prefixMODEL_COVARIATES.DATABASE_ID IN (@databaseIds)
-              AND @results_schema.@table_prefixMODEL_COVARIATES.PHENOTYPE IN (@phenotypes)
-            )
-  ;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-      phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-    )
-  )
-  }
-  
-  else{
+
     sql <- "SELECT * FROM @results_schema.@table_prefixMODEL_COVARIATES
   ;"
-    return(
-      connectionHandler$queryDb(
-        sql = sql,
-        results_schema = resultsSchema,
-        table_prefix = tablePrefix,
-        databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-        phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-        # ,
-        # snakeCaseToCamelCase = F
-      )
+  
+    df <-  connectionHandler$queryDb(
+      sql = sql,
+      results_schema = resultsSchema,
+      table_prefix = tablePrefix
     )
-  }
+    
+    df$databaseId = stringi::stri_trans_general(df$databaseId, "latin-ascii")
+    df$phenotype = stringi::stri_trans_general(df$phenotype, "latin-ascii")
+    df$analysisName = stringi::stri_trans_general(df$analysisName, "latin-ascii")
+    df$covariateName = stringi::stri_trans_general(df$covariateName, "latin-ascii")
+    
+    return(
+      df
+      )
 }
+
+# d <- getPhevalModelCovars(connectionHandler = connectionHandler,
+#                                    resultsSchema = resultDatabaseDetails$schema,
+#                                    tablePrefix = resultDatabaseDetails$tablePrefix,
+#                                    databaseIds = databaseIds,
+#                                    phenotypes = phenotypes
+# )
+
+
 
 getPhevalModelInputParams <- function(
   connectionHandler, 
   resultsSchema,
-  tablePrefix = 'pv_',
-  databaseIds,
-  phenotypes
+  tablePrefix = 'pv_'
 ) {
   
-  if(!is.null(databaseIds) & !is.null(phenotypes)){
-  sql <- "SELECT * FROM @results_schema.@table_prefixMODEL_INPUT_PARAMETERS
-            WHERE( @results_schema.@table_prefixMODEL_INPUT_PARAMETERS.DATABASE_ID IN (@databaseIds)
-              AND @results_schema.@table_prefixMODEL_INPUT_PARAMETERS.PHENOTYPE IN (@phenotypes)
-            )
-  ;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-      phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-    )
-  )
-  }
-  
-  else{
     sql <- "SELECT * FROM @results_schema.@table_prefixMODEL_INPUT_PARAMETERS
   ;"
     return(
       connectionHandler$queryDb(
         sql = sql,
         results_schema = resultsSchema,
-        table_prefix = tablePrefix,
-        databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-        phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-        # ,
-        # snakeCaseToCamelCase = F
+        table_prefix = tablePrefix
       )
     )
-  }
 }
 
 getPhevalModelPerformance <- function(
   connectionHandler, 
   resultsSchema,
-  tablePrefix = 'pv_',
-  databaseIds,
-  phenotypes
+  tablePrefix = 'pv_'
 ) {
-  
-  if(!is.null(databaseIds) & !is.null(phenotypes)){
-  sql <- "SELECT * FROM @results_schema.@table_prefixMODEL_PERFORMANCE
-            WHERE( @results_schema.@table_prefixMODEL_PERFORMANCE.DATABASE_ID IN (@databaseIds)
-              AND @results_schema.@table_prefixMODEL_PERFORMANCE.PHENOTYPE IN (@phenotypes)
-            )
-  ;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-      phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-    )
-  )
-  }
-  
-  else{
+
     sql <- "SELECT * FROM @results_schema.@table_prefixMODEL_PERFORMANCE
   ;"
     return(
       connectionHandler$queryDb(
         sql = sql,
         results_schema = resultsSchema,
-        table_prefix = tablePrefix,
-        databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-        phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-        # ,
-        # snakeCaseToCamelCase = F
+        table_prefix = tablePrefix
       )
     )
-  }
 }
 
 getPhevalTestSubjects <- function(
   connectionHandler, 
   resultsSchema,
-  tablePrefix = 'pv_',
-  databaseIds,
-  phenotypes
+  tablePrefix = 'pv_'
 ) {
-  
-  if(!is.null(databaseIds) & !is.null(phenotypes)){
-  sql <- "SELECT * FROM @results_schema.@table_prefixTEST_SUBJECTS
-            WHERE( @results_schema.@table_prefixTEST_SUBJECTS.DATABASE_ID IN (@databaseIds)
-              AND @results_schema.@table_prefixTEST_SUBJECTS.PHENOTYPE IN (@phenotypes)
-            )
-  ;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-      phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-    )
-  )
-  }
-  
-  else{
+
     sql <- "SELECT * FROM @results_schema.@table_prefixTEST_SUBJECTS
   ;"
     return(
       connectionHandler$queryDb(
         sql = sql,
         results_schema = resultsSchema,
-        table_prefix = tablePrefix,
-        databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-        phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-        # ,
-        # snakeCaseToCamelCase = F
+        table_prefix = tablePrefix
       )
     )
-  }
 }
 
 getPhevalTestSubjectsCovars <- function(
   connectionHandler, 
   resultsSchema,
-  tablePrefix = 'pv_',
-  databaseIds,
-  phenotypes
+  tablePrefix = 'pv_'
 ) {
-  
-  if(!is.null(databaseIds) & !is.null(phenotypes)){
-  sql <- "SELECT * FROM @results_schema.@table_prefixTEST_SUBJECTS_COVARIATES
-            WHERE( @results_schema.@table_prefixTEST_SUBJECTS_COVARIATES.DATABASE_ID IN (@databaseIds)
-              AND @results_schema.@table_prefixTEST_SUBJECTS_COVARIATES.PHENOTYPE IN (@phenotypes)
-            )
-  ;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-      phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-    )
-  )
-  }
-  
-  else{
+
     sql <- "SELECT * FROM @results_schema.@table_prefixTEST_SUBJECTS_COVARIATES
   ;"
-    return(
-      connectionHandler$queryDb(
-        sql = sql,
-        results_schema = resultsSchema,
-        table_prefix = tablePrefix,
-        databaseIds = paste0("'", databaseIds, "'", collapse = ", "),
-        phenotypes = paste0("'", phenotypes, "'", collapse = ", ")
-        # ,
-        # snakeCaseToCamelCase = F
-      )
+    
+    df <- connectionHandler$queryDb(
+      sql = sql,
+      results_schema = resultsSchema,
+      table_prefix = tablePrefix
     )
-  }
+    
+    df$databaseId = stringi::stri_trans_general(df$databaseId, "latin-ascii")
+    df$phenotype = stringi::stri_trans_general(df$phenotype, "latin-ascii")
+    df$analysisName = stringi::stri_trans_general(df$analysisName, "latin-ascii")
+    df$type = stringi::stri_trans_general(df$type, "latin-ascii")
+    df$covariateName = stringi::stri_trans_general(df$covariateName, "latin-ascii")
+    
+    return(
+      df
+    )
+
 }
 
-
-#test it
- # t <- getPhevalTestSubjectsCovars(connectionHandler = connection,
- #                           resultsSchema = resultDatabaseDetails$schema,
- #                           tablePrefix = resultDatabaseDetails$tablePrefix)
 

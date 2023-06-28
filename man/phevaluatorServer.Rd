@@ -4,11 +4,7 @@
 \alias{phevaluatorServer}
 \title{The module server for the main phevaluator module}
 \usage{
-phevaluatorServer(
-  id = "phevaluatorServer",
-  connectionHandler,
-  resultDatabaseSettings
-)
+phevaluatorServer(id, connectionHandler, resultDatabaseSettings)
 }
 \arguments{
 \item{id}{The unique reference id for the module}

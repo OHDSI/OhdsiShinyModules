@@ -9,11 +9,13 @@
 #' Result Table Viewer
 #'
 #' @param id string
+#' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #'
 #' @return shiny module UI
 #' @export
 #'
-resultTableViewer <- function(id = "result-table") {
+resultTableViewer <- function(id = "result-table",
+                              downloadedFileName = NULL) {
   ns <- shiny::NS(id)
   shiny::div(# UI
     shinydashboard::box(
@@ -41,6 +43,7 @@ resultTableViewer <- function(id = "result-table") {
                 "Reactable.downloadDataCSV('",
                 ns('resultData'),
                 "', 'result-data-filtered-",
+                downloadedFileName,
                 Sys.Date(),
                 ".csv')"
               )
@@ -76,17 +79,14 @@ withTooltip <- function(value, tooltip, ...) {
 # )
 
 
-
-
-
 create_colDefs_list <- function(df, customColDefs = NULL) {
   # Get the column names of the input data frame
   col_names <- colnames(df)
-
+  
   # Create an empty list to store the colDefs
   colDefs_list <- vector("list", length = length(col_names))
   names(colDefs_list) <- col_names
-
+  
   # Define custom colDefs for each column if provided
   if (!is.null(customColDefs)) {
     for (col in seq_along(col_names)) {
@@ -95,11 +95,11 @@ create_colDefs_list <- function(df, customColDefs = NULL) {
       } else {
         colDefs_list[[col]] <- reactable::colDef(name = col_names[col])
       }
-
+      
       if (!is.null(customColDefs[[col_names[col]]]$header)) {
         colDefs_list[[col]]$header <- customColDefs[[col_names[col]]]$header
       }
-
+      
       if (!is.null(customColDefs[[col_names[col]]]$tooltip)) {
         colDefs_list[[col]]$header <-
           withTooltip(colDefs_list[[col]]$header, customColDefs[[col_names[col]]]$tooltip)
@@ -111,97 +111,10 @@ create_colDefs_list <- function(df, customColDefs = NULL) {
       colDefs_list[[col]] <- reactable::colDef(name = col_names[col])
     }
   }
-
+  
   # Return the list of colDefs
   return(colDefs_list)
 }
-
-# Function to check if a column is formatted like a JSON file
-# is_JSON_column <- function(column) {
-#   all(sapply(column, function(value) {
-#     suppressWarnings(jsonlite::fromJSON(value))
-#     !is.null(jsonlite::validate(value))
-#   }))
-# }
-# 
-# downloadJSON <- function(jsonData) {
-#   json <- jsonlite::fromJSON(jsonData)
-#   filename <- paste0("data-", Sys.Date(), ".json")
-#   jsonlite::write_json(json, file = filename)
-#   shiny::downloadHandler(
-#     filename = filename,
-#     content = function(file) {
-#       file.copy(filename, file)
-#     },
-#     contentType = "application/json"
-#   )
-# }
-
-# create_colDefs_list <- function(df, customColDefs = NULL) {
-#   # Get the column names of the input data frame
-#   col_names <- colnames(df)
-#   
-#   # Create an empty list to store the colDefs
-#   colDefs_list <- vector("list", length = length(col_names))
-#   names(colDefs_list) <- col_names
-#   
-#   # Define custom colDefs for each column if provided
-#   if (!is.null(customColDefs)) {
-#     for (col in seq_along(col_names)) {
-#       if (col_names[col] %in% names(customColDefs)) {
-#         colDefs_list[[col]] <- customColDefs[[col_names[col]]]
-#       } else {
-#         colDefs_list[[col]] <- reactable::colDef(name = col_names[col])
-#       }
-#       
-#       if (!is.null(customColDefs[[col_names[col]]]$header)) {
-#         colDefs_list[[col]]$header <- customColDefs[[col_names[col]]]$header
-#       }
-#       
-#       if (!is.null(customColDefs[[col_names[col]]]$tooltip)) {
-#         colDefs_list[[col]]$header <-
-#           withTooltip(colDefs_list[[col]]$header, customColDefs[[col_names[col]]]$tooltip)
-#       }
-#       
-#       # Check if the column is formatted like a JSON file
-#       if (is_JSON_column(df[[col_names[col]]])) {
-#         colDefs_list[[col]]$cell <- function(value) {
-#           tags$button(
-#             "Download JSON",
-#             onclick = paste0("downloadJSON('", value, "')")
-#           )
-#         }
-#       }
-#     }
-#   } else {
-#     # Define default colDefs if customColDefs is not provided
-#     for (col in seq_along(col_names)) {
-#       colDefs_list[[col]] <- reactable::colDef(name = col_names[col])
-#       
-#       # Check if the column is formatted like a JSON file
-#       if (is_JSON_column(df[[col_names[col]]])) {
-#         colDefs_list[[col]]$cell <- function(value) {
-#           tags$button(
-#             "Download JSON",
-#             onclick = paste0("downloadJSON('", value, "')")
-#           )
-#         }
-#       }
-#     }
-#   }
-#   
-#   # Return the list of colDefs
-#   return(colDefs_list)
-# }
-
-
-
-
-
-
-
-
-
 
 
 ohdsiReactableTheme <- reactable::reactableTheme(
@@ -226,13 +139,15 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param id string, table id must match resultsTableViewer function
 #' @param df reactive that returns a data frame
 #' @param colDefsInput named list of reactable::colDefs
+#' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #'
 #' @return shiny module server
 #' @export
 #'
 resultTableServer <- function(id, #string
                               df, #data.frame
-                              colDefsInput
+                              colDefsInput, #named list
+                              downloadedFileName = NULL #string
 ) #list of colDefs, can use checkmate::assertList, need a check that makes sure names = columns) {
   shiny::moduleServer(id,
                       function(input, output, session) {
@@ -258,18 +173,23 @@ resultTableServer <- function(id, #string
                         })
                         
                         #need to try adding browser() to all reactives to see why selected cols isnt working
+                    
                         
                         colDefs <-
-                          shiny::reactive(create_colDefs_list(df = df()[, input$dataCols],
-                                                              customColDefs = colDefsInput))
+                          shiny::reactive({
+                            create_colDefs_list(df = df()[, input$dataCols],
+                                                              customColDefs = colDefsInput)
+                          })
                         
-                        fullData <- shiny::reactive(df())
+                        fullData <- shiny::reactive({
+                          df()
+                          })
                         
                         
                         output$resultData <-
                           reactable::renderReactable({
                             
-                            data = df()[, input$dataCols]
+                            data = df()[, input$dataCols, drop = F]
                             
                             tryCatch({
                               
@@ -289,18 +209,14 @@ resultTableServer <- function(id, #string
                                 defaultColDef = reactable::colDef(align = "left")
                                 #, experimental
                                 #theme = ohdsiReactableTheme
-                              )},
-                              
-                              warning = function(w){
-                                shiny::showNotification("Select at least 2 columns!"); return(NULL)
-                                
-                              },
-                              
+                              )}
+                              ,
+
                               error = function(e){
-                                shiny::showNotification("Select at least 2 columns!"); return(NULL)
-                                
+                             #   shiny::showNotification("No columns selected!"); 
+                                return(NULL)
+
                               }
-                              
                             )
                             
                             
@@ -309,7 +225,7 @@ resultTableServer <- function(id, #string
                         # download full data button
                         output$downloadDataFull <- shiny::downloadHandler(
                           filename = function() {
-                            paste('data-full-', Sys.Date(), '.csv', sep = '')
+                            paste('result-data-full-', downloadedFileName, Sys.Date(), '.csv', sep = '')
                           },
                           content = function(con) {
                             utils::write.csv(fullData(), con,
