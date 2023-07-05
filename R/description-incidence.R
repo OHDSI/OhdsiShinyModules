@@ -21,7 +21,7 @@
 #'
 #' @details
 #' The user specifies the id for the module
-#'
+#'+
 #' @param id  the unique reference id for the module
 #' 
 #' @return
