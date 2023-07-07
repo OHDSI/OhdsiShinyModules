@@ -4,12 +4,21 @@
 \alias{largeTableView}
 \title{Large Table Component Viewer}
 \usage{
-largeTableView(id, pageSizeChoices = c(10, 20, 50, 100))
+largeTableView(
+  id,
+  pageSizeChoices = c(10, 25, 50, 100),
+  selectedPageSize = 10,
+  fullDownloads = TRUE
+)
 }
 \arguments{
 \item{id}{Shiny module id. Must match largeTableServer}
 
 \item{pageSizeChoices}{numeric selection options for pages}
+
+\item{selectedPageSize}{numeric selection options for pages}
+
+\item{fullDownloads}{allow download button of full dataset from query}
 }
 \description{
 Componenet for results sets with many thousands of rows
