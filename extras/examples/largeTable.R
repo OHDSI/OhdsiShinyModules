@@ -6,7 +6,7 @@
 #
 #    http://shiny.rstudio.com/
 #
-devtools::load_all()
+library(OhdisShinyModules)
 library(shiny)
 
 ui <- fluidPage(
