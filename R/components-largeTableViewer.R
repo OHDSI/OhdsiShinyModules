@@ -32,9 +32,6 @@ LargeDataTable <- R6::R6Class(
     #' @param columnDefs                list of
     #'
     #' @return self
-    #' @export
-    #'
-    #' @examples
     initialize = function(connectionHandler, baseQuery, countQuery = NULL, columnDefs = list()) {
       checkmate::assertR6(connectionHandler, "ConnectionHandler")
       checkmate::assertString(baseQuery)
@@ -54,8 +51,7 @@ LargeDataTable <- R6::R6Class(
       }
     },
 
-    #' get column defs
-    #'
+    #' @title get column defs
     #' @return columnDefs
     getColumnDefs = function() {
       self$columnDefs
@@ -119,7 +115,20 @@ largeTableView <- function(id, pageSizeChoices = c(10,25,50,100), selectedPageSi
 
   inlineStyle <- ".inline-tv label{ display: table-cell; text-align: center; vertical-align: middle; padding-right: 1em; }
                   .inline-tv .selectize-input { min-width:70px;}
-                 .inline-tv .form-group { display: table-row;}"
+                 .inline-tv .form-group { display: table-row;}
+
+                  .link-bt {
+                    background-color: transparent;
+                    border: none;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    outline-style: solid;
+                    outline-width: 0;
+                    padding: 6px 12px;
+                    text-decoration:none;
+                   }
+
+                 "
 
   shiny::div(
     id = ns("display-table"),
@@ -249,10 +258,12 @@ largeTableServer <- function(id,
 
       createPageLink <- function(pageLink) {
         js <- sprintf("Shiny.setInputValue('%s', %s);", ns("pageNum"), pageLink)
-        shiny::tags$a(onclick = js, style = "cursor:pointer;", format(pageLink, big.mark = ",", scientific = FALSE))
+        shiny::tags$a(onclick = js,
+                      class = "link-bt",
+                      style = "cursor:pointer;", format(pageLink, big.mark = ",", scientific = FALSE))
       }
 
-      linkNums <- unique(c(1, max(2, pageNum() - 2):min(pageCount() - 1, pageNum() + 3)))
+      linkNums <- unique(c(max(2, pageNum() - 2):min(pageCount() - 1, pageNum() + 3)))
       links <- lapply(linkNums, createPageLink)
 
       ## render action buttons
@@ -260,13 +271,17 @@ largeTableServer <- function(id,
       # Show row up to 5
       # Always show max
       shiny::tagList(
-        shiny::actionLink(ns("previousButton"), label = "Previous"),
+        shiny::actionLink(ns("previousButton"), label = "Previous", class = "link-bt"),
+        createPageLink(1),
+        if (!pageNum() %in% c(1, 2)) {
+          shiny::span("...", class = "link-bt")
+        },
         links,
         if (pageCount() != pageNum()) {
-          shiny::span("...")
+          shiny::span("...", class = "link-bt")
         },
         createPageLink(pageCount()),
-        shiny::actionLink(ns("nextButton"), label = "Next")
+        shiny::actionLink(ns("nextButton"), label = "Next", class = "link-bt")
       )
     })
 
