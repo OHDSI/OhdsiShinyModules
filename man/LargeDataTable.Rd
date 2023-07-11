@@ -2,7 +2,7 @@
 % Please edit documentation in R/components-largeTableViewer.R
 \name{LargeDataTable}
 \alias{LargeDataTable}
-\title{Large Data Table}
+\title{get column defs}
 \description{
 Large data table R6 class.
 
@@ -14,14 +14,8 @@ as this method uses limit and offset for the queries
 Alternatively, you might want to subclass this class. For example, if your backend query is against an API such
 as and ATLAS instance or ATHENA
 }
-\examples{
-
-## ------------------------------------------------
-## Method `LargeDataTable$new`
-## ------------------------------------------------
-
-get column defs
-
+\details{
+Large Data Table
 }
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
@@ -79,15 +73,6 @@ initialize}
 \subsection{Returns}{
 self
 }
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{get column defs
-
-}
-\if{html}{\out{</div>}}
-
-}
-
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-LargeDataTable-getColumnDefs"></a>}}
