@@ -143,37 +143,7 @@ characterizationView <- function(id) {
               )
             )
           )
-        )
-      ),
-      shiny::conditionalPanel(
-        ns = ns,
-        condition = "input.charType == 'Pretty'",
-        shiny::actionButton(label = "Generate Table", inputId = ns("generateReport"))
-      ),
-      shiny::conditionalPanel(
-        ns = ns,
-        condition = "input.charType == 'Raw'",
-        shiny::actionButton(label = "Generate Table", inputId = ns("generateRaw"))
-      ),
-    ),
-    shiny::conditionalPanel(
-      condition = "input.generateReport > 0 && input.charType == 'Pretty'",
-      ns = ns,
-      shiny::uiOutput(outputId = ns("selections")),
-      shinydashboard::box(
-        width = NULL,
-        shinycssloaders::withSpinner(
-          reactable::reactableOutput(outputId = ns("characterizationTable"))
         ),
-        reactableCsvDownloadButton(ns, "characterizationTable")
-      )
-    ),
-    shiny::conditionalPanel(
-      condition = "input.generateRaw > 0 && input.charType == 'Raw'",
-      ns = ns,
-      shiny::uiOutput(outputId = ns("selectionsRaw")),
-      shinydashboard::box(
-        width = NULL,
         shiny::fluidRow(
           shiny::column(
             width = 4,
@@ -212,11 +182,52 @@ characterizationView <- function(id) {
               )
             )
           )
+        )
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.charType == 'Pretty'",
+        shiny::actionButton(label = "Generate Table", inputId = ns("generateReport"))
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.charType == 'Raw'",
+        shiny::actionButton(label = "Generate Table", inputId = ns("generateRaw"))
+      ),
+    ),
+    shiny::conditionalPanel(
+      condition = "input.generateReport > 0 && input.charType == 'Pretty'",
+      ns = ns,
+      shiny::uiOutput(outputId = ns("selections")),
+      shinydashboard::box(
+        width = NULL,
+        shinycssloaders::withSpinner(
+          reactable::reactableOutput(outputId = ns("characterizationTable"))
         ),
+        reactableCsvDownloadButton(ns, "characterizationTable")
+      )
+    ),
+    shiny::conditionalPanel(
+      condition = "input.generateRaw > 0 && input.charType == 'Raw'",
+      ns = ns,
+      shiny::uiOutput(outputId = ns("selectionsRaw")),
+      shinydashboard::box(
+        width = NULL,
         shiny::tabsetPanel(
           type = "pills",
           shiny::tabPanel(
             title = "Group by Database",
+            shiny::fluidRow(
+              shiny::column(width = 8),
+              shiny::column(width = 4,
+                            shiny::textInput(inputId = ns("generalSearchString"),
+                                             label = "",
+                                             placeholder = "Search covariates"))
+            ),
+            largeTableView(id = ns("rawCharTbl"), selectedPageSize = 100)
+          ),
+          shiny::tabPanel(
+            title = "Group by Database OLD",
             shinycssloaders::withSpinner(
               reactable::reactableOutput(outputId = ns("characterizationTableRaw"))
             ),
@@ -544,7 +555,9 @@ characterizationModule <- function(
     getFilteredConceptIds <- shiny::reactive({
       shiny::validate(shiny::need(hasData(selectedDatabaseIds()), "No data sources chosen"))
       shiny::validate(shiny::need(hasData(targetCohortId()), "No cohort chosen"))
-      shiny::validate(shiny::need(hasData(conceptSetIds()), "No concept set id chosen"))
+      if (!hasData(conceptSetIds()))
+        return(NULL)
+
       resolved <- getResolvedConcepts()
       mapped <- getMappedConcepts()
       output <- c()
@@ -775,11 +788,11 @@ characterizationModule <- function(
         sql = "SELECT tcv.*,
                 ref.covariate_name, ref.analysis_id, ref.concept_id,
                 aref.analysis_name, aref.is_binary, aref.domain_id,
-                tref.start_day, tref.end_day
+                ttr.start_day, ttr.end_day
                 FROM @results_database_schema.@table_name tcv
                 INNER JOIN @results_database_schema.@ref_table_name ref ON ref.covariate_id = tcv.covariate_id
                 INNER JOIN @results_database_schema.@analysis_ref_table_name aref ON aref.analysis_id = ref.analysis_id
-                LEFT JOIN @results_database_schema.@temporal_time_ref tref ON tref.time_id = tcv.time_id
+                LEFT JOIN @results_database_schema.@temporal_time_ref ttr ON ttr.time_id = tcv.time_id
                 WHERE ref.covariate_id IS NOT NULL
                 {@analysis_ids != \"\"} ? { AND ref.analysis_id IN (@analysis_ids)}
                 {@domain_ids != \"\"} ? { AND aref.domain_id IN (@domain_ids)}
@@ -805,11 +818,11 @@ characterizationModule <- function(
         dplyr::mutate(temporalChoices = ifelse(is.na(.data$startDay),
                                                "Time Invariant",
                                                paste0("T (", .data$startDay, "d to ", .data$endDay, "d)")))
-        return(data)
+      return(data)
     })
 
-    ## cohortCharacterizationDataFiltered ----
-    cohortCharacterizationDataFiltered <- shiny::eventReactive(input$generateRaw, {
+
+    shiny::observeEvent(input$targetCohort, {
       cohortConcepSets <- getCohortConceptSets()
       cohortConcepSetOptions <- c("", cohortConcepSets$id)
       names(cohortConcepSetOptions) <- c("None selected", cohortConcepSets$name)
@@ -817,7 +830,10 @@ characterizationModule <- function(
                                       inputId = "selectedConceptSet",
                                       selected = NULL,
                                       choices = cohortConcepSetOptions)
+    })
 
+    ## cohortCharacterizationDataFiltered ----
+    cohortCharacterizationDataFiltered <- shiny::eventReactive(input$generateRaw, {
       data <- rawCharacterizationOutput()
       if (!hasData(data)) {
         return(NULL)
@@ -966,12 +982,12 @@ characterizationModule <- function(
           "mean",
           "sd"
         ) %>%
-      tidyr::pivot_wider(
-        id_cols = dplyr::all_of(keyColumns),
-        names_from = "temporalChoices",
-        values_from = "mean",
-        names_sep = "_"
-      ) %>%
+        tidyr::pivot_wider(
+          id_cols = dplyr::all_of(keyColumns),
+          names_from = "temporalChoices",
+          values_from = "mean",
+          names_sep = "_"
+        ) %>%
         dplyr::relocate(dplyr::all_of(c(keyColumns, temporalChoicesVar))) %>%
         dplyr::arrange(dplyr::desc(dplyr::across(dplyr::starts_with("T ("))))
 
@@ -997,10 +1013,182 @@ characterizationModule <- function(
       )
     })
 
+
+    # Params when user presses button
+    inputButtonParams <- shiny::eventReactive(input$generateRaw, {
+      conceptIds <- getFilteredConceptIds()
+      if (is.null(conceptIds) || is.na(conceptIds)) {
+        conceptIds <- ""
+      }
+
+      binary <- ""
+      if (input$proportionOrContinuous == "Proportion") {
+        binary <- "y"
+      } else if (input$proportionOrContinuous == "Continuous") {
+        binary <- "n"
+      }
+
+      list(
+        analysis_ids = input$selectedRawAnalysisIds %>% unique(),
+        time_id = selectedTimeIds() %>% unique(),
+        use_database_id = !is.null(selectedDatabaseIds()),
+        database_id = quoteLiterals(selectedDatabaseIds()),
+        domain_ids = quoteLiterals(input$characterizationDomainIdFilter %>% unique()),
+        table_prefix = dataSource$tablePrefix,
+        cohort_id = targetCohortId(),
+        results_database_schema = dataSource$resultsDatabaseSchema,
+        is_binary = binary,
+        concept_ids = conceptIds
+      )
+    })
+
+    getSearchStr <- shiny::reactive({
+      if (input$generalSearchString == "" ||
+        is.na(input$generalSearchString) ||
+        is.null(input$generalSearchString))
+        return('')
+
+      return(input$generalSearchString)
+    })
+    # params with default reactive behaviour
+    inputParams <- shiny::reactive({
+      params <- inputButtonParams()
+      params$search_str <- getSearchStr()
+      return(params)
+    })
+
+    # Set real query from dynamic data
+    # The following is a lot of dynamically generated sql to create a pivoted table to allow
+    # Side by side  view af covariate means
+    shiny::observeEvent(input$generateRaw, {
+      databaseIds <- selectedDatabaseIds()
+      dbId1 <- databaseIds[1]
+      if (!is.null(dbId1)) {
+        columnDefinitions <- list(
+          covariateName = reactable::colDef(name = "Covariate Name"),
+          analysisName = reactable::colDef(name = "Analysis Name"),
+          temporalChoices = reactable::colDef(name = "Temporal Choices"),
+          conceptId = reactable::colDef(name = "Concept Id")
+        )
+
+        columnGroups <- list()
+
+        for (dbi in databaseIds) {
+          columnIdent <- SqlRender::snakeCaseToCamelCase(paste0("mean_", dbi))
+          # TODO: display as percentage and any nice graphics for view
+          columnDefinitions[[columnIdent]] <- reactable::colDef(name = "Mean")
+
+          columnIdentSd <- SqlRender::snakeCaseToCamelCase(paste0("sd_", dbi))
+          columnDefinitions[[columnIdentSd]] <- reactable::colDef(name = "sd")
+
+          databaseName <- databaseTable %>%
+            dplyr::filter(.data$databaseId == dbi) %>%
+            dplyr::select("databaseName") %>%
+            dplyr::pull()
+
+          columnGroups[[length(columnGroups) + 1]] <- reactable::colGroup(name = databaseName,
+                                                                        columns = c(columnIdent, columnIdentSd),
+                                                                        align = "center")
+        }
+
+        sql <- "
+      SELECT @select_stament
+
+      FROM @results_database_schema.@table_prefixtemporal_covariate_ref tcr
+      INNER JOIN @results_database_schema.@table_prefixtemporal_analysis_ref tar ON tar.analysis_id = tcr.analysis_id
+      LEFT JOIN @results_database_schema.@table_prefixtemporal_covariate_value t1 ON (
+        tcr.covariate_id = t1.covariate_id AND t1.database_id = '@db_id_1'
+      )
+      INNER JOIN @results_database_schema.@table_prefixtemporal_time_ref ttr ON ttr.time_id = t1.time_id
+
+      @join_string
+
+      WHERE tcr.covariate_id IS NOT NULL
+      @where_clasuses"
+
+        selectSt <- "
+          tcr.covariate_name,
+          tar.analysis_name,
+          CASE
+            WHEN ttr.start_day IS NULL THEN 'Time Invariant'
+            ELSE CONCAT('T (', ttr.start_day, 'd to ', ttr.end_day, 'd)')
+          END as temporal_choices,
+
+          t1.mean as mean_@db_id_1,
+          t1.sd as sd_@db_id_1 "
+
+
+        joinTemplate <-
+          "LEFT JOIN @results_database_schema.@table_prefixtemporal_covariate_value t@i ON (
+            t1.cohort_id = t@i.cohort_id AND t1.time_id = t@i.time_id AND t1.covariate_id = t@i.covariate_id
+            AND t2.database_id = '@db_id_i'
+          )"
+
+        whereStment <- c("t1.cohort_id IS NOT NULL")
+        tplSql <- c()
+
+        if (length(databaseIds) > 1) {
+          for (i in 2:min(2, length(databaseIds))) {
+            dbIdi <- databaseIds[i]
+            tplSql <- c(tplSql, SqlRender::render(joinTemplate, i = i, db_id_i = dbIdi))
+            whereStment <- c(whereStment, sprintf("t%s.cohort_id IS NOT NULL", i))
+            selects <- SqlRender::render(",
+            --DB t@i @dbIdi
+            t@i.mean as mean_@db_id_i,
+            t@i.sd as sd_@db_id_i", i = i, db_id_i = dbIdi)
+          }
+          selectSt <- paste(selectSt, paste(selects, collapse = " "))
+        }
+        tplSql <- paste(tplSql, collapse = "\n")
+        whereStment <- paste("AND (", paste(whereStment, collapse = " OR "), ")")
+
+
+        paramSql <-
+          "
+          {@analysis_ids != \"\"} ? { AND tcr.analysis_id IN (@analysis_ids)}
+          {@domain_ids != \"\"} ? { AND tar.domain_id IN (@domain_ids)}
+          {@cohort_id != \"\"} ? { AND t1.cohort_id IN (@cohort_id)}
+          {@time_id != \"\"} ? { AND (ttr.time_id IN (@time_id) OR ttr.time_id IS NULL OR ttr.time_id = 0)}
+          {@use_database_id} ? { AND t1.database_id IN (@database_id)}
+          {@is_binary != ''} ? {AND  lower(is_binary) = '@is_binary'}
+          {@concept_ids != ''} ? {AND  tcr.concept_id IN (@concept_ids)}
+          {@search_str != ''} ? {AND lower(CONCAT(tcr.covariate_name, tar.analysis_name)) LIKE lower('%@search_str%')}
+          "
+        
+        baseQuery <- SqlRender::render(sql,
+                                       select_stament = selectSt,
+                                       db_id_1 = dbId1,
+                                       join_string = tplSql,
+                                       where_clasuses = whereStment,
+                                       warnOnMissingParameters = FALSE)
+        countQuery <- SqlRender::render(sql,
+                                        select_stament = "count(*)",
+                                        db_id_1 = dbId1,
+                                        join_string = tplSql,
+                                        where_clasuses = whereStment,
+                                        warnOnMissingParameters = FALSE)
+
+        baseQuery <- paste(baseQuery, paramSql)
+        countQuery <- paste(countQuery, paramSql)
+
+        ldt <- LargeDataTable$new(connectionHandler = dataSource$connectionHandler,
+                                  baseQuery = baseQuery,
+                                  countQuery = countQuery)
+        largeTableServer(id = "rawCharTbl",
+                         ldt,
+                         inputParams = inputParams,
+                         columns = columnDefinitions,
+                         columnGroups = columnGroups)
+      }
+    })
+
+
     output$characterizationTableRawGroupedByTime <- reactable::renderReactable(expr = {
       data <- rawTableTimeIdReactable()
       shiny::validate(shiny::need(hasData(data), "No data for selected combination"))
       return(data)
     })
-  })
+  }
+
+  )
 }
