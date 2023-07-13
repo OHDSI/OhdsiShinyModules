@@ -9,11 +9,14 @@
 library(OhdsiShinyModules)
 library(shiny)
 
+if (FALSE)
+  RSQLite::rsqliteVersion()
+
 ui <- fluidPage(
 
-    # Application title
-    titlePanel("Big table example"),
-           largeTableView("tblView")
+  # Application title
+  titlePanel("Big table example"),
+  largeTableView("tblView")
 
 )
 ###--- Fill in connection details with a real db ---###
@@ -28,14 +31,16 @@ server <- function(input, output) {
   baseQuery <- "SELECT * FROM main.big_table WHERE row_id >= @min_row"
   countQuery <- "SELECT count(*) FROM main.big_table WHERE row_id >= @min_row"
 
-  ldt <- LargeDataTable$new(ch,
-                            baseQuery,
-                            countQuery = countQuery,
-                            columnDefs = list(
-                              "rowId" = reactable::colDef(name = "row id")
-                            ))
+  ldt <- createLargeSqlQueryDt(connectionHandler = connectionHandler,
+                               baseQuery = baseQuery,
+                               countQuery = countQuery)
 
-  largeTableServer("tblView", ldt, reactive(list(min_row = 1)))
+  largeTableServer(id = "tblView",
+                   ldt = ldt,
+                   inputParams =  reactive(list(min_row = 1)),
+                   columns = list(
+                     "rowId" = reactable::colDef(name = "row id")
+                   ))
 }
 
 # Run the application
