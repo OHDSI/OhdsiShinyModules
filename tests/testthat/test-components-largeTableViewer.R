@@ -11,7 +11,7 @@ test_that("Large Data Table R6 Class works", {
   query <- "SELECT * FROM main.big_table WHERE row_id >= @min_row"
   countQuery <- "SELECT count(*) FROM main.big_table WHERE row_id >= @min_row"
 
-  ldt <- LargeDataTable$new(ch, query, countQuery, columnDefs = list(row_id = reactable::colDef("row id")))
+  ldt <- LargeDataTable$new(ch, query, countQuery)
 
   checkmate::expect_r6(ldt, "LargeDataTable")
 
@@ -20,12 +20,11 @@ test_that("Large Data Table R6 Class works", {
   expect_equal(ldt$getCount(min_row = 1), bigData %>% nrow())
   checkmate::expect_data_frame(ldt$getPage(2, 10, min_row = 1))
   expect_equal(ldt$getPage(2, 10, min_row = 1) %>% nrow(), 10)
-  checkmate::expect_list(ldt$getColumnDefs())
   expect_error(LargeDataTable$new(ch, "SELECT 1; SELECT 2;"))
   expect_error(LargeDataTable$new(ch, query, "SELECT 1; SELECT 2;"))
-  expect_error(LargeDataTable$new(ch, query, columnDefs = list(1, 2, 3)))
+  expect_error(LargeDataTable$new(ch, query))
 
-  ldt2 <- LargeDataTable$new(ch, query, countQuery = NULL, columnDefs = list(row_id = reactable::colDef("row id")))
+  ldt2 <- LargeDataTable$new(ch, query, countQuery = NULL))
   checkmate::expect_string(ldt2$countQuery)
 
   checkmate::expect_class(largeTableView("foo"), "shiny.tag")
@@ -39,7 +38,8 @@ test_that("Large Data Table R6 Class works", {
       inputParams = list(min_row = 1),
       modifyData = function(df, pageNum, pageSize) {
         df %>% dplyr::mutate(fizzBuzz = ifelse(.data$rowId %% 3 == 0, "fizz", "buzz"))
-      }
+      },
+      columns = list(row_id = reactable::colDef("row id")
     ),
     expr = {
 

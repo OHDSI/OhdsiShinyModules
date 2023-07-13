@@ -4,7 +4,14 @@
 \alias{largeTableServer}
 \title{Large Table Component Server}
 \usage{
-largeTableServer(id, ldt, inputParams, modifyData = NULL)
+largeTableServer(
+  id,
+  ldt,
+  inputParams,
+  modifyData = NULL,
+  columns = shiny::reactive(list()),
+  ...
+)
 }
 \arguments{
 \item{id}{Shiny module id. Must match Large Table Viewer}
@@ -15,6 +22,10 @@ largeTableServer(id, ldt, inputParams, modifyData = NULL)
 
 \item{modifyData}{optional callback function that takes the data page, page number, page size as parameters
 must return data.frame compatable instance}
+
+\item{columns}{List or reactable returning list of reactable::columnDef objects}
+
+\item{...}{Additional reactable options (searchable, sortable}
 }
 \description{
 Display large data tables in a consistent way - server side pagination for reactable objects

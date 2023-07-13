@@ -2,7 +2,7 @@
 % Please edit documentation in R/components-largeTableViewer.R
 \name{LargeDataTable}
 \alias{LargeDataTable}
-\title{get column defs}
+\title{Large Data Table}
 \description{
 Large data table R6 class.
 
@@ -13,9 +13,10 @@ as this method uses limit and offset for the queries
 
 Alternatively, you might want to subclass this class. For example, if your backend query is against an API such
 as and ATLAS instance or ATHENA
-}
-\details{
-Large Data Table
+
+If subclassing use inheritance and treat this class as an interface to implement - implementing the methods:
+
+ get
 }
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
@@ -24,8 +25,6 @@ Large Data Table
 
 \item{\code{countQuery}}{count query string (should match query). Can be auto generated with sub query (default) but
 this will likely result in slow results}
-
-\item{\code{columnDefs}}{reactable Coulmn definitions}
 
 \item{\code{connectionHandler}}{ResultModelManager connection handler to execute query inside
 initialize}
@@ -36,7 +35,6 @@ initialize}
 \subsection{Public methods}{
 \itemize{
 \item \href{#method-LargeDataTable-new}{\code{LargeDataTable$new()}}
-\item \href{#method-LargeDataTable-getColumnDefs}{\code{LargeDataTable$getColumnDefs()}}
 \item \href{#method-LargeDataTable-getCount}{\code{LargeDataTable$getCount()}}
 \item \href{#method-LargeDataTable-getPage}{\code{LargeDataTable$getPage()}}
 \item \href{#method-LargeDataTable-getAllResults}{\code{LargeDataTable$getAllResults()}}
@@ -48,12 +46,7 @@ initialize}
 \if{latex}{\out{\hypertarget{method-LargeDataTable-new}{}}}
 \subsection{Method \code{new()}}{
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{LargeDataTable$new(
-  connectionHandler,
-  baseQuery,
-  countQuery = NULL,
-  columnDefs = list()
-)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{LargeDataTable$new(connectionHandler, baseQuery, countQuery = NULL)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -65,25 +58,11 @@ initialize}
 
 \item{\code{countQuery}}{count query string (should match query). Can be auto generated with sub query
 (default) but this will likely result in slow results}
-
-\item{\code{columnDefs}}{list of}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
 self
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-LargeDataTable-getColumnDefs"></a>}}
-\if{latex}{\out{\hypertarget{method-LargeDataTable-getColumnDefs}{}}}
-\subsection{Method \code{getColumnDefs()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{LargeDataTable$getColumnDefs()}\if{html}{\out{</div>}}
-}
-
-\subsection{Returns}{
-columnDefs
 get count
 }
 }

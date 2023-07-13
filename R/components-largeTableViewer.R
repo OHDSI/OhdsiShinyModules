@@ -11,10 +11,13 @@
 #' Alternatively, you might want to subclass this class. For example, if your backend query is against an API such
 #' as and ATLAS instance or ATHENA
 #'
+#' If subclassing use inheritance and treat this class as an interface to implement - implementing the methods:
+#'
+#'  get
+#'
 #' @field baseQuery         query string sql
 #' @field countQuery        count query string (should match query). Can be auto generated with sub query (default) but
 #'                          this will likely result in slow results
-#' @field columnDefs        reactable Coulmn definitions
 #' @field connectionHandler ResultModelManager connection handler to execute query inside
 LargeDataTable <- R6::R6Class(
   classname = "LargeDataTable",
@@ -22,26 +25,22 @@ LargeDataTable <- R6::R6Class(
     connectionHandler = NULL,
     baseQuery = NULL,
     countQuery = NULL,
-    columnDefs = NULL,
     #' initialize
     #'
     #' @param connectionHandler         ResultModelManager connectionHandler instance
     #' @param baseQuery                 base sql query
     #' @param countQuery                count query string (should match query). Can be auto generated with sub query
     #'                                  (default) but this will likely result in slow results
-    #' @param columnDefs                list of
     #'
     #' @return self
-    initialize = function(connectionHandler, baseQuery, countQuery = NULL, columnDefs = list()) {
+    initialize = function(connectionHandler, baseQuery, countQuery = NULL) {
       checkmate::assertR6(connectionHandler, "ConnectionHandler")
       checkmate::assertString(baseQuery)
       checkmate::assertString(countQuery, null.ok = TRUE)
-      checkmate::assertList(columnDefs, null.ok = TRUE, types = "colDef")
       # Cannot use multiple statments in a base query
       stopifnot(length(strsplit(baseQuery, ";")[[1]]) == 1)
       self$connectionHandler <- connectionHandler
       self$baseQuery <- baseQuery
-      self$columnDefs <- columnDefs
 
       if (!is.null(countQuery)) {
         stopifnot(length(strsplit(countQuery, ";")[[1]]) == 1)
@@ -49,12 +48,6 @@ LargeDataTable <- R6::R6Class(
       } else {
         self$countQuery <-  SqlRender::render("SELECT COUNT(*) as count FROM (@sub_query);", sub_query = self$baseQuery)
       }
-    },
-
-    #' @title get column defs
-    #' @return columnDefs
-    getColumnDefs = function() {
-      self$columnDefs
     },
 
     #' get count
@@ -92,10 +85,35 @@ LargeDataTable <- R6::R6Class(
     #'
     #' @return data.frame of all results. Used for large file downloads
     getAllResults = function(...) {
-      self$connectionHandler$queryDb(self$baseQuery, ...)
+      self$connectionHandler$queryDb(self$baseQuery, ..., snakeCaseToCamelCase = FALSE)
     }
   )
 )
+
+#' Create Large Sql Query Data Table
+#'
+#' @description
+#' Construct an instance of a LargeDataTable R6 instance for use inside largeTableServer
+#'
+#' This should pass a parameterized sql query that can be used to iteratively return data from a table
+#' rather than returning the entire object.
+#'
+#' @param connectionHandler         ResultModelManager connectionHandler instance
+#' @param baseQuery                 base sql query
+#' @param countQuery                count query string (should match query). Can be auto generated with sub query
+#'                                  (default) but this will likely result in slow results
+createLargeSqlQueryDt <- function(connectionHandler = NULL,
+                                  connectionDetails = NULL,
+                                  baseQuery,
+                                  countQuery = NULL) {
+  if (is.null(connectionHandler)) {
+    checkmate::assertClass(connectionDetails, "ConnectionDetails")
+  }
+
+  LargeDataTable$new(connectionHandler = connectionHandler,
+                     baseQuery = baseQuery,
+                     countQuery = countQuery)
+}
 
 #' Large Table Component Viewer
 #' @description
@@ -188,20 +206,33 @@ largeTableView <- function(id, pageSizeChoices = c(10,25,50,100), selectedPageSi
 #' @param inputParams   reactive that returns list of parameters to be passed to ldt
 #' @param modifyData    optional callback function that takes the data page, page number, page size as parameters
 #'                      must return data.frame compatable instance
+#'
+#' @param columns       List or reactable returning list of reactable::columnDef objects
+#' @param ...           Additional reactable options (searchable, sortable
 largeTableServer <- function(id,
                              ldt,
                              inputParams,
-                             modifyData = NULL) {
+                             modifyData = NULL,
+                             columns = shiny::reactive(list()),
+                             ...) {
   checkmate::assertR6(ldt, "LargeDataTable")
 
   if (!is.list(inputParams))
     checkmate::assertClass(inputParams, "reactive")
+
+  if (!is.list(columns))
+    checkmate::assertClass(columns, "reactive")
 
   shiny::moduleServer(id, function(input, output, session) {
 
     if (is.list(inputParams)) {
       realParams <- inputParams
       inputParams <- shiny::reactive(realParams)
+    }
+
+    if (is.list(columns)) {
+      realColumns <- columns
+      columns <- shiny::reactive(realColumns)
     }
 
     ns <- session$ns
@@ -255,8 +286,10 @@ largeTableServer <- function(id,
     })
 
     output$tableView <- reactable::renderReactable({
+      cols <- columns()
+      checkmate::assertList(cols, null.ok = TRUE, types = "colDef")
       reactable::reactable(dataPage(),
-                           columns = ldt$getColumnDefs(),
+                           columns = cols,
                            searchable = FALSE,
                            sortable = FALSE,
                            resizable = TRUE,
@@ -265,7 +298,8 @@ largeTableServer <- function(id,
                            striped = TRUE,
                            highlight = TRUE,
                            defaultColDef = reactable::colDef(align = "left"),
-                           pagination = FALSE)
+                           pagination = FALSE,
+                           ...)
     })
 
     output$pageActionButtons <-  shiny::renderUI({
