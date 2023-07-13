@@ -60,8 +60,11 @@ predictionCovariateSummaryViewer <- function(id) {
       width=12,
       shinydashboard::box(
         status = 'info', width = 12,
-        title = "Covariates", solidHeader = TRUE,
-        DT::dataTableOutput(ns('modelCovariateInfo'))
+        title = "Details", solidHeader = TRUE,
+        shinydashboard::infoBoxOutput(ns("covariateCount"), width = 6),
+        shinydashboard::infoBoxOutput(ns("nonZeroCount"), width = 6),
+        shinydashboard::infoBoxOutput(ns("intercept"), width = 6),
+        shinydashboard::infoBoxOutput(ns("hyperparameters"), width = 6)
       )
     ),
     shiny::fluidRow(
@@ -144,17 +147,76 @@ predictionCovariateSummaryServer <- function(
         }
       })
       
+      hyperParamSearch <- shiny::reactive({getHyperParamSearch(
+        inputSingleView = inputSingleView,
+        modelDesignId = modelDesignId,
+        databaseId = developmentDatabaseId,
+        schema = schema, 
+        connectionHandler = connectionHandler,
+        plpTablePrefix  = plpTablePrefix
+      ) })
+      
+      # hyper-param
+      output$hyperparameters<- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'Hyper-parameters',
+          shiny::actionButton(session$ns("showHyperparameters"),"View"), 
+          icon = shiny::icon('gear'),
+          color = "light-blue"
+        )
+      })
+      shiny::observeEvent(
+        input$showHyperparameters, {
+          shiny::showModal(shiny::modalDialog(
+            title = "Hyper-parameters",
+            shiny::div(
+              DT::renderDataTable(
+                DT::datatable(
+                  as.data.frame(
+                    hyperParamSearch()
+                  ),
+                  options = list(scrollX = TRUE),
+                  colnames = 'Fold AUROC'
+                )
+              )
+            ),
+            easyClose = TRUE,
+            footer = NULL
+          ))
+        }
+      )
+      
+      output$covariateCount <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          '# Covariates',
+          nrow(covariateSummary()), 
+          icon = shiny::icon('hashtag'),
+          color = "light-blue"
+        )
+      })
+        
+      
+      output$nonZeroCount <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          '# Non-zero covariates',
+          sum(covariateSummary()$covariateValue!=0, na.rm = T), 
+          icon = shiny::icon('square-full'),
+          color = "light-blue"
+        )
+      })
+        
+      output$intercept <- shinydashboard::renderInfoBox({
+        shinydashboard::infoBox(
+          'Intercept',
+          format(intercept(), digits =3), 
+          icon = shiny::icon('a'),
+          color = "light-blue"
+        )
+      })
+      
       output$modelView <- DT::renderDataTable(
         editCovariates(covariateSummary())$table,
         colnames = editCovariates(covariateSummary())$colnames
-      )
-      
-      output$modelCovariateInfo <- DT::renderDataTable(
-        data.frame(
-          covariates = nrow(covariateSummary()),
-          nonZeroCount = sum(covariateSummary()$covariateValue!=0, na.rm = T),
-          intercept = intercept()
-        )
       )
       
       # covariate model plots
@@ -208,6 +270,36 @@ editCovariates <- function(covs){
     ))
   }
 }
+
+
+# get hyper parameters
+getHyperParamSearch <- function(
+    inputSingleView,
+    modelDesignId,
+    databaseId,
+    schema, 
+    connectionHandler,
+    plpTablePrefix
+){
+  
+  if(!is.null(modelDesignId()) & inputSingleView() == 'Design Settings'){
+    
+    sql <- "SELECT train_details FROM @my_schema.@my_table_appendmodels WHERE database_id = @database_id
+       and model_design_id = @model_design_id;"
+    
+    models <- connectionHandler$queryDb(
+      sql = sql, 
+      my_schema = schema,
+      database_id = databaseId(),
+      model_design_id = modelDesignId(),
+      my_table_append = plpTablePrefix
+    )
+    trainDetails <- ParallelLogger::convertJsonToSettings(models$trainDetails)
+    
+    return(trainDetails$hyperParamSearch)
+  }
+}
+
 
 # format covariate summary table
 

@@ -14,9 +14,8 @@ shiny::testServer(
   expr = {
     
     modelDesignId(1)
-    session$setInputs(showAttrition  = T) 
-    expect_true(!is.null(output$attrition))
     session$setInputs(showCohort  = T) 
+    expect_true(!is.null(output$cohort))
     session$setInputs(showOutcome  = T) 
     session$setInputs(showRestrictPlpData  = T) 
     session$setInputs(showPopulation  = T) 

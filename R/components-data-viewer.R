@@ -238,7 +238,9 @@ resultTableServer <- function(
             showSortIcon = TRUE,
             striped = TRUE,
             highlight = TRUE,
-            defaultColDef = reactable::colDef(align = "left")
+            defaultColDef = reactable::colDef(align = "left"),
+            
+            rowStyle = list(height = 40*3)
             #, experimental
             #theme = ohdsiReactableTheme
           )
@@ -299,7 +301,8 @@ addTableActions <- function(
     status = "primary",
     circle = FALSE,
     width = "300px",
-    margin = "5px"
+    margin = "5px",
+    inline = T
   )
   
   args <- append(

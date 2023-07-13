@@ -159,7 +159,7 @@ predictionModelSummaryServer <- function(
         id = "performanceSummaryTable",
         df = resultTable,
         colDefsInput = colDefsInput,
-        addActions = c('results')
+        addActions = c('results','attrition')
       )
       
       performanceId <- shiny::reactiveVal(value = NULL)
@@ -171,6 +171,34 @@ predictionModelSummaryServer <- function(
             performanceId(resultTable()$performanceId[modelTableOutputs$actionIndex()$index])
             developmentDatabaseId(resultTable()$developmentDatabaseId[modelTableOutputs$actionIndex()$index])
             modelDevelopment(resultTable()$modelDevelopment[modelTableOutputs$actionIndex()$index])
+          }
+      })
+      
+      shiny::observeEvent(modelTableOutputs$actionCount(), {
+        if(modelTableOutputs$actionType() == 'attrition'){
+          
+          attrition <- shiny::reactive({
+            getAttrition(
+              performanceId = resultTable()$performanceId[modelTableOutputs$actionIndex()$index],
+              schema = schema, 
+              connectionHandler = connectionHandler,
+              plpTablePrefix = plpTablePrefix 
+            ) 
+          })
+          
+              shiny::showModal(
+                shiny::modalDialog(
+                title = "Attrition",
+                shiny::div(
+                  DT::renderDataTable(
+                    attrition() %>% dplyr::select(-c("performanceId", "outcomeId"))
+                  )
+                ),
+                easyClose = TRUE,
+                footer = NULL
+              )
+              )
+
           }
       })
       
@@ -186,7 +214,27 @@ predictionModelSummaryServer <- function(
   )
 }
 
-
+getAttrition <- function(
+    performanceId,
+    schema, 
+    connectionHandler,
+    plpTablePrefix 
+){
+  
+  if(!is.null(performanceId)){
+    
+    sql <- "SELECT * FROM @my_schema.@my_table_appendattrition WHERE performance_id = @performance_id;"
+    
+    attrition  <- connectionHandler$queryDb(
+      sql = sql, 
+      my_schema = schema,
+      performance_id = performanceId,
+      my_table_append = plpTablePrefix
+    )
+    
+    return(attrition)
+  }
+}
 
 getModelDesignPerformanceSummary <- function(
     connectionHandler, 

@@ -116,9 +116,7 @@ predictionCutoffServer <- function(
       
       thresholdSummary <- shiny::reactive({
         if(!is.null(performanceId()) & inputSingleView() == 'Threshold Dependant'){
-          
-          print('getting thresholdSummary')
-          
+
           value <- getPredictionResult(
             performanceId = performanceId,
             connectionHandler = connectionHandler,

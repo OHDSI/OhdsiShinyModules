@@ -46,16 +46,19 @@ resultDatabaseSettingsPlp <- list(
 
 
 
-# =========== Desc START
-serverDesc <- "../resources/descDatabase/databaseFile.sqlite"
-connectionDetailsDesc <- DatabaseConnector::createConnectionDetails(
+# =========== characterization START
+serverCharacterization <- "../resources/characterizationDatabase/databaseFile.sqlite"
+connectionDetailsCharacterization <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite',
-  server = serverDesc
+  server = serverCharacterization
 )
 
-connectionHandlerDesc <- ResultModelManager::ConnectionHandler$new(connectionDetailsDesc, loadConnection = FALSE)
+connectionHandlerCharacterization <- ResultModelManager::ConnectionHandler$new(
+  connectionDetailsCharacterization, 
+  loadConnection = FALSE
+  )
 
-resultDatabaseSettingsDesc <- list(
+resultDatabaseSettingsCharacterization <- list(
   dbms = 'sqlite', # should this be removed - can use connection
   tablePrefix = 'c_',
   cohortTablePrefix = 'cg_',
@@ -67,18 +70,21 @@ resultDatabaseSettingsDesc <- list(
 )
 
 
-# =========== Desc START
+# =========== Characterization END
 
 
-# =========== Estimation START
-connectionDetailsEst <- DatabaseConnector::createConnectionDetails(
+# =========== Cohort Method START
+connectionDetailsCm <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite', 
-  server = "../resources/estDatabase/databaseFile.sqlite"
+  server = "../resources/cmDatabase/databaseFile.sqlite"
 )
 
-connectionHandlerEst  <- ResultModelManager::ConnectionHandler$new(connectionDetailsEst, loadConnection = FALSE)
+connectionHandlerCm  <- ResultModelManager::ConnectionHandler$new(
+  connectionDetailsCm, 
+  loadConnection = FALSE
+  )
 
-resultDatabaseSettingsEst <- list(
+resultDatabaseSettingsCm <- list(
   dbms = 'sqlite',
   tablePrefix = 'cm_',
   cohortTablePrefix = 'cg_',
@@ -87,7 +93,7 @@ resultDatabaseSettingsEst <- list(
   tempEmulationSchema = NULL
 )
 
-# =========== Estimation END
+# =========== Cohort Method END
 
 
 # =========== Data diag START
@@ -187,9 +193,9 @@ withr::defer({
   options("shiny-test-env-enabled" = FALSE)
   connectionHandlerCG$finalize()
   connectionHandlerPlp$finalize()
-  connectionHandlerDesc$finalize()
+  connectionHandlerCharacterization$finalize()
   connectionHandlerDataDiag$finalize()
-  connectionHandlerEst$finalize()
+  connectionHandlerCm$finalize()
   connectionHandlerCohortDiag$finalize()
   connectionHandlerSccs$finalize()
   connectionHandlerES$finalize()

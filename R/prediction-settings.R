@@ -46,9 +46,7 @@ predictionSettingsViewer <- function(id) {
       shinydashboard::infoBoxOutput(ns("preprocess"), width = 4),
       shinydashboard::infoBoxOutput(ns("split"), width = 4),
       shinydashboard::infoBoxOutput(ns("sample"), width = 4),
-      shinydashboard::infoBoxOutput(ns("model"), width = 4),
-      shinydashboard::infoBoxOutput(ns("hyperparameters"), width = 4),
-      shinydashboard::infoBoxOutput(ns("attrition"), width = 4)
+      shinydashboard::infoBoxOutput(ns("model"), width = 4)
     )
     
   )
@@ -102,26 +100,7 @@ predictionSettingsServer <- function(
         plpTablePrefix = plpTablePrefix, 
         cohortTablePrefix = cohortTablePrefix
       )})
-      
-      hyperParamSearch <- shiny::reactive({getHyperParamSearch(
-        inputSingleView = inputSingleView,
-        modelDesignId = modelDesignId,
-        databaseId = developmentDatabaseId,
-        schema = schema, 
-        connectionHandler = connectionHandler,
-        plpTablePrefix  = plpTablePrefix
-      ) })
-      
-      attrition <- shiny::reactive({
-        getAttrition(
-        inputSingleView = inputSingleView,
-        performanceId = performanceId,
-        schema = schema, 
-        connectionHandler = connectionHandler,
-        plpTablePrefix = plpTablePrefix 
-      ) 
-      })
-      
+
       # databases
       databases <- shiny::reactive({
         getPlpSettingDatabase(
@@ -367,62 +346,6 @@ predictionSettingsServer <- function(
         }
       )
       
-      # extras
-      
-      # hyper-param
-      output$hyperparameters<- shinydashboard::renderInfoBox({
-        shinydashboard::infoBox(
-          'Hyper-parameters',
-          shiny::actionButton(session$ns("showHyperparameters"),"View"), 
-          icon = shiny::icon('gear'),
-          color = "light-blue"
-        )
-      })
-      shiny::observeEvent(
-        input$showHyperparameters, {
-          shiny::showModal(shiny::modalDialog(
-            title = "Hyper-parameters",
-            shiny::div(
-              DT::renderDataTable(
-                DT::datatable(
-                  as.data.frame(
-                    hyperParamSearch()
-                  ),
-                  options = list(scrollX = TRUE),
-                  colnames = 'Fold AUROC'
-                )
-              )
-            ),
-            easyClose = TRUE,
-            footer = NULL
-          ))
-        }
-      )
-      
-      # attrition
-      output$attrition <- shinydashboard::renderInfoBox({
-        shinydashboard::infoBox(
-          'Attrition',
-          shiny::actionButton(session$ns("showAttrition"),"View"), 
-          icon = shiny::icon('magnet'),
-          color = "light-blue"
-        )
-      })
-      shiny::observeEvent(
-        input$showAttrition, {
-          shiny::showModal(shiny::modalDialog(
-            title = "Attrition",
-            shiny::div(
-              DT::renderDataTable(
-                attrition() %>% dplyr::select(-c("performanceId", "outcomeId"))
-              )
-            ),
-            easyClose = TRUE,
-            footer = NULL
-          ))
-        }
-      )
-
     }
     
   )
@@ -687,56 +610,9 @@ getModelDesign <- function(
 }
 
 
-getHyperParamSearch <- function(
-    inputSingleView,
-  modelDesignId,
-  databaseId,
-  schema, 
-  connectionHandler,
-  plpTablePrefix
-){
-  
-  if(!is.null(modelDesignId()) & inputSingleView() == 'Design Settings'){
-
-  sql <- "SELECT train_details FROM @my_schema.@my_table_appendmodels WHERE database_id = @database_id
-       and model_design_id = @model_design_id;"
-
-  models <- connectionHandler$queryDb(
-    sql = sql, 
-    my_schema = schema,
-    database_id = databaseId(),
-    model_design_id = modelDesignId(),
-    my_table_append = plpTablePrefix
-  )
-  trainDetails <- ParallelLogger::convertJsonToSettings(models$trainDetails)
-  
-  return(trainDetails$hyperParamSearch)
-  }
-}
 
 
-getAttrition <- function(
-    inputSingleView,
-  performanceId,
-  schema, 
-  connectionHandler,
-  plpTablePrefix 
-){
 
-  if(!is.null(performanceId()) & inputSingleView() == 'Design Settings'){
-    
-  sql <- "SELECT * FROM @my_schema.@my_table_appendattrition WHERE performance_id = @performance_id;"
-
-  attrition  <- connectionHandler$queryDb(
-    sql = sql, 
-    my_schema = schema,
-    performance_id = performanceId(),
-    my_table_append = plpTablePrefix
-  )
-  
-  return(attrition)
-  }
-}
 
 # formating
 formatModSettings <- function(modelSettings){

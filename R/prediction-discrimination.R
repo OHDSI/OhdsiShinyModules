@@ -42,11 +42,14 @@ predictionDiscriminationViewer <- function(id) {
         title = 'Summary',
         solidHeader = TRUE,
         shiny::p('Click view to see the corresponding plots:'),
-        reactable::reactableOutput(ns('summaryTable'))
+        resultTableViewer(ns('summaryTable'))
       )
     ),
     
-    
+    #shiny::conditionalPanel(
+     # condition = "output.generate == 1",
+     # ns = ns,
+      
     shiny::fluidRow(
       shinydashboard::box( 
         status = 'info',
@@ -129,7 +132,11 @@ predictionDiscriminationViewer <- function(id) {
           shiny::plotOutput(ns('prefdist'))
         )
       )
+      
     )
+    
+    #) # cond panel
+    
   )
 }
 
@@ -191,50 +198,27 @@ predictionDiscriminationServer <- function(
                                   
         )
         
-        tidyr::pivot_wider(
+        data <- tidyr::pivot_wider(
           data = data[ind,], 
           names_from = 'metric', 
           values_from = 'value'
         )
         
-      })
-      
-      
-      output$summaryTable <- reactable::renderReactable({
-        reactable::reactable(
-          data =  
-            if(is.null(sumTable())){
-              NULL
-            } else{
-              cbind(
-                view = rep("",nrow( sumTable())),
-                sumTable()
-              )
-            },
-          columns = 
-            list(
-              view = reactable::colDef(
-                name = "",
-                sortable = FALSE,
-                cell = function() htmltools::tags$button("View")
-              )
-            ),onClick = reactable::JS(paste0("function(rowInfo, column) {
-    // Only handle click events on the 'details' column
-    if (column.id !== 'view' ) {
-      return
-    }
+        cbind(
+          actions = rep('', nrow(data)),
+          data
+          )
 
-    // Send the click event to Shiny, which will be available in input$show_details
-    // Note that the row index starts at 0 in JavaScript, so we add 1
-    if(column.id == 'view'){
-      Shiny.setInputValue('",session$ns('show_view'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
-  }")
-            ),
-          filterable = TRUE
-        )
       })
       
+      modelTableOutputs <- resultTableServer(
+        id = "summaryTable",
+        colDefsInput = NULL,
+        df = sumTable,
+        addActions = c('performance')
+      )
+      
+
       predictionDistribution <- shiny::reactiveVal(NULL)
       thresholdSummary <- shiny::reactiveVal(NULL)
       
@@ -301,37 +285,42 @@ predictionDiscriminationServer <- function(
       }
       )
       
+      #generate <- shiny::reactiveVal(0)
+      #output$generate <- generate()
+      #shiny::outputOptions(output,"generate",suspendWhenHidden=FALSE)
+      
       shiny::observeEvent(
-        input$show_view, {
+        modelTableOutputs$actionCount(), {
+          #generate(1)
           
           output$roc <- plotly::renderPlotly({
-            type <- trimws(sumTable()$evaluation[input$show_view$index])
+            type <- trimws(sumTable()$evaluation[modelTableOutputs$actionIndex()$index])
             tryCatch({plots()$roc[[type]]}, error = function(err){emptyPlot(title = err)})
           })
           
           output$pr <- plotly::renderPlotly({
-            type <- trimws(sumTable()$evaluation[input$show_view$index])
+            type <- trimws(sumTable()$evaluation[modelTableOutputs$actionIndex()$index])
             tryCatch({plots()$pr[[type]]}, error = function(err){emptyPlot(title = err)})
           })
           
           output$f1 <- plotly::renderPlotly({
-            type <- trimws(sumTable()$evaluation[input$show_view$index])
+            type <- trimws(sumTable()$evaluation[modelTableOutputs$actionIndex()$index])
             tryCatch({plots()$f1[[type]]}, error = function(err){emptyPlot(title = err)})
           })
           
           # preference plot
           output$prefdist <- shiny::renderPlot({
-            type <- trimws(sumTable()$evaluation[input$show_view$index])
+            type <- trimws(sumTable()$evaluation[modelTableOutputs$actionIndex()$index])
             tryCatch({plots()$prefpdf[[type]]}, error = function(err){emptyPlot(title = err)})
           })
           
           output$preddist <- shiny::renderPlot({
-            type <- trimws(sumTable()$evaluation[input$show_view$index])
+            type <- trimws(sumTable()$evaluation[modelTableOutputs$actionIndex()$index])
             tryCatch({plots()$predpdf[[type]]}, error = function(err){emptyPlot(title = err)})
           })
           
           output$box <- shiny::renderPlot({
-            type <- trimws(sumTable()$evaluation[input$show_view$index])
+            type <- trimws(sumTable()$evaluation[modelTableOutputs$actionIndex()$index])
             tryCatch({plots()$box[[type]]}, error = function(err){emptyPlot(title = err)})
           })
         }
