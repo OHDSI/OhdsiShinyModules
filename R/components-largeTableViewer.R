@@ -113,22 +113,32 @@ largeTableView <- function(id, pageSizeChoices = c(10,25,50,100), selectedPageSi
   checkmate::assertNumeric(pageSizeChoices, min.len = 1, finite = TRUE, lower = 1)
   checkmate::assertTRUE(selectedPageSize %in% pageSizeChoices)
 
-  inlineStyle <- ".inline-tv label{ display: table-cell; text-align: center; vertical-align: middle; padding-right: 1em; }
-                  .inline-tv .selectize-input { min-width:70px;}
-                 .inline-tv .form-group { display: table-row;}
+  inlineStyle <- "
+  .inline-tv label{ display: table-cell; text-align: center; vertical-align: middle; padding-right: 1em; }
+  .inline-tv .selectize-input { min-width:70px;}
+  .inline-tv .form-group { display: table-row;}
 
-                  .link-bt {
-                    background-color: transparent;
-                    border: none;
-                    border-radius: 3px;
-                    cursor: pointer;
-                    outline-style: solid;
-                    outline-width: 0;
-                    padding: 6px 12px;
-                    text-decoration:none;
-                   }
+  .pagination-buttons {
+    margin-top: 1em;
+  }
 
-                 "
+  .link-bt {
+    background-color: transparent;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    outline-style: solid;
+    outline-width: 0;
+    padding: 6px 12px;
+    text-decoration:none;
+   }
+   .link-bt:hover{
+      background-color: #eee;
+   }
+   .pagination-buttons a {
+      text-decoration:none;
+      color: #000!important;
+   }"
 
   shiny::div(
     id = ns("display-table"),
@@ -203,7 +213,7 @@ largeTableServer <- function(id,
     })
 
     pageCount <- shiny::reactive({
-      ceiling(rowCount()/pageSize())
+      max(1, ceiling(rowCount()/pageSize()))
     })
 
     shiny::observeEvent(input$nextButton, pageNum(min(pageNum() + 1, rowCount())))
@@ -211,15 +221,23 @@ largeTableServer <- function(id,
 
     shiny::observeEvent(input$pageNum, pageNum(input$pageNum))
 
-    # Reset page on page size change
+    # Reset page on page size change or any input variable that could impact row count
+    shiny::observe({
+      inputParams()
+      pageNum(1)
+    })
     shiny::observeEvent(input$pageSize, { pageNum(1) })
 
     output$pageNumber <- shiny::renderText({
 
+      rc <- format(rowCount(), big.mark = ",", scientific = FALSE)
+      if (pageCount() < 2) {
+        return(paste(rc, "rows"))
+      }
+
       minNum <- format(((pageNum() - 1) * pageSize()) + 1, big.mark = ",", scientific = FALSE)
       maxNum <- format((pageNum() - 1)  * pageSize() + pageSize(), big.mark = ",", scientific = FALSE)
-      rc <- format(rowCount(), big.mark = ",", scientific = FALSE)
-      paste(minNum, "-", maxNum, "of", rc, "rows")
+      return(paste(minNum, "-", maxNum, "of", rc, "rows"))
     })
 
     dataPage <- shiny::reactive({
@@ -252,7 +270,7 @@ largeTableServer <- function(id,
 
     output$pageActionButtons <-  shiny::renderUI({
       pc <- pageCount()
-      if (pc == 1) {
+      if (pc < 2) {
         return(shiny::span(style="width:80px;", shiny::HTML("&nbsp;")))
       }
 
@@ -270,7 +288,8 @@ largeTableServer <- function(id,
       # Always show 1
       # Show row up to 5
       # Always show max
-      shiny::tagList(
+      shiny::div(
+        class = "pagination-buttons",
         shiny::actionLink(ns("previousButton"), label = "Previous", class = "link-bt"),
         createPageLink(1),
         if (!pageNum() %in% c(1, 2)) {
