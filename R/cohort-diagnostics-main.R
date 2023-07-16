@@ -17,11 +17,11 @@
 
 # NOTE: here it would be nice to use dbplyr tables - this would allow lazy loading of resources
 # however, renaming the columns causes an error and its not obvious how it could be resolved
-loadResultsTable <- function(dataSource, tableName, required = FALSE, tablePrefix = "") {
-  selectTableName <- paste0(tablePrefix, tableName)
+loadResultsTable <- function(dataSource, tableName, required = FALSE, cdTablePrefix = "") {
+  selectTableName <- paste0(cdTablePrefix, tableName)
   resultsTablesOnServer <-
     tolower(DatabaseConnector::dbListTables(dataSource$connectionHandler$getConnection(),
-                                            schema = dataSource$resultsDatabaseSchema))
+                                            schema = dataSource$schema))
 
   if (required || selectTableName %in% resultsTablesOnServer) {
     if (tableIsEmpty(dataSource, selectTableName)) {
@@ -32,7 +32,7 @@ loadResultsTable <- function(dataSource, tableName, required = FALSE, tablePrefi
     {
       table <- DatabaseConnector::dbReadTable(
         dataSource$connectionHandler$getConnection(),
-        paste(dataSource$resultsDatabaseSchema, selectTableName, sep = ".")
+        paste(dataSource$schema, selectTableName, sep = ".")
       )
     },
       error = function(err) {
@@ -54,12 +54,12 @@ loadResultsTable <- function(dataSource, tableName, required = FALSE, tablePrefi
 
 # Create empty objects in memory for all other tables. This is used by the Shiny app to decide what tabs to show:
 tableIsEmpty <- function(dataSource, tableName) {
-  sql <- "SELECT * FROM @result_schema.@table LIMIT 1"
+  sql <- "SELECT * FROM @schema.@table LIMIT 1"
   row <- data.frame()
   tryCatch({
     row <- dataSource$connectionHandler$queryDb(
       sql,
-      result_schema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       table = tableName
     )
 
@@ -76,7 +76,7 @@ tableIsEmpty <- function(dataSource, tableName) {
 getEnabledCdReports <- function(dataSource) {
   enabledReports <- c()
   resultsTables <- tolower(DatabaseConnector::dbListTables(dataSource$connectionHandler$getConnection(),
-                                                           schema = dataSource$resultsDatabaseSchema))
+                                                           schema = dataSource$schema))
 
   for (table in dataSource$dataModelSpecifications$tableName %>% unique()) {
     if (dataSource$prefixTable(table) %in% resultsTables) {
@@ -97,51 +97,57 @@ getEnabledCdReports <- function(dataSource) {
 #' a shiny app. E.g. if you wanted to make a custom R markdown template
 #'
 #' @param connectionHandler An instance of a ResultModelManager::connectionHander - manages a connection to a database.
-#' @param schema The schema containing the results tables in the database.
-#' @param vocabularyDatabaseSchema The schema containing the vocabulary tables in the database. If not provided, defaults to `resultsDatabaseSchema`.
-#' @param tablePrefix An optional prefix to add to the table names.
-#' @param cohortTableName The name of the cohort table in the database.
-#' @param databaseTableName The name of the database table in the database.
+#' @param resultDatabaseSettings a list containing the result schema and prefixes
 #' @param dataModelSpecificationsPath The path to a file containing specifications for the data model used by the database.
 #' @param displayProgress display a progress messaage (can only be used inside a shiny reactive context)
 #' @param dataMigrationsRef The path to a file listing all migrations for the data model that should have been applied
 #' @return An object of class `CdDataSource`.
 #'
 #' @export
-createCdDatabaseDataSource <- function(connectionHandler,
-                                       schema,
-                                       vocabularyDatabaseSchema = schema,
-                                       tablePrefix = "",
-                                       cohortTableName = paste0(tablePrefix, "cohort"),
-                                       databaseTableName = paste0(tablePrefix, "database"),
-                                       dataModelSpecificationsPath = system.file("cohort-diagnostics-ref",
-                                                                                 "resultsDataModelSpecification.csv",
-                                                                                 package = utils::packageName()),
-                                       dataMigrationsRef = system.file("cohort-diagnostics-ref",
-                                                                       "migrations.csv",
-                                                                       package = utils::packageName()),
-                                       displayProgress = FALSE) {
+createCdDatabaseDataSource <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    #schema,
+    #vocabularyDatabaseSchema = schema,
+    #cdTablePrefix = "",
+    #cohortTableName = paste0(tablePrefix, "cohort"),
+    #databaseTableName = paste0(tablePrefix, "database"),
+    dataModelSpecificationsPath = system.file("cohort-diagnostics-ref",
+                                              "resultsDataModelSpecification.csv",
+                                              package = utils::packageName()),
+    dataMigrationsRef = system.file("cohort-diagnostics-ref",
+                                    "migrations.csv",
+                                    package = utils::packageName()),
+    displayProgress = FALSE
+) {
 
   checkmate::assertR6(connectionHandler, "ConnectionHandler")
-  checkmate::assertString(schema)
-  checkmate::assertString(vocabularyDatabaseSchema, null.ok = TRUE)
-  checkmate::assertString(tablePrefix, null.ok = TRUE)
-  checkmate::assertString(cohortTableName, null.ok = TRUE)
-  checkmate::assertString(databaseTableName, null.ok = TRUE)
+  checkmate::assertString(resultDatabaseSettings$schema)
+  checkmate::assertString(resultDatabaseSettings$vocabularyDatabaseSchema, null.ok = TRUE)
+  checkmate::assertString(resultDatabaseSettings$cdTablePrefix, null.ok = TRUE)
+  checkmate::assertString(resultDatabaseSettings$cgTable, null.ok = TRUE)
+  checkmate::assertString(resultDatabaseSettings$databaseTable, null.ok = TRUE)
+  checkmate::assertString(resultDatabaseSettings$databaseTablePrefix, null.ok = TRUE)
   checkmate::assertFileExists(dataModelSpecificationsPath)
   checkmate::assertFileExists(dataMigrationsRef)
 
-  if (is.null(vocabularyDatabaseSchema)) {
-    vocabularyDatabaseSchema <- schema
+  if (is.null(resultDatabaseSettings$vocabularyDatabaseSchema)) {
+    resultDatabaseSettings$vocabularyDatabaseSchema <- resultDatabaseSettings$schema
   }
-  if (is.null(tablePrefix)) {
-    tablePrefix <- ""
+  if (is.null(resultDatabaseSettings$cdTablePrefix)) {
+    resultDatabaseSettings$cdTablePrefix <- ""
   }
-  if (is.null(cohortTableName)) {
-    cohortTableName <- paste0(tablePrefix, "cohort")
+  if (is.null(resultDatabaseSettings$cgTable)) {
+    resultDatabaseSettings$cgTable <- "cohort"
   }
-  if (is.null(databaseTableName)) {
-    databaseTableName <- paste0(tablePrefix, "database")
+  if (is.null(resultDatabaseSettings$cgTablePrefix)) {
+    resultDatabaseSettings$cgTablePrefix <- resultDatabaseSettings$cdTablePrefix
+  }
+  if (is.null(resultDatabaseSettings$databaseTable)) {
+    resultDatabaseSettings$databaseTable <- "database"
+  }
+  if (is.null(resultDatabaseSettings$databaseTablePrefix)) {
+    resultDatabaseSettings$databaseTablePrefix <- resultDatabaseSettings$cdTablePrefix
   }
 
   if (displayProgress) {
@@ -150,10 +156,10 @@ createCdDatabaseDataSource <- function(connectionHandler,
   migrations <- data.frame()
   # Check existence of migrations table - display warnings if not present or if it is out of date
   tryCatch({
-    migrations <- connectionHandler$queryDb("SELECT * FROM @results_database_schema.@table_prefixmigration",
+    migrations <- connectionHandler$queryDb("SELECT * FROM @schema.@cd_table_prefixmigration",
                                             snakeCaseToCamelCase = TRUE,
-                                            results_database_schema = schema,
-                                            table_prefix = tablePrefix)
+                                            schema = resultDatabaseSettings$schema,
+                                            cd_table_prefix = resultDatabaseSettings$cdTablePrefix)
   }, error = function(...) {
     warning("CohortDiagnotics schema does not contain migrations table. Schema was likely created incorrectly")
     if (displayProgress) {
@@ -177,22 +183,24 @@ createCdDatabaseDataSource <- function(connectionHandler,
 
   dataSource <- list(
     connectionHandler = connectionHandler,
-    resultsDatabaseSchema = schema,
-    vocabularyDatabaseSchema = vocabularyDatabaseSchema,
+    schema = resultDatabaseSettings$schema,
+    vocabularyDatabaseSchema = resultDatabaseSettings$vocabularyDatabaseSchema,
     dbms = connectionHandler$dbms(),
     resultsTablesOnServer = tolower(DatabaseConnector::dbListTables(connectionHandler$getConnection(),
-                                                                    schema = schema)),
-    tablePrefix = tablePrefix,
-    prefixTable = function(tableName) { paste0(tablePrefix, tableName) },
+                                                                    schema = resultDatabaseSettings$schema)),
+    cdTablePrefix = resultDatabaseSettings$cdTablePrefix,
+    prefixTable = function(tableName) { paste0(resultDatabaseSettings$cdTablePrefix, tableName) },
     prefixVocabTable = function(tableName) {
       # don't prexfix table if we us a dedicated vocabulary schema
-      if (vocabularyDatabaseSchema == schema)
-        return(paste0(tablePrefix, tableName))
+      if (resultDatabaseSettings$vocabularyDatabaseSchema == resultDatabaseSettings$schema)
+        return(paste0(resultDatabaseSettings$cdTablePrefix, tableName))
 
       return(tableName)
     },
-    cohortTableName = cohortTableName,
-    databaseTableName = databaseTableName,
+    cgTable = resultDatabaseSettings$cgTable,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix,
     dataModelSpecifications = modelSpec
   )
 
@@ -203,7 +211,7 @@ createCdDatabaseDataSource <- function(connectionHandler,
 
   if (displayProgress)
     shiny::setProgress(value = 0.1, message = "Getting database information")
-  dataSource$databaseTable <- getDatabaseTable(dataSource)
+  dataSource$dbTable <- getDatabaseTable(dataSource)
 
   if (displayProgress)
     shiny::setProgress(value = 0.2, message = "Getting cohorts")
@@ -213,19 +221,19 @@ createCdDatabaseDataSource <- function(connectionHandler,
   if (displayProgress)
     shiny::setProgress(value = 0.6, message = "Getting concept sets")
 
-  dataSource$conceptSets <- loadResultsTable(dataSource, "concept_sets", tablePrefix = dataSource$tablePrefix)
+  dataSource$conceptSets <- loadResultsTable(dataSource, "concept_sets", cdTablePrefix = dataSource$cdTablePrefix)
 
   if (displayProgress)
     shiny::setProgress(value = 0.7, message = "Getting counts")
 
-  dataSource$cohortCountTable <- loadResultsTable(dataSource, "cohort_count", required = TRUE, tablePrefix = dataSource$tablePrefix)
+  dataSource$cohortCountTable <- loadResultsTable(dataSource, "cohort_count", required = TRUE, cdTablePrefix = dataSource$cdTablePrefix)
 
   dataSource$enabledReports <- dataSource$enabledReports
 
   if (displayProgress)
     shiny::setProgress(value = 0.7, message = "Getting Temporal References")
 
-  dataSource$temporalAnalysisRef <- loadResultsTable(dataSource, "temporal_analysis_ref", tablePrefix = dataSource$tablePrefix)
+  dataSource$temporalAnalysisRef <- loadResultsTable(dataSource, "temporal_analysis_ref", cdTablePrefix = dataSource$cdTablePrefix)
 
   dataSource$temporalChoices <- getResultsTemporalTimeRef(dataSource = dataSource)
   dataSource$temporalCharacterizationTimeIdChoices <- dataSource$temporalChoices %>%
@@ -268,7 +276,11 @@ createCdDatabaseDataSource <- function(connectionHandler,
 
 # SO much of the app requires this table in memory - it would be much better to re-write queries to not need it!
 getDatabaseTable <- function(dataSource) {
-  databaseTable <- loadResultsTable(dataSource, dataSource$databaseTableName, required = TRUE)
+  databaseTable <- loadResultsTable(
+    dataSource = dataSource, 
+    tableName = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable), 
+    required = TRUE
+    )
 
   if (nrow(databaseTable) > 0 &
     "vocabularyVersion" %in% colnames(databaseTable)) {
@@ -283,12 +295,18 @@ getDatabaseTable <- function(dataSource) {
 
 # SO much of the app requires this table in memory - it would be much better to re-write queries to not need it!
 getCohortTable <- function(dataSource) {
-  if (tableIsEmpty(dataSource, dataSource$cohortTableName)) {
+  if (tableIsEmpty(
+      dataSource = dataSource, 
+      tableName = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
+    )
+    ) {
     return(data.frame())
   }
-  cohortTable <- dataSource$connectionHandler$queryDb("SELECT cohort_id, cohort_name FROM @schema.@table_name",
-                                                      schema = dataSource$resultsDatabaseSchema,
-                                                      table_name = dataSource$cohortTableName)
+  cohortTable <- dataSource$connectionHandler$queryDb(
+    "SELECT cohort_id, cohort_name FROM @schema.@table_name",
+    schema = dataSource$schema,
+    table_name = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
+  )
 
   # Old label
   if ("cohortDefinitionId" %in% names(cohortTable)) {
@@ -305,11 +323,11 @@ getCohortTable <- function(dataSource) {
 
 getResultsTemporalTimeRef <- function(dataSource) {
   sql <- "SELECT *
-            FROM @results_database_schema.@table_name;"
+            FROM @schema.@table_name;"
   temporalTimeRef <-
     dataSource$connectionHandler$queryDb(
       sql = sql,
-      results_database_schema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       table_name = dataSource$prefixTable("temporal_time_ref")
     )
 
@@ -373,7 +391,7 @@ getResultsTemporalTimeRef <- function(dataSource) {
 #' @param resultDatabaseSettings        results database settings
 #' @param dataSource                    dataSource optionally created with createCdDatabaseDataSource
 #' @export
-cohortDiagnosticsSever <- function(id,
+cohortDiagnosticsServer <- function(id,
                                    connectionHandler,
                                    resultDatabaseSettings,
                                    dataSource = NULL) {
@@ -385,17 +403,18 @@ cohortDiagnosticsSever <- function(id,
     dataSource <-
       createCdDatabaseDataSource(
         connectionHandler = connectionHandler,
-        schema = resultDatabaseSettings$schema,
-        vocabularyDatabaseSchema = resultDatabaseSettings$vocabularyDatabaseSchema,
-        tablePrefix = resultDatabaseSettings$tablePrefix,
-        cohortTableName = resultDatabaseSettings$cohortTable,
-        databaseTableName = resultDatabaseSettings$databaseTable,
+        resultDatabaseSettings = resultDatabaseSettings,
+        #schema = resultDatabaseSettings$schema,
+        #vocabularyDatabaseSchema = resultDatabaseSettings$vocabularyDatabaseSchema, # is this in results?
+        #cdTablePrefix = resultDatabaseSettings$cdTablePrefix,
+        #cgTableName = resultDatabaseSettings$cgTable, # different for CD?
+        #databaseTableName = paste0(resultDatabaseSettings$databaseTablePrefix,resultDatabaseSettings$databaseTable),
         displayProgress = TRUE
       )
   }
 
   shiny::moduleServer(id, function(input, output, session) {
-    databaseTable <- dataSource$databaseTable
+    databaseTable <- dataSource$dbTable
     cohortTable <- dataSource$cohortTable
     conceptSets <- dataSource$conceptSets
     cohortCountTable <- dataSource$cohortCountTable
@@ -667,7 +686,7 @@ cohortDiagnosticsSever <- function(id,
                               cohortIds = cohortIds,
                               selectedDatabaseIds = selectedDatabaseIds)
 
-      characterizationModule(id = "characterization",
+      cohortDiagCharacterizationModule(id = "characterization",
                              dataSource = dataSource)
 
       compareCohortCharacterizationModule(id = "compareCohortCharacterization",

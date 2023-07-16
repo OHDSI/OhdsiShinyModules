@@ -16,13 +16,23 @@ dbmsTest <- 'sqlite'
 schemaTest <- 'main'
 
 # =========== CG START
-cohortTablePrefix <- 'cg_'
+cgTablePrefix <- 'cg_'
 
 connectionDetailsCG <- DatabaseConnector::createConnectionDetails(
   server = "../resources/cgDatabase/databaseFile.sqlite",
   dbms = 'sqlite'
 )
 connectionHandlerCG <- ResultModelManager::ConnectionHandler$new(connectionDetailsCG, loadConnection = FALSE)
+
+resultDatabaseSettingsCG <- list(
+  dbms = 'sqlite',
+  cgTablePrefix = 'cg_',
+  cgTablePrefix = 'cg_',
+  databaseTable = 'DATABASE_META_DATA',
+  databaseTablePrefix = '',
+  schema = 'main',
+  tempEmulationSchema = NULL
+)
 
 # =========== CG START
   
@@ -38,7 +48,7 @@ connectionHandlerPlp <- ResultModelManager::ConnectionHandler$new(connectionDeta
 resultDatabaseSettingsPlp <- list(
   dbms = 'sqlite', # should this be removed - can use connection
   plpTablePrefix = '',
-  cohortTablePrefix = '',
+  cgTablePrefix = '',
   databaseTablePrefix = '',
   schema = 'main'
 )
@@ -60,8 +70,8 @@ connectionHandlerCharacterization <- ResultModelManager::ConnectionHandler$new(
 
 resultDatabaseSettingsCharacterization <- list(
   dbms = 'sqlite', # should this be removed - can use connection
-  tablePrefix = 'c_',
-  cohortTablePrefix = 'cg_',
+  cTablePrefix = 'c_',
+  cgTablePrefix = 'cg_',
   databaseTablePrefix = '',
   schema = 'main',
   databaseTable = 'DATABASE_META_DATA',
@@ -86,8 +96,8 @@ connectionHandlerCm  <- ResultModelManager::ConnectionHandler$new(
 
 resultDatabaseSettingsCm <- list(
   dbms = 'sqlite',
-  tablePrefix = 'cm_',
-  cohortTablePrefix = 'cg_',
+  cmTablePrefix = 'cm_',
+  cgTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA',
   schema = "main",
   tempEmulationSchema = NULL
@@ -106,7 +116,7 @@ connectionHandlerDataDiag <- ResultModelManager::ConnectionHandler$new(connectio
 
 resultDatabaseSettingsDataDiag <- list(
   dbms = 'sqlite',
-  tablePrefix = '',
+  ddTablePrefix = '',
   schema = "main"
 )
 
@@ -121,10 +131,13 @@ connectionDetailsCohortDiag <- DatabaseConnector::createConnectionDetails(
 
 resultDatabaseSettingsCohortDiag <- list(
   dbms = 'sqlite',
-  tablePrefix = '',
+  cdTablePrefix = '',
   schema = "main",
-  cohortTableName = "cohort",
-  databaseTableName = "database"
+  cgTablePrefix = '',
+  cgTable = "cohort",
+  databaseTablePrefix = '',
+  databaseTable = "database",
+  vocabularyDatabaseSchema = "main"
 )
 
 connectionHandlerCohortDiag <- ResultModelManager::ConnectionHandler$new(connectionDetailsCohortDiag, loadConnection = FALSE)
@@ -132,11 +145,7 @@ connectionHandlerCohortDiag <- ResultModelManager::ConnectionHandler$new(connect
 dataSourceCd <-
   createCdDatabaseDataSource(
     connectionHandler = connectionHandlerCohortDiag,
-    schema = "main",
-    vocabularyDatabaseSchema = "main",
-    tablePrefix = "",
-    cohortTableName = "cohort",
-    databaseTableName = "database",
+    resultDatabaseSettings = resultDatabaseSettingsCohortDiag,
     displayProgress = FALSE
   )
 
@@ -153,8 +162,8 @@ connectionHandlerSccs  <- ResultModelManager::ConnectionHandler$new(connectionDe
 
 resultDatabaseSettingsSccs <- list(
   dbms = 'sqlite',
-  tablePrefix = 'sccs_',
-  cohortTablePrefix = 'cg_',
+  sccsTablePrefix = 'sccs_',
+  cgTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA',
   schema = "main",
   tempEmulationSchema = NULL
@@ -176,7 +185,7 @@ connectionHandlerES  <- ResultModelManager::ConnectionHandler$new(
 
 resultDatabaseSettingsES <- list(
   dbms = 'sqlite',
-  tablePrefix = 'es_',
+  esTablePrefix = 'es_',
   cgTablePrefix = 'cg_',
   cmTablePrefix = 'cm_',
   sccsTablePrefix = 'sccs_',

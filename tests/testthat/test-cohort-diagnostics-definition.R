@@ -22,7 +22,7 @@ shiny::testServer(cohortDefinitionsModule, args = list(
 
   checkmate::expect_data_frame(getCountForConceptIdInCohort(
     dataSource = dataSourceCd,
-    databaseIds = dataSourceCd$databaseTable$databaseId,
+    databaseIds = dataSourceCd$dbTable$databaseId,
     cohortId = 14906
   ))
 })

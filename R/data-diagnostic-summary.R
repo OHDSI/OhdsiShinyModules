@@ -46,8 +46,7 @@ dataDiagnosticSummaryViewer <- function(id) {
 #'
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
-#' @param mySchema the database schema for the model results
-#' @param myTableAppend a string that appends the tables in the result schema
+#' @param resultDatabaseSettings a list containing the result schema and prefixes
 #' 
 #' @return
 #' The server to the summary module
@@ -56,8 +55,7 @@ dataDiagnosticSummaryViewer <- function(id) {
 dataDiagnosticSummaryServer <- function(
     id, 
     connectionHandler,
-    mySchema,
-    myTableAppend
+    resultDatabaseSettings
 ) {
   shiny::moduleServer(
     id,
@@ -65,8 +63,7 @@ dataDiagnosticSummaryServer <- function(
       
       analysisNames <- getAnalysisNames(
         connectionHandler = connectionHandler, 
-        mySchema = mySchema, 
-        myTableAppend = myTableAppend
+        resultDatabaseSettings = resultDatabaseSettings
       )
       
       # create UI for selecting analysis of interest
@@ -87,8 +84,7 @@ dataDiagnosticSummaryServer <- function(
         if(!is.null(input$dbDiagAnalysisNameSelected[1])){
         getDrugStudyFailSummary(
           connectionHandler = connectionHandler, 
-          mySchema = mySchema, 
-          myTableAppend = myTableAppend,
+          resultDatabaseSettings = resultDatabaseSettings,
           analysisNames = input$dbDiagAnalysisNameSelected
         )
         } else{
@@ -143,17 +139,16 @@ dataDiagnosticSummaryServer <- function(
 
 getAnalysisNames <- function(
     connectionHandler, 
-    mySchema, 
-    myTableAppend
+    resultDatabaseSettings
     ){
   
   sql <- "SELECT distinct sum.analysis_name 
-    FROM @my_schema.@my_table_appenddata_diagnostics_summary as sum;"
+    FROM @schema.@dd_table_prefixdata_diagnostics_summary as sum;"
   
   result <- connectionHandler$queryDb(
     sql = sql, 
-    my_schema = mySchema,
-    my_table_append = myTableAppend
+    schema = resultDatabaseSettings$schema,
+    dd_table_prefix = resultDatabaseSettings$ddTablePrefix
   )
 
   return(sort(result$analysisName))
@@ -161,8 +156,7 @@ getAnalysisNames <- function(
 
 getDrugStudyFailSummary <- function(
     connectionHandler, 
-    mySchema, 
-    myTableAppend = '',
+    resultDatabaseSettings,
     analysisNames
 ){
   
@@ -178,13 +172,13 @@ getDrugStudyFailSummary <- function(
      sum.database_id,
      sum.total_fails
     
-    FROM @my_schema.@my_table_appenddata_diagnostics_summary as sum
+    FROM @schema.@dd_table_prefixdata_diagnostics_summary as sum
     where sum.analysis_name in (@names);"
     
     summaryTable <- connectionHandler$queryDb(
       sql = sql, 
-      my_schema = mySchema,
-      my_table_append = myTableAppend,
+      schema = resultDatabaseSettings$schema,
+      dd_table_prefix = resultDatabaseSettings$ddTablePrefix,
       names = paste(paste0("'",analysisNames,"'"), collapse=',')
     )
     

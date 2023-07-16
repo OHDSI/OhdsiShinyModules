@@ -44,15 +44,21 @@ cohortMethodPowerViewer <- function(id) {
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
 #' @param connectionHandler the connection to the PLE results database
-#' @param resultsSchema the schema with the PLE results
-#' @param tablePrefix tablePrefix
+#' @param resultDatabaseSettings a list containing the result schema and prefixes
 #' @param metaAnalysisDbIds metaAnalysisDbIds
 #'
 #' @return
 #' the PLE systematic error power server
 #' 
 #' @export
-cohortMethodPowerServer <- function(id, selectedRow, inputParams, connectionHandler, resultsSchema, tablePrefix, metaAnalysisDbIds = NULL) {
+cohortMethodPowerServer <- function(
+    id, 
+    selectedRow, 
+    inputParams, 
+    connectionHandler, 
+    resultDatabaseSettings,
+    metaAnalysisDbIds = NULL
+    ) {
   
   shiny::moduleServer(
     id,
@@ -77,34 +83,11 @@ cohortMethodPowerServer <- function(id, selectedRow, inputParams, connectionHand
         if (is.null(row)) {
           return(NULL)
         } else {
-          #TODO: update once MA implemented
-          if (FALSE && row$databaseId %in% metaAnalysisDbIds) {
-            results <- getCohortMethodMainResults(connectionHandler = connectionHandler,
-                                                targetIds = row$targetId,
-                                                comparatorIds = row$comparatorId,
-                                                outcomeIds = row$outcomeId,
-                                                analysisIds = row$analysisId)
-            table <- prepareCohortMethodPowerTable(results, connectionHandler, resultsSchema)
-            table$description <- NULL
-            if (!row$unblind) {
-              table$targetOutcomes  <- NA
-              table$comparatorOutcomes   <- NA
-              table$targetIr   <- NA
-              table$comparatorIr   <- NA
-            }
-            table$databaseId[table$databaseId %in% metaAnalysisDbIds] <- "Summary"
-            colnames(table) <- c("Source",
-                                 "Target subjects",
-                                 "Comparator subjects",
-                                 "Target years",
-                                 "Comparator years",
-                                 "Target events",
-                                 "Comparator events",
-                                 "Target IR (per 1,000 PY)",
-                                 "Comparator IR (per 1,000 PY)",
-                                 "MDRR")
-          } else {
-            table <- prepareCohortMethodPowerTable(row, connectionHandler, resultsSchema, tablePrefix)
+            table <- prepareCohortMethodPowerTable(
+              row, 
+              connectionHandler = connectionHandler, 
+              resultDatabaseSettings = resultDatabaseSettings
+              )
             table$description <- NULL
             table$databaseId <- NULL
             if (!row$unblind) {
@@ -122,7 +105,7 @@ cohortMethodPowerServer <- function(id, selectedRow, inputParams, connectionHand
                                  "Target IR (per 1,000 PY)",
                                  "Comparator IR (per 1,000 PY)",
                                  "MDRR")
-          }
+          
           return(table)
         }
       })
@@ -144,24 +127,16 @@ cohortMethodPowerServer <- function(id, selectedRow, inputParams, connectionHand
         if (is.null(row)) {
           return(NULL)
         } else {
-          if (FALSE && row$databaseId %in% metaAnalysisDbIds) {
-            # TODO: update when MA implemented
-            followUpDist <- getCmFollowUpDist(#cmFollowUpDist = cmFollowUpDist,
+            followUpDist <- getCmFollowUpDist(
               connectionHandler = connectionHandler,
-                                              targetId = inputParams()$target,
-                                              comparatorId = inputParams()$comparator,
-                                              outcomeId = inputParams()$outcome,
-                                              analysisId = row$analysisId)
-          } else {
-            followUpDist <- getCmFollowUpDist(connectionHandler = connectionHandler,
-                                              resultsSchema = resultsSchema,
-                                              tablePrefix = tablePrefix,
-                                              targetId = inputParams()$target,
-                                              comparatorId = inputParams()$comparator,
-                                              outcomeId = inputParams()$outcome,
-                                              databaseId = row$databaseId,
-                                              analysisId = row$analysisId)
-          }
+              resultDatabaseSettings = resultDatabaseSettings,
+              targetId = inputParams()$target,
+              comparatorId = inputParams()$comparator,
+              outcomeId = inputParams()$outcome,
+              databaseId = row$databaseId,
+              analysisId = row$analysisId
+            )
+          
           table <- prepareCohortMethodFollowUpDistTable(followUpDist)
           return(table)
         }

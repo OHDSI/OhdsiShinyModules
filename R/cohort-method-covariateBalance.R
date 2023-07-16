@@ -66,15 +66,20 @@ cohortMethodCovariateBalanceViewer <- function(id) {
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
 #' @param connectionHandler the connection to the PLE results database
-#' @param resultsSchema the schema with the PLE results
-#' @param tablePrefix tablePrefix
+#' @param resultDatabaseSettings a list containing the result schema and prefixes
 #' @param metaAnalysisDbIds metaAnalysisDbIds
 #'
 #' @return
 #' the PLE covariate balance content server
 #' 
 #' @export
-cohortMethodCovariateBalanceServer <- function(id, selectedRow, inputParams, connectionHandler, resultsSchema, tablePrefix, metaAnalysisDbIds = NULL) {
+cohortMethodCovariateBalanceServer <- function(
+    id, 
+    selectedRow, 
+    inputParams, 
+    connectionHandler, 
+    resultDatabaseSettings,
+    metaAnalysisDbIds = NULL) {
   
   shiny::moduleServer(
     id,
@@ -86,8 +91,7 @@ cohortMethodCovariateBalanceServer <- function(id, selectedRow, inputParams, con
         balance <- tryCatch({
           getCohortMethodCovariateBalanceShared(
           connectionHandler = connectionHandler,
-          resultsSchema = resultsSchema,
-          tablePrefix = tablePrefix,
+          resultDatabaseSettings = resultDatabaseSettings,
           targetId = inputParams()$target,
           comparatorId = inputParams()$comparator,
           databaseId = row$databaseId,
@@ -199,19 +203,22 @@ cohortMethodCovariateBalanceServer <- function(id, selectedRow, inputParams, con
         if (is.null(row) || !(row$databaseId %in% metaAnalysisDbIds)) {
           return(NULL)
         } else {
-          balanceSummary <- getCohortMethodCovariateBalanceSummary(connectionHandler = connectionHandler,
-                                                                 resultsSchema = resultsSchema,
-                                                                 tablePrefix = tablePrefix,  
-                                                                 targetId = inputParams()$target,
-                                                                 comparatorId = inputParams()$comparator,
-                                                                 analysisId = row$analysisId,
-                                                                 databaseId = row$analysisId,
-                                                                 beforeLabel = paste("Before", row$psStrategy),
-                                                                 afterLabel = paste("After", row$psStrategy))
-          plot <- plotCohortMethodCovariateBalanceSummary(balanceSummary,
-                                                        threshold = 0.1,
-                                                        beforeLabel = paste("Before", row$psStrategy),
-                                                        afterLabel = paste("After", row$psStrategy))
+          balanceSummary <- getCohortMethodCovariateBalanceSummary(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            targetId = inputParams()$target,
+            comparatorId = inputParams()$comparator,
+            analysisId = row$analysisId,
+            databaseId = row$analysisId,
+            beforeLabel = paste("Before", row$psStrategy),
+            afterLabel = paste("After", row$psStrategy)
+            )
+          plot <- plotCohortMethodCovariateBalanceSummary(
+            balanceSummary,
+            threshold = 0.1,
+            beforeLabel = paste("Before", row$psStrategy),
+            afterLabel = paste("After", row$psStrategy)
+          )
           return(plot)
         }
       })
@@ -252,8 +259,7 @@ cohortMethodCovariateBalanceServer <- function(id, selectedRow, inputParams, con
 
 getCohortMethodCovariateBalanceShared <- function(
     connectionHandler,
-    resultsSchema,
-    tablePrefix,
+    resultDatabaseSettings,
     targetId,
     comparatorId,
     analysisId,
@@ -276,9 +282,9 @@ getCohortMethodCovariateBalanceShared <- function(
         cmscb.comparator_mean_after after_matching_mean_comparator,
         abs(cmscb.std_diff_after) abs_after_matching_std_diff
       FROM
-        @results_schema.@table_prefixshared_covariate_balance cmscb 
-        JOIN @results_schema.@table_prefixcovariate cmc ON cmscb.covariate_id = cmc.covariate_id AND cmscb.analysis_id = cmc.analysis_id AND cmscb.database_id = cmc.database_id -- database_id optional
-       -- JOIN @results_schema.@table_prefixcovariate_analysis cmca ON cmca.analysis_id = cmc.analysis_id  -- question: shouldn't we have a covariate_analysis_id in @table_prefixcovariate table?
+        @results_schema.@cm_table_prefixshared_covariate_balance cmscb 
+        JOIN @results_schema.@cm_table_prefixcovariate cmc ON cmscb.covariate_id = cmc.covariate_id AND cmscb.analysis_id = cmc.analysis_id AND cmscb.database_id = cmc.database_id -- database_id optional
+       -- JOIN @results_schema.@cm_table_prefixcovariate_analysis cmca ON cmca.analysis_id = cmc.analysis_id  -- question: shouldn't we have a covariate_analysis_id in @table_prefixcovariate table?
       WHERE
         cmscb.target_id = @target_id
         AND cmscb.comparator_id = @comparator_id
@@ -289,8 +295,8 @@ getCohortMethodCovariateBalanceShared <- function(
     shiny::incProgress(1/3, detail = paste("Extracting"))
     result <- connectionHandler$queryDb(
       sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
+      results_schema = resultDatabaseSettings$schema,
+      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
       target_id = targetId,
       comparator_id = comparatorId,
       analysis_id = analysisId,
@@ -307,22 +313,24 @@ getCohortMethodCovariateBalanceShared <- function(
 }
 
 
-getCohortMethodCovariateBalanceSummary <- function(connectionHandler, 
-                                                 resultsSchema,
-                                                 tablePrefix,
-                                                 databaseId,
-                                                 targetId, 
-                                                 comparatorId, analysisId,
-                                                 beforeLabel = "Before matching",
-                                                 afterLabel = "After matching") {
+getCohortMethodCovariateBalanceSummary <- function(
+    connectionHandler, 
+    resultDatabaseSettings,
+    databaseId,
+    targetId, 
+    comparatorId, analysisId,
+    beforeLabel = "Before matching",
+    afterLabel = "After matching"
+    ) {
   
-  balance <- getCohortMethodCovariateBalanceShared(connectionHandler = connectionHandler,
-                                                 targetId = targetId,
-                                                 comparatorId = comparatorId,
-                                                 analysisId = analysisId,
-                                                 resultsSchema,
-                                                 tablePrefix,
-                                                 databaseId = databaseId)
+  balance <- getCohortMethodCovariateBalanceShared(
+    connectionHandler = connectionHandler,
+    targetId = targetId,
+    comparatorId = comparatorId,
+    analysisId = analysisId,
+    resultDatabaseSettings = resultDatabaseSettings,
+    databaseId = databaseId
+  )
   balanceBefore <- balance %>%
     dplyr::group_by(.data$databaseId) %>%
     dplyr::summarise(covariateCount = dplyr::n(),

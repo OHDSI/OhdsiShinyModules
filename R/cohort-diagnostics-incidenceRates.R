@@ -17,22 +17,22 @@
 
 # Global ranges for IR values
 getIncidenceRateRanges <- function(dataSource, minPersonYears = 0) {
-  sql <- "SELECT DISTINCT age_group FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
+  sql <- "SELECT DISTINCT age_group FROM @schema.@ir_table WHERE person_years >= @person_years"
 
   ageGroups <- dataSource$connectionHandler$queryDb(
     sql = sql,
-    results_database_schema = dataSource$resultsDatabaseSchema,
+    schema = dataSource$schema,
     ir_table = dataSource$prefixTable("incidence_rate"),
     person_years = minPersonYears,
     snakeCaseToCamelCase = TRUE
   ) %>%
     dplyr::mutate(ageGroup = dplyr::na_if(.data$ageGroup, ""))
 
-  sql <- "SELECT DISTINCT calendar_year FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
+  sql <- "SELECT DISTINCT calendar_year FROM @schema.@ir_table WHERE person_years >= @person_years"
 
   calendarYear <- dataSource$connectionHandler$queryDb(
     sql = sql,
-    results_database_schema = dataSource$resultsDatabaseSchema,
+    schema = dataSource$schema,
     ir_table = dataSource$prefixTable("incidence_rate"),
     person_years = minPersonYears,
     snakeCaseToCamelCase = TRUE
@@ -42,11 +42,11 @@ getIncidenceRateRanges <- function(dataSource, minPersonYears = 0) {
     ) %>%
     dplyr::mutate(calendarYear = as.integer(.data$calendarYear))
 
-  sql <- "SELECT DISTINCT gender FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
+  sql <- "SELECT DISTINCT gender FROM @schema.@ir_table WHERE person_years >= @person_years"
 
   gender <- dataSource$connectionHandler$queryDb(
     sql = sql,
-    results_database_schema = dataSource$resultsDatabaseSchema,
+    schema = dataSource$schema,
     ir_table = dataSource$prefixTable("incidence_rate"),
     person_years = minPersonYears,
     snakeCaseToCamelCase = TRUE
@@ -57,14 +57,14 @@ getIncidenceRateRanges <- function(dataSource, minPersonYears = 0) {
   sql <- "SELECT
     min(incidence_rate) as min_ir,
     max(incidence_rate) as max_ir
-   FROM @results_database_schema.@ir_table
+   FROM @schema.@ir_table
    WHERE person_years >= @person_years
    AND incidence_rate > 0.0
    "
 
   incidenceRate <- dataSource$connectionHandler$queryDb(
     sql = sql,
-    results_database_schema = dataSource$resultsDatabaseSchema,
+    schema = dataSource$schema,
     ir_table = dataSource$prefixTable("incidence_rate"),
     person_years = minPersonYears,
     snakeCaseToCamelCase = TRUE
@@ -116,9 +116,9 @@ getIncidenceRateResult <- function(dataSource,
   checkmate::reportAssertions(collection = errorMessage)
 
   sql <- "SELECT ir.*, dt.database_name, cc.cohort_subjects
-            FROM  @results_database_schema.@ir_table ir
-            INNER JOIN @results_database_schema.@database_table dt ON ir.database_id = dt.database_id
-            INNER JOIN @results_database_schema.@cc_table cc ON (
+            FROM  @schema.@ir_table ir
+            INNER JOIN @schema.@database_table dt ON ir.database_id = dt.database_id
+            INNER JOIN @schema.@cc_table cc ON (
               ir.database_id = cc.database_id AND ir.cohort_id = cc.cohort_id
             )
             WHERE ir.cohort_id in (@cohort_ids)
@@ -130,7 +130,7 @@ getIncidenceRateResult <- function(dataSource,
   data <-
     dataSource$connectionHandler$queryDb(
       sql = sql,
-      results_database_schema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       cohort_ids = cohortIds,
       database_ids = quoteLiterals(databaseIds),
       gender = stratifyByGender,
@@ -139,7 +139,7 @@ getIncidenceRateResult <- function(dataSource,
       personYears = minPersonYears,
       ir_table = dataSource$prefixTable("incidence_rate"),
       cc_table = dataSource$prefixTable("cohort_count"),
-      database_table = dataSource$databaseTableName,
+      database_table = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable),
       snakeCaseToCamelCase = TRUE
     ) %>%
       tidyr::tibble()

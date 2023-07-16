@@ -8,10 +8,7 @@ characterizationTableServer(
   id,
   connectionHandler,
   mainPanelTab,
-  schema,
-  tablePrefix,
-  cohortTablePrefix,
-  databaseTable = "DATABASE_META_DATA"
+  resultDatabaseSettings
 )
 }
 \arguments{
@@ -21,13 +18,7 @@ characterizationTableServer(
 
 \item{mainPanelTab}{the current tab}
 
-\item{schema}{the database schema for the model results}
-
-\item{tablePrefix}{a string that appends the tables in the result schema}
-
-\item{cohortTablePrefix}{a string that appends the cohort table in the result schema}
-
-\item{databaseTable}{name of the database table}
+\item{resultDatabaseSettings}{a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix}
 }
 \value{
 The server to the cohorts features server

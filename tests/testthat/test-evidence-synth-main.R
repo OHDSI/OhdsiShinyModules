@@ -32,10 +32,7 @@ test_that("getCMEstimation", {
   
   res <- getCMEstimation(
     connectionHandler = connectionHandlerES,
-    mySchema = 'main',
-    cmTablePrefix = 'cm_',
-    cgTablePrefix = 'cg_',
-    databaseMetaData = 'database_meta_data',
+    resultDatabaseSettings = resultDatabaseSettingsES,
     targetId = 1,
     outcomeId = 3
   )
@@ -48,10 +45,7 @@ test_that("getMetaEstimation", {
   
   res <- getMetaEstimation(
     connectionHandler = connectionHandlerES,
-    mySchema = 'main',
-    cmTablePrefix = 'cm_',
-    cgTablePrefix = 'cg_',
-    esTablePrefix = 'es_',
+    resultDatabaseSettings = resultDatabaseSettingsES,
     targetId = 1,
     outcomeId = 3
   )
@@ -102,11 +96,7 @@ test_that("getSccsEstimation", {
   
 res <- getSccsEstimation(
   connectionHandlerES,
-  mySchema = 'main', 
-  sccsTablePrefix = 'sccs_',
-  cgTablePrefix = 'cg_',
-  esTablePrefix = 'es_',
-  databaseMetaData = 'database_meta_data',
+  resultDatabaseSettings = resultDatabaseSettingsES,
   targetId = 1,
   outcomeId = 3
 )

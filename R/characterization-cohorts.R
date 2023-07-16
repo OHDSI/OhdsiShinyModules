@@ -67,10 +67,7 @@ characterizationTableViewer <- function(id) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
 #' @param mainPanelTab the current tab
-#' @param schema the database schema for the model results
-#' @param tablePrefix a string that appends the tables in the result schema
-#' @param cohortTablePrefix a string that appends the cohort table in the result schema
-#' @param databaseTable  name of the database table
+#' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #'
 #' @return
 #' The server to the cohorts features server
@@ -80,10 +77,7 @@ characterizationTableServer <- function(
     id,
     connectionHandler,
     mainPanelTab,
-    schema,
-    tablePrefix,
-    cohortTablePrefix,
-    databaseTable = 'DATABASE_META_DATA'
+    resultDatabaseSettings
 ) {
   shiny::moduleServer(
     id,
@@ -91,10 +85,7 @@ characterizationTableServer <- function(
       
       inputVals <- getDecCohortsInputs(
         connectionHandler,
-        schema,
-        tablePrefix,
-        cohortTablePrefix,
-        databaseTable
+        resultDatabaseSettings
       )
       
       # update UI
@@ -160,9 +151,7 @@ characterizationTableServer <- function(
               targetIds = input$targetIds,
               databaseId = input$databaseId,
               connectionHandler = connectionHandler,
-              schema = schema,
-              tablePrefix = tablePrefix,
-              cohortTablePrefix = cohortTablePrefix
+              resultDatabaseSettings
             )
           })
       
@@ -245,9 +234,7 @@ getDesFEData <- function(
     targetIds,
     databaseId,
     connectionHandler,
-    schema,
-    tablePrefix,
-    cohortTablePrefix
+    resultDatabaseSettings
 ) {
   #  shiny::withProgress(message = 'Getting target comparison data', value = 0, {
   
@@ -257,9 +244,9 @@ getDesFEData <- function(
   (
   select co.RUN_ID, cd.TARGET_COHORT_ID as COHORT_DEFINITION_ID, co.COVARIATE_ID,
   co.SUM_VALUE as COUNT_VALUE,	co.AVERAGE_VALUE*100 as AVERAGE_VALUE from
-   @result_schema.@table_prefixCOVARIATES co
+   @schema.@c_table_prefixCOVARIATES co
    inner join
-   (select * from @result_schema.@table_prefixcohort_details
+   (select * from @schema.@c_table_prefixcohort_details
    where DATABASE_ID = '@database_id' and
    TARGET_COHORT_ID in (@cohort_ids) and COHORT_TYPE = 'T'
    ) as cd
@@ -267,9 +254,9 @@ getDesFEData <- function(
    and co.DATABASE_ID = cd.DATABASE_ID
   union
   select cc.RUN_ID, cds.TARGET_COHORT_ID as COHORT_DEFINITION_ID, cc.COVARIATE_ID,	cc.COUNT_VALUE,	cc.AVERAGE_VALUE from
-    @result_schema.@table_prefixCOVARIATES_continuous cc
+    @schema.@c_table_prefixCOVARIATES_continuous cc
     inner join
-    (select * from @result_schema.@table_prefixcohort_details
+    (select * from @schema.@c_table_prefixcohort_details
    where DATABASE_ID = '@database_id' and
    TARGET_COHORT_ID in (@cohort_ids) and COHORT_TYPE = 'T'
    ) as cds
@@ -277,13 +264,13 @@ getDesFEData <- function(
     and cc.DATABASE_ID = cds.DATABASE_ID
   ) covs
   inner join
-  @result_schema.@table_prefixcovariate_ref ref
+  @schema.@c_table_prefixcovariate_ref ref
   on covs.RUN_ID = ref.RUN_ID and
   covs.COVARIATE_ID = ref.COVARIATE_ID
-  inner join @result_schema.@table_prefixanalysis_ref an
+  inner join @schema.@c_table_prefixanalysis_ref an
   on an.RUN_ID = ref.RUN_ID and
   an.analysis_id = ref.analysis_id
-  inner join @result_schema.@cohort_table_prefixcohort_definition c
+  inner join @schema.@cg_table_prefixcohort_definition c
   on c.cohort_definition_id = covs.COHORT_DEFINITION_ID
   ;
   "
@@ -292,9 +279,9 @@ getDesFEData <- function(
   
   resultTable <- connectionHandler$queryDb(
     sql = sql,
-    result_schema = schema,
-    table_prefix = tablePrefix,
-    cohort_table_prefix = cohortTablePrefix,
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
     cohort_ids = paste(as.double(targetIds), collapse = ','),
     database_id = databaseId
   )
@@ -328,20 +315,17 @@ getDesFEData <- function(
 
 getDecCohortsInputs <- function(
     connectionHandler,
-    schema,
-    tablePrefix,
-    cohortTablePrefix,
-    databaseTable
+    resultDatabaseSettings
 ) {
   #shiny::withProgress(message = 'Getting target comparison inputs', value = 0, {
   
   
   sql <-
     ' select distinct c.cohort_definition_id, c.cohort_name from
-  @result_schema.@cohort_table_prefixcohort_definition c
+  @schema.@cg_table_prefixcohort_definition c
   inner join
   (select distinct TARGET_COHORT_ID as id
-  from @result_schema.@table_prefixcohort_details
+  from @schema.@c_table_prefixcohort_details
   ) ids
   on ids.id = c.cohort_definition_id
   ;'
@@ -350,9 +334,9 @@ getDecCohortsInputs <- function(
   
   idVals <- connectionHandler$queryDb(
     sql = sql,
-    result_schema = schema,
-    table_prefix = tablePrefix,
-    cohort_table_prefix = cohortTablePrefix
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
   ids <- idVals$cohortDefinitionId
   names(ids) <- idVals$cohortName
@@ -367,8 +351,8 @@ getDecCohortsInputs <- function(
   
   database <- connectionHandler$queryDb(
     sql = sql,
-    result_schema = schema,
-    database_table = databaseTable
+    result_schema = resultDatabaseSettings$schema,
+    database_table = resultDatabaseSettings$databaseTable
   )
   databaseIds <- database$databaseId
   names(databaseIds) <- database$databaseName

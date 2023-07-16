@@ -48,16 +48,21 @@ cohortMethodPropensityScoreDistViewer <- function(id) {
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
 #' @param connectionHandler the connection to the PLE results database
-#' @param resultsSchema the schema with the PLE results
-#' @param tablePrefix tablePrefix
-#' @param cohortTablePrefix cohortTablePrefix
+#' @param resultDatabaseSettings a list containing the result schema and prefixes
 #' @param metaAnalysisDbIds metaAnalysisDbIds
 #'
 #' @return
 #' the PLE propensity score distribution content server
 #' 
 #' @export
-cohortMethodPropensityScoreDistServer <- function(id, selectedRow, inputParams, connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix, metaAnalysisDbIds = F) {
+cohortMethodPropensityScoreDistServer <- function(
+    id, 
+    selectedRow, 
+    inputParams, 
+    connectionHandler, 
+    resultDatabaseSettings,
+    metaAnalysisDbIds = F
+    ) {
   
   shiny::moduleServer(
     id,
@@ -68,37 +73,29 @@ cohortMethodPropensityScoreDistServer <- function(id, selectedRow, inputParams, 
         if (is.null(row)) {
           return(NULL)
         } else {
-          if (FALSE && row$databaseId %in% metaAnalysisDbIds) {
-            #TODO: update once MA implemented
-            ps <- getCohortMethodPs(connectionHandler = connectionHandler,
-                                  resultsSchema = resultsSchema,
-                                  tablePrefix = tablePrefix,
-                                  #targetIds = row$targetId,
-                                  #comparatorIds = row$comparatorId,
-                                  targetId = inputParams()$target,
-                                  comparatorId = inputParams()$comparator,
-                                  analysisId = row$analysisId)
-          } else {
-            ps <- getCohortMethodPs(connectionHandler = connectionHandler,
-                                  resultsSchema = resultsSchema,
-                                  tablePrefix = tablePrefix,
-                                  targetId = inputParams()$target,
-                                  comparatorId = inputParams()$comparator,
-                                  analysisId = row$analysisId,
-                                  databaseId = row$databaseId)
-          }
+          ps <- getCohortMethodPs(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            targetId = inputParams()$target,
+            comparatorId = inputParams()$comparator,
+            analysisId = row$analysisId,
+            databaseId = row$databaseId
+          )
+          
           if (nrow(ps) == 0) {
             return(NULL) #TODO: handle more gracefully
           }
           
-          targetName <- getCohortNameFromId(connectionHandler = connectionHandler ,
-                                            resultsSchema = resultsSchema,
-                                            cohortTablePrefix = cohortTablePrefix,
-                                            cohortId = inputParams()$target)
-          comparatorName <- getCohortNameFromId(connectionHandler  = connectionHandler ,
-                                            resultsSchema = resultsSchema,
-                                            cohortTablePrefix = cohortTablePrefix,
-                                            cohortId = inputParams()$comparator)
+          targetName <- getCohortNameFromId(
+            connectionHandler = connectionHandler ,
+            resultDatabaseSettings = resultDatabaseSettings,
+            cohortId = inputParams()$target
+            )
+          comparatorName <- getCohortNameFromId(
+            connectionHandler  = connectionHandler ,
+            resultDatabaseSettings = resultDatabaseSettings,
+            cohortId = inputParams()$comparator
+            )
           plot <- plotCohortMethodPs(ps, targetName$cohortName, comparatorName$cohortName)
           return(plot)
         }

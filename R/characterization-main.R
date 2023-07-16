@@ -90,7 +90,7 @@ characterizationViewer <- function(id=1) {
 #'
 #' @param id  the unique reference id for the module
 #' @param connectionHandler a connection to the database with the results
-#' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cohortTablePrefix
+#' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #' 
 #' @return
 #' The server for the characterization module
@@ -120,10 +120,7 @@ characterizationServer <- function(
         id = 'descriptiveTableTab',
         connectionHandler = connectionHandler, 
         mainPanelTab = mainPanelTab,
-        schema = resultDatabaseSettings$schema, 
-        tablePrefix = resultDatabaseSettings$tablePrefix,
-        cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
-        databaseTable = resultDatabaseSettings$databaseTable
+        resultDatabaseSettings = resultDatabaseSettings
         )
 
       
@@ -135,11 +132,8 @@ characterizationServer <- function(
         id = 'aggregateFeaturesTab',
         connectionHandler = connectionHandler, 
         mainPanelTab = mainPanelTab,
-        schema = resultDatabaseSettings$schema, 
-        tablePrefix = resultDatabaseSettings$tablePrefix,
-        cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
-        databaseTable = resultDatabaseSettings$databaseTable
-      )
+        resultDatabaseSettings = resultDatabaseSettings
+        )
       
       # =============================
       #   Incidence
@@ -148,9 +142,7 @@ characterizationServer <- function(
         id = 'incidenceTab',
         connectionHandler = connectionHandler, 
         mainPanelTab = mainPanelTab,
-        schema = resultDatabaseSettings$schema, 
-        incidenceTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
-        databaseTable = resultDatabaseSettings$databaseTable
+        resultDatabaseSettings = resultDatabaseSettings
         )
 
       
@@ -162,11 +154,8 @@ characterizationServer <- function(
           id = 'timeToEventTab', 
           connectionHandler = connectionHandler, 
           mainPanelTab = mainPanelTab,
-          schema = resultDatabaseSettings$schema, 
-          tablePrefix = resultDatabaseSettings$tablePrefix,
-          cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
-          databaseTable = resultDatabaseSettings$databaseTable
-        )
+          resultDatabaseSettings = resultDatabaseSettings
+         )
 
       
       # =============================
@@ -177,11 +166,8 @@ characterizationServer <- function(
         id = 'dechallengeRechallengeTab', 
         connectionHandler = connectionHandler, 
         mainPanelTab = mainPanelTab,
-        schema = resultDatabaseSettings$schema, 
-        tablePrefix = resultDatabaseSettings$tablePrefix,
-        cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix, 
-        databaseTable = resultDatabaseSettings$databaseTable
-      )
+        resultDatabaseSettings = resultDatabaseSettings
+        )
       
     }
   )

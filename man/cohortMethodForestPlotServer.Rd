@@ -10,9 +10,7 @@ cohortMethodForestPlotServer(
   selectedRow,
   inputParams,
   metaAnalysisDbIds = NULL,
-  resultsSchema,
-  tablePrefix,
-  databaseTable
+  resultDatabaseSettings
 )
 }
 \arguments{
@@ -26,11 +24,7 @@ cohortMethodForestPlotServer(
 
 \item{metaAnalysisDbIds}{metaAnalysisDbIds}
 
-\item{resultsSchema}{resultsSchema}
-
-\item{tablePrefix}{tablePrefix}
-
-\item{databaseTable}{databaseTable}
+\item{resultDatabaseSettings}{a list containing the result schema and prefixes}
 }
 \value{
 the PLE forest plot content server

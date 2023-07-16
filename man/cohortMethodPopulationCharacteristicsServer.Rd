@@ -9,8 +9,7 @@ cohortMethodPopulationCharacteristicsServer(
   selectedRow,
   inputParams,
   connectionHandler,
-  resultsSchema,
-  tablePrefix
+  resultDatabaseSettings
 )
 }
 \arguments{
@@ -22,9 +21,7 @@ cohortMethodPopulationCharacteristicsServer(
 
 \item{connectionHandler}{the connection to the PLE results database}
 
-\item{resultsSchema}{the schema with the PLE results}
-
-\item{tablePrefix}{tablePrefix}
+\item{resultDatabaseSettings}{a list containing the result schema and prefixes}
 }
 \value{
 the PLE population characteristics content server

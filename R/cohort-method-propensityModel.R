@@ -41,14 +41,19 @@ cohortMethodPropensityModelViewer <- function(id) {
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
 #' @param connectionHandler the connection to the PLE results database
-#' @param resultsSchema the schema with the PLE results
-#' @param tablePrefix tablePrefix
+#' @param resultDatabaseSettings a list containing the result schema and prefixes
 #'
 #' @return
 #' the PLE propensity score model
 #' 
 #' @export
-cohortMethodPropensityModelServer <- function(id, selectedRow, inputParams, connectionHandler, resultsSchema, tablePrefix) {
+cohortMethodPropensityModelServer <- function(
+    id, 
+    selectedRow, 
+    inputParams, 
+    connectionHandler, 
+    resultDatabaseSettings
+    ) {
   
   shiny::moduleServer(
     id,
@@ -59,13 +64,14 @@ cohortMethodPropensityModelServer <- function(id, selectedRow, inputParams, conn
         if (is.null(row)) {
           return(NULL)
         } else {
-          model <- getCohortMethodPropensityModel(connectionHandler = connectionHandler,
-                                                resultsSchema = resultsSchema,
-                                                tablePrefix = tablePrefix,
-                                                targetId = inputParams()$target,
-                                                comparatorId = inputParams()$comparator,
-                                                databaseId = row$databaseId,
-                                                analysisId = row$analysisId)
+          model <- getCohortMethodPropensityModel(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            targetId = inputParams()$target,
+            comparatorId = inputParams()$comparator,
+            databaseId = row$databaseId,
+            analysisId = row$analysisId
+          )
           
           table <- prepareCohortMethodPropensityModelTable(model)
           options = list(columnDefs = list(list(className = 'dt-right',  targets = 0)),

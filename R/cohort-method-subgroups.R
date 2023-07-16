@@ -48,7 +48,14 @@ cohortMethodSubgroupsViewer <- function(id) {
 #' the PLE subgroup results server
 #' 
 #' @export
-cohortMethodSubgroupsServer <- function(id, selectedRow, inputParams, exposureOfInterest, outcomeOfInterest, connectionHandler) {
+cohortMethodSubgroupsServer <- function(
+    id, 
+    selectedRow, 
+    inputParams, 
+    exposureOfInterest, 
+    outcomeOfInterest, 
+    connectionHandler
+    ) {
   
   shiny::moduleServer(
     id,

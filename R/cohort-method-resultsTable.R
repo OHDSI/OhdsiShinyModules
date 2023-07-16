@@ -42,9 +42,7 @@ cohortMethodResultsTableViewer <- function(id) {
 #' @param id the unique reference id for the module
 #' @param connectionHandler the connection to the PLE results database
 #' @param inputParams  the selected study parameters of interest
-#' @param resultsSchema the schema with the PLE results
-#' @param tablePrefix tablePrefix
-#' @param databaseTable databaseTable
+#' @param resultDatabaseSettings a list containing the result schema and prefixes
 #'
 #' @return
 #' the PLE main results table server server
@@ -54,9 +52,7 @@ cohortMethodResultsTableServer <- function(
   id, 
   connectionHandler, 
   inputParams, 
-  resultsSchema, 
-  tablePrefix, 
-  databaseTable
+  resultDatabaseSettings
   ) {
   
   shiny::moduleServer(
@@ -82,15 +78,15 @@ cohortMethodResultsTableServer <- function(
       
       resultSubset <- shiny::reactive({
         
-        results <- getCohortMethodMainResults(connectionHandler = connectionHandler,
-                                            resultsSchema = resultsSchema,
-                                            tablePrefix = tablePrefix,
-                                            databaseTable = databaseTable,
-                                            targetIds = filterCohortMethodEmptyNullValues(inputParams()$target),
-                                            comparatorIds = filterCohortMethodEmptyNullValues(inputParams()$comparator),
-                                            outcomeIds = filterCohortMethodEmptyNullValues(inputParams()$outcome),
-                                            databaseIds = filterCohortMethodEmptyNullValues(inputParams()$database),
-                                            analysisIds = filterCohortMethodEmptyNullValues(inputParams()$analysis))
+        results <- getCohortMethodMainResults(
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          targetIds = filterCohortMethodEmptyNullValues(inputParams()$target),
+          comparatorIds = filterCohortMethodEmptyNullValues(inputParams()$comparator),
+          outcomeIds = filterCohortMethodEmptyNullValues(inputParams()$outcome),
+          databaseIds = filterCohortMethodEmptyNullValues(inputParams()$database),
+          analysisIds = filterCohortMethodEmptyNullValues(inputParams()$analysis)
+        )
         results <- results[order(results$analysisId), ]
         
         

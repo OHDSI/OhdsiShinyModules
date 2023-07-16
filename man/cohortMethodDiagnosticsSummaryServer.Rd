@@ -7,10 +7,7 @@
 cohortMethodDiagnosticsSummaryServer(
   id,
   connectionHandler,
-  resultsSchema,
-  tablePrefix,
-  cohortTablePrefix,
-  databaseTable
+  resultDatabaseSettings
 )
 }
 \arguments{
@@ -18,13 +15,7 @@ cohortMethodDiagnosticsSummaryServer(
 
 \item{connectionHandler}{the connection to the PLE results database}
 
-\item{resultsSchema}{the schema with the PLE results}
-
-\item{tablePrefix}{tablePrefix}
-
-\item{cohortTablePrefix}{cohortTablePrefix}
-
-\item{databaseTable}{databaseTable}
+\item{resultDatabaseSettings}{a list containing the result schema and prefixes}
 }
 \value{
 the PLE diagnostics summary results

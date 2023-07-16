@@ -4,12 +4,9 @@ shiny::testServer(
   app = characterizationAggregateFeaturesServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization ,
-    schema = resultDatabaseSettingsCharacterization$schema,
-    mainPanelTab = shiny::reactiveVal("Feature Comparison"),
-    tablePrefix = resultDatabaseSettingsCharacterization$tablePrefix,
-    cohortTablePrefix = resultDatabaseSettingsCharacterization$cohortTablePrefix,
-    databaseTable = resultDatabaseSettingsCharacterization$databaseTable
-  ), 
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization,
+    mainPanelTab = shiny::reactiveVal("Feature Comparison")
+    ), 
   expr = {
     
     # expect the binaryData() to be the default

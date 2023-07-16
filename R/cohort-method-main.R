@@ -162,10 +162,10 @@ cohortMethodServer <- function(
       dataFolder <- NULL
       
       output$targetWidget <- shiny::renderUI({
-        targets <- getCohortMethodTargetChoices(connectionHandler,
-                                              resultDatabaseSettings$schema,
-                                              resultDatabaseSettings$tablePrefix,
-                                              resultDatabaseSettings$cohortTablePrefix)
+        targets <- getCohortMethodTargetChoices(
+          connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings
+          )
         shiny::selectInput(inputId = session$ns("target"),
                            label = "Target",
                            choices = getCohortMethodSelectNamedChoices(targets$targetId,
@@ -173,10 +173,10 @@ cohortMethodServer <- function(
       })
       
       output$comparatorWidget <- shiny::renderUI({
-        comparators <- getCohortMethodComparatorChoices(connectionHandler,
-                                                      resultDatabaseSettings$schema,
-                                                      resultDatabaseSettings$tablePrefix,
-                                                      resultDatabaseSettings$cohortTablePrefix)
+        comparators <- getCohortMethodComparatorChoices(
+          connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings
+          )
         shiny::selectInput(inputId = session$ns("comparator"),
                            label = "Comparator",
                            choices = getCohortMethodSelectNamedChoices(comparators$comparatorId,
@@ -184,20 +184,20 @@ cohortMethodServer <- function(
       })
       
       output$outcomeWidget <- shiny::renderUI({
-        outcomes <- getCohortMethodOutcomeChoices(connectionHandler,
-                                                resultDatabaseSettings$schema,
-                                                resultDatabaseSettings$tablePrefix,
-                                                resultDatabaseSettings$cohortTablePrefix)
+        outcomes <- getCohortMethodOutcomeChoices(
+          connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings
+          )
         shiny::selectInput(inputId = session$ns("outcome"),
                            label = "Outcome",
                            choices = getCohortMethodSelectNamedChoices(outcomes$outcomeId,
                                                                      outcomes$cohortName))
       })
       output$databaseWidget<- shiny::renderUI({
-        databases <- getCohortMethodDatabaseChoices(connectionHandler,
-                                                  resultDatabaseSettings$schema,
-                                                  resultDatabaseSettings$tablePrefix,
-                                                  resultDatabaseSettings$databaseTable)
+        databases <- getCohortMethodDatabaseChoices(
+          connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings
+          )
         shiny::checkboxGroupInput(inputId = session$ns("database"),
                                   label = "Data source",
                                   choices =  getCohortMethodSelectNamedChoices(databases$databaseId,
@@ -205,9 +205,10 @@ cohortMethodServer <- function(
                                   selected = unique(databases$databaseId))
       })
       output$analysisWidget <- shiny::renderUI({
-        analyses <- getCmAnalysisOptions(connectionHandler,
-                                         resultDatabaseSettings$schema,
-                                         resultDatabaseSettings$tablePrefix)
+        analyses <- getCmAnalysisOptions(
+          connectionHandler,
+          resultDatabaseSettings
+          )
         shiny::checkboxGroupInput(inputId = session$ns("analysis"),
                                   label = "Analysis",
                                   choices =  getCohortMethodSelectNamedChoices(analyses$analysisId,
@@ -227,20 +228,19 @@ cohortMethodServer <- function(
       })
       
       
-      cohortMethodDiagnosticsSummaryServer(id = "estimationDiganostics",
-                                         connectionHandler = connectionHandler,
-                                         resultsSchema = resultDatabaseSettings$schema,
-                                         tablePrefix = resultDatabaseSettings$tablePrefix,
-                                         cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix,
-                                         databaseTable = resultDatabaseSettings$databaseTable)
+      cohortMethodDiagnosticsSummaryServer(
+        id = "estimationDiganostics",
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+        )
       
       
-      selectedRow <- cohortMethodResultsTableServer(id = "resultsTable",
-                                                  connectionHandler = connectionHandler,
-                                                  inputParams = inputParams,
-                                                  resultsSchema = resultDatabaseSettings$schema,
-                                                  tablePrefix = resultDatabaseSettings$tablePrefix,
-                                                  databaseTable = resultDatabaseSettings$databaseTable)
+      selectedRow <- cohortMethodResultsTableServer(
+        id = "resultsTable",
+        connectionHandler = connectionHandler,
+        inputParams = inputParams,
+        resultDatabaseSettings = resultDatabaseSettings
+        )
       
       output$rowIsSelected <- shiny::reactive({
         return(!is.null(selectedRow()))
@@ -283,73 +283,79 @@ cohortMethodServer <- function(
       shiny::outputOptions(output, "isMetaAnalysis", suspendWhenHidden = FALSE)
       
       
-      cohortMethodPowerServer(id = "power",
-                            selectedRow = selectedRow,
-                            inputParams = inputParams,
-                            connectionHandler = connectionHandler,
-                            resultsSchema = resultDatabaseSettings$schema,
-                            resultDatabaseSettings$tablePrefix)
+      cohortMethodPowerServer(
+        id = "power",
+        selectedRow = selectedRow,
+        inputParams = inputParams,
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
       
-      cohortMethodAttritionServer(id = "attrition",
-                                selectedRow = selectedRow,
-                                inputParams = inputParams,
-                                connectionHandler = connectionHandler,
-                                resultsSchema = resultDatabaseSettings$schema,
-                                tablePrefix = resultDatabaseSettings$tablePrefix,
-                                databaseTable = resultDatabaseSettings$cohortTablePrefix)
+      cohortMethodAttritionServer(
+        id = "attrition",
+        selectedRow = selectedRow,
+        inputParams = inputParams,
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
       
-      cohortMethodPopulationCharacteristicsServer(id = "popCharacteristics",
-                                                selectedRow = selectedRow,
-                                                inputParams = inputParams,
-                                                connectionHandler = connectionHandler,
-                                                resultsSchema = resultDatabaseSettings$schema,
-                                                tablePrefix = resultDatabaseSettings$tablePrefix)
+      cohortMethodPopulationCharacteristicsServer(
+        id = "popCharacteristics",
+        selectedRow = selectedRow,
+        inputParams = inputParams,
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
       
-      cohortMethodPropensityModelServer(id = "propensityModel",
-                                      selectedRow = selectedRow,
-                                      inputParams = inputParams,
-                                      connectionHandler = connectionHandler,
-                                      resultsSchema = resultDatabaseSettings$schema,
-                                      tablePrefix = resultDatabaseSettings$tablePrefix)
+      cohortMethodPropensityModelServer(
+        id = "propensityModel",
+        selectedRow = selectedRow,
+        inputParams = inputParams,
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
       
-      cohortMethodPropensityScoreDistServer(id = "propensityScoreDist",
-                                          selectedRow = selectedRow,
-                                          inputParams = inputParams,
-                                          connectionHandler = connectionHandler,
-                                          resultsSchema = resultDatabaseSettings$schema,
-                                          tablePrefix = resultDatabaseSettings$tablePrefix,
-                                          cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix)
+      cohortMethodPropensityScoreDistServer(
+        id = "propensityScoreDist",
+        selectedRow = selectedRow,
+        inputParams = inputParams,
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
       
-      cohortMethodCovariateBalanceServer(id = "covariateBalance",
-                                       selectedRow = selectedRow,
-                                       inputParams = inputParams,
-                                       connectionHandler = connectionHandler,
-                                       resultsSchema = resultDatabaseSettings$schema,
-                                       tablePrefix = resultDatabaseSettings$tablePrefix)
+      cohortMethodCovariateBalanceServer(
+        id = "covariateBalance",
+        selectedRow = selectedRow,
+        inputParams = inputParams,
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
       
-      cohortMethodSystematicErrorServer(id = "systematicError",
-                                      selectedRow = selectedRow,
-                                      inputParams = inputParams,
-                                      connectionHandler = connectionHandler,
-                                      resultsSchema = resultDatabaseSettings$schema,
-                                      tablePrefix = resultDatabaseSettings$tablePrefix)
+      cohortMethodSystematicErrorServer(
+        id = "systematicError",
+        selectedRow = selectedRow,
+        inputParams = inputParams,
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
       
-      cohortMethodKaplanMeierServer(id = "kaplanMeier",
-                                  selectedRow = selectedRow,
-                                  inputParams = inputParams,
-                                  connectionHandler = connectionHandler,
-                                  resultsSchema = resultDatabaseSettings$schema,
-                                  tablePrefix = resultDatabaseSettings$tablePrefix,
-                                  cohortTablePrefix = resultDatabaseSettings$cohortTablePrefix,
-                                  databaseTable = resultDatabaseSettings$databaseTable)
+      cohortMethodKaplanMeierServer(
+        id = "kaplanMeier",
+        selectedRow = selectedRow,
+        inputParams = inputParams,
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
       
       #TODO: complete once MA implemented
       # estimationForestPlotServer("forestPlot", connection, selectedRow, inputParams)
       
       #TODO: revisit once subgroup example conducted
-      cohortMethodSubgroupsServer(id = "subgroups",
-                                selectedRow = selectedRow,
-                                inputParams = inputParams)
+      cohortMethodSubgroupsServer(
+        id = "subgroups",
+        selectedRow = selectedRow,
+        inputParams = inputParams
+      )
       
     }
   )

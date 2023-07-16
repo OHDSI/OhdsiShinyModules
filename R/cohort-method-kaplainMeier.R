@@ -45,17 +45,21 @@ cohortMethodKaplanMeierViewer <- function(id) {
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
 #' @param connectionHandler the connection to the PLE results database
-#' @param resultsSchema the schema with the PLE results
-#' @param tablePrefix tablePrefix
-#' @param cohortTablePrefix cohortTablePrefix
-#' @param databaseTable databaseTable
+#' @param resultDatabaseSettings a list containing the result schema and prefixes
 #' @param metaAnalysisDbIds metaAnalysisDbIds
 #'
 #' @return
 #' the PLE Kaplain Meier content server
 #' 
 #' @export
-cohortMethodKaplanMeierServer <- function(id, selectedRow, inputParams, connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix, databaseTable, metaAnalysisDbIds = NULL) {
+cohortMethodKaplanMeierServer <- function(
+    id, 
+    selectedRow, 
+    inputParams, 
+    connectionHandler, 
+    resultDatabaseSettings,
+    metaAnalysisDbIds = NULL
+    ) {
   
   shiny::moduleServer(
     id,
@@ -76,33 +80,37 @@ cohortMethodKaplanMeierServer <- function(id, selectedRow, inputParams, connecti
         if (is.null(row)) {
           return(NULL)
         } else {
-          km <- getCohortMethodKaplanMeier(connectionHandler = connectionHandler,
-                                         resultsSchema = resultsSchema,
-                                         tablePrefix = tablePrefix,
-                                         databaseTable = databaseTable,
-                                         targetId = inputParams()$target,
-                                         comparatorId = inputParams()$comparator,
-                                         outcomeId = inputParams()$outcome,
-                                         databaseId = row$databaseId,
-                                         analysisId = row$analysisId)
+          km <- getCohortMethodKaplanMeier(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            targetId = inputParams()$target,
+            comparatorId = inputParams()$comparator,
+            outcomeId = inputParams()$outcome,
+            databaseId = row$databaseId,
+            analysisId = row$analysisId
+          )
           
           # hack to fix data insert replacing NA with 0
           removeInd <- km$targetAtRisk == 0 & km$comparatorAtRisk == 0
           km$targetAtRisk[removeInd] <- NA
           km$comparatorAtRisk[removeInd] <- NA
           
-          targetName <- getCohortNameFromId(connectionHandler = connectionHandler,
-                                            resultsSchema = resultsSchema,
-                                            cohortTablePrefix = cohortTablePrefix,
-                                            cohortId = inputParams()$target)
-          comparatorName <- getCohortNameFromId(connectionHandler = connectionHandler,
-                                                resultsSchema = resultsSchema,
-                                                cohortTablePrefix = cohortTablePrefix,
-                                                cohortId = inputParams()$comparator)
+          targetName <- getCohortNameFromId(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            cohortId = inputParams()$target
+            )
+          comparatorName <- getCohortNameFromId(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            cohortId = inputParams()$comparator
+            )
           
-          plot <- plotCohortMethodKaplanMeier(kaplanMeier = km,
-                                            targetName = targetName$cohortName,
-                                            comparatorName = comparatorName$cohortName)
+          plot <- plotCohortMethodKaplanMeier(
+            kaplanMeier = km,
+            targetName = targetName$cohortName,
+            comparatorName = comparatorName$cohortName
+            )
           return(plot)
         }
       })

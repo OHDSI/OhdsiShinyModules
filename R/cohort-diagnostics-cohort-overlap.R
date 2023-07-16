@@ -1,6 +1,6 @@
 # Copyright 2022 Observational Health Data Sciences and Informatics
 #
-# This file is part of PatientLevelPrediction
+# This file is part of OhdsiShinyModules
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -261,18 +261,18 @@ getResultsCohortRelationships <- function(dataSource,
                                           endDays = NULL) {
   data <- dataSource$connectionHandler$queryDb(
     sql = "SELECT cr.*, db.database_name
-             FROM @results_database_schema.@table_name cr
-             INNER JOIN @results_database_schema.@database_table db ON db.database_id = cr.database_id
+             FROM @schema.@table_name cr
+             INNER JOIN @schema.@database_table db ON db.database_id = cr.database_id
              WHERE cr.cohort_id IN (@cohort_id)
              AND cr.database_id IN (@database_id)
               {@comparator_cohort_id != \"\"} ? { AND cr.comparator_cohort_id IN (@comparator_cohort_id)}
               {@start_day != \"\"} ? { AND cr.start_day IN (@start_day)}
               {@end_day != \"\"} ? { AND cr.end_day IN (@end_day)};",
     snakeCaseToCamelCase = TRUE,
-    results_database_schema = dataSource$resultsDatabaseSchema,
+    schema = dataSource$schema,
     database_id = quoteLiterals(databaseIds),
     table_name = dataSource$prefixTable("cohort_relationships"),
-    database_table = dataSource$databaseTableName,
+    database_table = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable),
     cohort_id = cohortIds,
     comparator_cohort_id = comparatorCohortIds,
     start_day = startDays,

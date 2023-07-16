@@ -15,8 +15,7 @@ shiny::testServer(
       outcome = 3
       )), 
     connectionHandler = connectionHandlerCm, 
-    resultsSchema = 'main', 
-    tablePrefix = 'cm_',
+    resultDatabaseSettings = resultDatabaseSettingsCm,
     #cohortTablePrefix = cohortTablePrefix, 
     #databaseTable = databaseTable,
     metaAnalysisDbIds = NULL

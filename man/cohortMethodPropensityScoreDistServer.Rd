@@ -9,9 +9,7 @@ cohortMethodPropensityScoreDistServer(
   selectedRow,
   inputParams,
   connectionHandler,
-  resultsSchema,
-  tablePrefix,
-  cohortTablePrefix,
+  resultDatabaseSettings,
   metaAnalysisDbIds = F
 )
 }
@@ -24,11 +22,7 @@ cohortMethodPropensityScoreDistServer(
 
 \item{connectionHandler}{the connection to the PLE results database}
 
-\item{resultsSchema}{the schema with the PLE results}
-
-\item{tablePrefix}{tablePrefix}
-
-\item{cohortTablePrefix}{cohortTablePrefix}
+\item{resultDatabaseSettings}{a list containing the result schema and prefixes}
 
 \item{metaAnalysisDbIds}{metaAnalysisDbIds}
 }

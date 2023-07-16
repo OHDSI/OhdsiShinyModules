@@ -2,51 +2,46 @@
 
 getCohortGeneratorCohortCounts <- function(
   connectionHandler, 
-  resultsSchema,
-  tablePrefix = 'cg_',
-  databaseTable,
-  databaseTablePrefix
+  resultDatabaseSettings
   ) {
   
   sql <- "SELECT cc.cohort_id, cc.cohort_entries, cc.cohort_subjects,
-  dt.cdm_source_name, cd.cohort_name FROM @results_schema.@table_prefixCOHORT_COUNT cc
-  join @results_schema.@database_table_prefix@database_table dt
+  dt.cdm_source_name, cd.cohort_name 
+  FROM @schema.@cg_table_prefixCOHORT_COUNT cc
+  join @schema.@database_table_prefix@database_table dt
   on cc.database_id = dt.database_id
-  join @results_schema.@table_prefixCOHORT_DEFINITION cd
+  join @schema.@cg_table_prefixCOHORT_DEFINITION cd
   on cd.cohort_definition_id = cc.cohort_id
   ;"
   return(
     connectionHandler$queryDb(
       sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      database_table = databaseTable,
-      database_table_prefix = databaseTablePrefix
+      schema = resultDatabaseSettings$schema,
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+      database_table = resultDatabaseSettings$databaseTable,
+      database_table_prefix = resultDatabaseSettings$databaseTablePrefix
     )
   )
 }
 
 getCohortGeneratorCohortMeta <- function(
     connectionHandler, 
-  resultsSchema,
-  tablePrefix = 'cg_',
-  databaseTable,
-  databaseTablePrefix
+    resultDatabaseSettings
   ) {
   
   sql <- "SELECT cg.cohort_id, cg.cohort_name,
   cg.generation_status, cg.start_time, cg.end_time, dt.cdm_source_name
-  from @results_schema.@table_prefixCOHORT_GENERATION cg
-  join @results_schema.@database_table_prefix@database_table dt
+  from @schema.@cg_table_prefixCOHORT_GENERATION cg
+  join @schema.@database_table_prefix@database_table dt
   on cg.database_id = dt.database_id
   ;"
   
   df <- connectionHandler$queryDb(
     sql = sql,
-    results_schema = resultsSchema,
-    table_prefix = tablePrefix,
-    database_table = databaseTable,
-    database_table_prefix = databaseTablePrefix
+    schema = resultDatabaseSettings$schema,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    database_table = resultDatabaseSettings$databaseTable,
+    database_table_prefix = resultDatabaseSettings$databaseTablePrefix
   )
   
   df2 <- df %>%
@@ -71,26 +66,24 @@ getCohortGeneratorCohortMeta <- function(
 
 getCohortGeneratorCohortInclusionSummary <- function(
     connectionHandler, 
-  resultsSchema,
-  tablePrefix = 'cg_',
-  databaseTable,
-  databaseTablePrefix
+    resultDatabaseSettings
   ) {
   
   sql <- "SELECT css.cohort_definition_id, css.base_count, css.final_count, css.mode_id,
-  dt.cdm_source_name, cd.cohort_name FROM @results_schema.@table_prefixCOHORT_SUMMARY_STATS css
-  join @results_schema.@database_table_prefix@database_table dt
+  dt.cdm_source_name, cd.cohort_name 
+  FROM @schema.@cg_table_prefixCOHORT_SUMMARY_STATS css
+  join @schema.@database_table_prefix@database_table dt
   on css.database_id = dt.database_id
-  join @results_schema.@table_prefixCOHORT_DEFINITION cd
+  join @schema.@cg_table_prefixCOHORT_DEFINITION cd
   on cd.cohort_definition_id = css.cohort_definition_id
   ;"
   return(
     connectionHandler$queryDb(
       sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      database_table = databaseTable,
-      database_table_prefix = databaseTablePrefix
+      schema =resultDatabaseSettings$schema,
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+      database_table = resultDatabaseSettings$databaseTable,
+      database_table_prefix = resultDatabaseSettings$databaseTablePrefix
     )
   )
 }
@@ -99,44 +92,40 @@ getCohortGeneratorCohortInclusionSummary <- function(
 
 getCohortGeneratorInclusionRules <- function(
   connectionHandler, 
-  resultsSchema,
-  tablePrefix = 'cg_'
+  resultDatabaseSettings
 ) {
   
   sql <- "SELECT ci.cohort_definition_id, ci.rule_sequence, ci.name as rule_name,
-  cd.cohort_name FROM @results_schema.@table_prefixCOHORT_INCLUSION ci
-  join @results_schema.@table_prefixCOHORT_DEFINITION cd
+  cd.cohort_name FROM @schema.@cg_table_prefixCOHORT_INCLUSION ci
+  join @schema.@cg_table_prefixCOHORT_DEFINITION cd
   on cd.cohort_definition_id = ci.cohort_definition_id
   ;"
   return(
     connectionHandler$queryDb(
       sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix
+      schema = resultDatabaseSettings$schema,
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix
     )
   )
 }
 
 getCohortGeneratorInclusionStats <- function(
   connectionHandler, 
-  resultsSchema,
-  tablePrefix = 'cg_',
-  databaseTable,
-  databaseTablePrefix
+  resultDatabaseSettings
 ) {
   
   sql <- "SELECT cir.database_id, cir.cohort_definition_id, cir.inclusion_rule_mask, cir.person_count, cir.mode_id,
-  dt.cdm_source_name FROM @results_schema.@table_prefixCOHORT_INC_RESULT cir
-  join @results_schema.@database_table_prefix@database_table dt
+  dt.cdm_source_name FROM @schema.@cg_table_prefixCOHORT_INC_RESULT cir
+  join @schema.@database_table_prefix@database_table dt
   on cir.database_id = dt.database_id
   ;"
   return(
     connectionHandler$queryDb(
       sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      database_table = databaseTable,
-      database_table_prefix = databaseTablePrefix
+      schema = resultDatabaseSettings$schema,
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+      database_table = resultDatabaseSettings$databaseTable,
+      database_table_prefix = resultDatabaseSettings$databaseTablePrefix
     )
   )
 }

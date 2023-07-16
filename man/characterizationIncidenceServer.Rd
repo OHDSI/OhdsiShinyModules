@@ -8,9 +8,7 @@ characterizationIncidenceServer(
   id,
   connectionHandler,
   mainPanelTab,
-  schema,
-  incidenceTablePrefix,
-  databaseTable = "DATABASE_META_DATA"
+  resultDatabaseSettings
 )
 }
 \arguments{
@@ -20,11 +18,7 @@ characterizationIncidenceServer(
 
 \item{mainPanelTab}{the current tab}
 
-\item{schema}{the database schema for the model results}
-
-\item{incidenceTablePrefix}{a string that appends the incidence table in the result schema}
-
-\item{databaseTable}{name of the database table}
+\item{resultDatabaseSettings}{a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix}
 }
 \value{
 The server to the prediction incidence module

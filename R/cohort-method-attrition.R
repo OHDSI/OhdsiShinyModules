@@ -44,15 +44,19 @@ cohortMethodAttritionViewer <- function(id) {
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
 #' @param connectionHandler the connection to the PLE results database
-#' @param resultsSchema the schema with the PLE results
-#' @param tablePrefix tablePrefix
-#' @param databaseTable databaseTable
+#' @param resultDatabaseSettings a list containing the result schema and prefixes
 #'
 #' @return
 #' the PLE attrition results content server
 #' 
 #' @export
-cohortMethodAttritionServer <- function(id, selectedRow, inputParams, connectionHandler, resultsSchema, tablePrefix, databaseTable) {
+cohortMethodAttritionServer <- function(
+    id, 
+    selectedRow, 
+    inputParams, 
+    connectionHandler,
+    resultDatabaseSettings
+    ) {
   
   shiny::moduleServer(
     id,
@@ -64,15 +68,15 @@ cohortMethodAttritionServer <- function(id, selectedRow, inputParams, connection
         if (is.null(row)) {
           return(NULL)
         } else {
-          attrition <- getCohortMethodAttrition(connectionHandler = connectionHandler,
-                                              resultsSchema = resultsSchema,
-                                              tablePrefix = tablePrefix,
-                                              databaseTable = databaseTable,
-                                              targetId = inputParams()$target,
-                                              comparatorId = inputParams()$comparator,
-                                              outcomeId = inputParams()$outcome,
-                                              databaseId = row$databaseId,
-                                              analysisId = row$analysisId)
+          attrition <- getCohortMethodAttrition(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            targetId = inputParams()$target,
+            comparatorId = inputParams()$comparator,
+            outcomeId = inputParams()$outcome,
+            databaseId = row$databaseId,
+            analysisId = row$analysisId
+            )
           plot <- drawCohortMethodAttritionDiagram(attrition)
           return(plot)
         }

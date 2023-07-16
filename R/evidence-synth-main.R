@@ -94,7 +94,7 @@ evidenceSynthesisViewer <- function(id=1) {
 #'
 #' @param id  the unique reference id for the module
 #' @param connectionHandler a connection to the database with the results
-#' @param resultDatabaseSettings a list containing the prediction result schema and connection details
+#' @param resultDatabaseSettings a list containing the result schema and prefixes
 #' 
 #' @return
 #' The server for the PatientLevelPrediction module
@@ -117,24 +117,27 @@ evidenceSynthesisServer <- function(
       
       targetIds <- getESTargetIds(
         connectionHandler = connectionHandler,
-        mySchema = resultDatabaseSettings$schema, 
-        cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
-        cgTablePrefix = resultDatabaseSettings$cgTablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
+        #mySchema = resultDatabaseSettings$schema, 
+        #cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
+        #cgTablePrefix = resultDatabaseSettings$cgTablePrefix
       )
       outcomeIds <- getESOutcomeIds(
         connectionHandler = connectionHandler,
-        mySchema = resultDatabaseSettings$schema, 
-        cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
-        cgTablePrefix = resultDatabaseSettings$cgTablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
+        #mySchema = resultDatabaseSettings$schema, 
+        #cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
+        #cgTablePrefix = resultDatabaseSettings$cgTablePrefix
       )
       
       diagnosticColumnNames <- getOACcombinations(
-        connectionHandler = connectionHandler, 
-        resultsSchema = resultDatabaseSettings$schema,
-        sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
-        cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
-        cohortTablePrefix = resultDatabaseSettings$cgTablePrefix, 
-        databaseTable = resultDatabaseSettings$databaseMetaData
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+        #resultsSchema = resultDatabaseSettings$schema,
+        #sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
+        #cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+        #cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+        #databaseTable = resultDatabaseSettings$databaseMetaData
       )
       
       inputSelected <- inputSelectionServer(
@@ -185,10 +188,11 @@ evidenceSynthesisServer <- function(
       data <- shiny::reactive({
         getCMEstimation(
           connectionHandler = connectionHandler,
-          mySchema = resultDatabaseSettings$schema, 
-          cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
-          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-          databaseMetaData = resultDatabaseSettings$databaseMetaData,
+          resultDatabaseSettings = resultDatabaseSettings,
+          #mySchema = resultDatabaseSettings$schema, 
+          #cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
+          #cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+          #databaseMetaData = resultDatabaseSettings$databaseMetaData,
           targetId = inputSelected()$targetId,
           outcomeId = inputSelected()$outcomeId
         )
@@ -197,10 +201,11 @@ evidenceSynthesisServer <- function(
       data2 <- shiny::reactive({
         getMetaEstimation(
           connectionHandler = connectionHandler,
-          mySchema = resultDatabaseSettings$schema, 
-          cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
-          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-          esTablePrefix = resultDatabaseSettings$tablePrefix,
+          resultDatabaseSettings = resultDatabaseSettings,
+          #mySchema = resultDatabaseSettings$schema, 
+          #cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
+          #cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+          #esTablePrefix = resultDatabaseSettings$tablePrefix,
           targetId = inputSelected()$targetId,
           outcomeId = inputSelected()$outcomeId
         )
@@ -210,10 +215,10 @@ evidenceSynthesisServer <- function(
         getEvidenceSynthDiagnostics(
           connectionHandler = connectionHandler, 
           resultDatabaseSettings = resultDatabaseSettings,
-          resultsSchema = resultDatabaseSettings$schema, 
-          cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
-          cohortTablePrefix = resultDatabaseSettings$cgTablePrefix, 
-          databaseTable = resultDatabaseSettings$databaseTable,
+          #resultsSchema = resultDatabaseSettings$schema, 
+          #cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+          #cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+          #databaseTable = resultDatabaseSettings$databaseTable,
           targetIds = inputSelected()$targetId,
           outcomeIds = inputSelected()$outcomeId
         )
@@ -332,11 +337,7 @@ evidenceSynthesisServer <- function(
       sccsData <- shiny::reactive({
         getSccsEstimation(
           connectionHandler = connectionHandler,
-          mySchema = resultDatabaseSettings$schema, 
-          sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
-          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-          esTablePrefix = resultDatabaseSettings$tablePrefix,
-          databaseMetaData = resultDatabaseSettings$databaseMetaData,
+          resultDatabaseSettings = resultDatabaseSettings,
           targetId = inputSelected()$targetId,
           outcomeId = inputSelected()$outcomeId
         )
@@ -420,9 +421,7 @@ evidenceSynthesisServer <- function(
     
 getESTargetIds <- function(
   connectionHandler,
-  mySchema, 
-  cmTablePrefix,
-  cgTablePrefix
+  resultDatabaseSettings
 ){
   
   sql <- "select distinct
@@ -430,17 +429,17 @@ getESTargetIds <- function(
   r.target_id
   
   from 
-   @my_schema.@cm_table_prefixresult as r
+   @schema.@cm_table_prefixresult as r
    inner join
-   @my_schema.@cg_table_prefixcohort_definition as c1
+   @schema.@cg_table_prefixcohort_definition as c1
    on c1.cohort_definition_id = r.target_id
   ;"
   
   result <- connectionHandler$queryDb(
     sql = sql,
-    my_schema = mySchema,
-    cm_table_prefix = cmTablePrefix,
-    cg_table_prefix = cgTablePrefix
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   ) 
   
   output <- as.list(result$targetId)
@@ -452,25 +451,23 @@ getESTargetIds <- function(
 
 getESOutcomeIds <- function(
   connectionHandler,
-  mySchema, 
-  cmTablePrefix,
-  cgTablePrefix
+  resultDatabaseSettings
 ) {
   sql <- "select distinct
   c1.cohort_name as outcome,
   r.outcome_id
   
   from 
-   @my_schema.@cm_table_prefixresult as r
+   @schema.@cm_table_prefixresult as r
    inner join 
-   @my_schema.@cm_table_prefixtarget_comparator_outcome as tco
+   @schema.@cm_table_prefixtarget_comparator_outcome as tco
    on 
    r.target_id = tco.target_id and 
    r.comparator_id = tco.comparator_id and 
    r.outcome_id = tco.outcome_id
    
    inner join
-   @my_schema.@cg_table_prefixcohort_definition as c1
+   @schema.@cg_table_prefixcohort_definition as c1
    on c1.cohort_definition_id = r.outcome_id
    
   where 
@@ -479,9 +476,9 @@ getESOutcomeIds <- function(
   
   result <- connectionHandler$queryDb(
     sql = sql,
-    my_schema = mySchema,
-    cm_table_prefix = cmTablePrefix,
-    cg_table_prefix = cgTablePrefix
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   ) 
   
   output <- as.list(result$outcomeId)
@@ -494,10 +491,7 @@ getESOutcomeIds <- function(
 
 getCMEstimation <- function(
     connectionHandler,
-    mySchema,
-    cmTablePrefix = 'cm_',
-    cgTablePrefix = 'cg_',
-    databaseMetaData = 'database_meta_data',
+    resultDatabaseSettings,
     targetId,
     outcomeId
     ){
@@ -517,9 +511,9 @@ getCMEstimation <- function(
   r.calibrated_log_rr, r.calibrated_se_log_rr
   
   from 
-   @my_schema.@cm_table_prefixresult as r
+   @schema.@cm_table_prefixresult as r
    inner join 
-   @my_schema.@cm_table_prefixtarget_comparator_outcome as tco
+   @schema.@cm_table_prefixtarget_comparator_outcome as tco
    on 
    r.target_id = tco.target_id and 
    r.comparator_id = tco.comparator_id and 
@@ -527,7 +521,7 @@ getCMEstimation <- function(
    
    inner join
    
-   @my_schema.@cm_table_prefixdiagnostics_summary as unblind
+   @schema.@cm_table_prefixdiagnostics_summary as unblind
    on
    r.analysis_id = unblind.analysis_id and 
    r.target_id = unblind.target_id and 
@@ -536,23 +530,23 @@ getCMEstimation <- function(
    r.database_id = unblind.database_id
    
    inner join
-   @my_schema.@database_meta_data as db
+   @schema.@database_table as db
    on db.database_id = r.database_id
    
    inner join
-   @my_schema.@cg_table_prefixcohort_definition as c1
+   @schema.@cg_table_prefixcohort_definition as c1
    on c1.cohort_definition_id = r.target_id
    
    inner join
-   @my_schema.@cg_table_prefixcohort_definition as c2
+   @schema.@cg_table_prefixcohort_definition as c2
    on c2.cohort_definition_id = r.comparator_id
    
    inner join
-   @my_schema.@cg_table_prefixcohort_definition as c3
+   @schema.@cg_table_prefixcohort_definition as c3
    on c3.cohort_definition_id = r.outcome_id
    
    inner join
-   @my_schema.@cm_table_prefixanalysis as a
+   @schema.@cm_table_prefixanalysis as a
    on a.analysis_id = r.analysis_id
    
    where 
@@ -565,10 +559,10 @@ getCMEstimation <- function(
   
   result <- connectionHandler$queryDb(
     sql = sql,
-    my_schema = mySchema,
-    database_meta_data = databaseMetaData,
-    cm_table_prefix = cmTablePrefix,
-    cg_table_prefix = cgTablePrefix,
+    schema = resultDatabaseSettings$schema,
+    database_table = resultDatabaseSettings$databaseTable,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
     outcome_id = outcomeId,
     target_id = targetId
   ) %>%
@@ -589,10 +583,7 @@ getCMEstimation <- function(
 
 getMetaEstimation <- function(
     connectionHandler,
-    mySchema,
-    cmTablePrefix = 'cm_',
-    cgTablePrefix = 'cg_',
-    esTablePrefix = 'es_',
+    resultDatabaseSettings,
     targetId,
     outcomeId
 ){
@@ -613,9 +604,9 @@ sql <- "select
   r.calibrated_log_rr, r.calibrated_se_log_rr
   
   from 
-   @my_schema.@es_table_prefixcm_result as r
+   @schema.@es_table_prefixcm_result as r
    inner join 
-   @my_schema.@cm_table_prefixtarget_comparator_outcome as tco
+   @schema.@cm_table_prefixtarget_comparator_outcome as tco
    on 
    r.target_id = tco.target_id and 
    r.comparator_id = tco.comparator_id and 
@@ -623,7 +614,7 @@ sql <- "select
    
    inner join
    
-   @my_schema.@es_table_prefixcm_diagnostics_summary as unblind
+   @schema.@es_table_prefixcm_diagnostics_summary as unblind
    on
    r.analysis_id = unblind.analysis_id and 
    r.target_id = unblind.target_id and 
@@ -631,23 +622,23 @@ sql <- "select
    r.outcome_id = unblind.outcome_id 
    
    inner join
-   @my_schema.@cg_table_prefixcohort_definition as c1
+   @schema.@cg_table_prefixcohort_definition as c1
    on c1.cohort_definition_id = r.target_id
    
    inner join
-   @my_schema.@cg_table_prefixcohort_definition as c2
+   @schema.@cg_table_prefixcohort_definition as c2
    on c2.cohort_definition_id = r.comparator_id
    
    inner join
-   @my_schema.@cg_table_prefixcohort_definition as c3
+   @schema.@cg_table_prefixcohort_definition as c3
    on c3.cohort_definition_id = r.outcome_id
    
    inner join
-   @my_schema.@cm_table_prefixanalysis as a
+   @schema.@cm_table_prefixanalysis as a
    on a.analysis_id = r.analysis_id
    
    inner join
-   @my_schema.@es_table_prefixanalysis as ev
+   @schema.@es_table_prefixanalysis as ev
    on ev.evidence_synthesis_analysis_id = r.evidence_synthesis_analysis_id
    
    where 
@@ -660,10 +651,10 @@ sql <- "select
 
 result <- connectionHandler$queryDb(
   sql = sql,
-  my_schema = mySchema,
-  cm_table_prefix = cmTablePrefix,
-  cg_table_prefix = cgTablePrefix,
-  es_table_prefix = esTablePrefix,
+  schema = resultDatabaseSettings$schema,
+  cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+  cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+  es_table_prefix = resultDatabaseSettings$esTablePrefix,
   outcome_id = outcomeId,
   target_id = targetId
 ) %>%
@@ -766,11 +757,7 @@ computeTraditionalP <- function(
 
 getSccsEstimation <- function(
   connectionHandler,
-  mySchema, 
-  sccsTablePrefix,
-  cgTablePrefix,
-  esTablePrefix,
-  databaseMetaData,
+  resultDatabaseSettings,
   targetId,
   outcomeId
 ){
@@ -790,14 +777,14 @@ getSccsEstimation <- function(
   r.calibrated_se_log_rr
   
   from 
-   @my_schema.@sccs_table_prefixresult as r
+   @schema.@sccs_table_prefixresult as r
    inner join 
-   @my_schema.@sccs_table_prefixexposures_outcome_set as eos
+   @schema.@sccs_table_prefixexposures_outcome_set as eos
    on 
    r.exposures_outcome_set_id = eos.exposures_outcome_set_id
    
    inner join
-   @my_schema.@sccs_table_prefixcovariate as cov
+   @schema.@sccs_table_prefixcovariate as cov
    on 
    r.covariate_id = cov.covariate_id and
    r.database_id = cov.database_id and
@@ -805,14 +792,14 @@ getSccsEstimation <- function(
    r.exposures_outcome_set_id = cov.exposures_outcome_set_id
    
    inner join
-   @my_schema.@sccs_table_prefixexposure as ex
+   @schema.@sccs_table_prefixexposure as ex
    on 
    ex.era_id = cov.era_id and
    ex.exposures_outcome_set_id = cov.exposures_outcome_set_id
    
    inner join
    
-   @my_schema.@sccs_table_prefixdiagnostics_summary as unblind
+   @schema.@sccs_table_prefixdiagnostics_summary as unblind
    on
    r.analysis_id = unblind.analysis_id and 
    r.exposures_outcome_set_id = unblind.exposures_outcome_set_id and 
@@ -820,19 +807,19 @@ getSccsEstimation <- function(
    r.database_id = unblind.database_id
    
    inner join
-   @my_schema.@database_meta_data as db
+   @schema.@database_table as db
    on db.database_id = r.database_id
    
    inner join
-   @my_schema.@cg_table_prefixcohort_definition as c1
+   @schema.@cg_table_prefixcohort_definition as c1
    on c1.cohort_definition_id = cov.era_id
 
    inner join
-   @my_schema.@cg_table_prefixcohort_definition as c3
+   @schema.@cg_table_prefixcohort_definition as c3
    on c3.cohort_definition_id = eos.outcome_id
    
    inner join
-   @my_schema.@sccs_table_prefixanalysis as a
+   @schema.@sccs_table_prefixanalysis as a
    on a.analysis_id = r.analysis_id
    
    where 
@@ -846,10 +833,10 @@ getSccsEstimation <- function(
   
   result <- connectionHandler$queryDb(
     sql = sql,
-    my_schema = mySchema,
-    database_meta_data = databaseMetaData,
-    sccs_table_prefix = sccsTablePrefix,
-    cg_table_prefix = cgTablePrefix,
+    schema = resultDatabaseSettings$schema,
+    database_table = resultDatabaseSettings$databaseTable,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
     outcome_id = outcomeId,
     target_id = targetId
   )
@@ -869,28 +856,28 @@ getSccsEstimation <- function(
   r.calibrated_se_log_rr
   
   from 
-   @my_schema.@es_table_prefixsccs_result as r
+   @schema.@es_table_prefixsccs_result as r
    inner join 
-   @my_schema.@sccs_table_prefixexposures_outcome_set as eos
+   @schema.@sccs_table_prefixexposures_outcome_set as eos
    on 
    r.exposures_outcome_set_id = eos.exposures_outcome_set_id
    
    inner join
-   @my_schema.@sccs_table_prefixcovariate as cov
+   @schema.@sccs_table_prefixcovariate as cov
    on 
    r.covariate_id = cov.covariate_id and
    r.analysis_id = cov.analysis_id and
    r.exposures_outcome_set_id = cov.exposures_outcome_set_id
    
    inner join
-   @my_schema.@sccs_table_prefixexposure as ex
+   @schema.@sccs_table_prefixexposure as ex
    on 
    ex.era_id = cov.era_id and
    ex.exposures_outcome_set_id = cov.exposures_outcome_set_id
    
    inner join
    
-   @my_schema.@es_table_prefixsccs_diagnostics_summary as unblind
+   @schema.@es_table_prefixsccs_diagnostics_summary as unblind
    on
    r.analysis_id = unblind.analysis_id and 
    r.exposures_outcome_set_id = unblind.exposures_outcome_set_id and 
@@ -898,19 +885,19 @@ getSccsEstimation <- function(
    r.evidence_synthesis_analysis_id = unblind.evidence_synthesis_analysis_id
    
    inner join
-   @my_schema.@cg_table_prefixcohort_definition as c1
+   @schema.@cg_table_prefixcohort_definition as c1
    on c1.cohort_definition_id = cov.era_id
 
    inner join
-   @my_schema.@cg_table_prefixcohort_definition as c3
+   @schema.@cg_table_prefixcohort_definition as c3
    on c3.cohort_definition_id = eos.outcome_id
    
    inner join
-   @my_schema.@sccs_table_prefixanalysis as a
+   @schema.@sccs_table_prefixanalysis as a
    on a.analysis_id = r.analysis_id
    
    inner join
-   @my_schema.@es_table_prefixanalysis as ev
+   @schema.@es_table_prefixanalysis as ev
    on ev.evidence_synthesis_analysis_id = r.evidence_synthesis_analysis_id
    
    where 
@@ -924,10 +911,10 @@ getSccsEstimation <- function(
   
   result2 <- connectionHandler$queryDb(
     sql = sql,
-    my_schema = mySchema,
-    es_table_prefix = esTablePrefix,
-    sccs_table_prefix = sccsTablePrefix,
-    cg_table_prefix = cgTablePrefix,
+    schema = resultDatabaseSettings$schema,
+    es_table_prefix = resultDatabaseSettings$esTablePrefix,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
     outcome_id = outcomeId,
     target_id = targetId
   )
@@ -976,20 +963,16 @@ createPlotForSccsAnalysis <- function(
 
 getOACcombinations <- function(
     connectionHandler, 
-    resultsSchema,
-    sccsTablePrefix,
-    cmTablePrefix, 
-    cohortTablePrefix, 
-    databaseTable
+    resultDatabaseSettings
     ){
   
   sql <- "SELECT DISTINCT
       CONCAT(cma.description, '_', cgcd2.cohort_name) as col_names
     FROM
-      @results_schema.@cm_table_prefixdiagnostics_summary cmds
-      INNER JOIN @results_schema.@cm_table_prefixanalysis cma 
+      @schema.@cm_table_prefixdiagnostics_summary cmds
+      INNER JOIN @schema.@cm_table_prefixanalysis cma 
       ON cmds.analysis_id = cma.analysis_id
-      INNER JOIN @results_schema.@cohort_table_prefixcohort_definition cgcd2 
+      INNER JOIN @schema.@cg_table_prefixcohort_definition cgcd2 
       ON cmds.comparator_id = cgcd2.cohort_definition_id
       
       union
@@ -997,14 +980,14 @@ getOACcombinations <- function(
       SELECT 
   CONCAT(a.description, '_', cov.covariate_name) as col_names
 
-  FROM @results_schema.@sccs_table_prefixdiagnostics_summary ds
+  FROM @schema.@sccs_table_prefixdiagnostics_summary ds
 
   INNER JOIN
-  @results_schema.@sccs_table_prefixanalysis a
+  @schema.@sccs_table_prefixanalysis a
   on a.analysis_id = ds.analysis_id
   
   INNER JOIN
-  @results_schema.@sccs_table_prefixcovariate cov
+  @schema.@sccs_table_prefixcovariate cov
   on cov.covariate_id = ds.covariate_id and 
   cov.exposures_outcome_set_id = ds.exposures_outcome_set_id and
   cov.analysis_id = ds.analysis_id
@@ -1012,11 +995,11 @@ getOACcombinations <- function(
   
   result <- connectionHandler$queryDb(
     sql = sql,
-    results_schema = resultsSchema,
-    sccs_table_prefix = sccsTablePrefix,
-    cm_table_prefix = cmTablePrefix,
-    cohort_table_prefix = cohortTablePrefix,
-    database_table = databaseTable
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    database_table = resultDatabaseSettings$databaseTable
   )
   
   res <- result$colNames
@@ -1028,17 +1011,10 @@ getOACcombinations <- function(
 getEvidenceSynthDiagnostics <- function(
     connectionHandler, 
     resultDatabaseSettings,
-    resultsSchema, 
-    cmTablePrefix, 
-    cohortTablePrefix, 
-    databaseTable,
     targetIds,
     outcomeIds
     ){
   
-  resultDatabaseSettings$tablePrefix <- resultDatabaseSettings$sccsTablePrefix
-  resultDatabaseSettings$databaseTable <- resultDatabaseSettings$databaseMetaData
-  resultDatabaseSettings$cohortTablePrefix <- resultDatabaseSettings$cgTablePrefix
   sccsDiagTemp <- getSccsAllDiagnosticsSummary(
     connectionHandler = connectionHandler,
     resultDatabaseSettings = resultDatabaseSettings,
@@ -1048,10 +1024,7 @@ getEvidenceSynthDiagnostics <- function(
   
   cmDiagTemp <- getCmDiagnosticsData(
     connectionHandler = connectionHandler, 
-    resultsSchema = resultsSchema, 
-    tablePrefix = cmTablePrefix, 
-    cohortTablePrefix = cohortTablePrefix, 
-    databaseTable = resultDatabaseSettings$databaseMetaData,
+    resultDatabaseSettings = resultDatabaseSettings,
     targetIds = targetIds,
     outcomeIds = outcomeIds
   )

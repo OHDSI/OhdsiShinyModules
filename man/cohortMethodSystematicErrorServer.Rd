@@ -9,8 +9,7 @@ cohortMethodSystematicErrorServer(
   selectedRow,
   inputParams,
   connectionHandler,
-  resultsSchema,
-  tablePrefix,
+  resultDatabaseSettings,
   metaAnalysisDbIds = NULL
 )
 }
@@ -21,11 +20,9 @@ cohortMethodSystematicErrorServer(
 
 \item{inputParams}{the selected study parameters of interest}
 
-\item{connectionHandler}{the connection to the PLE results database}
+\item{connectionHandler}{the connection handler to the result databases}
 
-\item{resultsSchema}{the schema with the PLE results}
-
-\item{tablePrefix}{tablePrefix}
+\item{resultDatabaseSettings}{a list containing the result schema and prefixes}
 
 \item{metaAnalysisDbIds}{metaAnalysisDbIds}
 }

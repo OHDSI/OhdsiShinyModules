@@ -232,10 +232,7 @@ cohortGeneratorServer <- function(
       
       inputColsCohortCounts <- colnames(getCohortGeneratorCohortCounts(
         connectionHandler = connectionHandler, 
-        resultsSchema = resultsSchema,
-        tablePrefix = resultDatabaseSettings$tablePrefix,
-        databaseTable = resultDatabaseSettings$databaseTable,
-        databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
       ) %>%
         dplyr::select("cdmSourceName",
                       "cohortId",
@@ -344,10 +341,7 @@ cohortGeneratorServer <- function(
       #
       data <- getCohortGeneratorCohortCounts(
         connectionHandler = connectionHandler, 
-        resultsSchema = resultsSchema,
-        tablePrefix = resultDatabaseSettings$tablePrefix,
-        databaseTable = resultDatabaseSettings$databaseTable,
-        databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
       ) %>%
         dplyr::select("cdmSourceName",
                       "cohortId",
@@ -431,10 +425,7 @@ cohortGeneratorServer <- function(
         content = function(con) {
           utils::write.csv(getCohortGeneratorCohortCounts(
             connectionHandler = connectionHandler, 
-            resultsSchema = resultsSchema,
-            tablePrefix = resultDatabaseSettings$tablePrefix,
-            databaseTable = resultDatabaseSettings$databaseTable,
-            databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
+            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
             dplyr::select("cdmSourceName",
                           "cohortId",
@@ -460,10 +451,7 @@ cohortGeneratorServer <- function(
       output$cohortGeneration <- reactable::renderReactable({
         data <- getCohortGeneratorCohortMeta(
           connectionHandler = connectionHandler, 
-          resultsSchema = resultsSchema,
-          tablePrefix = resultDatabaseSettings$tablePrefix,
-          databaseTable = resultDatabaseSettings$databaseTable,
-          databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
+          resultDatabaseSettings = resultDatabaseSettings
           ) %>%
           dplyr::select("cdmSourceName",
                         "cohortId",
@@ -537,8 +525,7 @@ cohortGeneratorServer <- function(
         content = function(con) {
           utils::write.csv(getCohortGeneratorCohortMeta(
             connectionHandler = connectionHandler, 
-            resultsSchema = resultsSchema,
-            tablePrefix = resultDatabaseSettings$tablePrefix
+            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
             dplyr::select("cohortId",
                           "cohortName",
@@ -551,16 +538,12 @@ cohortGeneratorServer <- function(
       #building attrition table using inclusion rules & stats tables
       rules <- getCohortGeneratorInclusionRules(
         connectionHandler = connectionHandler, 
-        resultsSchema = resultsSchema,
-        tablePrefix = resultDatabaseSettings$tablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
       )
       
       stats <- getCohortGeneratorInclusionStats(
         connectionHandler = connectionHandler, 
-        resultsSchema = resultsSchema,
-        tablePrefix = resultDatabaseSettings$tablePrefix,
-        databaseTable = resultDatabaseSettings$databaseTable,
-        databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
       )
       
       #this gets the full attrition table

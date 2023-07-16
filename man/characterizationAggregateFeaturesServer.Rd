@@ -8,10 +8,7 @@ characterizationAggregateFeaturesServer(
   id,
   connectionHandler,
   mainPanelTab,
-  schema,
-  tablePrefix,
-  cohortTablePrefix = "cg_",
-  databaseTable = "DATABASE_META_DATA"
+  resultDatabaseSettings
 )
 }
 \arguments{
@@ -21,13 +18,7 @@ characterizationAggregateFeaturesServer(
 
 \item{mainPanelTab}{the current tab}
 
-\item{schema}{the database schema for the model results}
-
-\item{tablePrefix}{a string that appends the tables in the result schema}
-
-\item{cohortTablePrefix}{a string that appends the COHORT_DEFINITION table in the result schema}
-
-\item{databaseTable}{The database table name}
+\item{resultDatabaseSettings}{a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix}
 }
 \value{
 The server to the description aggregate features module

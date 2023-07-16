@@ -9,8 +9,7 @@ cohortMethodPropensityModelServer(
   selectedRow,
   inputParams,
   connectionHandler,
-  resultsSchema,
-  tablePrefix
+  resultDatabaseSettings
 )
 }
 \arguments{
@@ -22,9 +21,7 @@ cohortMethodPropensityModelServer(
 
 \item{connectionHandler}{the connection to the PLE results database}
 
-\item{resultsSchema}{the schema with the PLE results}
-
-\item{tablePrefix}{tablePrefix}
+\item{resultDatabaseSettings}{a list containing the result schema and prefixes}
 }
 \value{
 the PLE propensity score model

@@ -4,10 +4,8 @@ shiny::testServer(
   app = characterizationIncidenceServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization,
-    schema = resultDatabaseSettingsCharacterization$schema,
     mainPanelTab = shiny::reactiveVal("Feature Comparison"),
-    incidenceTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix,
-    databaseTable = resultDatabaseSettingsCharacterization$databaseTable
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   ), 
   expr = {
     

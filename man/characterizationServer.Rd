@@ -15,7 +15,7 @@ characterizationServer(
 
 \item{connectionHandler}{a connection to the database with the results}
 
-\item{resultDatabaseSettings}{a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cohortTablePrefix}
+\item{resultDatabaseSettings}{a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix}
 }
 \value{
 The server for the characterization module

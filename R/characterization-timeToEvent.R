@@ -87,10 +87,7 @@ characterizationTimeToEventViewer <- function(id) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
 #' @param mainPanelTab the current tab 
-#' @param schema the database schema for the model results
-#' @param tablePrefix a string that appends the tables in the result schema
-#' @param cohortTablePrefix a string that appends the cohort table in the result schema
-#' @param databaseTable  name of the database table
+#' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #' 
 #' @return
 #' The server to the prediction time to event module
@@ -100,10 +97,7 @@ characterizationTimeToEventServer <- function(
   id, 
   connectionHandler,
   mainPanelTab,
-  schema, 
-  tablePrefix,
-  cohortTablePrefix = 'cg_',
-  databaseTable = 'DATABASE_META_DATA'
+  resultDatabaseSettings
 ) {
   shiny::moduleServer(
     id,
@@ -116,9 +110,7 @@ characterizationTimeToEventServer <- function(
       # get the possible target ids
       bothIds <- timeToEventGetIds(
         connectionHandler,
-        schema, 
-        tablePrefix,
-        cohortTablePrefix
+        resultDatabaseSettings
       )
 
       shiny::observeEvent(
@@ -230,9 +222,7 @@ characterizationTimeToEventServer <- function(
               targetId = input$targetId,
               outcomeId = input$outcomeId,
               connectionHandler = connectionHandler,
-              schema = schema, 
-              tablePrefix = tablePrefix,
-              databaseTable = databaseTable
+              resultDatabaseSettings
             )
           }, 
           error = function(e){shiny::showNotification(paste0('Error: ', e));return(NULL)}
@@ -293,9 +283,7 @@ characterizationTimeToEventServer <- function(
 
 timeToEventGetIds <- function(
     connectionHandler,
-  schema, 
-  tablePrefix,
-  cohortTablePrefix
+    resultDatabaseSettings
 ){
   
   shiny::withProgress(message = 'Getting time to event T and O ids', value = 0, {
@@ -303,10 +291,10 @@ timeToEventGetIds <- function(
   sql <- "SELECT DISTINCT 
      t.COHORT_NAME as target, TARGET_COHORT_DEFINITION_ID, 
      o.COHORT_NAME as outcome, OUTCOME_COHORT_DEFINITION_ID 
-  FROM @result_database_schema.@table_prefixTIME_TO_EVENT tte
- inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION t
+  FROM @schema.@c_table_prefixTIME_TO_EVENT tte
+ inner join @schema.@cg_table_prefixCOHORT_DEFINITION t
           on tte.TARGET_COHORT_DEFINITION_ID = t.COHORT_DEFINITION_ID
-   inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION o
+   inner join @schema.@cg_table_prefixCOHORT_DEFINITION o
           on tte.OUTCOME_COHORT_DEFINITION_ID = o.COHORT_DEFINITION_ID
   ;"
 
@@ -315,9 +303,9 @@ timeToEventGetIds <- function(
   
   bothIds <- connectionHandler$queryDb(
     sql = sql, 
-    result_database_schema = schema,
-    table_prefix = tablePrefix,
-    cohort_table_prefix = cohortTablePrefix
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
   
   shiny::incProgress(3/4, detail = paste("Processing ids"))
@@ -362,17 +350,15 @@ getTimeToEventData <- function(
   targetId,
   outcomeId,
   connectionHandler,
-  schema, 
-  tablePrefix,
-  databaseTable
+  resultDatabaseSettings
 ){
   
   
   shiny::withProgress(message = 'Extracting time to event data', value = 0, {
   
   sql <- "SELECT tte.*, d.CDM_SOURCE_ABBREVIATION as database_name 
-          FROM @result_database_schema.@table_prefixTIME_TO_EVENT tte
-          inner join @result_database_schema.@database_table d
+          FROM @schema.@c_table_prefixTIME_TO_EVENT tte
+          inner join @schema.@database_table d
           on tte.database_id = d.database_id
           where tte.TARGET_COHORT_DEFINITION_ID = @target_id
           and tte.OUTCOME_COHORT_DEFINITION_ID = @outcome_id;"
@@ -381,11 +367,11 @@ getTimeToEventData <- function(
   
   data <- connectionHandler$queryDb(
     sql = sql, 
-    result_database_schema = schema,
-    table_prefix = tablePrefix,
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
     target_id = targetId,
     outcome_id = outcomeId,
-    database_table = databaseTable
+    database_table = resultDatabaseSettings$databaseTable
   )
   
   shiny::incProgress(3/3, detail = paste("Finished"))

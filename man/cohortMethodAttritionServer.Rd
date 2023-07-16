@@ -9,9 +9,7 @@ cohortMethodAttritionServer(
   selectedRow,
   inputParams,
   connectionHandler,
-  resultsSchema,
-  tablePrefix,
-  databaseTable
+  resultDatabaseSettings
 )
 }
 \arguments{
@@ -23,11 +21,7 @@ cohortMethodAttritionServer(
 
 \item{connectionHandler}{the connection to the PLE results database}
 
-\item{resultsSchema}{the schema with the PLE results}
-
-\item{tablePrefix}{tablePrefix}
-
-\item{databaseTable}{databaseTable}
+\item{resultDatabaseSettings}{a list containing the result schema and prefixes}
 }
 \value{
 the PLE attrition results content server

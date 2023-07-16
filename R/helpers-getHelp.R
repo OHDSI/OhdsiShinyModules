@@ -1,6 +1,6 @@
 getPredictionHelp <- function(file){
   fileLoc <- system.file(
-    'prediction-www', 
+    'patient-level-prediction-www', 
     file, 
     package = "OhdsiShinyModules"
   )

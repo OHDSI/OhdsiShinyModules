@@ -296,13 +296,13 @@ getSccsDiagAnalyses <- function(
   a.description as analysis
  
   FROM
-  @database_schema.@table_prefixanalysis a
+  @schema.@sccs_table_prefixanalysis a
   ;
   "
   result <- connectionHandler$queryDb(
     sql,
-    database_schema = resultDatabaseSettings$schema,
-    table_prefix = resultDatabaseSettings$tablePrefix,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
     snakeCaseToCamelCase = TRUE
   )
   
@@ -323,20 +323,20 @@ getSccsDiagOutcomes <- function(
   c.cohort_name as outcome, 
   c.cohort_definition_id
  
-  FROM @database_schema.@table_prefixdiagnostics_summary ds
+  FROM @schema.@sccs_table_prefixdiagnostics_summary ds
             inner join
-  @database_schema.@table_prefixexposures_outcome_set eos
+  @schema.@sccs_table_prefixexposures_outcome_set eos
   on ds.exposures_outcome_set_id = eos.exposures_outcome_set_id
      inner join
-   @database_schema.@cg_table_prefixcohort_definition as c
+   @schema.@cg_table_prefixcohort_definition as c
    on c.cohort_definition_id = eos.outcome_id
   ;
   "
   result <- connectionHandler$queryDb(
     sql,
-    database_schema = resultDatabaseSettings$schema,
-    table_prefix = resultDatabaseSettings$tablePrefix,
-    cg_table_prefix = resultDatabaseSettings$cohortTablePrefix,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
     snakeCaseToCamelCase = TRUE
   )
   
@@ -356,25 +356,25 @@ getSccsDiagTargets <- function(
   c2.cohort_name as target, 
   c2.cohort_definition_id
  
- FROM @database_schema.@table_prefixdiagnostics_summary ds
+ FROM @schema.@sccs_table_prefixdiagnostics_summary ds
 
   INNER JOIN
-  @database_schema.@table_prefixcovariate cov
+  @schema.@sccs_table_prefixcovariate cov
   on cov.covariate_id = ds.covariate_id and 
   cov.exposures_outcome_set_id = ds.exposures_outcome_set_id and
   cov.analysis_id = ds.analysis_id and
   cov.database_id = ds.database_id
   
    inner join
-   @database_schema.@cg_table_prefixcohort_definition as c2
+   @schema.@cg_table_prefixcohort_definition as c2
    on cov.era_id = c2.cohort_definition_id
   ;
   "
   result <- connectionHandler$queryDb(
     sql,
-    database_schema = resultDatabaseSettings$schema,
-    table_prefix = resultDatabaseSettings$tablePrefix,
-    cg_table_prefix = resultDatabaseSettings$cohortTablePrefix,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
     snakeCaseToCamelCase = TRUE
   )
   
@@ -400,31 +400,31 @@ getSccsAllDiagnosticsSummary <- function(
   a.description as analysis,
   cov.covariate_name,
   ds.*
-  FROM @database_schema.@table_prefixdiagnostics_summary ds
+  FROM @schema.@sccs_table_prefixdiagnostics_summary ds
             inner join
-  @database_schema.@table_prefixexposures_outcome_set eos
+  @schema.@sccs_table_prefixexposures_outcome_set eos
   on ds.exposures_outcome_set_id = eos.exposures_outcome_set_id
      inner join
-   @database_schema.@cg_table_prefixcohort_definition as c
+   @schema.@cg_table_prefixcohort_definition as c
    on c.cohort_definition_id = eos.outcome_id
    
    INNER JOIN
-  @database_schema.@database_table_prefix@database_table d
+  @schema.@database_table_prefix@database_table d
   on d.database_id = ds.database_id
   
   INNER JOIN
-  @database_schema.@table_prefixanalysis a
+  @schema.@sccs_table_prefixanalysis a
   on a.analysis_id = ds.analysis_id
   
   INNER JOIN
-  @database_schema.@table_prefixcovariate cov
+  @schema.@sccs_table_prefixcovariate cov
   on cov.covariate_id = ds.covariate_id and 
   cov.exposures_outcome_set_id = ds.exposures_outcome_set_id and
   cov.analysis_id = ds.analysis_id and
   cov.database_id = ds.database_id
   
    inner join
-   @database_schema.@cg_table_prefixcohort_definition as c2
+   @schema.@cg_table_prefixcohort_definition as c2
    on cov.era_id = c2.cohort_definition_id
    
    
@@ -437,9 +437,9 @@ getSccsAllDiagnosticsSummary <- function(
   "
   result <- connectionHandler$queryDb(
     sql,
-    database_schema = resultDatabaseSettings$schema,
-    cg_table_prefix = resultDatabaseSettings$cohortTablePrefix,
-    table_prefix = resultDatabaseSettings$tablePrefix,
+    schema = resultDatabaseSettings$schema,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
     database_table_prefix = resultDatabaseSettings$databaseTablePrefix,
     database_table = resultDatabaseSettings$databaseTable,
     

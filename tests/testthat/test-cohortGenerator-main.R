@@ -4,14 +4,7 @@ shiny::testServer(
   app = cohortGeneratorServer, 
   args = list(
     connectionHandler = connectionHandlerCG,
-    resultDatabaseSettings = list(
-      dbms = 'sqlite',
-      tablePrefix = 'cg_',
-      cohortTablePrefix = 'cg_',
-      databaseTable = 'DATABASE_META_DATA',
-      schema = 'main',
-      tempEmulationSchema = NULL
-    )
+    resultDatabaseSettings = resultDatabaseSettingsCG
   ), 
   expr = {
     
@@ -40,10 +33,7 @@ test_that("Test getCohortGeneratorCohortCounts ", {
   
   result <- getCohortGeneratorCohortCounts(
     connectionHandler = connectionHandlerCG, 
-    resultsSchema = 'main',
-    tablePrefix = 'cg_',
-    databaseTable = 'DATABASE_META_DATA',
-    databaseTablePrefix = ''
+    resultDatabaseSettings = resultDatabaseSettingsCG
   )
   
   testthat::expect_true( nrow(result) > 0 )
@@ -55,10 +45,7 @@ test_that("Test getCohortGeneratorCohortMeta ", {
   
   result <- getCohortGeneratorCohortMeta(
     connectionHandler = connectionHandlerCG, 
-    resultsSchema = 'main',
-    tablePrefix = 'cg_',
-    databaseTable = 'DATABASE_META_DATA',
-    databaseTablePrefix = ''
+    resultDatabaseSettings = resultDatabaseSettingsCG
   )
   
   testthat::expect_true( nrow(result) > 0 )
@@ -70,10 +57,7 @@ test_that("Test getCohortGeneratorCohortInclusionSummary ", {
   
   result <- getCohortGeneratorCohortInclusionSummary(
     connectionHandler = connectionHandlerCG, 
-    resultsSchema = 'main',
-    tablePrefix = 'cg_',
-    databaseTable = 'DATABASE_META_DATA',
-    databaseTablePrefix = ''
+    resultDatabaseSettings = resultDatabaseSettingsCG
   )
   
   testthat::expect_true( nrow(result) > 0 )
@@ -86,8 +70,7 @@ test_that("Test getCohortGeneratorInclusionRules ", {
   
   result <- getCohortGeneratorInclusionRules(
     connectionHandler = connectionHandlerCG, 
-    resultsSchema = 'main',
-    tablePrefix = 'cg_'
+    resultDatabaseSettings = resultDatabaseSettingsCG
   )
   
   testthat::expect_true( nrow(result) > 0 )
@@ -99,10 +82,7 @@ test_that("Test getCohortGeneratorInclusionStats ", {
   
   result <- getCohortGeneratorInclusionStats(
     connectionHandler = connectionHandlerCG, 
-    resultsSchema = 'main',
-    tablePrefix = 'cg_',
-    databaseTable = 'DATABASE_META_DATA',
-    databaseTablePrefix = ''
+    resultDatabaseSettings = resultDatabaseSettingsCG
   )
   
   testthat::expect_true( nrow(result) > 0 )

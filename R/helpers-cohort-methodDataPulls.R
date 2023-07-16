@@ -1,33 +1,41 @@
 
-getCohortNameFromId <- function(connectionHandler, resultsSchema, cohortTablePrefix, cohortId) {
+getCohortNameFromId <- function(
+    connectionHandler, 
+    resultDatabaseSettings,
+    cohortId) {
   sql <- "
   SELECT
   cohort_name
   FROM
-   @results_schema.@cohort_table_prefixcohort_definition cd
+   @schema.@cg_table_prefixcohort_definition cd
   WHERE
   cd.cohort_definition_id = @cohort_id;
   "
   return(
     connectionHandler$queryDb(
       sql = sql,
-      results_schema = resultsSchema,
-      cohort_table_prefix = cohortTablePrefix,
+      schema = resultDatabaseSettings$schema,
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
       cohort_id = cohortId
     )
   )
 }
 
 
-getCohortMethodTcoChoice <- function(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix, tcoVar, sorted = TRUE) {
+getCohortMethodTcoChoice <- function(
+    connectionHandler, 
+    resultDatabaseSettings,
+    tcoVar, 
+    sorted = TRUE) {
   sql <- "
   SELECT
   DISTINCT
   cmtco.@tco_var,
   cd.cohort_name
 FROM
-  @results_schema.@table_prefixtarget_comparator_outcome cmtco
-  join @results_schema.@cohort_table_prefixcohort_definition cd on cmtco.@tco_var = cd.cohort_definition_id
+  @schema.@cm_table_prefixtarget_comparator_outcome cmtco
+  join @schema.@cg_table_prefixcohort_definition cd 
+  on cmtco.@tco_var = cd.cohort_definition_id
   "
   
   if (sorted) {
@@ -39,45 +47,71 @@ FROM
   return(
     connectionHandler$queryDb(
       sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      cohort_table_prefix = cohortTablePrefix,
+      schema = resultDatabaseSettings$schema,
+      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
       tco_var = tcoVar
     )
   )
 }
 
 
-getCohortMethodTargetChoices <- function(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix) {
+getCohortMethodTargetChoices <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+    ) {
   return(
-    getCohortMethodTcoChoice(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix, "target_id")
+    getCohortMethodTcoChoice(
+      connectionHandler = connectionHandler, 
+      resultDatabaseSettings = resultDatabaseSettings,
+      "target_id"
+      )
   )
 }
 
 
-getCohortMethodComparatorChoices <- function(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix) {
+getCohortMethodComparatorChoices <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+    ) {
   return(
-    getCohortMethodTcoChoice(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix, "comparator_id")
+    getCohortMethodTcoChoice(
+      connectionHandler = connectionHandler, 
+      resultDatabaseSettings = resultDatabaseSettings, 
+      "comparator_id"
+      )
   )
 }
 
 
-getCohortMethodOutcomeChoices <- function(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix) {
+getCohortMethodOutcomeChoices <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+    ) {
   return(
-    getCohortMethodTcoChoice(connectionHandler, resultsSchema, tablePrefix, cohortTablePrefix, "outcome_id")
+    getCohortMethodTcoChoice(
+      connectionHandler = connectionHandler, 
+      resultDatabaseSettings = resultDatabaseSettings,
+      "outcome_id"
+      )
   )
 }
 
 
-getCohortMethodDatabaseChoices <- function(connectionHandler, resultsSchema, tablePrefix, databaseTable, sorted = TRUE) {
+getCohortMethodDatabaseChoices <- function(
+    connectionHandler, 
+    resultDatabaseSettings, 
+    sorted = TRUE
+    ) {
   sql <- "
 SELECT
 DISTINCT
 dmd.database_id,
 dmd.cdm_source_abbreviation
 FROM
-  @results_schema.@table_prefixresult cmr
-  join @results_schema.@database_table dmd on dmd.database_id = cmr.database_id
+  @schema.@cm_table_prefixresult cmr
+  join @schema.@database_table dmd 
+  on dmd.database_id = cmr.database_id
 
   "
   
@@ -89,22 +123,25 @@ FROM
   return(
     connectionHandler$queryDb(
       sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      database_table = databaseTable
+      schema = resultDatabaseSettings$schema,
+      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+      database_table = resultDatabaseSettings$databaseTable
     )
   )
 }
 
 
-getCmAnalysisOptions <- function(connectionHandler, resultsSchema, tablePrefix, sorted = TRUE) {
+getCmAnalysisOptions <- function(
+    connectionHandler, 
+    resultDatabaseSettings,
+    sorted = TRUE) {
   sql <- "
 SELECT
 DISTINCT
 cma.analysis_id,
 cma.description
 FROM
-  @results_schema.@table_prefixanalysis cma
+  @schema.@cm_table_prefixanalysis cma
   "
   
   if (sorted) {
@@ -116,13 +153,16 @@ FROM
   return(
     connectionHandler$queryDb(
       sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix
+      schema = resultDatabaseSettings$schema,
+      cm_table_prefix = resultDatabaseSettings$cmTablePrefix
     )
   )
 }
 
-getAllCohortMethodResults <- function(connectionHandler, resultsSchema, tablePrefix, databaseTable) {
+getAllCohortMethodResults <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+    ) {
   sql <- "
 SELECT
   cma.analysis_id,
@@ -149,33 +189,33 @@ SELECT
   cmr.calibrated_se_log_rr,
   COALESCE(cmds.unblind, 0) unblind -- TODO: assume unblinded? (or always populated and moot)
 FROM
-  @results_schema.@table_prefixanalysis cma
-  JOIN @results_schema.@table_prefixresult cmr on cmr.analysis_id = cma.analysis_id
-  JOIN @results_schema.@database_table dmd on dmd.database_id = cmr.database_id
-  LEFT JOIN @results_schema.@table_prefixdiagnostics_summary cmds on cmds.analysis_id = cmr.analysis_id;
+  @schema.@cm_table_prefixanalysis cma
+  JOIN @schema.@cm_table_prefixresult cmr on cmr.analysis_id = cma.analysis_id
+  JOIN @schema.@database_table dmd on dmd.database_id = cmr.database_id
+  LEFT JOIN @schema.@cm_table_prefixdiagnostics_summary cmds on cmds.analysis_id = cmr.analysis_id;
   "
   
   
   return(
     connectionHandler$queryDb(
       sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      database_table = databaseTable
+      schema = resultDatabaseSettings$schema,
+      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+      database_table = resultDatabaseSettings$databaseTable
     )
   )
 }
 
 
-getCohortMethodMainResults <- function(connectionHandler,
-                                     resultsSchema,
-                                     tablePrefix,
-                                     databaseTable,
-                                     targetIds = c(),
-                                     comparatorIds = c(),
-                                     outcomeIds = c(),
-                                     databaseIds = c(),
-                                     analysisIds = c()) {
+getCohortMethodMainResults <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    targetIds = c(),
+    comparatorIds = c(),
+    outcomeIds = c(),
+    databaseIds = c(),
+    analysisIds = c()
+) {
   
   sql <- "
 SELECT
@@ -203,10 +243,15 @@ SELECT
   cmr.calibrated_se_log_rr,
   COALESCE(cmds.unblind, 0) unblind -- TODO: assume unblinded? (or always populated and moot)
 FROM
-  @results_schema.@table_prefixanalysis cma
-  JOIN @results_schema.@table_prefixresult cmr on cmr.analysis_id = cma.analysis_id
-  JOIN @results_schema.@database_table dmd on dmd.database_id = cmr.database_id
-  LEFT JOIN @results_schema.@table_prefixdiagnostics_summary cmds on cmds.analysis_id = cmr.analysis_id
+  @schema.@cm_table_prefixanalysis cma
+  JOIN @schema.@cm_table_prefixresult cmr 
+  on cmr.analysis_id = cma.analysis_id
+  
+  JOIN @schema.@database_table dmd 
+  on dmd.database_id = cmr.database_id
+  
+  LEFT JOIN @schema.@cm_table_prefixdiagnostics_summary cmds 
+  on cmds.analysis_id = cmr.analysis_id
 	AND cmds.target_id = cmr.target_id
 	AND cmds.comparator_id = cmr.comparator_id
 	AND cmds.outcome_id = cmr.outcome_id
@@ -241,9 +286,9 @@ FROM
     suppressWarnings( # ignoring warnings due to parameter not found
       connectionHandler$queryDb(
         sql = sql,
-        results_schema = resultsSchema,
-        table_prefix = tablePrefix,
-        database_table = databaseTable,
+        schema = resultDatabaseSettings$schema,
+        cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+        database_table = resultDatabaseSettings$databaseTable,
         target_ids = paste0("'", paste(targetIds, collapse = "', '"), "'"),
         comparator_ids = paste0("'", paste(comparatorIds, collapse = "', '"), "'"),
         outcome_ids = paste0("'", paste(outcomeIds, collapse = "', '"), "'"),
@@ -256,18 +301,21 @@ FROM
 }
 
 
-getCohortMethodAnalyses <- function(connectionHandler, resultsSchema, tablePrefix) {
+getCohortMethodAnalyses <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+    ) {
   sql <- "
   SELECT
     cma.*
   FROM
-    @results_schema.@table_prefixanalysis cma
+    @schema.@cm_table_prefixanalysis cma
   "
   return(
     connectionHandler$queryDb(
       sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix
+      schema = resultDatabaseSettings$schema,
+      cm_table_prefix = resultDatabaseSettings$cmTablePrefix
     )
   )
 }
@@ -327,17 +375,25 @@ getCohortMethodSubgroupResults <- function(connectionHandler, # not used?
 }
 
 
-getCohortMethodControlResults <- function(connectionHandler, resultsSchema, tablePrefix, targetId,
-                                        comparatorId, analysisId, databaseId = NULL,
-                                        includePositiveControls = TRUE, emptyAsNa = TRUE) {
+getCohortMethodControlResults <- function(
+    connectionHandler, 
+    resultDatabaseSettings, 
+    targetId,
+    comparatorId, 
+    analysisId, 
+    databaseId = NULL,
+    includePositiveControls = TRUE, 
+    emptyAsNa = TRUE
+    ) {
   
   sql <- "
     SELECT
       cmr.*,
       cmtco.true_effect_size effect_size
     FROM
-      @results_schema.@table_prefixresult cmr
-      JOIN @results_schema.@table_prefixtarget_comparator_outcome cmtco ON cmr.target_id = cmtco.target_id AND cmr.comparator_id = cmtco.comparator_id AND cmr.outcome_id = cmtco.outcome_id
+      @schema.@cm_table_prefixresult cmr
+      JOIN @schema.@cm_table_prefixtarget_comparator_outcome cmtco 
+      ON cmr.target_id = cmtco.target_id AND cmr.comparator_id = cmtco.comparator_id AND cmr.outcome_id = cmtco.outcome_id
     WHERE
       cmtco.outcome_of_interest != 1
       AND cmr.target_id = @target_id
@@ -358,8 +414,8 @@ getCohortMethodControlResults <- function(connectionHandler, resultsSchema, tabl
   
   results <- connectionHandler$queryDb(
     sql = sql,
-    results_schema = resultsSchema,
-    table_prefix = tablePrefix,
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
     target_id = targetId,
     comparator_id = comparatorId,
     analysis_id = analysisId,
@@ -374,20 +430,21 @@ getCohortMethodControlResults <- function(connectionHandler, resultsSchema, tabl
 }
 
 
-getCmFollowUpDist <- function(connectionHandler,
-                              resultsSchema,
-                              tablePrefix,
-                              targetId,
-                              comparatorId,
-                              outcomeId,
-                              databaseId = NULL,
-                              analysisId) {
+getCmFollowUpDist <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    targetId,
+    comparatorId,
+    outcomeId,
+    databaseId = NULL,
+    analysisId
+) {
   
   sql <- "
   SELECT
     *
   FROM
-    @results_schema.@table_prefixfollow_up_dist cmfud
+    @schema.@cm_table_prefixfollow_up_dist cmfud
   WHERE
     cmfud.target_id = @target_id
     AND cmfud.comparator_id = @comparator_id
@@ -400,8 +457,8 @@ getCmFollowUpDist <- function(connectionHandler,
   return(
     connectionHandler$queryDb(
       sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
+      schema = resultDatabaseSettings$schema,
+      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
       target_id = targetId,
       comparator_id = comparatorId,
       outcome_id = outcomeId,
@@ -412,14 +469,19 @@ getCmFollowUpDist <- function(connectionHandler,
 }
 
 
-
-
-getCohortMethodPs <- function(connectionHandler, resultsSchema, tablePrefix, targetId, comparatorId, analysisId, databaseId = NULL) {
+getCohortMethodPs <- function(
+    connectionHandler, 
+    resultDatabaseSettings,
+    targetId, 
+    comparatorId, 
+    analysisId, 
+    databaseId = NULL
+    ) {
   sql <- "
     SELECT
       *
     FROM
-      @results_schema.@table_prefixpreference_score_dist cmpsd
+      @schema.@cm_table_prefixpreference_score_dist cmpsd
     WHERE
       cmpsd.target_id = @target_id
       AND cmpsd.comparator_id = @comparator_id
@@ -432,8 +494,8 @@ getCohortMethodPs <- function(connectionHandler, resultsSchema, tablePrefix, tar
   
   ps <- connectionHandler$queryDb(
     sql = sql,
-    results_schema = resultsSchema,
-    table_prefix = tablePrefix,
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
     target_id = targetId,
     comparator_id = comparatorId,
     analysis_id = analysisId,
@@ -448,25 +510,21 @@ getCohortMethodPs <- function(connectionHandler, resultsSchema, tablePrefix, tar
 }
 
 
-getCohortMethodKaplanMeier <- function(connectionHandler, resultsSchema, tablePrefix, databaseTable, targetId, comparatorId, outcomeId, databaseId, analysisId) {
-  sqlTmp <- "
-  SELECT
-    *
-  FROM
-    @results_schema.@table_prefixkaplan_meier_dist cmkmd
-    JOIN @results_schema.@database_table dmd on  dmd.database_id = cmkmd.database_id
-  WHERE
-    cmkmd.target_id = @target_id
-    AND cmkmd.comparator_id = @comparator_id
-    AND cmkmd.outcome_id = @outcome_id
-    AND cmkmd.analysis_id = @analysis_id
-    AND dmd.cdm_source_abbreviation = '@database_id';
-  "
+getCohortMethodKaplanMeier <- function(
+    connectionHandler, 
+    resultDatabaseSettings,
+    targetId, 
+    comparatorId, 
+    outcomeId, 
+    databaseId, 
+    analysisId
+    ) {
+ 
   sql <- "
   SELECT
     *
   FROM
-    @results_schema.@table_prefixkaplan_meier_dist cmkmd
+    @schema.@cm_table_prefixkaplan_meier_dist cmkmd
   WHERE
     cmkmd.target_id = @target_id
     AND cmkmd.comparator_id = @comparator_id
@@ -478,9 +536,9 @@ getCohortMethodKaplanMeier <- function(connectionHandler, resultsSchema, tablePr
   return(
     connectionHandler$queryDb(
       sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
-      database_table = databaseTable,
+      schema = resultDatabaseSettings$schema,
+      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+      #database_table = resultDatabaseSettings$databaseTable,
       target_id = targetId,
       comparator_id = comparatorId,
       outcome_id = outcomeId,
@@ -491,25 +549,20 @@ getCohortMethodKaplanMeier <- function(connectionHandler, resultsSchema, tablePr
 }
 
 
-getCohortMethodAttrition <- function(connectionHandler, resultsSchema, tablePrefix, databaseTable, targetId, comparatorId, outcomeId, analysisId, databaseId) {
-  sqlTmp <- "
-  SELECT
-    cmat.*
-  FROM
-    @results_schema.@table_prefixattrition cmat
-    JOIN @results_schema.@database_table dmd on dmd.database_id = cmat.database_id
-  WHERE
-  cmat.target_id = @target_id
-  AND cmat.comparator_id = @comparator_id
-  AND cmat.outcome_id = @outcome_id
-  AND cmat.analysis_id = @analysis_id
-  AND dmd.cdm_source_abbreviation = '@database_id';
-  "
+getCohortMethodAttrition <- function(
+    connectionHandler, 
+    resultDatabaseSettings, 
+    targetId, 
+    comparatorId, 
+    outcomeId, 
+    analysisId, 
+    databaseId
+    ) {
+  
   sql <- "
-  SELECT
-    cmat.*
+  SELECT cmat.*
   FROM
-    @results_schema.@table_prefixattrition cmat
+    @schema.@cm_table_prefixattrition cmat
   WHERE
   cmat.target_id = @target_id
   AND cmat.comparator_id = @comparator_id
@@ -519,9 +572,9 @@ getCohortMethodAttrition <- function(connectionHandler, resultsSchema, tablePref
   "
   result <- connectionHandler$queryDb(
     sql = sql,
-    results_schema = resultsSchema,
-    table_prefix = tablePrefix,
-    database_table = databaseTable,
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+    #database_table = resultDatabaseSettings$databaseTable,
     target_id = targetId,
     comparator_id = comparatorId,
     outcome_id = outcomeId,
@@ -540,16 +593,23 @@ getCohortMethodAttrition <- function(connectionHandler, resultsSchema, tablePref
 }
 
 
-getCohortMethodStudyPeriod <- function(connectionHandler, targetId, comparatorId, databaseId) {
-  sql <- "SELECT min_date,
-  max_date
-  FROM comparison_summary
+getCohortMethodStudyPeriod <- function(
+    connectionHandler, 
+    resultDatabaseSettings,
+    targetId, 
+    comparatorId, 
+    databaseId
+    ) {
+  sql <- "SELECT min_date, max_date
+  FROM @schema.@cm_table_prefixcomparison_summary
   WHERE target_id = @target_id
   AND comparator_id = @comparator_id
   AND database_id = '@database_id';"
 
   studyPeriod <- connectionHandler$queryDb(
     sql = sql,
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
     target_id = targetId,
     comparator_id = comparatorId,
     database_id = databaseId
@@ -558,15 +618,24 @@ getCohortMethodStudyPeriod <- function(connectionHandler, targetId, comparatorId
 }
 
 
-getCohortMethodPropensityModel <- function(connectionHandler, resultsSchema, tablePrefix, targetId, comparatorId, analysisId, databaseId) {
+getCohortMethodPropensityModel <- function(
+    connectionHandler, 
+    resultDatabaseSettings,
+    targetId, 
+    comparatorId, 
+    analysisId, 
+    databaseId
+    ) {
   sqlTmp <- "
   SELECT
     cmpm.coefficient,
     cmc.covariate_id,
     cmc.covariate_name
   FROM
-    @results_schema.@table_prefixcovariate cmc
-    JOIN @results_schema.@table_prefixpropensity_model cmpm ON cmc.covariate_id = cmpm.covariate_id AND cmc.database_id = cmpm.database_id
+    @schema.@cm_table_prefixcovariate cmc
+    JOIN @schema.@cm_table_prefixpropensity_model cmpm 
+    ON cmc.covariate_id = cmpm.covariate_id 
+    AND cmc.database_id = cmpm.database_id
   WHERE
     cmpm.target_id = @target_id
     AND cmpm.comparator_id = @comparator_id
@@ -585,7 +654,7 @@ getCohortMethodPropensityModel <- function(connectionHandler, resultsSchema, tab
         covariate_id,
         covariate_name
       FROM
-        @results_schema.@table_prefixcovariate
+        @schema.@cm_table_prefixcovariate
       WHERE
         analysis_id = @analysis_id
         AND database_id = '@database_id'
@@ -593,7 +662,8 @@ getCohortMethodPropensityModel <- function(connectionHandler, resultsSchema, tab
       SELECT
       0 as covariate_id,
       'intercept' as covariate_name) cmc
-    JOIN @results_schema.@table_prefixpropensity_model cmpm ON cmc.covariate_id = cmpm.covariate_id
+    JOIN @schema.@cm_table_prefixpropensity_model cmpm 
+    ON cmc.covariate_id = cmpm.covariate_id
   WHERE
     cmpm.target_id = @target_id
     AND cmpm.comparator_id = @comparator_id
@@ -603,8 +673,8 @@ getCohortMethodPropensityModel <- function(connectionHandler, resultsSchema, tab
   
   model <- connectionHandler$queryDb(
     sql = sql,
-    results_schema = resultsSchema,
-    table_prefix = tablePrefix,
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
     target_id = targetId,
     comparator_id = comparatorId,
     analysis_id = analysisId,
@@ -616,8 +686,22 @@ getCohortMethodPropensityModel <- function(connectionHandler, resultsSchema, tab
 
 
 
-getCohortMethodNegativeControlEstimates <- function(cohortMethodResult, connectionHandler, targetId, comparatorId, analysisId) {
-  subset <- getCohortMethodControlResults(cohortMethodResult, connectionHandler, targetId, comparatorId, analysisId, includePositiveControls = FALSE)
+getCohortMethodNegativeControlEstimates <- function(
+    connectionHandler, 
+    resultDatabaseSettings,
+    targetId, 
+    comparatorId, 
+    analysisId
+    ) {
+  
+  subset <- getCohortMethodControlResults(
+    connectionHandler = connectionHandler, 
+    resultDatabaseSettings = resultDatabaseSettings,
+    targetId = targetId, 
+    comparatorId =comparatorId, 
+    analysisId = analysisId, 
+    includePositiveControls = FALSE
+    )
   subset <- subset[, c("databaseId", "logRr", "seLogRr")]
   if(nrow(subset) == 0)
     return(NULL)

@@ -4,9 +4,7 @@ shiny::testServer(
   app = cohortMethodDiagnosticsSummaryServer, 
   args = list(
     connectionHandler = connectionHandlerCm, 
-    resultsSchema = 'main', 
-    tablePrefix = 'cm_',
-    cohortTablePrefix = resultDatabaseSettingsCm$cohortTablePrefix
+    resultDatabaseSettings = resultDatabaseSettingsCm
   ), 
   expr = {
     
@@ -54,9 +52,7 @@ test_that("getCmDiagCohorts", {
   
 cohortIds <- getCmDiagCohorts(
     connectionHandler = connectionHandlerCm,
-    resultsSchema = 'main', 
-    tablePrefix = 'cm_',
-    cohortTablePrefix = resultDatabaseSettingsCm$cohortTablePrefix,
+    resultDatabaseSettings = resultDatabaseSettingsCm,
     type = 'target'
     )
 
@@ -67,8 +63,7 @@ test_that("getCmDiagAnalyses", {
   
   analysisIds <- getCmDiagAnalyses(
     connectionHandler = connectionHandlerCm,
-    resultsSchema = 'main', 
-    tablePrefix = 'cm_'
+    resultDatabaseSettings = resultDatabaseSettingsCm
   )
   
   testthat::expect_true(length(analysisIds) > 0)
@@ -78,40 +73,30 @@ test_that("getCmDiagAnalyses", {
   
   analysisIds <- getCmDiagAnalyses(
     connectionHandler = connectionHandlerCm,
-    resultsSchema = 'main', 
-    tablePrefix = 'cm_'
+    resultDatabaseSettings = resultDatabaseSettingsCm
   )
   
   cohortIds <- getCmDiagCohorts(
     connectionHandler = connectionHandlerCm,
-    resultsSchema = 'main', 
-    tablePrefix = 'cm_',
-    cohortTablePrefix = resultDatabaseSettingsCm$cohortTablePrefix,
+    resultDatabaseSettings = resultDatabaseSettingsCm,
     type = 'target'
   )
   
   outcomeIds <- getCmDiagCohorts(
     connectionHandler = connectionHandlerCm,
-    resultsSchema = 'main', 
-    tablePrefix = 'cm_',
-    cohortTablePrefix = resultDatabaseSettingsCm$cohortTablePrefix,
+    resultDatabaseSettings = resultDatabaseSettingsCm,
     type = 'outcome'
   )
   
   comparatorIds <- getCmDiagCohorts(
     connectionHandler = connectionHandlerCm,
-    resultsSchema = 'main', 
-    tablePrefix = 'cm_',
-    cohortTablePrefix = resultDatabaseSettingsCm$cohortTablePrefix,
+    resultDatabaseSettings = resultDatabaseSettingsCm,
     type = 'comparator'
   )
   
 diag <- getCmDiagnosticsData(
     connectionHandler = connectionHandlerCm,
-    resultsSchema = 'main', 
-    tablePrefix = 'cm_',
-    cohortTablePrefix = resultDatabaseSettingsCm$cohortTablePrefix,
-    databaseTable = 'database_meta_data',
+    resultDatabaseSettings = resultDatabaseSettingsCm,
     targetIds = cohortIds,
     outcomeIds = outcomeIds,
     comparatorIds = comparatorIds,

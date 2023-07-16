@@ -82,10 +82,7 @@ characterizationDechallengeRechallengeViewer <- function(id) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
 #' @param mainPanelTab the current tab 
-#' @param schema the database schema for the model results
-#' @param tablePrefix a string that appends the tables in the result schema
-#' @param cohortTablePrefix a string that appends the cohort table in the result schema
-#' @param databaseTable  name of the database table
+#' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #' 
 #' @return
 #' The server to the Dechallenge Rechallenge module
@@ -95,10 +92,7 @@ characterizationDechallengeRechallengeServer <- function(
   id, 
   connectionHandler,
   mainPanelTab,
-  schema, 
-  tablePrefix,
-  cohortTablePrefix = 'cg_',
-  databaseTable = 'DATABASE_META_DATA'
+  resultDatabaseSettings
 ) {
   shiny::moduleServer(
     id,
@@ -111,9 +105,7 @@ characterizationDechallengeRechallengeServer <- function(
       # get the possible target ids
       bothIds <- dechalRechalGetIds(
         connectionHandler,
-        schema, 
-        tablePrefix,
-        cohortTablePrefix
+        resultDatabaseSettings
       )
 
       shiny::observeEvent(
@@ -224,9 +216,7 @@ characterizationDechallengeRechallengeServer <- function(
             targetId = input$targetId,
             outcomeId = input$outcomeId,
             connectionHandler = connectionHandler,
-            schema = schema, 
-            tablePrefix = tablePrefix,
-            databaseTable = databaseTable
+            resultDatabaseSettings
           )
           
           reactiveData(allData)
@@ -316,9 +306,7 @@ characterizationDechallengeRechallengeServer <- function(
             databaseId = databases()[input$databaseRowId$index],
             dechallengeStopInterval = dechallengeStopInterval()[input$databaseRowId$index],
             dechallengeEvaluationWindow = dechallengeEvaluationWindow()[input$databaseRowId$index],
-            connectionHandler = connectionHandler,
-            schema = schema, 
-            tablePrefix = tablePrefix
+            resultDatabaseSettings
           )
           
         # do the plots reactively
@@ -359,9 +347,7 @@ characterizationDechallengeRechallengeServer <- function(
 
 dechalRechalGetIds <- function(
     connectionHandler,
-  schema, 
-  tablePrefix,
-  cohortTablePrefix
+    resultDatabaseSettings
 ){
   
   shiny::withProgress(message = 'Getting dechal Rechal T and O ids', value = 0, {
@@ -370,10 +356,10 @@ dechalRechalGetIds <- function(
     sql <- "SELECT DISTINCT 
      t.COHORT_NAME as target, dr.TARGET_COHORT_DEFINITION_ID, 
      o.COHORT_NAME as outcome, dr.OUTCOME_COHORT_DEFINITION_ID 
-  FROM @result_database_schema.@table_prefixDECHALLENGE_RECHALLENGE dr
- inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION t
+  FROM @schema.@c_table_prefixDECHALLENGE_RECHALLENGE dr
+ inner join @schema.@cg_table_prefixCOHORT_DEFINITION t
           on dr.TARGET_COHORT_DEFINITION_ID = t.COHORT_DEFINITION_ID
-   inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION o
+   inner join @schema.@cg_table_prefixCOHORT_DEFINITION o
           on dr.OUTCOME_COHORT_DEFINITION_ID = o.COHORT_DEFINITION_ID
   ;"
     
@@ -381,9 +367,9 @@ dechalRechalGetIds <- function(
   
   bothIds <- connectionHandler$queryDb(
     sql = sql, 
-    result_database_schema = schema,
-    table_prefix = tablePrefix,
-    cohort_table_prefix = cohortTablePrefix
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
   
   shiny::incProgress(3/4, detail = paste("Processing ids"))
@@ -428,17 +414,15 @@ getDechalRechalInputsData <- function(
   targetId,
   outcomeId,
   connectionHandler,
-  schema, 
-  tablePrefix,
-  databaseTable
+  resultDatabaseSettings
 ){
   
   
   shiny::withProgress(message = 'Extracting DECHALLENGE_RECHALLENGE data', value = 0, {
   
   sql <- "SELECT dr.*, d.CDM_SOURCE_ABBREVIATION as database_name 
-          FROM @result_database_schema.@table_prefixDECHALLENGE_RECHALLENGE dr 
-          inner join @result_database_schema.@database_table d
+          FROM @schema.@c_table_prefixDECHALLENGE_RECHALLENGE dr 
+          inner join @schema.@database_table d
           on dr.database_id = d.database_id
           where dr.TARGET_COHORT_DEFINITION_ID = @target_id
           and dr.OUTCOME_COHORT_DEFINITION_ID = @outcome_id;"
@@ -448,11 +432,11 @@ getDechalRechalInputsData <- function(
   
   data <- connectionHandler$queryDb(
     sql = sql, 
-    result_database_schema = schema,
-    table_prefix = tablePrefix,
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
     target_id = targetId,
     outcome_id = outcomeId,
-    database_table = databaseTable
+    database_table = resultDatabaseSettings$databaseTable
   )
   
   shiny::incProgress(3/3, detail = paste("Finished"))
@@ -470,13 +454,12 @@ getDechalRechalFailData <- function(
   dechallengeStopInterval,
   dechallengeEvaluationWindow,
   connectionHandler,
-  schema, 
-  tablePrefix
+  resultDatabaseSettings
 ){
   
   shiny::withProgress(message = 'Extracting FAILLED DECHALLENGE_RECHALLENGE data', value = 0, {
     
-    sql <- "SELECT * FROM @result_database_schema.@table_prefixRECHALLENGE_FAIL_CASE_SERIES 
+    sql <- "SELECT * FROM @schema.@c_table_prefixRECHALLENGE_FAIL_CASE_SERIES 
           where TARGET_COHORT_DEFINITION_ID = @target_id
           and OUTCOME_COHORT_DEFINITION_ID = @outcome_id
           and DATABASE_ID = '@database_id'
@@ -487,8 +470,8 @@ getDechalRechalFailData <- function(
     
     data <- connectionHandler$queryDb(
       sql = sql, 
-      result_database_schema = schema,
-      table_prefix = tablePrefix,
+      schema = resultDatabaseSettings$schema,
+      c_table_prefix = resultDatabaseSettings$cTablePrefix,
       target_id = targetId,
       outcome_id = outcomeId,
       database_id = databaseId,

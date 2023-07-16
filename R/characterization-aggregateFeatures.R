@@ -111,10 +111,7 @@ characterizationAggregateFeaturesViewer <- function(id) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
 #' @param mainPanelTab the current tab 
-#' @param schema the database schema for the model results
-#' @param tablePrefix a string that appends the tables in the result schema
-#' @param cohortTablePrefix a string that appends the COHORT_DEFINITION table in the result schema
-#' @param databaseTable The database table name
+#' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #' 
 #' @return
 #' The server to the description aggregate features module
@@ -124,10 +121,7 @@ characterizationAggregateFeaturesServer <- function(
   id, 
   connectionHandler,
   mainPanelTab,
-  schema, 
-  tablePrefix,
-  cohortTablePrefix = 'cg_',
-  databaseTable = 'DATABASE_META_DATA'
+  resultDatabaseSettings
 ) {
   shiny::moduleServer(
     id,
@@ -189,18 +183,14 @@ characterizationAggregateFeaturesServer <- function(
       # get the possible options
       options <- getAggregateFeatureOptions(
         connectionHandler = connectionHandler,
-        schema = schema, 
-        tablePrefix = tablePrefix,
-        cohortTablePrefix = cohortTablePrefix
-      )
+        resultDatabaseSettings = resultDatabaseSettings
+        )
       
       # get databases
       databases <- getAggregateFeatureDatabases(
         connectionHandler = connectionHandler,
-        schema = schema, 
-        tablePrefix = tablePrefix,
-        databaseTable = databaseTable
-      )
+        resultDatabaseSettings = resultDatabaseSettings
+        )
       
       
       # add buttons
@@ -414,8 +404,7 @@ characterizationAggregateFeaturesServer <- function(
 
           allData <- characterizationGetAggregateData(
             connectionHandler = connectionHandler,
-            schema = schema, 
-            tablePrefix = tablePrefix,
+            resultDatabaseSettings = resultDatabaseSettings,
             targetId = input$target,
             outcomeId = input$outcome,
             riskWindowStart = options$tarList[[ind]]$riskWindowStart,
@@ -584,9 +573,7 @@ characterizationAggregateFeaturesServer <- function(
 
 getAggregateFeatureOptions <- function(
   connectionHandler,
-  schema, 
-  tablePrefix,
-  cohortTablePrefix
+  resultDatabaseSettings
 ){
   
  
@@ -595,12 +582,12 @@ getAggregateFeatureOptions <- function(
   sql <- "SELECT DISTINCT t.COHORT_NAME as TARGET, cd.TARGET_COHORT_ID, 
             o.COHORT_NAME as outcome, cd.OUTCOME_COHORT_ID, 
             s.RISK_WINDOW_START,	s.START_ANCHOR,	s.RISK_WINDOW_END,	s.END_ANCHOR  
-          FROM @result_database_schema.@table_prefixCOHORT_DETAILS cd
-          inner join @result_database_schema.@table_prefixSETTINGS s
+          FROM @schema.@c_table_prefixCOHORT_DETAILS cd
+          inner join @schema.@c_table_prefixSETTINGS s
           on cd.run_id = s.run_id and cd.database_id = s.database_id
-          inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION t
+          inner join @schema.@cg_table_prefixCOHORT_DEFINITION t
           on cd.TARGET_COHORT_ID = t.COHORT_DEFINITION_ID
-          inner join @result_database_schema.@cohort_table_prefixCOHORT_DEFINITION o
+          inner join @schema.@cg_table_prefixCOHORT_DEFINITION o
           on cd.OUTCOME_COHORT_ID = o.COHORT_DEFINITION_ID
           WHERE cd.TARGET_COHORT_ID != 0 AND cd.OUTCOME_COHORT_ID != 0;"
 
@@ -608,9 +595,9 @@ getAggregateFeatureOptions <- function(
   
   options <- connectionHandler$queryDb(
     sql = sql, 
-    result_database_schema = schema,
-    table_prefix = tablePrefix,
-    cohort_table_prefix = cohortTablePrefix
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
   
   shiny::incProgress(2/2, detail = paste("Finished"))
@@ -668,17 +655,15 @@ getAggregateFeatureOptions <- function(
 
 getAggregateFeatureDatabases <- function(
     connectionHandler,
-    schema, 
-    tablePrefix,
-    databaseTable
+    resultDatabaseSettings
 ){
   
   shiny::withProgress(message = 'Finding databases', value = 0, {
     sql <- "SELECT DISTINCT s.DATABASE_ID, d.CDM_SOURCE_ABBREVIATION as database_name  
-          FROM @result_database_schema.@table_prefixCOHORT_DETAILS cd
-          inner join @result_database_schema.@database_table d
+          FROM @schema.@c_table_prefixCOHORT_DETAILS cd
+          inner join @schema.@database_table d
           on cd.database_id = d.database_id
-          inner join @result_database_schema.@table_prefixSETTINGS s
+          inner join @schema.@c_table_prefixSETTINGS s
           on s.database_id = d.database_id
           and s.run_id = cd.run_id;"
     
@@ -687,9 +672,9 @@ getAggregateFeatureDatabases <- function(
     
     databases <- connectionHandler$queryDb(
       sql = sql, 
-      result_database_schema = schema,
-      table_prefix = tablePrefix,
-      database_table = databaseTable
+      schema = resultDatabaseSettings$schema,
+      c_table_prefix = resultDatabaseSettings$cTablePrefix,
+      database_table = resultDatabaseSettings$databaseTable
     )
     
     shiny::incProgress(2/2, detail = paste("Finished"))
@@ -706,8 +691,7 @@ getAggregateFeatureDatabases <- function(
 # pulls all data for a target and outcome
 characterizationGetAggregateData <- function(
     connectionHandler,
-  schema, 
-  tablePrefix,
+    resultDatabaseSettings,
   targetId,
   outcomeId,
   riskWindowStart,
@@ -722,9 +706,9 @@ characterizationGetAggregateData <- function(
   
   shiny::withProgress(message = 'Getting Feature Comparison Data', value = 0, {
   sql <- "SELECT s.RUN_ID, cd.COHORT_DEFINITION_ID
-          FROM @result_database_schema.@table_prefixSETTINGS s
+          FROM @schema.@c_table_prefixSETTINGS s
           inner join 
-          @result_database_schema.@table_prefixCOHORT_DETAILS cd
+          @schema.@c_table_prefixCOHORT_DETAILS cd
           on cd.database_id = s.database_id and
           cd.run_id = s.run_id
           WHERE cd.TARGET_COHORT_ID = @target_id and cd.OUTCOME_COHORT_ID = @outcome_id
@@ -734,8 +718,8 @@ characterizationGetAggregateData <- function(
 
   settingsFirst <- connectionHandler$queryDb(
     sql = sql, 
-    result_database_schema = schema,
-    table_prefix = tablePrefix,
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
     target_id = ifelse(type1 %in% c('firstO','O'), 0, targetId),
     outcome_id = ifelse(type1 %in% c('T', 'allT'), 0, outcomeId),
     risk_window_start = riskWindowStart,
@@ -750,9 +734,9 @@ characterizationGetAggregateData <- function(
   
   
   sql <- "SELECT s.RUN_ID, cd.COHORT_DEFINITION_ID
-          FROM @result_database_schema.@table_prefixSETTINGS s
+          FROM @schema.@c_table_prefixSETTINGS s
           inner join 
-          @result_database_schema.@table_prefixCOHORT_DETAILS cd
+          @schema.@c_table_prefixCOHORT_DETAILS cd
           on cd.database_id = s.database_id and
           cd.run_id = s.run_id
           WHERE cd.TARGET_COHORT_ID = @target_id and cd.OUTCOME_COHORT_ID = @outcome_id
@@ -763,8 +747,8 @@ characterizationGetAggregateData <- function(
 
   settingsSecond <- connectionHandler$queryDb(
     sql = sql, 
-    result_database_schema = schema,
-    table_prefix = tablePrefix,
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
     target_id = ifelse(type1 %in% c('firstO','O'), 0, targetId),
     outcome_id = ifelse(type1 %in% c('T', 'allT'), 0, outcomeId),
     risk_window_start = riskWindowStart,
@@ -779,14 +763,14 @@ characterizationGetAggregateData <- function(
   
   sql <- "SELECT cov.*, cov_ref.COVARIATE_NAME, an_ref.ANALYSIS_NAME,
   case when (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1)) then 'comp1' else 'comp2' end as label
-          FROM @result_database_schema.@table_prefixCOVARIATES cov 
+          FROM @schema.@c_table_prefixCOVARIATES cov 
           INNER JOIN
-          @result_database_schema.@table_prefixCOVARIATE_REF cov_ref
+          @schema.@c_table_prefixCOVARIATE_REF cov_ref
           ON cov.covariate_id = cov_ref.covariate_id 
           and cov.run_id = cov_ref.run_id
           and cov.database_id = cov_ref.database_id
           INNER JOIN
-          @result_database_schema.@table_prefixANALYSIS_REF an_ref
+          @schema.@c_table_prefixANALYSIS_REF an_ref
           ON an_ref.analysis_id = cov_ref.analysis_id 
           and an_ref.run_id = cov_ref.run_id
           and an_ref.database_id = cov_ref.database_id
@@ -801,8 +785,8 @@ characterizationGetAggregateData <- function(
   
   binary <- connectionHandler$queryDb(
     sql = sql, 
-    result_database_schema = schema,
-    table_prefix = tablePrefix,
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
     cohortDef1 = settingsFirst$cohortDefinitionId[1],
     cohortDef2 = settingsSecond$cohortDefinitionId[1],
     database_id1 = database1,
@@ -815,14 +799,14 @@ characterizationGetAggregateData <- function(
   
   sql <- "SELECT cov.*, cov_ref.COVARIATE_NAME, an_ref.ANALYSIS_NAME,
   case when (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1)) then 'comp1' else 'comp2' end as label
-          FROM @result_database_schema.@table_prefixCOVARIATES_CONTINUOUS cov 
+          FROM @schema.@c_table_prefixCOVARIATES_CONTINUOUS cov 
           INNER JOIN
-          @result_database_schema.@table_prefixCOVARIATE_REF cov_ref
+          @schema.@c_table_prefixCOVARIATE_REF cov_ref
           ON cov.covariate_id = cov_ref.covariate_id 
           and cov.run_id = cov_ref.run_id
           and cov.database_id = cov_ref.database_id
           INNER JOIN
-          @result_database_schema.@table_prefixANALYSIS_REF an_ref
+          @schema.@c_table_prefixANALYSIS_REF an_ref
           ON an_ref.analysis_id = cov_ref.analysis_id 
           and an_ref.run_id = cov_ref.run_id
           and an_ref.database_id = cov_ref.database_id
@@ -835,8 +819,8 @@ characterizationGetAggregateData <- function(
 
   continuous <- connectionHandler$queryDb(
     sql = sql, 
-    result_database_schema = schema,
-    table_prefix = tablePrefix,
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
     cohortDef1 = settingsFirst$cohortDefinitionId[1],
     cohortDef2 = settingsSecond$cohortDefinitionId[1],
     database_id1 = database1,

@@ -8,9 +8,7 @@ cohortMethodResultsTableServer(
   id,
   connectionHandler,
   inputParams,
-  resultsSchema,
-  tablePrefix,
-  databaseTable
+  resultDatabaseSettings
 )
 }
 \arguments{
@@ -20,11 +18,7 @@ cohortMethodResultsTableServer(
 
 \item{inputParams}{the selected study parameters of interest}
 
-\item{resultsSchema}{the schema with the PLE results}
-
-\item{tablePrefix}{tablePrefix}
-
-\item{databaseTable}{databaseTable}
+\item{resultDatabaseSettings}{a list containing the result schema and prefixes}
 }
 \value{
 the PLE main results table server server

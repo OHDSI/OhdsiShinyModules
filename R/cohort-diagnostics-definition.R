@@ -210,11 +210,13 @@ getConceptSetDetailsFromCohortDefinition <-
 
 
 getCohortJsonSql <- function(dataSource, cohortIds) {
-  sql <- "SELECT * FROM @results_database_schema.@cohort_table WHERE cohort_id IN (@cohort_ids)"
-  dataSource$connectionHandler$queryDb(sql = sql,
-                                       results_database_schema = dataSource$resultsDatabaseSchema,
-                                       cohort_table = dataSource$cohortTableName,
-                                       cohort_ids = cohortIds)
+  sql <- "SELECT * FROM @schema.@cohort_table WHERE cohort_id IN (@cohort_ids)"
+  dataSource$connectionHandler$queryDb(
+    sql = sql,
+    schema = dataSource$schema,
+    cohort_table = paste0(dataSource$cgTablePrefix,dataSource$cgTable),
+    cohort_ids = cohortIds
+  )
 }
 
 exportCohortDefinitionsZip <- function(cohortDefinitions,
@@ -441,13 +443,13 @@ getCountForConceptIdInCohort <-
            cohortId,
            databaseIds) {
     sql <- "SELECT ics.*
-            FROM  @results_database_schema.@table_name ics
+            FROM  @schema.@table_name ics
             WHERE ics.cohort_id = @cohort_id
              AND database_id in (@database_ids);"
     data <-
       dataSource$connectionHandler$queryDb(
         sql = sql,
-        results_database_schema = dataSource$resultsDatabaseSchema,
+        schema = dataSource$schema,
         cohort_id = cohortId,
         database_ids = quoteLiterals(databaseIds),
         table_name = dataSource$prefixTable("included_source_concept"),
@@ -519,12 +521,14 @@ getCountForConceptIdInCohort <-
 #' @param databaseTable                 data.frame of databasese, databaseId, name
 #' @param cohortTable                   data.frame of cohorts, cohortId, cohortName
 #' @param cohortCountTable              data.frame of cohortCounts, cohortId, subjects records
-cohortDefinitionsModule <- function(id,
-                                    dataSource,
-                                    cohortDefinitions,
-                                    cohortTable = dataSource$cohortTable,
-                                    cohortCountTable = dataSource$cohortCountTable,
-                                    databaseTable = dataSource$databaseTable) {
+cohortDefinitionsModule <- function(
+    id,
+    dataSource,
+    cohortDefinitions,
+    cohortTable = dataSource$cohortTable,
+    cohortCountTable = dataSource$cohortCountTable,
+    databaseTable = dataSource$dbTable
+) {
   ns <- shiny::NS(id)
 
   cohortDefinitionServer <- function(input, output, session) {

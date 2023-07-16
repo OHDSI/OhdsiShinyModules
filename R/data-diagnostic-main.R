@@ -93,15 +93,13 @@ dataDiagnosticServer <- function(
       dataDiagnosticSummaryServer(
         id = 'summary-tab', 
         connectionHandler = connectionHandler, 
-        mySchema = resultDatabaseSettings$schema, 
-        myTableAppend = resultDatabaseSettings$tablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
         )
       
       dataDiagnosticDrillServer(
         id = 'drill-down-tab', 
         connectionHandler = connectionHandler, 
-        mySchema = resultDatabaseSettings$schema, 
-        myTableAppend = resultDatabaseSettings$tablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
       )
     
       

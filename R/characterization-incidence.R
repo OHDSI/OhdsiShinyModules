@@ -82,9 +82,7 @@ characterizationIncidenceViewer <- function(id) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
 #' @param mainPanelTab the current tab 
-#' @param schema the database schema for the model results
-#' @param incidenceTablePrefix a string that appends the incidence table in the result schema
-#' @param databaseTable  name of the database table
+#' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #' 
 #' @return
 #' The server to the prediction incidence module
@@ -94,9 +92,7 @@ characterizationIncidenceServer <- function(
   id, 
   connectionHandler,
   mainPanelTab,
-  schema, 
-  incidenceTablePrefix,
-  databaseTable = 'DATABASE_META_DATA'
+  resultDatabaseSettings
 ) {
   shiny::moduleServer(
     id,
@@ -108,8 +104,7 @@ characterizationIncidenceServer <- function(
       
       cohorts <- getTargetOutcomes(
         connectionHandler,
-        schema, 
-        incidenceTablePrefix
+        resultDatabaseSettings
       )
       
 
@@ -205,9 +200,7 @@ characterizationIncidenceServer <- function(
             targetId = input$targetId,
             outcomeId = input$outcomeId,
             connectionHandler = connectionHandler,
-            schema = schema, 
-            incidenceTablePrefix = incidenceTablePrefix,
-            databaseTable = databaseTable
+            resultDatabaseSettings
           )
           
           allDataDownload(allData )
@@ -312,9 +305,7 @@ getIncidenceData <- function(
   targetId,
   outcomeId,
   connectionHandler,
-  schema, 
-  incidenceTablePrefix,
-  databaseTable
+  resultDatabaseSettings
 ){
   
   shiny::withProgress(message = 'Getting incidence data', value = 0, {
@@ -331,11 +322,11 @@ getIncidenceData <- function(
   
   resultTable <- connectionHandler$queryDb(
     sql = sql, 
-    result_schema = schema,
-    incidence_table_prefix = incidenceTablePrefix,
+    result_schema = resultDatabaseSettings$schema,
+    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix,
     target_id = targetId,
     outcome_id = outcomeId,
-    database_table_name = databaseTable
+    database_table_name = resultDatabaseSettings$databaseTable
   )
   
   shiny::incProgress(2/2, detail = paste("Done..."))
@@ -356,8 +347,7 @@ getIncidenceData <- function(
 
 getTargetOutcomes <- function(
     connectionHandler,
-  schema, 
-  incidenceTablePrefix
+    resultDatabaseSettings
 ){
   
   shiny::withProgress(message = 'Getting incidence inputs', value = 0, {
@@ -369,8 +359,8 @@ getTargetOutcomes <- function(
 
   targets <- connectionHandler$queryDb(
     sql = sql, 
-    result_schema = schema,
-    incidence_table_prefix = incidenceTablePrefix
+    result_schema = resultDatabaseSettings$schema,
+    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
   )
   targetIds <- targets$targetCohortDefinitionId
   names(targetIds) <- targets$targetName
@@ -382,8 +372,8 @@ getTargetOutcomes <- function(
   
   outcomes <- connectionHandler$queryDb(
     sql = sql, 
-    result_schema = schema,
-    incidence_table_prefix = incidenceTablePrefix
+    result_schema = resultDatabaseSettings$schema,
+    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
   )
   
   outcomeIds <- outcomes$outcomeCohortDefinitionId

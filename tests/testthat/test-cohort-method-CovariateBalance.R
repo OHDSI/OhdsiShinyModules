@@ -10,8 +10,7 @@ shiny::testServer(
       outcome = 3
       )), 
     connectionHandler = connectionHandlerCm, 
-    resultsSchema = 'main', 
-    tablePrefix = 'cm_',
+    resultDatabaseSettings = resultDatabaseSettingsCm,
     metaAnalysisDbIds = '1'
   ), 
   expr = {

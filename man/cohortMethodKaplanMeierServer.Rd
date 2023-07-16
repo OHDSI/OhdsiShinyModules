@@ -9,10 +9,7 @@ cohortMethodKaplanMeierServer(
   selectedRow,
   inputParams,
   connectionHandler,
-  resultsSchema,
-  tablePrefix,
-  cohortTablePrefix,
-  databaseTable,
+  resultDatabaseSettings,
   metaAnalysisDbIds = NULL
 )
 }
@@ -25,13 +22,7 @@ cohortMethodKaplanMeierServer(
 
 \item{connectionHandler}{the connection to the PLE results database}
 
-\item{resultsSchema}{the schema with the PLE results}
-
-\item{tablePrefix}{tablePrefix}
-
-\item{cohortTablePrefix}{cohortTablePrefix}
-
-\item{databaseTable}{databaseTable}
+\item{resultDatabaseSettings}{a list containing the result schema and prefixes}
 
 \item{metaAnalysisDbIds}{metaAnalysisDbIds}
 }

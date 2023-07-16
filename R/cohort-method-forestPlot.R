@@ -49,9 +49,7 @@ cohortMethodForestPlotViewer <- function(id) {
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
 #' @param metaAnalysisDbIds metaAnalysisDbIds
-#' @param resultsSchema resultsSchema
-#' @param tablePrefix tablePrefix
-#' @param databaseTable databaseTable
+#' @param resultDatabaseSettings a list containing the result schema and prefixes
 #'
 #' @return
 #' the PLE forest plot content server
@@ -59,9 +57,7 @@ cohortMethodForestPlotViewer <- function(id) {
 #' @export
 cohortMethodForestPlotServer <- function(
   id, connectionHandler, selectedRow, inputParams, metaAnalysisDbIds = NULL,
-  resultsSchema,
-  tablePrefix,
-  databaseTable
+  resultDatabaseSettings
   ) {
   
   shiny::moduleServer(
@@ -72,14 +68,14 @@ cohortMethodForestPlotServer <- function(
         if (is.null(row) || !(row$databaseId %in% metaAnalysisDbIds)) {
           return(NULL)
         } else {
-          results <- getCohortMethodMainResults(connectionHandler = connectionHandler,
-                                              resultsSchema = resultsSchema,
-                                              tablePrefix = tablePrefix,
-                                              databaseTable = databaseTable,
-                                              targetIds = row$targetId,
-                                              comparatorIds = row$comparatorId,
-                                              outcomeIds = row$outcomeId,
-                                              analysisIds = row$analysisId)
+          results <- getCohortMethodMainResults(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            targetIds = row$targetId,
+            comparatorIds = row$comparatorId,
+            outcomeIds = row$outcomeId,
+            analysisIds = row$analysisId
+            )
           plot <- plotCohortMethodForest(results)
           return(plot)
         }

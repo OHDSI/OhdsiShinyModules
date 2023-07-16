@@ -41,8 +41,7 @@ cohortMethodPopulationCharacteristicsViewer <- function(id) {
 #' @param selectedRow the selected row from the main results table 
 #' @param inputParams  the selected study parameters of interest
 #' @param connectionHandler the connection to the PLE results database
-#' @param resultsSchema the schema with the PLE results
-#' @param tablePrefix tablePrefix
+#' @param resultDatabaseSettings a list containing the result schema and prefixes
 #'
 #' @return
 #' the PLE population characteristics content server
@@ -53,8 +52,7 @@ cohortMethodPopulationCharacteristicsServer <- function(
     selectedRow, 
     inputParams, 
     connectionHandler, 
-    resultsSchema, 
-    tablePrefix
+    resultDatabaseSettings
     ) {
   
   shiny::moduleServer(
@@ -81,8 +79,7 @@ cohortMethodPopulationCharacteristicsServer <- function(
         } else {
           balance <- getCohortMethodPopChar(
             connectionHandler = connectionHandler,
-            resultsSchema = resultsSchema,
-            tablePrefix = tablePrefix,
+            resultDatabaseSettings = resultDatabaseSettings,
             targetId = inputParams()$target,
             comparatorId = inputParams()$comparator,
             outcomeId = inputParams()$outcome,
@@ -135,8 +132,7 @@ cohortMethodPopulationCharacteristicsServer <- function(
 
 getCohortMethodPopChar <- function(
     connectionHandler,
-    resultsSchema,
-    tablePrefix,
+    resultDatabaseSettings,
     targetId,
     comparatorId,
     analysisId,
@@ -160,14 +156,14 @@ getCohortMethodPopChar <- function(
         cmcb.comparator_mean_after after_matching_mean_comparator,
         abs(cmcb.std_diff_after) abs_after_matching_std_diff
       FROM
-        (select * from  @results_schema.@table_prefixcovariate_balance 
+        (select * from  @schema.@cm_table_prefixcovariate_balance 
         WHERE target_id = @target_id
         AND comparator_id = @comparator_id
         AND outcome_id = @outcome_id
         AND analysis_id = @analysis_id
         AND database_id = '@database_id'
         ) as cmcb
-        INNER JOIN @results_schema.@table_prefixcovariate cmc 
+        INNER JOIN @schema.@cm_table_prefixcovariate cmc 
         
         ON cmcb.covariate_id = cmc.covariate_id 
         AND cmcb.analysis_id = cmc.analysis_id 
@@ -178,8 +174,8 @@ getCohortMethodPopChar <- function(
     shiny::incProgress(1/3, detail = paste("Extracting"))
     result <- connectionHandler$queryDb(
       sql = sql,
-      results_schema = resultsSchema,
-      table_prefix = tablePrefix,
+      schema = resultDatabaseSettings$schema,
+      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
       target_id = targetId,
       comparator_id = comparatorId,
       outcome_id = outcomeId,

@@ -57,10 +57,7 @@ cohortMethodDiagnosticsSummaryViewer <- function(id) {
 #'
 #' @param id the unique reference id for the module
 #' @param connectionHandler the connection to the PLE results database
-#' @param resultsSchema the schema with the PLE results
-#' @param tablePrefix tablePrefix
-#' @param cohortTablePrefix cohortTablePrefix
-#' @param databaseTable databaseTable
+#' @param resultDatabaseSettings a list containing the result schema and prefixes
 #'
 #' @return
 #' the PLE diagnostics summary results
@@ -69,10 +66,7 @@ cohortMethodDiagnosticsSummaryViewer <- function(id) {
 cohortMethodDiagnosticsSummaryServer <- function(
     id,
     connectionHandler,
-    resultsSchema,
-    tablePrefix,
-    cohortTablePrefix,
-    databaseTable
+    resultDatabaseSettings
 ) {
   
   shiny::moduleServer(
@@ -81,29 +75,22 @@ cohortMethodDiagnosticsSummaryServer <- function(
       
       targetIds <- getCmDiagCohorts(
         connectionHandler = connectionHandler,
-        resultsSchema = resultsSchema,
-        tablePrefix = tablePrefix,
-        cohortTablePrefix = cohortTablePrefix,
+        resultDatabaseSettings = resultDatabaseSettings,
         type = 'target'
       )
       outcomeIds <- getCmDiagCohorts(
         connectionHandler = connectionHandler,
-        resultsSchema = resultsSchema,
-        tablePrefix = tablePrefix,
-        cohortTablePrefix = cohortTablePrefix,
+        resultDatabaseSettings = resultDatabaseSettings,
         type = 'outcome'
       )
       comparatorIds <- getCmDiagCohorts(
         connectionHandler = connectionHandler,
-        resultsSchema = resultsSchema,
-        tablePrefix = tablePrefix,
-        cohortTablePrefix = cohortTablePrefix,
+        resultDatabaseSettings = resultDatabaseSettings,
         type = 'comparator'
       )
       analysisIds <- getCmDiagAnalyses(
         connectionHandler = connectionHandler,
-        resultsSchema = resultsSchema, 
-        tablePrefix = tablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
       )
       
       inputSelected <- inputSelectionServer(
@@ -196,10 +183,7 @@ cohortMethodDiagnosticsSummaryServer <- function(
       data <- shiny::reactive({
         getCmDiagnosticsData(
           connectionHandler,
-          resultsSchema,
-          tablePrefix,
-          cohortTablePrefix,
-          databaseTable,
+          resultDatabaseSettings = resultDatabaseSettings,
           targetIds = inputSelected()$targetIds,
           outcomeIds = inputSelected()$outcomeIds,
           comparatorIds = inputSelected()$comparatorIds,
@@ -397,9 +381,7 @@ diagnosticSummaryFormat <- function(
 
 getCmDiagCohorts <- function(
     connectionHandler,
-    resultsSchema, 
-    tablePrefix,
-    cohortTablePrefix,
+    resultDatabaseSettings,
     type = 'target'
 ){
   
@@ -408,17 +390,17 @@ getCmDiagCohorts <- function(
       cgcd1.cohort_name as names,
       cgcd1.cohort_definition_id
     FROM
-      @results_schema.@table_prefixdiagnostics_summary cmds
+      @schema.@cm_table_prefixdiagnostics_summary cmds
       INNER JOIN 
-      @results_schema.@cohort_table_prefixcohort_definition cgcd1 
+      @schema.@cg_table_prefixcohort_definition cgcd1 
       ON cmds.@type_id = cgcd1.cohort_definition_id;
   "
   
   result <- connectionHandler$queryDb(
     sql = sql,
-    results_schema = resultsSchema,
-    table_prefix = tablePrefix,
-    cohort_table_prefix = cohortTablePrefix,
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
     type = type
   )
   
@@ -432,8 +414,7 @@ getCmDiagCohorts <- function(
 
 getCmDiagAnalyses <- function(
   connectionHandler,
-  resultsSchema, 
-  tablePrefix
+  resultDatabaseSettings
 ){
   
   sql <- "
@@ -441,17 +422,17 @@ getCmDiagAnalyses <- function(
       cma.analysis_id,
       cma.description as names
     FROM
-      @results_schema.@table_prefixdiagnostics_summary cmds
+      @schema.@cm_table_prefixdiagnostics_summary cmds
       INNER JOIN 
-      @results_schema.@table_prefixanalysis cma 
+      @schema.@cm_table_prefixanalysis cma 
       ON cmds.analysis_id = cma.analysis_id
       ;
   "
   
   result <-  connectionHandler$queryDb(
     sql = sql,
-    results_schema = resultsSchema,
-    table_prefix = tablePrefix
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix
   )
   
   res <- result$analysisId
@@ -466,10 +447,7 @@ getCmDiagAnalyses <- function(
 
 getCmDiagnosticsData <- function(
     connectionHandler, 
-    resultsSchema, 
-    tablePrefix, 
-    cohortTablePrefix, 
-    databaseTable,
+    resultDatabaseSettings,
     targetIds,
     outcomeIds,
     comparatorIds = NULL,
@@ -496,12 +474,12 @@ getCmDiagnosticsData <- function(
       cmds.ease_diagnostic,
       cmds.unblind
     FROM
-      @results_schema.@table_prefixdiagnostics_summary cmds
-      INNER JOIN @results_schema.@table_prefixanalysis cma ON cmds.analysis_id = cma.analysis_id
-      INNER JOIN @results_schema.@database_table dmd ON dmd.database_id = cmds.database_id
-      INNER JOIN @results_schema.@cohort_table_prefixcohort_definition cgcd1 ON cmds.target_id = cgcd1.cohort_definition_id
-      INNER JOIN @results_schema.@cohort_table_prefixcohort_definition cgcd2 ON cmds.comparator_id = cgcd2.cohort_definition_id
-      INNER JOIN @results_schema.@cohort_table_prefixcohort_definition cgcd3 ON cmds.outcome_id = cgcd3.cohort_definition_id
+      @schema.@cm_table_prefixdiagnostics_summary cmds
+      INNER JOIN @schema.@cm_table_prefixanalysis cma ON cmds.analysis_id = cma.analysis_id
+      INNER JOIN @schema.@database_table dmd ON dmd.database_id = cmds.database_id
+      INNER JOIN @schema.@cg_table_prefixcohort_definition cgcd1 ON cmds.target_id = cgcd1.cohort_definition_id
+      INNER JOIN @schema.@cg_table_prefixcohort_definition cgcd2 ON cmds.comparator_id = cgcd2.cohort_definition_id
+      INNER JOIN @schema.@cg_table_prefixcohort_definition cgcd3 ON cmds.outcome_id = cgcd3.cohort_definition_id
       
       where cgcd1.cohort_definition_id in (@targets)
       {@use_comparators}?{and cgcd2.cohort_definition_id in (@comparators)}
@@ -512,11 +490,11 @@ getCmDiagnosticsData <- function(
   
   result <- connectionHandler$queryDb(
     sql = sql,
-    results_schema = resultsSchema,
-    table_prefix = tablePrefix,
-    cohort_table_prefix = cohortTablePrefix,
-    database_table = databaseTable,
-    
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    database_table = resultDatabaseSettings$databaseTable,
+  
     targets = paste0(targetIds, collapse = ','),
     comparators = paste0(comparatorIds, collapse = ','),
     outcomes = paste0(outcomeIds, collapse = ','),

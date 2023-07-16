@@ -201,7 +201,7 @@ cohortDiagnosticsView <- function(id = "DiagnosticsExplorer") {
       shiny::conditionalPanel(
         ns = ns,
         condition = "input.tabs == 'characterization'",
-        characterizationView(ns("characterization"))
+        cohortDiagCharacterizationView(ns("characterization"))
       ),
       shiny::conditionalPanel(
         ns = ns,
