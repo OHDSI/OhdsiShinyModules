@@ -1,6 +1,7 @@
 context("cohort-diagnostics-characterization")
 
-shiny::testServer(characterizationModule, args = list(
+shiny::testServer(cohortDiagCharacterizationModule, 
+                  args = list(
   id = "characterization",
   dataSource = dataSourceCd
 ), {

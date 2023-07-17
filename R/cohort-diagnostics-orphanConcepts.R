@@ -84,8 +84,8 @@ getOrphanConceptResult <- function(dataSource,
               c.vocabulary_id,
               c.concept_code,
               c.standard_concept
-            FROM  @results_database_schema.@orphan_table_name oc
-            INNER JOIN  @results_database_schema.@cs_table_name cs
+            FROM  @schema.@orphan_table_name oc
+            INNER JOIN  @schema.@cs_table_name cs
               ON oc.cohort_id = cs.cohort_id
                 AND oc.concept_set_id = cs.concept_set_id
             INNER JOIN  @vocabulary_database_schema.@concept_table c
@@ -96,7 +96,7 @@ getOrphanConceptResult <- function(dataSource,
   data <-
     dataSource$connectionHandler$queryDb(
       sql = sql,
-      results_database_schema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       vocabulary_database_schema = dataSource$vocabularyDatabaseSchema,
       cohort_id = cohortId,
       database_ids = quoteLiterals(databaseIds),
@@ -117,7 +117,7 @@ orphanConceptsModule <- function(id,
                                  targetCohortId,
                                  selectedConceptSets,
                                  conceptSetIds,
-                                 databaseTable = dataSource$databaseTable) {
+                                 databaseTable = dataSource$dbTable) {
   ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
     output$selectedCohorts <- shiny::renderUI({ selectedCohort() })

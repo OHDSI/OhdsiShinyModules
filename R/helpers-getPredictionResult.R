@@ -1,21 +1,24 @@
 getPredictionResult <- function(
     connectionHandler, 
+    resultDatabaseSettings,
     tableName, 
-    performanceId, 
-    mySchema
+    performanceId 
     ){
+  
+  # add prefix to tableName
+  tableName <- paste0(resultDatabaseSettings$plpTablePrefix,tableName)
   
   shiny::withProgress(message = paste('Extracting PLP results from', tableName), value = 0, {
 
   shiny::incProgress(1/3, detail = paste("Translating and rendering "))
 
-  sql <- "SELECT * FROM @my_schema.@table_name WHERE performance_id = @performance_id"
+  sql <- "SELECT * FROM @schema.@table_name WHERE performance_id = @performance_id"
 
   shiny::incProgress(2/3, detail = paste("Extracting data "))
   
   result <- connectionHandler$queryDb(
     sql = sql, 
-    my_schema = mySchema,
+    schema = resultDatabaseSettings$schema,
     table_name = tableName,
     performance_id = performanceId()
   )

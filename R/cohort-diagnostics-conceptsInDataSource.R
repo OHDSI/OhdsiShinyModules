@@ -89,7 +89,7 @@ getConceptsInCohort <-
             		0 source_concept_id,
             		max(concept_subjects) concept_subjects,
             		sum(concept_count) concept_count
-            	FROM @results_database_schema.@table_name isc
+            	FROM @schema.@table_name isc
             	WHERE isc.cohort_id = @cohort_id
             		AND isc.database_id IN (@database_ids)
             	GROUP BY isc.database_id,
@@ -104,7 +104,7 @@ getConceptsInCohort <-
             		1 source_concept_id,
             		max(c.concept_subjects) concept_subjects,
             		sum(c.concept_count) concept_count
-            	FROM @results_database_schema.@table_name c
+            	FROM @schema.@table_name c
             	WHERE c.cohort_id = @cohort_id
             		AND c.database_id IN (@database_ids)
             	GROUP BY
@@ -112,12 +112,12 @@ getConceptsInCohort <-
             		c.cohort_id,
             		c.source_concept_id
             	) concepts
-            INNER JOIN @results_database_schema.@concept_table c ON concepts.concept_id = c.concept_id
+            INNER JOIN @schema.@concept_table c ON concepts.concept_id = c.concept_id
             WHERE c.invalid_reason IS NULL;"
     data <-
       dataSource$connectionHandler$queryDb(
         sql = sql,
-        results_database_schema = dataSource$resultsDatabaseSchema,
+        schema = dataSource$schema,
         cohort_id = cohortId,
         database_ids = quoteLiterals(databaseIds),
         table_name = dataSource$prefixTable("included_source_concept"),
@@ -135,7 +135,7 @@ conceptsInDataSourceModule <- function(id,
                                        selectedDatabaseIds,
                                        targetCohortId,
                                        selectedConceptSets,
-                                       databaseTable = dataSource$databaseTable) {
+                                       databaseTable = dataSource$dbTable) {
   ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
     output$selectedCohorts <- shiny::renderUI({ selectedCohort() })

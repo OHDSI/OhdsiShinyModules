@@ -1,6 +1,6 @@
 # Copyright 2022 Observational Health Data Sciences and Informatics
 #
-# This file is part of PatientLevelPrediction
+# This file is part of OhdsiShinyModules
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 #'
 #' @param id    Namespace Id - use namespaced id ns("characterization") inside diagnosticsExplorer module
 #' @export
-characterizationView <- function(id) {
+cohortDiagCharacterizationView <- function(id) {
   ns <- shiny::NS(id)
   shiny::tagList(
     shinydashboard::box(
@@ -426,11 +426,11 @@ prepareTable1 <- function(covariates,
   return(table)
 }
 
-characterizationModule <- function(
+cohortDiagCharacterizationModule <- function(
   id,
   dataSource,
   cohortTable = dataSource$cohortTable,
-  databaseTable = dataSource$databaseTable,
+  databaseTable = dataSource$dbTable,
   temporalAnalysisRef = dataSource$temporalAnalysisRef,
   analysisNameOptions = dataSource$analysisNameOptions,
   domainIdOptions = dataSource$domainIdOptions,
@@ -661,8 +661,8 @@ characterizationModule <- function(
     getPrettyCharacterizationData <- shiny::reactive({
       data <- dataSource$connectionHandler$queryDb(
         sql = "SELECT tcv.*, ref.analysis_id, ref.covariate_name
-                FROM @results_database_schema.@table_name tcv
-                INNER JOIN @results_database_schema.@ref_table_name ref ON ref.covariate_id = tcv.covariate_id
+                FROM @schema.@table_name tcv
+                INNER JOIN @schema.@ref_table_name ref ON ref.covariate_id = tcv.covariate_id
                 WHERE ref.covariate_id IS NOT NULL
                 {@analysis_ids != \"\"} ? { AND ref.analysis_id IN (@analysis_ids)}
                 {@cohort_id != \"\"} ? { AND tcv.cohort_id IN (@cohort_id)}
@@ -677,7 +677,7 @@ characterizationModule <- function(
         table_name = dataSource$prefixTable("temporal_covariate_value"),
         ref_table_name = dataSource$prefixTable("temporal_covariate_ref"),
         cohort_id = targetCohortId(),
-        results_database_schema = dataSource$resultsDatabaseSchema,
+        schema = dataSource$schema,
         filter_mean_threshold = 0.0
       ) %>%
         dplyr::tibble() %>%
@@ -776,10 +776,10 @@ characterizationModule <- function(
                 ref.covariate_name, ref.analysis_id, ref.concept_id,
                 aref.analysis_name, aref.is_binary, aref.domain_id,
                 tref.start_day, tref.end_day
-                FROM @results_database_schema.@table_name tcv
-                INNER JOIN @results_database_schema.@ref_table_name ref ON ref.covariate_id = tcv.covariate_id
-                INNER JOIN @results_database_schema.@analysis_ref_table_name aref ON aref.analysis_id = ref.analysis_id
-                LEFT JOIN @results_database_schema.@temporal_time_ref tref ON tref.time_id = tcv.time_id
+                FROM @schema.@table_name tcv
+                INNER JOIN @schema.@ref_table_name ref ON ref.covariate_id = tcv.covariate_id
+                INNER JOIN @schema.@analysis_ref_table_name aref ON aref.analysis_id = ref.analysis_id
+                LEFT JOIN @schema.@temporal_time_ref tref ON tref.time_id = tcv.time_id
                 WHERE ref.covariate_id IS NOT NULL
                 {@analysis_ids != \"\"} ? { AND ref.analysis_id IN (@analysis_ids)}
                 {@domain_ids != \"\"} ? { AND aref.domain_id IN (@domain_ids)}
@@ -798,7 +798,7 @@ characterizationModule <- function(
         analysis_ref_table_name = dataSource$prefixTable("temporal_analysis_ref"),
         temporal_time_ref = dataSource$prefixTable("temporal_time_ref"),
         cohort_id = targetCohortId(),
-        results_database_schema = dataSource$resultsDatabaseSchema
+        schema = dataSource$schema
       ) %>%
         dplyr::tibble() %>%
         tidyr::replace_na(replace = list(timeId = -1)) %>%

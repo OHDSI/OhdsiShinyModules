@@ -353,7 +353,7 @@ timeDistributionsModule <- function(id,
                                     selectedDatabaseIds,
                                     cohortIds,
                                     cohortTable = dataSource$cohortTable,
-                                    databaseTable = dataSource$databaseTable) {
+                                    databaseTable = dataSource$dbTable) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     output$selectedCohorts <- shiny::renderUI({ selectedCohorts() })

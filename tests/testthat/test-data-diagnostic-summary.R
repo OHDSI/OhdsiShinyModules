@@ -4,8 +4,7 @@ shiny::testServer(
   app = dataDiagnosticSummaryServer, 
   args = list(
     connectionHandler = connectionHandlerDataDiag,
-    mySchema = resultDatabaseSettingsDataDiag$schema,
-    myTableAppend = resultDatabaseSettingsDataDiag$tablePrefix 
+    resultDatabaseSettings = resultDatabaseSettingsDataDiag
   ), 
   expr = {
     

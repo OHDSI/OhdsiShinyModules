@@ -8,7 +8,7 @@ cohortCountsModule(
   id,
   dataSource,
   cohortTable = dataSource$cohortTable,
-  databaseTable = dataSource$databaseTable,
+  databaseTable = dataSource$dbTable,
   selectedCohorts,
   selectedDatabaseIds,
   cohortIds

@@ -6,11 +6,7 @@
 \usage{
 createCdDatabaseDataSource(
   connectionHandler,
-  schema,
-  vocabularyDatabaseSchema = schema,
-  tablePrefix = "",
-  cohortTableName = paste0(tablePrefix, "cohort"),
-  databaseTableName = paste0(tablePrefix, "database"),
+  resultDatabaseSettings,
   dataModelSpecificationsPath = system.file("cohort-diagnostics-ref",
     "resultsDataModelSpecification.csv", package = utils::packageName()),
   dataMigrationsRef = system.file("cohort-diagnostics-ref", "migrations.csv", package =
@@ -21,15 +17,7 @@ createCdDatabaseDataSource(
 \arguments{
 \item{connectionHandler}{An instance of a ResultModelManager::connectionHander - manages a connection to a database.}
 
-\item{schema}{The schema containing the results tables in the database.}
-
-\item{vocabularyDatabaseSchema}{The schema containing the vocabulary tables in the database. If not provided, defaults to `resultsDatabaseSchema`.}
-
-\item{tablePrefix}{An optional prefix to add to the table names.}
-
-\item{cohortTableName}{The name of the cohort table in the database.}
-
-\item{databaseTableName}{The name of the database table in the database.}
+\item{resultDatabaseSettings}{a list containing the result schema and prefixes}
 
 \item{dataModelSpecificationsPath}{The path to a file containing specifications for the data model used by the database.}
 

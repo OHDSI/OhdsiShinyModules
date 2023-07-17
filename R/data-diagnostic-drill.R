@@ -52,8 +52,7 @@ dataDiagnosticDrillViewer <- function(id) {
 #'
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
-#' @param mySchema the database schema for the model results
-#' @param myTableAppend a string that appends the tables in the result schema
+#' @param resultDatabaseSettings a list containing the result schema and prefixes
 #' 
 #' @return
 #' The server to the summary module
@@ -62,8 +61,7 @@ dataDiagnosticDrillViewer <- function(id) {
 dataDiagnosticDrillServer <- function(
     id, 
     connectionHandler,
-    mySchema,
-    myTableAppend
+    resultDatabaseSettings
 ) {
   shiny::moduleServer(
     id,
@@ -71,15 +69,13 @@ dataDiagnosticDrillServer <- function(
     
       analyses <- getAnalysisNames(
         connectionHandler = connectionHandler, 
-        mySchema = mySchema, 
-        myTableAppend = myTableAppend
+        resultDatabaseSettings = resultDatabaseSettings
       )
       
       databases <- shiny::reactiveVal({
         getDbDataDiagnosticsDatabases(
           connectionHandler = connectionHandler, 
-          mySchema = mySchema, 
-          myTableAppend = myTableAppend,
+          resultDatabaseSettings = resultDatabaseSettings,
           analysisName = analyses[1]
         )
       })
@@ -115,8 +111,7 @@ dataDiagnosticDrillServer <- function(
       resultTable <- shiny::reactiveVal(
         value = getDrugStudyFail(
           connectionHandler = connectionHandler, 
-        mySchema = mySchema, 
-        myTableAppend = myTableAppend,
+          resultDatabaseSettings = resultDatabaseSettings,
         analysis = analyses[1]
       ))
       
@@ -126,8 +121,7 @@ dataDiagnosticDrillServer <- function(
           
           resultTableTemp <- getDrugStudyFail(
             connectionHandler = connectionHandler, 
-            mySchema = mySchema, 
-            myTableAppend = myTableAppend,
+            resultDatabaseSettings = resultDatabaseSettings,
             analysis = input$analysisSelected
           )
           resultTable(resultTableTemp)
@@ -220,8 +214,7 @@ dataDiagnosticDrillServer <- function(
           reactable::reactable(
             data = getDrillDown(
               connectionHandler = connectionHandler, 
-              mySchema = mySchema, 
-              myTableAppend = myTableAppend,
+              resultDatabaseSettings = resultDatabaseSettings,
               analysisName = analysisName, 
               databaseId = databaseId
             )
@@ -253,19 +246,18 @@ dataDiagnosticDrillServer <- function(
 
 getDrillDown <- function(
     connectionHandler, 
-  mySchema, 
-  myTableAppend,
+    resultDatabaseSettings,
   analysisName, 
   databaseId
 ){
   
-  sql <- "SELECT * FROM @my_schema.@my_table_appenddata_diagnostics_output
+  sql <- "SELECT * FROM @schema.@dd_table_prefixdata_diagnostics_output
   WHERE analysis_name = '@analysis_name' and database_id = '@database_id';"
   
   result <- connectionHandler$queryDb(
     sql = sql, 
-    my_schema = mySchema,
-    my_table_append = myTableAppend,
+    schema = resultDatabaseSettings$schema,
+    dd_table_prefix = resultDatabaseSettings$ddTablePrefix,
     analysis_name = analysisName,
     database_id = databaseId
   )
@@ -277,17 +269,16 @@ getDrillDown <- function(
 }
 
 getDbDataDiagnostics <- function(
-    connectionHandler = connectionHandler, 
-  mySchema = mySchema, 
-  myTableAppend = myTableAppend
+    connectionHandler, 
+    resultDatabaseSettings 
 ){
   
-  sql <- "SELECT distinct database_id FROM @my_schema.@my_table_appenddata_diagnostics_summary;"
+  sql <- "SELECT distinct database_id FROM @schema.@dd_table_prefixdata_diagnostics_summary;"
 
   dbNames <- connectionHandler$queryDb(
     sql = sql, 
-    my_schema = mySchema,
-    my_table_append = myTableAppend
+    schema = resultDatabaseSettings$schema,
+    dd_table_prefix = resultDatabaseSettings$ddTablePrefix
   )
   result <- list(dbNames$databaseId)
   
@@ -297,8 +288,7 @@ getDbDataDiagnostics <- function(
 
 getDrugStudyFail <- function(
     connectionHandler, 
-    mySchema, 
-    myTableAppend = '',
+    resultDatabaseSettings,
     analysis = NULL
 ){
   
@@ -310,13 +300,13 @@ getDrugStudyFail <- function(
     
     shiny::incProgress(1/3, detail = paste("Extracting data"))
     
-    sql <- "SELECT * FROM @my_schema.@my_table_appenddata_diagnostics_summary
+    sql <- "SELECT * FROM @schema.@dd_table_prefixdata_diagnostics_summary
   WHERE analysis_name in ('@analysis');"
     
     summaryTable <- connectionHandler$queryDb(
       sql = sql, 
-      my_schema = mySchema,
-      my_table_append = myTableAppend,
+      schema = resultDatabaseSettings$schema,
+      dd_table_prefix = resultDatabaseSettings$ddTablePrefix,
       analysis = analysis
     )
     
@@ -336,18 +326,17 @@ getDrugStudyFail <- function(
 
 getDbDataDiagnosticsDatabases <- function(
   connectionHandler, 
-  mySchema, 
-  myTableAppend,
+  resultDatabaseSettings,
   analysisName
 ){
   if(!is.null(analysisName)){
-    sql <- "SELECT distinct database_id FROM @my_schema.@my_table_appenddata_diagnostics_summary
+    sql <- "SELECT distinct database_id FROM @schema.@dd_table_prefixdata_diagnostics_summary
   WHERE analysis_name in ('@analysis');"
     
     res <- connectionHandler$queryDb(
       sql = sql, 
-      my_schema = mySchema,
-      my_table_append = myTableAppend,
+      schema = resultDatabaseSettings$schema,
+      dd_table_prefix = resultDatabaseSettings$ddTablePrefix,
       analysis = analysisName
     )
     

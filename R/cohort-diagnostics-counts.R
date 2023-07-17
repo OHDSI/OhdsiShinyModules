@@ -170,7 +170,7 @@ getInclusionRulesTable <- function(
 
   getDisplayTableGroupedByDatabaseId(
     data = data,
-    databaseTable = dataSource$databaseTable,
+    databaseTable = dataSource$dbTable,
     headerCount = countsForHeader,
     keyColumns = c("id", "ruleName"),
     countLocation = 1,
@@ -194,7 +194,7 @@ getInclusionRulesTable <- function(
 cohortCountsModule <- function(id,
                                dataSource,
                                cohortTable = dataSource$cohortTable,
-                               databaseTable = dataSource$databaseTable,
+                               databaseTable = dataSource$dbTable,
                                selectedCohorts,
                                selectedDatabaseIds,
                                cohortIds) {

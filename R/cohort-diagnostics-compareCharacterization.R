@@ -483,11 +483,11 @@ compareCohortCharacterizationView <- function(id, title = "Compare cohort charac
 # Returns data from cohort table of Cohort Diagnostics results data model
 getResultsCohort <- function(dataSource, cohortIds = NULL) {
   data <- dataSource$connectionHandler$queryDb(
-    sql = "SELECT * FROM @results_database_schema.@table_name
+    sql = "SELECT * FROM @schema.@table_name
                                           {@cohort_id != \"\"} ? { WHERE cohort_id IN (@cohort_id)};",
-    results_database_schema = dataSource$resultsDatabaseSchema,
+    schema = dataSource$schema,
     cohort_id = cohortIds,
-    table_name = dataSource$cohortTableName,
+    table_name = paste0(dataSource$cgTablePrefix,dataSource$cgTable),
     snakeCaseToCamelCase = TRUE
   )
   return(data)
@@ -805,7 +805,7 @@ getCharacterizationOutput <- function(dataSource,
 compareCohortCharacterizationModule <- function(id,
                                                 dataSource,
                                                 cohortTable = dataSource$cohortTable,
-                                                databaseTable = dataSource$databaseTable,
+                                                databaseTable = dataSource$dbTable,
                                                 temporalAnalysisRef = dataSource$temporalAnalysisRef,
                                                 analysisNameOptions = dataSource$analysisNameOptions,
                                                 domainIdOptions = dataSource$domainIdOptions,

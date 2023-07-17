@@ -17,34 +17,33 @@
 # limitations under the License.
 
 
-#' The module viewer for rendering the SCCS diagnostics results
-#'
-#' @param id the unique reference id for the module
-#'
-#' @return
-#' The user interface to the estimation diagnostics viewer
-#' 
-#' @export
 sccsDiagnosticsSummaryViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    # div(HTML("<em>Enhancements to come...</em>")),
-    reactable::reactableOutput(outputId = ns("diagnosticsTable"))
+    inputSelectionViewer(ns("input-selection")),
+    
+    shiny::conditionalPanel(
+      condition = 'input.generate != 0',
+      ns = shiny::NS(ns("input-selection")),
+      
+      shiny::tabsetPanel(
+        type = 'pills',
+        id = ns('diagnosticsTablePanel'),
+        shiny::tabPanel(
+          title = 'Summary',
+          resultTableViewer(ns("diagnosticsSummaryTable"))
+        ),
+        shiny::tabPanel(
+          title = 'Full',
+          resultTableViewer(ns("diagnosticsTable"))
+        )
+      )
+    )
   )
+  
 }
 
-
-#' The module server for rendering the SCCS diagnostics summary
-#'
-#' @param id the unique reference id for the module
-#' @param connectionHandler the connection to the PLE results database
-#' @param resultDatabaseSettings the resultDatabaseSettings with the schemas, prefix and table names
-#'
-#' @return
-#' the SCCS diagnostics summary results
-#' 
-#' @export
 sccsDiagnosticsSummaryServer <- function(
     id,
     connectionHandler,
@@ -55,20 +54,420 @@ sccsDiagnosticsSummaryServer <- function(
     id,
     function(input, output, session) {
       
-      output$diagnosticsTable <- reactable::renderReactable({
-        data <- getSccsAllDiagnosticsSummary(
-          connectionHandler = connectionHandler,
-          resultDatabaseSettings = resultDatabaseSettings
+      targetIds <- getSccsDiagTargets(
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
+      outcomeIds <- getSccsDiagOutcomes(
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
+      analysisIds <- getSccsDiagAnalyses(
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
+      
+      inputSelected <- inputSelectionServer(
+        id = "input-selection", 
+        inputSettingList = list(
+          createInputSetting(
+            rowNumber = 1,                           
+            columnWidth = 6,
+            varName = 'targetIds',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Target: ',
+              choices = targetIds,
+              selected = targetIds[1],
+              multiple = T,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          createInputSetting(
+            rowNumber = 1,                           
+            columnWidth = 6,
+            varName = 'outcomeIds',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Outcome: ',
+              choices = outcomeIds,
+              selected = outcomeIds[1],
+              multiple = T,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          
+          createInputSetting(
+            rowNumber = 2,                           
+            columnWidth = 12,
+            varName = 'analysisIds',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Analysis: ',
+              choices = analysisIds,
+              selected = analysisIds[1],
+              multiple = T,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          )
         )
-        
-        reactable::reactable(data,
-                             striped = TRUE,
-                             filterable = TRUE,
-                             searchable = TRUE,
-                             bordered = TRUE
+      )
+    
+      data <- shiny::reactive({
+        getSccsAllDiagnosticsSummary(
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          targetIds = inputSelected()$targetIds,
+          outcomeIds = inputSelected()$outcomeIds,
+          analysisIds = inputSelected()$analysisIds
         )
       })
       
+      data2 <- shiny::reactive({ # use CM diag function
+        diagnosticSummaryFormat(
+          data = data,
+          idCols = c('databaseName','target','covariateName'),
+          namesFrom = c('outcome','analysis')
+          )
+      })
+        
+        customColDefs <- list(
+          databaseName = reactable::colDef(
+            header = withTooltip(
+              "Database",
+              "The database name"
+            )
+          ),
+          target = reactable::colDef(
+            header = withTooltip(
+              "Target",
+              "The target cohort of interest "
+            )
+          ),
+          outcome = reactable::colDef(
+            header = withTooltip(
+              "Outcome",
+              "The outcome of interest "
+            )
+          ),
+          analysis = reactable::colDef(
+            header = withTooltip(
+              "Analysis",
+              "The analysis name "
+            )
+          ),
+          covariateName = reactable::colDef(
+            header = withTooltip(
+              "Time Period",
+              "The time period of interest"
+            )
+          ),
+          mdrr = reactable::colDef(
+            header = withTooltip(
+              "mdrr",
+              "The minimum detectible relative risk"
+            )
+          ),
+          ease = reactable::colDef(
+            header = withTooltip(
+              "ease",
+              "The ..."
+            )
+          ),
+          timeTrendP = reactable::colDef(
+            header = withTooltip(
+              "timeTrendP",
+              "The ..."
+            )
+          ),
+          preExposureP = reactable::colDef(
+            header = withTooltip(
+              "preExposureP",
+              "The ..."
+            )
+          ),
+          mdrrDiagnostic = reactable::colDef(
+            header = withTooltip(
+              "mdrrDiagnostic",
+              "The ..."
+            )
+          ),
+          easeDiagnostic = reactable::colDef(
+            header = withTooltip(
+              "easeDiagnostic",
+              "The ..."
+            )
+          ),
+          timeTrendDiagnostic = reactable::colDef(
+            header = withTooltip(
+              "timeTrendDiagnostic",
+              "The ..."
+            )
+          ),
+          preExposureDiagnostic = reactable::colDef(
+            header = withTooltip(
+              "preExposureDiagnostic",
+              "The ..."
+            )
+          ),
+          
+          unblind = reactable::colDef(
+            header = withTooltip(
+              "unblind",
+              "If the value is 1 then the diagnostics passed and results can be unblinded"
+            )
+          )
+          
+        )
+        
+        resultTableServer(
+          id = "diagnosticsTable",
+          df = data,
+          colDefsInput = customColDefs
+        )
+        
+        
+        # Summary table
+        customColDefs2 <- list(
+          databaseName = reactable::colDef(
+            header = withTooltip(
+              "Database",
+              "The database name"
+            ),
+            sticky = "left"
+          ),
+          target = reactable::colDef(
+            header = withTooltip(
+              "Target",
+              "The target cohort of interest "
+            ),
+            sticky = "left"
+          ),
+          covariateName = reactable::colDef(
+            header = withTooltip(
+              "Time Period",
+              "The time period of interest"
+            ),
+            sticky = "left"
+          )
+        )
+        
+        resultTableServer(
+          id = "diagnosticsSummaryTable",
+          df = data2,
+          colDefsInput = styleColumns(customColDefs2, outcomeIds, analysisIds)
+        )
+      
     }
   )
+}
+
+
+
+getSccsDiagAnalyses <- function(
+  connectionHandler,
+  resultDatabaseSettings
+){
+  
+  sql <- "
+  SELECT distinct
+  a.analysis_id,
+  a.description as analysis
+ 
+  FROM
+  @schema.@sccs_table_prefixanalysis a
+  ;
+  "
+  result <- connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    snakeCaseToCamelCase = TRUE
+  )
+  
+  res <- result$analysisId
+  names(res) <- result$analysis
+    
+  return(res)
+}
+
+
+getSccsDiagOutcomes <- function(
+    connectionHandler,
+    resultDatabaseSettings
+){
+  
+  sql <- "
+  SELECT distinct
+  c.cohort_name as outcome, 
+  c.cohort_definition_id
+ 
+  FROM @schema.@sccs_table_prefixdiagnostics_summary ds
+            inner join
+  @schema.@sccs_table_prefixexposures_outcome_set eos
+  on ds.exposures_outcome_set_id = eos.exposures_outcome_set_id
+     inner join
+   @schema.@cg_table_prefixcohort_definition as c
+   on c.cohort_definition_id = eos.outcome_id
+  ;
+  "
+  result <- connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    snakeCaseToCamelCase = TRUE
+  )
+  
+  res <- result$cohortDefinitionId
+  names(res) <- result$outcome
+  
+  return(res)
+}
+
+getSccsDiagTargets <- function(
+    connectionHandler,
+    resultDatabaseSettings
+){
+  
+  sql <- "
+  SELECT distinct
+  c2.cohort_name as target, 
+  c2.cohort_definition_id
+ 
+ FROM @schema.@sccs_table_prefixdiagnostics_summary ds
+
+  INNER JOIN
+  @schema.@sccs_table_prefixcovariate cov
+  on cov.covariate_id = ds.covariate_id and 
+  cov.exposures_outcome_set_id = ds.exposures_outcome_set_id and
+  cov.analysis_id = ds.analysis_id and
+  cov.database_id = ds.database_id
+  
+   inner join
+   @schema.@cg_table_prefixcohort_definition as c2
+   on cov.era_id = c2.cohort_definition_id
+  ;
+  "
+  result <- connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    snakeCaseToCamelCase = TRUE
+  )
+  
+  res <- result$cohortDefinitionId
+  names(res) <- result$target
+  
+  return(res)
+}
+
+
+getSccsAllDiagnosticsSummary <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    targetIds,
+    outcomeIds,
+    analysisIds = NULL
+) {
+  sql <- "
+  SELECT 
+  d.cdm_source_abbreviation as database_name,
+  c.cohort_name as outcome, 
+  c2.cohort_name as target,
+  a.description as analysis,
+  cov.covariate_name,
+  ds.*
+  FROM @schema.@sccs_table_prefixdiagnostics_summary ds
+            inner join
+  @schema.@sccs_table_prefixexposures_outcome_set eos
+  on ds.exposures_outcome_set_id = eos.exposures_outcome_set_id
+     inner join
+   @schema.@cg_table_prefixcohort_definition as c
+   on c.cohort_definition_id = eos.outcome_id
+   
+   INNER JOIN
+  @schema.@database_table_prefix@database_table d
+  on d.database_id = ds.database_id
+  
+  INNER JOIN
+  @schema.@sccs_table_prefixanalysis a
+  on a.analysis_id = ds.analysis_id
+  
+  INNER JOIN
+  @schema.@sccs_table_prefixcovariate cov
+  on cov.covariate_id = ds.covariate_id and 
+  cov.exposures_outcome_set_id = ds.exposures_outcome_set_id and
+  cov.analysis_id = ds.analysis_id and
+  cov.database_id = ds.database_id
+  
+   inner join
+   @schema.@cg_table_prefixcohort_definition as c2
+   on cov.era_id = c2.cohort_definition_id
+   
+   
+   where
+   
+   c2.cohort_definition_id in (@target_ids)
+   and c.cohort_definition_id in (@outcome_ids)
+   {@use_analysis}?{and a.analysis_id in (@analysis_ids)}
+  ;
+  "
+  result <- connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    database_table_prefix = resultDatabaseSettings$databaseTablePrefix,
+    database_table = resultDatabaseSettings$databaseTable,
+    
+    target_ids = paste0(targetIds, collapse = ','),
+    outcome_ids = paste0(outcomeIds, collapse = ','),
+    analysis_ids = paste0(analysisIds, collapse = ','),
+    use_analysis = !is.null(analysisIds),
+    
+    snakeCaseToCamelCase = TRUE
+  )
+  
+  result <- result %>% 
+    dplyr::select(-c("analysisId","exposuresOutcomeSetId","databaseId","covariateId"))
+  
+  result$summaryValue <- apply(
+    X = result[, grep('Diagnostic', colnames(result))], 
+    MARGIN = 1, 
+    FUN = function(x){
+      
+      if(sum(x %in% c('FAIL'))>0){
+        return('Fail')
+      } else if(sum(x %in% c('WARNING')) >0){
+        return(sum(x %in% c('WARNING'), na.rm = T))
+      } else{
+        return('Pass')
+      }
+    }
+  )
+  return(result)
+  
 }

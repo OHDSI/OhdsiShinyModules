@@ -1,6 +1,6 @@
 context("cohort-diagnostics-main")
 
-shiny::testServer(cohortDiagnosticsSever, args = list(
+shiny::testServer(cohortDiagnosticsServer, args = list(
   id = "testCdServer",
   connectionHandler = connectionHandlerCohortDiag,
   resultDatabaseSettings = resultDatabaseSettingsCohortDiag,

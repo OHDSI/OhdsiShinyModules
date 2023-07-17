@@ -690,8 +690,6 @@ sccsServer <- function(
   })
 }
 
-
-
 #' The location of the description module helper file
 #'
 #' @details

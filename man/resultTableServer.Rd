@@ -4,7 +4,7 @@
 \alias{resultTableServer}
 \title{Result Table Server}
 \usage{
-resultTableServer(id, df, colDefsInput, downloadedFileName = NULL)
+resultTableServer(id, df, colDefsInput, downloadedFileName = NULL, addActions = NULL)
 }
 \arguments{
 \item{id}{string, table id must match resultsTableViewer function}
@@ -14,6 +14,10 @@ resultTableServer(id, df, colDefsInput, downloadedFileName = NULL)
 \item{colDefsInput}{named list of reactable::colDefs}
 
 \item{downloadedFileName}{string, desired name of downloaded data file. can use the name from the module that is being used}
+
+\item{addActions}{add a button row selector column to the table to a column called 'actions'.
+actions must be a column in df}
+
 }
 \value{
 shiny module server
