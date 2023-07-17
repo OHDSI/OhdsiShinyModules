@@ -4,17 +4,13 @@
 \alias{resultTableServer}
 \title{Result Table Server}
 \usage{
-<<<<<<< Updated upstream
-resultTableServer(id, df, colDefsInput, addActions = NULL)
-=======
 resultTableServer(
   id,
   df,
   colDefsInput,
-  downloadedFileName = NULL,
-  addActions = NULL
+  addActions = NULL,
+  downloadedFileName = NULL
 )
->>>>>>> Stashed changes
 }
 \arguments{
 \item{id}{string, table id must match resultsTableViewer function}
@@ -25,6 +21,8 @@ resultTableServer(
 
 \item{addActions}{add a button row selector column to the table to a column called 'actions'.
 actions must be a column in df}
+
+\item{downloadedFileName}{string, desired name of downloaded data file. can use the name from the module that is being used}
 }
 \value{
 shiny module server

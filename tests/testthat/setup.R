@@ -197,8 +197,6 @@ resultDatabaseSettingsES <- list(
 
 #  ====
 
-<<<<<<< Updated upstream
-=======
 # ====== PheValuator
 
 connectionDetailsPV <- DatabaseConnector::createConnectionDetails(
@@ -240,7 +238,6 @@ resultDatabaseSettingsDS = list(
 
 #  ====
 
->>>>>>> Stashed changes
 ## cleanup after tests complete
 withr::defer({
   options("shiny-test-env-enabled" = FALSE)

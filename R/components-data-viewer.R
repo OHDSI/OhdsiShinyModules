@@ -7,11 +7,15 @@
 #' Result Table Viewer
 #'
 #' @param id string
+#' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #'
 #' @return shiny module UI
 #' @export
 #'
-resultTableViewer <- function(id = "result-table") {
+resultTableViewer <- function(
+    id = "result-table",
+    downloadedFileName = NULL
+    ) {
   ns <- shiny::NS(id)
   shiny::div(# UI
     shinydashboard::box(
@@ -41,6 +45,7 @@ resultTableViewer <- function(id = "result-table") {
                 "Reactable.downloadDataCSV('",
                 ns('resultData'),
                 "', 'result-data-filtered-",
+                downloadedFileName,
                 Sys.Date(),
                 ".csv')"
               )
@@ -142,6 +147,7 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param colDefsInput named list of reactable::colDefs
 #' @param addActions add a button row selector column to the table to a column called 'actions'.  
 #'                   actions must be a column in df
+#' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #'
 #' @return shiny module server
 #' @export
@@ -150,7 +156,8 @@ resultTableServer <- function(
     id, #string
     df, #data.frame
     colDefsInput,
-    addActions = NULL
+    addActions = NULL,
+    downloadedFileName = NULL
 ) #list of colDefs, can use checkmate::assertList, need a check that makes sure names = columns) {
   shiny::moduleServer(
     id,
@@ -249,7 +256,7 @@ resultTableServer <- function(
       # download full data button
       output$downloadDataFull <- shiny::downloadHandler(
         filename = function() {
-          paste('data-full-', Sys.Date(), '.csv', sep = '')
+          paste('result-data-full-', downloadedFileName, Sys.Date(), '.csv', sep = '')
         },
         content = function(con) {
           utils::write.csv(
