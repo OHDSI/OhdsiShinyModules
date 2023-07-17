@@ -249,4 +249,6 @@ withr::defer({
   connectionHandlerCohortDiag$finalize()
   connectionHandlerSccs$finalize()
   connectionHandlerES$finalize()
+  connectionHandlerDS$finalize()
+  connectionHandlerPV$finalize()
 }, testthat::teardown_env())

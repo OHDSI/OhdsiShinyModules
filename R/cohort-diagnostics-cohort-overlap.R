@@ -259,10 +259,30 @@ getResultsCohortRelationships <- function(dataSource,
                                           databaseIds = NULL,
                                           startDays = NULL,
                                           endDays = NULL) {
+  #data <- dataSource$connectionHandler$queryDb(
+  #  sql = "SELECT cr.*, db.database_name
+  #           FROM @schema.@table_name cr
+  #           INNER JOIN @schema.@database_table db ON db.database_id = cr.database_id
+  #           WHERE cr.cohort_id IN (@cohort_id)
+  #           AND cr.database_id IN (@database_id)
+  #            {@comparator_cohort_id != \"\"} ? { AND cr.comparator_cohort_id IN (@comparator_cohort_id)}
+  #            {@start_day != \"\"} ? { AND cr.start_day IN (@start_day)}
+  #            {@end_day != \"\"} ? { AND cr.end_day IN (@end_day)};",
+  #  snakeCaseToCamelCase = TRUE,
+  #  schema = dataSource$schema,
+  #  database_id = quoteLiterals(databaseIds),
+  #  table_name = dataSource$prefixTable("cohort_relationships"),
+  #  database_table = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable),
+  #  cohort_id = cohortIds,
+  #  comparator_cohort_id = comparatorCohortIds,
+  #  start_day = startDays,
+  #  end_day = endDays
+  #) %>%
+  #  dplyr::tibble()
+  
   data <- dataSource$connectionHandler$queryDb(
-    sql = "SELECT cr.*, db.database_name
+    sql = "SELECT cr.*
              FROM @schema.@table_name cr
-             INNER JOIN @schema.@database_table db ON db.database_id = cr.database_id
              WHERE cr.cohort_id IN (@cohort_id)
              AND cr.database_id IN (@database_id)
               {@comparator_cohort_id != \"\"} ? { AND cr.comparator_cohort_id IN (@comparator_cohort_id)}
@@ -272,13 +292,15 @@ getResultsCohortRelationships <- function(dataSource,
     schema = dataSource$schema,
     database_id = quoteLiterals(databaseIds),
     table_name = dataSource$prefixTable("cohort_relationships"),
-    database_table = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable),
     cohort_id = cohortIds,
     comparator_cohort_id = comparatorCohortIds,
     start_day = startDays,
     end_day = endDays
   ) %>%
     dplyr::tibble()
+  
+  # join with dbTable (moved this outside sql)
+  data <- merge(data, dataSource$dbTable, by = 'databaseId')
 
   return(data)
 }
