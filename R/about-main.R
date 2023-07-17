@@ -42,7 +42,9 @@ aboutHelperFile <- function(){
 #' The user interface to the home page module
 #'
 #' @export
-aboutViewer <- function(id = 'homepage') {
+aboutViewer <- function(
+    id = 'homepage'
+    ) {
   ns <- shiny::NS(id)
   
   shinydashboard::box(
@@ -71,12 +73,18 @@ aboutViewer <- function(id = 'homepage') {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
+#' @param connectionHandler a connection to the database with the results
+#' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #' 
 #' @return
 #' The server for the shiny app home
 #'
 #' @export
-aboutServer <- function(id = 'homepage') {
+aboutServer <- function(
+    id = 'homepage',
+    connectionHandler = NULL,
+    resultDatabaseSettings = NULL
+    ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {

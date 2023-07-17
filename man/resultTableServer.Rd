@@ -4,7 +4,17 @@
 \alias{resultTableServer}
 \title{Result Table Server}
 \usage{
+<<<<<<< Updated upstream
 resultTableServer(id, df, colDefsInput, addActions = NULL)
+=======
+resultTableServer(
+  id,
+  df,
+  colDefsInput,
+  downloadedFileName = NULL,
+  addActions = NULL
+)
+>>>>>>> Stashed changes
 }
 \arguments{
 \item{id}{string, table id must match resultsTableViewer function}

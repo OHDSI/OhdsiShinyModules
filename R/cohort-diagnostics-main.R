@@ -107,11 +107,6 @@ getEnabledCdReports <- function(dataSource) {
 createCdDatabaseDataSource <- function(
     connectionHandler,
     resultDatabaseSettings,
-    #schema,
-    #vocabularyDatabaseSchema = schema,
-    #cdTablePrefix = "",
-    #cohortTableName = paste0(tablePrefix, "cohort"),
-    #databaseTableName = paste0(tablePrefix, "database"),
     dataModelSpecificationsPath = system.file("cohort-diagnostics-ref",
                                               "resultsDataModelSpecification.csv",
                                               package = utils::packageName()),

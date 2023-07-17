@@ -197,6 +197,50 @@ resultDatabaseSettingsES <- list(
 
 #  ====
 
+<<<<<<< Updated upstream
+=======
+# ====== PheValuator
+
+connectionDetailsPV <- DatabaseConnector::createConnectionDetails(
+  dbms = 'sqlite',
+  server = "../resources/pvDatabase/phevaluator.sqlite"
+)
+
+connectionHandlerPV  <- ResultModelManager::ConnectionHandler$new(
+  connectionDetailsPV, 
+  loadConnection = FALSE
+)
+
+resultDatabaseSettingsPV = list(
+  dbms = 'sqlite',
+  pvTablePrefix = 'pv_',
+  schema = 'main'
+)
+
+#  ====
+
+# ====== DataSources
+
+connectionDetailsDS <- DatabaseConnector::createConnectionDetails(
+  dbms = 'sqlite',
+  server = "../resources/DSDatabase/databaseFile.sqlite"
+)
+
+connectionHandlerDS  <- ResultModelManager::ConnectionHandler$new(
+  connectionDetailsDS, 
+  loadConnection = FALSE
+)
+
+resultDatabaseSettingsDS = list(
+  dbms = 'sqlite',
+  databaseTablePrefix = '',
+  schema = 'main',
+  databaseTable = 'DATABASE_META_DATA'
+)
+
+#  ====
+
+>>>>>>> Stashed changes
 ## cleanup after tests complete
 withr::defer({
   options("shiny-test-env-enabled" = FALSE)
