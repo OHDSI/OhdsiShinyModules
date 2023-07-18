@@ -24,7 +24,7 @@ test_that("Large Data Table R6 Class works", {
   expect_error(LargeDataTable$new(ch, query, "SELECT 1; SELECT 2;"))
   expect_error(LargeDataTable$new(ch, query))
 
-  ldt2 <- LargeDataTable$new(ch, query, countQuery = NULL))
+  ldt2 <- LargeDataTable$new(ch, query, countQuery = NULL)
   checkmate::expect_string(ldt2$countQuery)
 
   checkmate::expect_class(largeTableView("foo"), "shiny.tag")
