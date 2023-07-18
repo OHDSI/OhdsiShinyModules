@@ -40,35 +40,35 @@ test_that("Large Data Table R6 Class works", {
         df %>% dplyr::mutate(fizzBuzz = ifelse(.data$rowId %% 3 == 0, "fizz", "buzz"))
       },
       columns = list(row_id = reactable::colDef("row id")
-    ),
-    expr = {
+      ),
+      expr = {
 
-      session$setInputs(pageSize = 10)
+        session$setInputs(pageSize = 10)
 
-      expect_equal(rowCount(), ldt$getCount(min_row = 1))
-      expect_equal(pageNum(), 1)
-      expect_equal(pageCount(), ceiling(ldt$getCount(min_row = 1) / 10))
+        expect_equal(rowCount(), ldt$getCount(min_row = 1))
+        expect_equal(pageNum(), 1)
+        expect_equal(pageCount(), ceiling(ldt$getCount(min_row = 1) / 10))
 
 
-      session$setInputs(pageSize = 100)
-      expect_equal(pageNum(), 1)
-      expect_equal(pageCount(), ceiling(ldt$getCount(min_row = 1) / 100))
+        session$setInputs(pageSize = 100)
+        expect_equal(pageNum(), 1)
+        expect_equal(pageCount(), ceiling(ldt$getCount(min_row = 1) / 100))
 
-      session$setInputs(pageNum = 5)
-      expect_equal(pageNum(), 5)
-      expect_equal(output$pageNumber, "401 - 500 of 1,000,000 rows")
+        session$setInputs(pageNum = 5)
+        expect_equal(pageNum(), 5)
+        expect_equal(output$pageNumber, "401 - 500 of 1,000,000 rows")
 
-      checkmate::expect_data_frame(dataPage(), nrow = 100, ncols = 3)
-      checkmate::expect_names(colnames(dataPage()), must.include = c("rowId", "value", "fizzBuzz"))
-      expect_true(all(dataPage()$fizzBuzz == ifelse(dataPage()$rowId %% 3 == 0, "fizz", "buzz")))
+        checkmate::expect_data_frame(dataPage(), nrow = 100, ncols = 3)
+        checkmate::expect_names(colnames(dataPage()), must.include = c("rowId", "value", "fizzBuzz"))
+        expect_true(all(dataPage()$fizzBuzz == ifelse(dataPage()$rowId %% 3 == 0, "fizz", "buzz")))
 
-      checkmate::expect_class(output$tableView, "json")
-      checkmate::expect_class(output$pageActionButtons , "list")
+        checkmate::expect_class(output$tableView, "json")
+        checkmate::expect_class(output$pageActionButtons, "list")
 
-      session$setInputs(pageSize = 1e6)
-      expect_equal(pageCount(), 1)
-      checkmate::expect_class(output$pageActionButtons , "list")
-      checkmate::expect_file_exists(output$downloadFull)
-    }
-  )
+        session$setInputs(pageSize = 1e6)
+        expect_equal(pageCount(), 1)
+        checkmate::expect_class(output$pageActionButtons, "list")
+        checkmate::expect_file_exists(output$downloadFull)
+      }
+    )
 })
