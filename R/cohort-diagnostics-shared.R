@@ -36,6 +36,31 @@ hasData <- function(data) {
   return(TRUE)
 }
 
+# Useful if you want to include isBinary in an invisible column and then have the result display as a percentage or
+# Not depending on this value
+formatCellByBinaryType <- function() {
+  reactable::JS(
+    "function(data) {
+      let binaryCol = data.allCells.find(x => x.column.id == 'isBinary')
+      if (binaryCol !== undefined) {
+        if(binaryCol.value == 'Y') {
+          if (isNaN(parseFloat(data.value))) return data.value;
+          if (Number.isInteger(data.value) && data.value > 0) return (100 * data.value).toFixed(0).toString().replace(/(\\d)(?=(\\d{3})+(?!\\d))/g, '$1,') + '%';
+          if (data.value > 999) return (100 * data.value).toFixed(2).replace(/(\\d)(?=(\\d{3})+(?!\\d))/g, '$1,') + '%';
+          if (data.value < 0) return '<' + (Math.abs(data.value) * 100).toFixed(2) + '%';
+          return  (100 * data.value).toFixed(1) + '%';
+        }
+      }
+      if (isNaN(parseFloat(data.value))) return data.value;
+      if (Number.isInteger(data.value) && data.value > 0) return data.value.toFixed(0).toString().replace(/(\\d)(?=(\\d{3})+(?!\\d))/g, '$1,');
+      if (data.value > 999) return data.value.toFixed(1).toString().replace(/(\\d)(?=(\\d{3})+(?!\\d))/g, '$1,');
+      if (data.value < 0) return  '<' + Math.abs(data.value.toFixed(3));
+
+      return data.value.toFixed(1);
+    }")
+}
+
+
 formatDataCellValueInDisplayTable <-
   function(showDataAsPercent = FALSE) {
     if (showDataAsPercent) {
