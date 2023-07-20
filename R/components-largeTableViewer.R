@@ -163,16 +163,16 @@ largeTableView <- function(id, pageSizeChoices = c(10,25,50,100), selectedPageSi
     shiny::tags$head(
       shiny::tags$style(type = "text/css", inlineStyle)
     ),
-     shiny::fluidRow(
-       if (fullDownloads) {
-         shiny::column(
-           width = 4,
-           shiny::downloadButton(ns("downloadFull"),
-                                 label = "Download (Full)",
-                                 icon = shiny::icon("download"))
-         )
-       }
-     ),
+    shiny::fluidRow(
+      if (fullDownloads) {
+        shiny::column(
+          width = 4,
+          shiny::downloadButton(ns("downloadFull"),
+                                label = "Download",
+                                icon = shiny::icon("download"))
+        )
+      }
+    ),
     shinycssloaders::withSpinner(reactable::reactableOutput(ns("tableView"))),
     shiny::fluidRow(
       shiny::column(
