@@ -1,3 +1,9 @@
+OhdsiShinyModules v1.2.0
+========================
+- updated all models to use the same resultDatabaseSettings
+- made module function naming consistent (modules named after analysis packages)
+- made table prefix inputs consistent across modules
+
 OhdsiShinyModules v1.1.0
 ========================
 - Udated the style for Characterization
