@@ -28,9 +28,6 @@ shiny::testServer(characterizationModule, args = list(
 
   checkmate::expect_list(selectionsPanel())
 
-  rawTableTimeIdReactable()
-  rawTableReactable()
-
   session$setInputs(
     targetCohort = 18347,
     targetDatabase = "Eunomia",
@@ -38,7 +35,5 @@ shiny::testServer(characterizationModule, args = list(
     proportionOrContinuous = "Continuous",
     characterizationColumnFilters = "Mean and Standard Deviation"
   )
-  rawTableTimeIdReactable()
-  rawTableReactable()
   cohortCharacterizationPrettyTable()
 })
