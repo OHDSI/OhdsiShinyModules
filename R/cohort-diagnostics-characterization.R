@@ -226,6 +226,7 @@ characterizationView <- function(id) {
               shiny::column(width = 2,
                             shiny::radioButtons(inputId = ns("shortByRawAsc"),
                                                 choices = c(ascending = "ASC", descending = "DESC"),
+                                                selected = "DESC",
                                                 label = "order")
               ),
               shiny::column(width = 4,
@@ -247,6 +248,7 @@ characterizationView <- function(id) {
               shiny::column(width = 2,
                             shiny::radioButtons(inputId = ns("shortByRawAscTemporal"),
                                                 choices = c(ascending = "ASC", descending = "DESC"),
+                                                selected = "DESC",
                                                 label = "order")
               ),
               shiny::column(width = 4,
