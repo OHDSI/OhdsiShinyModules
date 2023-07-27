@@ -43,8 +43,8 @@ config <- ShinyAppBuilder::initializeModuleConfig() |>
 
 connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = "postgresql", 
                                                                 server = "reward.cterqq54xyuu.us-east-1.rds.amazonaws.com/strategus_test",
-                                                                user = "***REMOVED***",
-                                                                password = "***REMOVED***",
+                                                                user = "reward_user",
+                                                                password = "4GAnEA~m6-Hk",
                                                                 port = 5432)
 
 connection <- ResultModelManager::ConnectionHandler$new(connectionDetails)

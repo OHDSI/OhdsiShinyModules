@@ -46,7 +46,7 @@ LargeDataTable <- R6::R6Class(
         stopifnot(length(strsplit(countQuery, ";")[[1]]) == 1)
         self$countQuery <- countQuery
       } else {
-        self$countQuery <-  SqlRender::render("SELECT COUNT(*) as count FROM (@sub_query);", sub_query = self$baseQuery)
+        self$countQuery <-  sprintf("SELECT COUNT(*) as count FROM (\n%s\n) s;", self$baseQuery)
       }
     },
 
@@ -59,7 +59,7 @@ LargeDataTable <- R6::R6Class(
     getCount = function(...) {
       sql <- SqlRender::render(sql = self$countQuery, ...)
       count <- self$connectionHandler$queryDb(sql)
-      return(count$count)
+      return(sum(count$count))
     },
 
     #' Get Page
@@ -71,7 +71,6 @@ LargeDataTable <- R6::R6Class(
     #' @return data.frame of query result
     getPage = function(pageNum, pageSize = self$pageSize, ...) {
       mainQuery <- SqlRender::render(sql = self$baseQuery, ...)
-
       pageOffset <- ((pageNum - 1) * pageSize)
       self$connectionHandler$queryDb("@main_query LIMIT @page_size OFFSET @page_offset",
                                      main_query = mainQuery,
@@ -268,7 +267,7 @@ largeTableServer <- function(id,
 
       minNum <- format(((pageNum() - 1) * pageSize()) + 1, big.mark = ",", scientific = FALSE)
       maxNum <- format((pageNum() - 1)  * pageSize() + pageSize(), big.mark = ",", scientific = FALSE)
-      return(paste(minNum, "-", maxNum, "of", rc, "rows"))
+      return(paste(minNum, "-", min(maxNum, rc), "of", rc, "rows"))
     })
 
     dataPage <- shiny::reactive({

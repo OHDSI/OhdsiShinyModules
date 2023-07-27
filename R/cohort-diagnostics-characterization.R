@@ -462,7 +462,6 @@ characterizationModule <- function(
   cohortTable = dataSource$cohortTable,
   databaseTable = dataSource$databaseTable,
   temporalAnalysisRef = dataSource$temporalAnalysisRef,
-  analysisNameOptions = dataSource$analysisNameOptions,
   domainIdOptions = dataSource$domainIdOptions,
   characterizationTimeIdChoices = dataSource$characterizationTimeIdChoices,
   table1SpecPath = system.file("cohort-diagnostics-ref", "Table1SpecsLong.csv",
@@ -812,12 +811,11 @@ characterizationModule <- function(
       list(
         analysis_ids = input$selectedRawAnalysisIds %>% unique(),
         time_id = selectedTimeIds() %>% unique(),
-        use_database_id = !is.null(selectedDatabaseIds()),
-        database_id = quoteLiterals(selectedDatabaseIds()),
         domain_ids = quoteLiterals(input$characterizationDomainIdFilter %>% unique()),
         table_prefix = dataSource$tablePrefix,
         cohort_id = targetCohortId(),
         results_database_schema = dataSource$resultsDatabaseSchema,
+        database_id = quoteLiterals(selectedDatabaseIds()),
         is_binary = binary,
         concept_ids = conceptIds,
         time_invariant_search = -1 %in% selectedTimeIds()
@@ -843,6 +841,7 @@ characterizationModule <- function(
       params$search_str <- getSearchStr()
       params$order_by_col <- getOrderbyCol()
       params$order_desc <- input$shortByRawAsc == "DESC"
+      params$use_database_id <- FALSE
       return(params)
     })
 
@@ -867,6 +866,8 @@ characterizationModule <- function(
       params$order_by_col <- getOrderbyColTemporal()
       params$order_desc <- input$shortByRawAscTemporal == "DESC"
       params$time_id <- ""
+      params$use_database_id <- TRUE
+      params$database_table <- dataSource$databaseTableName
       return(params)
     })
 
@@ -928,15 +929,12 @@ characterizationModule <- function(
 
           FROM @results_database_schema.@table_prefixtemporal_covariate_ref tcr
           INNER JOIN @results_database_schema.@table_prefixtemporal_analysis_ref tar ON tar.analysis_id = tcr.analysis_id
-          LEFT JOIN @results_database_schema.@table_prefixtemporal_covariate_value t1 ON (
-            tcr.covariate_id = t1.covariate_id AND t1.database_id = '@db_id_1'
+          LEFT JOIN @results_database_schema.@table_prefixtemporal_covariate_value tcv ON (
+            tcr.covariate_id = tcv.covariate_id
           )
-          LEFT JOIN @results_database_schema.@table_prefixtemporal_time_ref ttr ON ttr.time_id = t1.time_id
-
-          @join_string
-
+          LEFT JOIN @results_database_schema.@table_prefixtemporal_time_ref ttr ON ttr.time_id = tcv.time_id
           WHERE tcr.covariate_id IS NOT NULL
-          @where_clasuses"
+          "
 
         selectSt <- "
           tcr.covariate_name,
@@ -947,32 +945,27 @@ characterizationModule <- function(
           END as temporal_choices,
           tcr.concept_id,
           is_binary,
-          t1.mean as mean1,
-          t1.sd as sd1"
-
-        joinTemplate <-
           "
-          -- db @db_id_i
-          LEFT JOIN @results_database_schema.@table_prefixtemporal_covariate_value t@i ON (
-            t1.cohort_id = t@i.cohort_id AND t1.time_id = t@i.time_id AND t1.covariate_id = t@i.covariate_id
-            AND t@i.database_id = '@db_id_i'
-          )"
 
-        whereStment <- c("t1.cohort_id IS NOT NULL")
+        selectTemplate <-
+          "
+           MAX(CASE WHEN tcv.database_id = '@db_id_i' THEN tcv.mean END) AS mean@i,
+           MAX(CASE WHEN tcv.database_id = '@db_id_i' THEN tcv.sd END) AS sd@i"
+
+        havingTemplate <- " MAX(CASE WHEN tcv.database_id = '@db_id_i' THEN tcv.mean END) IS NOT NULL"
+
         tplSql <- c()
-
-        if (length(databaseIds) > 1) {
-          for (i in 2:length(databaseIds)) {
-            dbIdi <- databaseIds[i]
-            tplSql <- c(tplSql, SqlRender::render(joinTemplate, i = i, db_id_i = dbIdi))
-            whereStment <- c(whereStment, sprintf("t%s.cohort_id IS NOT NULL", i))
-            colSelects <- SqlRender::render(",t@i.mean as mean@i, t@i.sd as sd@i", i = i)
-            selectSt <- paste(selectSt, colSelects)
-          }
+        havingSql <- c()
+        # Select casees for each db
+        for (i in 1:length(databaseIds)) {
+          dbIdi <- databaseIds[i]
+          tplSql <- c(tplSql, SqlRender::render(selectTemplate, i = i, db_id_i = dbIdi))
+          havingSql <- c(havingSql, SqlRender::render(havingTemplate, db_id_i = dbIdi))
         }
-        tplSql <- paste(tplSql, collapse = "\n")
-        whereStment <- paste("AND (", paste(whereStment, collapse = " OR "), ")")
 
+        tplSql <- paste(tplSql, collapse = ",\n")
+
+        selectSt <- paste(selectSt, tplSql)
 
         paramSql <-
           "
@@ -980,39 +973,29 @@ characterizationModule <- function(
           {DEFAULT @order_desc = TRUE}
           {@analysis_ids != \"\"} ? { AND tcr.analysis_id IN (@analysis_ids)}
           {@domain_ids != \"\"} ? { AND tar.domain_id IN (@domain_ids)}
-          {@cohort_id != \"\"} ? { AND t1.cohort_id IN (@cohort_id)}
+          {@cohort_id != \"\"} ? { AND tcv.cohort_id IN (@cohort_id)}
           {@time_id != \"\"} ? { AND (ttr.time_id IN (@time_id) {@time_invariant_search} ? {OR ttr.time_id IS NULL OR ttr.time_id = 0})}
-          {@use_database_id} ? { AND t1.database_id IN (@database_id)}
+          {@use_database_id} ? { AND tcv.database_id IN (@database_id)}
           {@is_binary != ''} ? {AND  lower(is_binary) = '@is_binary'}
           {@concept_ids != ''} ? {AND  tcr.concept_id IN (@concept_ids)}
           {@search_str != ''} ? {AND lower(CONCAT(tcr.covariate_name, tar.analysis_name, tcr.concept_id)) LIKE lower('%@search_str%')}
-          "
+        "
 
-        orderClause <- "
-        --- ORDER
-          {@order_by_col != ''} ? {ORDER BY @order_by_col {@order_desc} ? {DESC} : {ASC}}
-          "
+        grpSql <- SqlRender::render("\n\tGROUP BY tcr.covariate_name, tar.analysis_name, tcr.concept_id, is_binary, ttr.start_day, ttr.end_day
+        HAVING @having_clasuse
+        ", having_clasuse = paste(havingSql, collapse = " OR\n"))
+
+        orderClause <- "{@order_by_col != ''} ? {ORDER BY @order_by_col {@order_desc} ? {DESC} : {ASC}}"
 
         baseQuery <- SqlRender::render(sql,
                                        select_stament = selectSt,
-                                       db_id_1 = databaseIds[1],
-                                       join_string = tplSql,
-                                       where_clasuses = whereStment,
                                        warnOnMissingParameters = FALSE)
 
-        countQuery <- SqlRender::render(sql,
-                                        select_stament = "count(*)",
-                                        db_id_1 = databaseIds[1],
-                                        join_string = tplSql,
-                                        where_clasuses = whereStment,
-                                        warnOnMissingParameters = FALSE)
 
-        baseQuery <- paste(baseQuery, paramSql, orderClause)
-        countQuery <- paste(countQuery, paramSql)
-
+        baseQuery <- paste(baseQuery, paramSql, grpSql, orderClause)
+        # countQuery <- paste(countQuery, paramSql)
         ldt <- LargeDataTable$new(connectionHandler = dataSource$connectionHandler,
-                                  baseQuery = baseQuery,
-                                  countQuery = countQuery)
+                                  baseQuery = baseQuery)
 
         largeTableServer(id = "rawCharTbl",
                          ldt,
@@ -1038,20 +1021,20 @@ characterizationModule <- function(
           "Concept Id" = "tcr.concept_id",
           "Analysis Name" = "tar.analysis_name",
           "Covaraiate Name" = "tcr.covariate_name",
-          "Temporal Choices" = "ttr.time_id"
+          "Database" = "db.database_name"
         )
 
         for (i in 1:length(timeIds)) {
           timeIdi <- timeIds[i]
           columnIdent <- paste0("mean", i)
           columnDefinitionsT[[columnIdent]] <- reactable::colDef(name = "Mean",
-                                                                cell = formatCellByBinaryType())
+                                                                 cell = formatCellByBinaryType())
 
 
           columnIdentSd <- paste0("sd", i)
           columnDefinitionsT[[columnIdentSd]] <- reactable::colDef(name = "sd",
-                                                                  show = input$characterizationColumnFilters == "Mean and Standard Deviation",
-                                                                  cell = formatDataCellValueInDisplayTable(showDataAsPercent = FALSE))
+                                                                   show = input$characterizationColumnFilters == "Mean and Standard Deviation",
+                                                                   cell = formatDataCellValueInDisplayTable(showDataAsPercent = FALSE))
           groupCols <- c(columnIdent)
           if (input$characterizationColumnFilters == "Mean and Standard Deviation")
             groupCols <- c(columnIdent, columnIdentSd)
@@ -1059,96 +1042,65 @@ characterizationModule <- function(
 
           temporalChoiceName <- timeIdOptions %>%
             dplyr::distinct() %>%
-            dplyr::filter(.data$primaryTimeId == 1) %>%
-            dplyr::filter(.data$isTemporal == 1) %>%
             dplyr::filter(.data$timeId == timeIdi) %>%
-            dplyr::arrange(.data$sequence) %>%
             dplyr::pull("temporalChoices")
 
-          columnGroupsT[[length(columnGroups) + 1]] <- reactable::colGroup(name = temporalChoiceName,
-                                                                          columns = groupCols,
-                                                                          align = "center")
+          columnGroupsT[[length(columnGroupsT) + 1]] <- reactable::colGroup(name = temporalChoiceName,
+                                                                            columns = groupCols,
+                                                                            align = "center")
 
           sortChoices[[paste(temporalChoiceName, "mean")]] <- paste0("mean", i)
         }
+
         updateSelectInput(inputId = "sortByRawTemporal", choices = sortChoices, selected = "mean1")
 
         sqlt <- "
           SELECT @select_stament
 
           FROM @results_database_schema.@table_prefixtemporal_covariate_ref tcr
-          INNER JOIN @results_database_schema.@table_prefixtemporal_analysis_ref tar ON tar.analysis_id = tcr.analysis_id
-          LEFT JOIN @results_database_schema.@table_prefixtemporal_covariate_value t1 ON (
-            {@time_id_1 != -1} ? {t1.time_id = @time_id_1} : {(t1.time_id IS NULL OR t1.time_id IN (0, -1))}
-            AND tcr.covariate_id = t1.covariate_id
-          )
-          @join_string
-
+          LEFT JOIN @results_database_schema.@table_prefixtemporal_analysis_ref tar ON tar.analysis_id = tcr.analysis_id
+          LEFT JOIN @results_database_schema.@table_prefixtemporal_covariate_value tcv ON tcr.covariate_id = tcv.covariate_id
+          INNER JOIN @results_database_schema.@database_table db ON db.database_id = tcv.database_id
           WHERE tcr.covariate_id IS NOT NULL
-          @where_clasuses
         "
 
-        selectSt <- "
-            t1.database_id,
+        selectSt <- "db.database_name,
             tcr.covariate_name,
             tar.analysis_name,
-            tcr.concept_id,
-            t1.mean as mean1,
-            t1.sd as sd1
-         "
+            is_binary,
+            tcr.concept_id,"
 
-        temporalPivotJoinTpl <- "
-          LEFT JOIN @results_database_schema.@table_prefixtemporal_covariate_value t@i ON (
-            {@time_id_i != -1} ? {t@i.time_id = @time_id_i} : {t@i.time_id IS NULL OR tcv@i.time_id = 0 OR tcv@i.time_id = -1}
-            AND t@i.cohort_id = t1.cohort_id
-            AND t@i.database_id = t1.database_id
-            AND t1.covariate_id = t@i.covariate_id
-          )
-        "
+        selectTemplate <-
+          "MAX(CASE WHEN tcv.time_id = @time_id {@time_id == -1} ? {OR tcv.time_id = 0 OR tcv.time_id IS NULL} THEN tcv.mean END) AS mean@i,
+           MAX(CASE WHEN tcv.time_id = @time_id {@time_id == -1} ? {OR tcv.time_id = 0 OR tcv.time_id IS NULL} THEN tcv.sd END) AS sd@i"
 
-        whereStment <- c("t1.cohort_id IS NOT NULL")
+        havingTemplate <-
+          "MAX(CASE WHEN tcv.time_id = @time_id {@time_id == -1} ? {OR tcv.time_id = 0 OR tcv.time_id IS NULL} THEN tcv.mean END) IS NOT NULL"
+
+        havingSql <- c()
         tplSql <- c()
-
-
-        if (length(timeIds) > 1) {
-          for (i in 2:length(timeIds)) {
-            timeIdi <- timeIds[i]
-            tplSql <- c(tplSql, SqlRender::render(temporalPivotJoinTpl, i = i, time_id_i = timeIdi))
-            whereStment <- c(whereStment, sprintf("t%s.cohort_id IS NOT NULL", i))
-            colSelects <- SqlRender::render(",t@i.mean as mean@i, t@i.sd as sd@i", i = i)
-            selectSt <- paste(selectSt, colSelects)
-          }
+        # Select casees for each db
+        for (i in 1:length(timeIds)) {
+          timeId <- timeIds[i]
+          tplSql <- c(tplSql, SqlRender::render(selectTemplate, i = i, time_id = timeId))
+          havingSql <- c(havingSql, SqlRender::render(havingTemplate, time_id = timeId))
         }
 
-        tplSql <- paste(tplSql, collapse = "\n")
-        whereStment <- paste("AND (", paste(whereStment, collapse = " OR "), ")")
+        tplSql <- paste(tplSql, collapse = ", \n")
+        groupClause <- SqlRender::render("
+        GROUP BY db.database_name, tcr.covariate_name, tar.analysis_name, tcr.concept_id, is_binary
+        HAVING @having_clasuse
+        ", having_clasuse = paste(havingSql, collapse = " OR\n"))
 
-
-        orderClause <- "
-        --- ORDER
-          {@order_by_col != ''} ? {ORDER BY @order_by_col {@order_desc} ? {DESC} : {ASC}}
-          "
+        orderClause <- "{@order_by_col != ''} ? {ORDER BY @order_by_col {@order_desc} ? {DESC} : {ASC}}"
 
         baseQueryTemporal <- SqlRender::render(sqlt,
-                                               select_stament = selectSt,
-                                               time_id_1 = timeIds[1],
-                                               join_string = tplSql,
-                                               where_clasuses = whereStment,
+                                               select_stament = paste(selectSt, tplSql),
                                                warnOnMissingParameters = FALSE)
 
-        countQueryTemporal <- SqlRender::render(sqlt,
-                                                select_stament = "count(*)",
-                                                time_id_1 = timeIds[1],
-                                                join_string = tplSql,
-                                                where_clasuses = whereStment,
-                                                warnOnMissingParameters = FALSE)
-
-        baseQueryTemporal <- paste(baseQueryTemporal, paramSql, orderClause)
-        countQueryTemporal <- paste(countQueryTemporal, paramSql)
-
+        baseQueryTemporal <- paste(baseQueryTemporal, paramSql, groupClause, orderClause)
         ldtTemporal <- LargeDataTable$new(connectionHandler = dataSource$connectionHandler,
-                                          baseQuery = baseQueryTemporal,
-                                          countQuery = countQueryTemporal)
+                                          baseQuery = baseQueryTemporal)
 
         ## do the same for the temporal table
         rawCharTblTemporal <- largeTableServer(id = "rawCharTblTemporal",
