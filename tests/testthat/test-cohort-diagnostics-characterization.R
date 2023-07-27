@@ -15,7 +15,6 @@ shiny::testServer(characterizationModule, args = list(
     generateRaw = 1,
     generateReport = 1,
     characterizationDomainIdFilter = domainIdOptions,
-    characterizationAnalysisNameFilter = analysisNameOptions,
     timeIdChoices =  tids$temporalChoices,
     characterizationColumnFilters = "Mean"
   )

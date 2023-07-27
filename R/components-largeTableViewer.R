@@ -266,8 +266,9 @@ largeTableServer <- function(id,
       }
 
       minNum <- format(((pageNum() - 1) * pageSize()) + 1, big.mark = ",", scientific = FALSE)
-      maxNum <- format((pageNum() - 1)  * pageSize() + pageSize(), big.mark = ",", scientific = FALSE)
-      return(paste(minNum, "-", min(maxNum, rc), "of", rc, "rows"))
+      maxNum <- min((pageNum() - 1)  * pageSize() + pageSize(), rowCount())
+      maxNum <- format(maxNum, big.mark = ",", scientific = FALSE)
+      return(paste(minNum, "-", maxNum, "of", rc, "rows"))
     })
 
     dataPage <- shiny::reactive({
