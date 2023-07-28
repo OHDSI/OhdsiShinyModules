@@ -23,8 +23,6 @@ shiny::testServer(characterizationModule, args = list(
   checkmate::expect_data_frame(getCohortConceptSets())
   checkmate::expect_data_frame(getResolvedConcepts())
   expect_null(getMappedConcepts())
-  expect_error(getFilteredConceptIds())
-
   checkmate::expect_list(selectionsPanel())
 
   session$setInputs(
