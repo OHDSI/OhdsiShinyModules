@@ -98,6 +98,7 @@ LargeDataTable <- R6::R6Class(
 #' rather than returning the entire object.
 #'
 #' @param connectionHandler         ResultModelManager connectionHandler instance
+#' @param connectionDetails         DatabaseConnector connectionDetails instance
 #' @param baseQuery                 base sql query
 #' @param countQuery                count query string (should match query). Can be auto generated with sub query
 #'                                  (default) but this will likely result in slow results
