@@ -12,7 +12,6 @@
 #' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #'
 #' @return shiny module UI
-#' @export
 #'
 resultTableViewer <- function(id = "result-table",
                               downloadedFileName = NULL) {
@@ -142,7 +141,6 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #'
 #' @return shiny module server
-#' @export
 #'
 resultTableServer <- function(id, #string
                               df, #data.frame
