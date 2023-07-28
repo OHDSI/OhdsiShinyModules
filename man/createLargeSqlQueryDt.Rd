@@ -14,6 +14,8 @@ createLargeSqlQueryDt(
 \arguments{
 \item{connectionHandler}{ResultModelManager connectionHandler instance}
 
+\item{connectionDetails}{DatabaseConnector connectionDetails instance}
+
 \item{baseQuery}{base sql query}
 
 \item{countQuery}{count query string (should match query). Can be auto generated with sub query
