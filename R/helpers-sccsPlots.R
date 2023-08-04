@@ -1,9 +1,3 @@
-prettyHr <- function(x) {
-  result <- sprintf("%.2f", x)
-  result[is.na(x) | x > 100] <- "NA"
-  return(result)
-}
-
 convertToStartDate <- function(year, month) {
   return(as.Date(sprintf(
     "%s-%s-%s",

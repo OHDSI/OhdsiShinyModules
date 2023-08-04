@@ -1,0 +1,388 @@
+sccsFullResultViewer <- function(id) {
+  ns <- shiny::NS(id)
+  
+  shinydashboard::box(
+    status = 'info', 
+    width = '100%',
+    title = shiny::span('Result Explorer'),
+    solidHeader = TRUE,
+    
+    # add selected settings
+    shinydashboard::box(
+      status = 'warning', 
+      width = "100%",
+      title = 'Selected: ', 
+      collapsible = T,
+      shiny::uiOutput(ns('selection'))
+    ),
+    
+    shiny::tabsetPanel(
+      id = ns("fullTabsetPanel"), 
+      type = 'pills',
+
+        shiny::tabPanel(
+          "Power",
+          shiny::div(shiny::strong("Table 1."), "For each variable of interest: the number of cases (people with at least one outcome), the number of years those people were observed, the number of outcomes, the number of subjects with at least one exposure, the number of patient-years exposed, the number of outcomes while exposed, and the minimum detectable relative risk (MDRR)."),
+          shiny::tableOutput(ns("powerTable"))
+        ),
+        shiny::tabPanel(
+          "Attrition",
+          shiny::plotOutput(ns("attritionPlot"), width = 600, height = 500),
+          shiny::div(
+            shiny::strong("Figure 1."),
+            "Attrition, showing the number of cases (number of subjects with at least one outcome), and number of outcomes (number of ocurrences of the outcome) after each step in the study.")
+        ),
+        shiny::tabPanel(
+          "Model",
+          shiny::tabsetPanel(
+            id = ns("modelTabsetPanel"),
+            shiny::tabPanel(
+              "Model coefficients",
+              shiny::div(
+                shiny::strong("Table 2."),
+                "The fitted non-zero coefficent (incidence rate ratio) and 95 percent confidence interval for all variables in the model."
+              ),
+              shiny::tableOutput(ns("modelTable"))
+            ),
+            shiny::tabPanel(
+              "Age spline",
+              shiny::plotOutput(ns("ageSplinePlot")),
+              shiny::div(shiny::strong("Figure 2a."), "Spline fitted for age.")
+            ),
+            shiny::tabPanel(
+              "Season spline",
+              shiny::plotOutput(ns("seasonSplinePlot")),
+              shiny::div(shiny::strong("Figure 2b."), "Spline fitted for season")
+            ),
+            shiny::tabPanel(
+              "Calendar time spline",
+              shiny::plotOutput(ns("calendarTimeSplinePlot")),
+              shiny::div(shiny::strong("Figure 2c."), "Spline fitted for calendar time")
+            )
+          )
+        ),
+        shiny::tabPanel(
+          "Spanning",
+          shiny::radioButtons(ns("spanningType"), label = "Type:", choices = c("Age", "Calendar time")),
+          shiny::plotOutput(ns("spanningPlot")),
+          shiny::div(shiny::strong("Figure 3."), "Number of subjects observed for 3 consecutive months, centered on the indicated month.")
+        ),
+        shiny::tabPanel(
+          "Time trend",
+          shiny::plotOutput(ns("timeTrendPlot"), height = 600),
+          shiny::div(
+            shiny::strong("Figure 4."),
+            "Per calendar month the number of people observed, the unadjusted rate of the outcome, and the rate of the outcome after adjusting for age, season, and calendar time, if specified in the model. Red indicates months where the adjusted rate was significantly different from the mean adjusted rate."
+          )
+        ),
+        shiny::tabPanel(
+          "Time to event",
+          shiny::plotOutput(ns("timeToEventPlot")),
+          shiny::div(
+            shiny::strong("Figure 5."),
+            "The number of events and subjects observed per week relative to the start of the first exposure (indicated by the thick vertical line)."
+          )
+        ),
+        shiny::tabPanel(
+          "Event dep. observation",
+          shiny::plotOutput(ns("eventDepObservationPlot")),
+          shiny::div(shiny::strong("Figure 6."), "Histograms for the number of months between the first occurrence of the outcome and the end of observation, stratified by whether the end of observation was censored (inferred as not being equal to the end of database time), or uncensored (inferred as having the subject still be observed at the end of database time)."
+          )
+        ),
+        shiny::tabPanel(
+          "Systematic error",
+          shiny::plotOutput(ns("controlEstimatesPlot")),
+          shiny::div(shiny::strong("Figure 7."), "Systematic error. Effect size estimates for the negative controls (true incidence rate ratio = 1)
+                                                                                    and positive controls (true incidence rate ratio > 1), before and after calibration. Estimates below the diagonal dashed
+                                                                                    lines are statistically significant (alpha = 0.05) different from the true effect size. A well-calibrated
+                                                                                    estimator should have the true effect size within the 95 percent confidence interval 95 percent of times.")
+        )
+  )
+  
+  )
+  
+}
+
+sccsFullResultServer <- function(
+    id,
+    connectionHandler,
+    resultDatabaseSettings,
+    selectedRow
+) {
+  
+  shiny::moduleServer(
+    id,
+    function(input, output, session) {
+      
+      output$selection <- shiny::renderUI({
+        otext <- list()
+        otext[[1]] <- shiny::fluidRow(
+          shiny::column(
+            width = 6,
+            shiny::tags$b('Target: '),
+            selectedRow()$covariateName
+          ),
+          shiny::column(
+            width = 6,
+            shiny::tags$b('Outcome: '),
+            selectedRow()$outcome
+          )
+        )
+        otext[[2]] <- shiny::fluidRow(
+          shiny::column(
+            width = 6,
+            shiny::tags$b('Analysis: '),
+            selectedRow()$description
+          ),
+          shiny::column(
+            width = 3,
+            shiny::tags$b('Database: '),
+            selectedRow()$databaseName
+          )
+        )
+        shiny::div(otext)
+      })
+      
+ 
+      # selected row: :
+      
+      # move these to a different submodule?
+      output$powerTable <- shiny::renderTable({
+        row <- selectedRow()
+        if (is.null(row)) {
+          return(NULL)
+        } else {
+          resTargetTable <- row %>%
+            dplyr::mutate(outcomeEvents = ifelse(.data$unblind == 1, .data$outcomeEvents, NA)) %>%
+            dplyr::select(
+              "covariateName",
+              "outcomeSubjects",
+              "observedDays",
+              "outcomeEvents",
+              "covariateSubjects",
+              "covariateDays",
+              "covariateOutcomes",
+              "mdrr"
+            ) %>%
+            dplyr::mutate(observedDays = .data$observedDays / 365.25,
+                          covariateDays = .data$covariateDays / 365.25)
+          colnames(resTargetTable) <- c("Variable",
+                                        "Cases",
+                                        "Years observed",
+                                        "Outcomes",
+                                        "Persons exposed",
+                                        "Years exposed",
+                                        "Outcomes while exposed",
+                                        "MDRR")
+          return(resTargetTable)
+        }
+      })
+      
+      output$attritionPlot <- shiny::renderPlot({
+        
+        row <- selectedRow()
+        if (is.null(row)) {
+          return(NULL)
+        } else {
+          attrition <- getSccsAttrition(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            outcomeId = row$outcomeId,
+            databaseId = row$databaseId,
+            analysisId = row$analysisId,
+            covariateId = row$covariateId
+          )
+          drawAttritionDiagram(attrition)
+        }
+      })
+      
+      output$modelTable <- shiny::renderTable({
+        row <- selectedRow()
+        if (is.null(row)) {
+          return(NULL)
+        } else {
+          resTargetTable <- getSccsModel(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            exposureId = row$eraId,
+            outcomeId = row$outcomeId,
+            databaseId = row$databaseId,
+            analysisId = row$analysisId
+          )
+          
+          resTargetTable <- resTargetTable %>%
+            dplyr::arrange(.data$covariateId) %>%
+            dplyr::select(-"covariateId")
+          
+          colnames(resTargetTable) <- c("Variable",
+                                        "IRR",
+                                        "LB",
+                                        "UB")
+          return(resTargetTable)
+        }
+      })
+      
+      output$timeTrendPlot <- shiny::renderPlot({
+        row <- selectedRow()
+        if (is.null(row)) {
+          return(NULL)
+        } else {
+          timeTrend <- getSccsTimeTrend(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            exposureId = row$eraId,
+            outcomeId = row$outcomeId,
+            databaseId = row$databaseId,
+            analysisId = row$analysisId
+          )
+          plotTimeTrend(timeTrend)
+        }
+      })
+      
+      output$timeToEventPlot <- shiny::renderPlot({
+        row <- selectedRow()
+        if (is.null(row)) {
+          return(NULL)
+        } else {
+          timeToEvent <- getSccsTimeToEvent(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            outcomeId = row$outcomeId,
+            exposureId = row$eraId,
+            covariateId = row$covariateId,
+            databaseId = row$databaseId,
+            analysisId = row$analysisId
+          )
+          plotTimeToEventSccs(timeToEvent)
+        }
+      })
+      
+      output$eventDepObservationPlot <- shiny::renderPlot({
+        row <- selectedRow()
+        if (is.null(row)) {
+          return(NULL)
+        } else {
+          eventDepObservation <- getSccsEventDepObservation(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            outcomeId = row$outcomeId,
+            databaseId = row$databaseId,
+            analysisId = row$analysisId
+          )
+          plotEventDepObservation(eventDepObservation)
+        }
+      })
+      
+      output$spanningPlot <- shiny::renderPlot({
+        row <- selectedRow()
+        if (is.null(row)) {
+          return(NULL)
+        } else {
+          if (input$spanningType == "Age") {
+            ageSpanning <- getSccsAgeSpanning(
+              connectionHandler = connectionHandler,
+              resultDatabaseSettings = resultDatabaseSettings,
+              outcomeId = row$outcomeId,
+              databaseId = row$databaseId,
+              analysisId = row$analysisId
+            )
+            plotSpanning(ageSpanning, type = "age")
+          } else {
+            calendarTimeSpanning <- getSccsCalendarTimeSpanning(
+              connectionHandler = connectionHandler,
+              resultDatabaseSettings = resultDatabaseSettings,
+              outcomeId = row$outcomeId,
+              databaseId = row$databaseId,
+              analysisId = row$analysisId
+            )
+            plotSpanning(calendarTimeSpanning, type = "calendar time")
+          }
+        }
+      })
+      
+      output$ageSplinePlot <- shiny::renderPlot({
+        
+        row <- selectedRow()
+        if (is.null(row)) {
+          return(NULL)
+        } else {
+          ageSpline <- getSccsSpline(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            outcomeId = row$outcomeId,
+            databaseId = row$databaseId,
+            analysisId = row$analysisId,
+            splineType = "age"
+          )
+          if (nrow(ageSpline) == 0) {
+            return(NULL)
+          }
+          plotAgeSpline(ageSpline)
+        }
+      })
+      
+      output$seasonSplinePlot <- shiny::renderPlot({
+        row <- selectedRow()
+        if (is.null(row)) {
+          return(NULL)
+        } else {
+          seasonSpline <- getSccsSpline(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            outcomeId = row$outcomeId,
+            databaseId = row$databaseId,
+            analysisId = row$analysisId,
+            splineType = "season"
+          )
+          if (nrow(seasonSpline) == 0) {
+            return(NULL)
+          }
+          plotSeasonSpline(seasonSpline)
+        }
+      })
+      
+      output$calendarTimeSplinePlot <- shiny::renderPlot({
+        row <- selectedRow()
+        if (is.null(row)) {
+          return(NULL)
+        } else {
+          calendarTimeSpline <- getSccsSpline(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            outcomeId = row$outcomeId,
+            databaseId = row$databaseId,
+            analysisId = row$analysisId,
+            splineType = "calendar time"
+          )
+          if (nrow(calendarTimeSpline) == 0) {
+            return(NULL)
+          }
+          plotCalendarTimeSpline(calendarTimeSpline)
+        }
+      })
+      
+      output$controlEstimatesPlot <- shiny::renderPlot({
+        row <- selectedRow()
+        if (is.null(row)) {
+          return(NULL)
+        } else {
+          controlEstimates <- getSccsControlEstimates(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings,
+            covariateId = row$covariateId,
+            databaseId = row$databaseId,
+            analysisId = row$analysisId
+          )
+          plotControlEstimates(controlEstimates)
+        }
+      })
+      
+    }
+  )
+}
+
+
+
+
+
+

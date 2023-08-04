@@ -20,13 +20,12 @@
 sccsDiagnosticsSummaryViewer <- function(id) {
   ns <- shiny::NS(id)
   
-  shiny::div(
-    inputSelectionViewer(ns("input-selection")),
+  shinydashboard::box(
+    status = 'info', 
+    width = '100%',
+    title = shiny::span('Diagnostic Results'),
+    solidHeader = TRUE,
     
-    shiny::conditionalPanel(
-      condition = 'input.generate != 0',
-      ns = shiny::NS(ns("input-selection")),
-      
       shiny::tabsetPanel(
         type = 'pills',
         id = ns('diagnosticsTablePanel'),
@@ -40,107 +39,29 @@ sccsDiagnosticsSummaryViewer <- function(id) {
         )
       )
     )
-  )
   
 }
 
 sccsDiagnosticsSummaryServer <- function(
     id,
     connectionHandler,
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    inputSelected
 ) {
   
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      targetIds <- getSccsDiagTargets(
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      outcomeIds <- getSccsDiagOutcomes(
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      analysisIds <- getSccsDiagAnalyses(
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
       
-      inputSelected <- inputSelectionServer(
-        id = "input-selection", 
-        inputSettingList = list(
-          createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
-            varName = 'targetIds',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Target: ',
-              choices = targetIds,
-              selected = targetIds[1],
-              multiple = T,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          ),
-          createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
-            varName = 'outcomeIds',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Outcome: ',
-              choices = outcomeIds,
-              selected = outcomeIds[1],
-              multiple = T,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          ),
-          
-          createInputSetting(
-            rowNumber = 2,                           
-            columnWidth = 12,
-            varName = 'analysisIds',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Analysis: ',
-              choices = analysisIds,
-              selected = analysisIds[1],
-              multiple = T,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          )
-        )
-      )
-    
       data <- shiny::reactive({
+        
         getSccsAllDiagnosticsSummary(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          targetIds = inputSelected()$targetIds,
-          outcomeIds = inputSelected()$outcomeIds,
-          analysisIds = inputSelected()$analysisIds
+          targetIds = inputSelected()$exposure,
+          outcomeIds = inputSelected()$outcome,
+          analysisIds = inputSelected()$analysis
         )
       })
       
@@ -370,6 +291,11 @@ getSccsAllDiagnosticsSummary <- function(
     outcomeIds,
     analysisIds = NULL
 ) {
+  
+  if(is.null(targetIds)){
+    return(NULL)
+  }
+  
   sql <- "
   SELECT 
   d.cdm_source_abbreviation as database_name,
