@@ -43,10 +43,8 @@ cohortMethodKaplanMeierViewer <- function(id) {
 #'
 #' @param id the unique reference id for the module
 #' @param selectedRow the selected row from the main results table 
-#' @param inputParams  the selected study parameters of interest
 #' @param connectionHandler the connection to the PLE results database
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
-#' @param metaAnalysisDbIds metaAnalysisDbIds
 #'
 #' @return
 #' the PLE Kaplain Meier content server
@@ -55,26 +53,15 @@ cohortMethodKaplanMeierViewer <- function(id) {
 cohortMethodKaplanMeierServer <- function(
     id, 
     selectedRow, 
-    inputParams, 
     connectionHandler, 
-    resultDatabaseSettings,
-    metaAnalysisDbIds = NULL
+    resultDatabaseSettings
     ) {
   
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      output$isMetaAnalysis <- shiny::reactive({
-        #TODO: update once MA implemented
-        return(FALSE)
-        row <- selectedRow()
-        isMetaAnalysis <- !is.null(row) && (row$databaseId %in% metaAnalysisDbIds)
-        return(isMetaAnalysis)
-      })
-      
-      shiny::outputOptions(output, "isMetaAnalysis", suspendWhenHidden = FALSE)
-      
+
       kaplanMeierPlot <- shiny::reactive({
         row <- selectedRow()
         if (is.null(row)) {
@@ -83,9 +70,9 @@ cohortMethodKaplanMeierServer <- function(
           km <- getCohortMethodKaplanMeier(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetId = inputParams()$target,
-            comparatorId = inputParams()$comparator,
-            outcomeId = inputParams()$outcome,
+            targetId = row$targetId,
+            comparatorId = row$comparatorId,
+            outcomeId = row$outcomeId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
           )
@@ -95,21 +82,13 @@ cohortMethodKaplanMeierServer <- function(
           km$targetAtRisk[removeInd] <- NA
           km$comparatorAtRisk[removeInd] <- NA
           
-          targetName <- getCohortNameFromId(
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings,
-            cohortId = inputParams()$target
-            )
-          comparatorName <- getCohortNameFromId(
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings,
-            cohortId = inputParams()$comparator
-            )
+          targetName <- row$target
+          comparatorName <- row$comparator
           
           plot <- plotCohortMethodKaplanMeier(
             kaplanMeier = km,
-            targetName = targetName$cohortName,
-            comparatorName = comparatorName$cohortName
+            targetName = targetName,
+            comparatorName = comparatorName
             )
           return(plot)
         }
@@ -141,7 +120,7 @@ cohortMethodKaplanMeierServer <- function(
       comparator curve (<em>%s</em>) applies reweighting to approximate the counterfactual of what the target survival
       would look like had the target cohort been exposed to the comparator instead. The shaded area denotes
       the 95 percent confidence interval."
-          return(shiny::HTML(sprintf(text, inputParams()$target, inputParams()$comparator)))
+          return(shiny::HTML(sprintf(text, row$target, row$comparator)))
         }
       })
       
@@ -152,6 +131,43 @@ cohortMethodKaplanMeierServer <- function(
 
 
 
+getCohortMethodKaplanMeier <- function(
+    connectionHandler, 
+    resultDatabaseSettings,
+    targetId, 
+    comparatorId, 
+    outcomeId, 
+    databaseId, 
+    analysisId
+) {
+  
+  sql <- "
+  SELECT
+    *
+  FROM
+    @schema.@cm_table_prefixkaplan_meier_dist cmkmd
+  WHERE
+    cmkmd.target_id = @target_id
+    AND cmkmd.comparator_id = @comparator_id
+    AND cmkmd.outcome_id = @outcome_id
+    AND cmkmd.analysis_id = @analysis_id
+    AND cmkmd.database_id = '@database_id';
+  "
+  
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+      #database_table = resultDatabaseSettings$databaseTable,
+      target_id = targetId,
+      comparator_id = comparatorId,
+      outcome_id = outcomeId,
+      analysis_id = analysisId,
+      database_id = databaseId
+    )
+  )
+}
 
 
 # CohortMethod-kaplainMeier
@@ -167,14 +183,14 @@ plotCohortMethodKaplanMeier <- function(
       s = kaplanMeier$targetSurvival,
       lower = kaplanMeier$targetSurvivalLb,
       upper = kaplanMeier$targetSurvivalUb,
-      strata = paste0(" ", targetName, "    ")
+      strata = ' Target' #paste0(" ", targetName, "    ")
     ),
     data.frame(
       time = kaplanMeier$time,
       s = kaplanMeier$comparatorSurvival,
       lower = kaplanMeier$comparatorSurvivalLb,
       upper = kaplanMeier$comparatorSurvivalUb,
-      strata = paste0(" ", comparatorName)
+      strata = ' Comparator'#paste0(" ", comparatorName)
     )
   )
   
@@ -225,8 +241,8 @@ plotCohortMethodKaplanMeier <- function(
     x = c(0, xBreaks, xBreaks),
     y = as.factor(
       c("Number at risk",
-        rep(targetName, length(xBreaks)),
-        rep(comparatorName, length(xBreaks))
+        rep('Target', length(xBreaks)),
+        rep('Comparator', length(xBreaks))
         )
     ),
     label = c(
@@ -235,7 +251,7 @@ plotCohortMethodKaplanMeier <- function(
       formatC(comparatorAtRisk, big.mark = ",", mode = "integer")
       )
     )
-  labels$y <- factor(labels$y, levels = c(comparatorName, targetName, "Number at risk"))
+  labels$y <- factor(labels$y, levels = c('Comparator','Target', "Number at risk"))
   
   dataTable <- ggplot2::ggplot(
     data = labels, 

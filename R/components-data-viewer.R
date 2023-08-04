@@ -163,9 +163,26 @@ resultTableServer <- function(
     id,
     function(input, output, session) {
       
-      if(inherits(df, 'data.frame')){
+      # convert a data.frame to a reactive
+      if(!inherits(df, 'reactive')){
         df <- shiny::reactiveVal(df)
       }
+      
+      # initialize the reactables
+      actionCount <- shiny::reactiveVal(0)
+      actionIndex <- shiny::reactiveVal(0)
+      actionType <- shiny::reactiveVal('none')
+        
+      # add action column to data
+      newdf <- shiny::reactive({
+        if(!is.null(nrow(df())) & !is.null(addActions)){
+          cbind(
+            actions = rep("", nrow(df())),
+            df()
+          )} else{
+            df()
+          }
+      })
       
       # add a new entry to colDefs with an action dropdown menu
       # add a onClick action
@@ -195,8 +212,8 @@ resultTableServer <- function(
         shinyWidgets::pickerInput(
           inputId = session$ns('dataCols'),
           label = 'Select Columns to Display: ',
-          choices = colnames(df()),
-          selected = colnames(df()),
+          choices = colnames(newdf()),
+          selected = colnames(newdf()),
           choicesOpt = list(style = rep_len("color: black;", 999)),
           multiple = T,
           options = shinyWidgets::pickerOptions(
@@ -215,21 +232,35 @@ resultTableServer <- function(
       #need to try adding browser() to all reactives to see why selected cols isnt working
       
       colDefs <- shiny::reactive(
+        if(!is.null(newdf())){
           create_colDefs_list(
-            df = df()[, input$dataCols],
+            df = newdf()[, input$dataCols],
             customColDefs = colDefsInput
-            )
           )
+        } else{
+          NULL
+        }
+      )
       
       output$resultData <- reactable::renderReactable({
           if (is.null(input$dataCols)) {
-            data = df()
+            data = newdf()
           }
           else{
-            data = df()[, input$dataCols, drop = FALSE]
+            data = newdf()[, input$dataCols, drop = FALSE]
           }
-          if (nrow(data) == 0)
-            return(NULL)
+        if(is.null(data)){
+          return(NULL)
+        }
+        if(nrow(data) == 0){
+          return(NULL)
+        }
+        # set row height based on nchar of table
+        if(max(apply(data, 1, function(x) max(nchar(x))), na.rm = T) < 100){
+          height <- 40*3
+        } else{
+          height <- NULL
+        }
           
           reactable::reactable(
             data,
@@ -247,11 +278,14 @@ resultTableServer <- function(
             highlight = TRUE,
             defaultColDef = reactable::colDef(align = "left"),
             
-            rowStyle = list(height = 40*3)
+            rowStyle = list(
+              height = height
+              )
             #, experimental
             #theme = ohdsiReactableTheme
           )
         })
+      
       
       # download full data button
       output$downloadDataFull <- shiny::downloadHandler(
@@ -269,9 +303,6 @@ resultTableServer <- function(
       
       
       # capture the actions
-      actionCount <- shiny::reactiveVal(0)
-      actionIndex <- shiny::reactiveVal(0)
-      actionType <- shiny::reactiveVal('none')
       shiny::observeEvent(input$action_index, {
         actionIndex(input$action_index)
       })

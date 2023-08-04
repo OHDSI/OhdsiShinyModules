@@ -7,10 +7,8 @@
 cohortMethodPowerServer(
   id,
   selectedRow,
-  inputParams,
   connectionHandler,
-  resultDatabaseSettings,
-  metaAnalysisDbIds = NULL
+  resultDatabaseSettings
 )
 }
 \arguments{
@@ -18,13 +16,9 @@ cohortMethodPowerServer(
 
 \item{selectedRow}{the selected row from the main results table}
 
-\item{inputParams}{the selected study parameters of interest}
-
 \item{connectionHandler}{the connection to the PLE results database}
 
 \item{resultDatabaseSettings}{a list containing the result schema and prefixes}
-
-\item{metaAnalysisDbIds}{metaAnalysisDbIds}
 }
 \value{
 the PLE systematic error power server

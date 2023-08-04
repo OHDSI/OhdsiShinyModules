@@ -39,7 +39,6 @@ cohortMethodPopulationCharacteristicsViewer <- function(id) {
 #'
 #' @param id the unique reference id for the module
 #' @param selectedRow the selected row from the main results table 
-#' @param inputParams  the selected study parameters of interest
 #' @param connectionHandler the connection to the PLE results database
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
 #'
@@ -50,7 +49,6 @@ cohortMethodPopulationCharacteristicsViewer <- function(id) {
 cohortMethodPopulationCharacteristicsServer <- function(
     id, 
     selectedRow, 
-    inputParams, 
     connectionHandler, 
     resultDatabaseSettings
     ) {
@@ -68,7 +66,7 @@ cohortMethodPopulationCharacteristicsServer <- function(
           text <- "<strong>Table 2.</strong> Select characteristics before and after propensity score adjustment, showing the (weighted)
       percentage of subjects  with the characteristics in the target (<em>%s</em>) and comparator (<em>%s</em>) group, as
       well as the standardized difference of the means."
-          return(shiny::HTML(sprintf(text, inputParams()$target, inputParams()$comparator)))
+          return(shiny::HTML(sprintf(text, row$target, row$comparator)))
         }
       })
       
@@ -80,9 +78,9 @@ cohortMethodPopulationCharacteristicsServer <- function(
           balance <- getCohortMethodPopChar(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetId = inputParams()$target,
-            comparatorId = inputParams()$comparator,
-            outcomeId = inputParams()$outcome,
+            targetId = row$targetId,
+            comparatorId = row$comparatorId,
+            outcomeId = row$outcomeId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
           )

@@ -7,7 +7,6 @@
 cohortMethodPropensityModelServer(
   id,
   selectedRow,
-  inputParams,
   connectionHandler,
   resultDatabaseSettings
 )
@@ -16,8 +15,6 @@ cohortMethodPropensityModelServer(
 \item{id}{the unique reference id for the module}
 
 \item{selectedRow}{the selected row from the main results table}
-
-\item{inputParams}{the selected study parameters of interest}
 
 \item{connectionHandler}{the connection to the PLE results database}
 

@@ -118,26 +118,10 @@ evidenceSynthesisServer <- function(
       targetIds <- getESTargetIds(
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings
-        #mySchema = resultDatabaseSettings$schema, 
-        #cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
-        #cgTablePrefix = resultDatabaseSettings$cgTablePrefix
       )
       outcomeIds <- getESOutcomeIds(
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings
-        #mySchema = resultDatabaseSettings$schema, 
-        #cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
-        #cgTablePrefix = resultDatabaseSettings$cgTablePrefix
-      )
-      
-      diagnosticColumnNames <- getOACcombinations(
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-        #resultsSchema = resultDatabaseSettings$schema,
-        #sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
-        #cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
-        #cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
-        #databaseTable = resultDatabaseSettings$databaseMetaData
       )
       
       inputSelected <- inputSelectionServer(
@@ -146,7 +130,7 @@ evidenceSynthesisServer <- function(
           createInputSetting(
             rowNumber = 1,                           
             columnWidth = 6,
-            varName = 'targetId',
+            varName = 'targetIds',
             uiFunction = 'shinyWidgets::pickerInput',
             uiInputs = list(
               label = 'Target: ',
@@ -165,7 +149,7 @@ evidenceSynthesisServer <- function(
           createInputSetting(
             rowNumber = 1,                           
             columnWidth = 6,
-            varName = 'outcomeId',
+            varName = 'outcomeIds',
             uiFunction = 'shinyWidgets::pickerInput',
             uiInputs = list(
               label = 'Outcome: ',
@@ -189,12 +173,8 @@ evidenceSynthesisServer <- function(
         getCMEstimation(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          #mySchema = resultDatabaseSettings$schema, 
-          #cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
-          #cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-          #databaseMetaData = resultDatabaseSettings$databaseMetaData,
-          targetId = inputSelected()$targetId,
-          outcomeId = inputSelected()$outcomeId
+          targetId = inputSelected()$targetIds,
+          outcomeId = inputSelected()$outcomeIds
         )
       })
       
@@ -202,12 +182,8 @@ evidenceSynthesisServer <- function(
         getMetaEstimation(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          #mySchema = resultDatabaseSettings$schema, 
-          #cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
-          #cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-          #esTablePrefix = resultDatabaseSettings$tablePrefix,
-          targetId = inputSelected()$targetId,
-          outcomeId = inputSelected()$outcomeId
+          targetId = inputSelected()$targetIds,
+          outcomeId = inputSelected()$outcomeIds
         )
       })
       
@@ -215,36 +191,20 @@ evidenceSynthesisServer <- function(
         getEvidenceSynthDiagnostics(
           connectionHandler = connectionHandler, 
           resultDatabaseSettings = resultDatabaseSettings,
-          #resultsSchema = resultDatabaseSettings$schema, 
-          #cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
-          #cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
-          #databaseTable = resultDatabaseSettings$databaseTable,
-          targetIds = inputSelected()$targetId,
-          outcomeIds = inputSelected()$outcomeId
+          inputSelected = inputSelected,
+          targetIds = inputSelected()$targetIds,
+          outcomeIds = inputSelected()$outcomeIds
         )
       })
       
-      customColDefs2 <- list(
-        databaseName = reactable::colDef(
-          header = withTooltip(
-            "Database",
-            "The database name"
-          ), 
-          sticky = "left"
-        ),
-        target = reactable::colDef(
-          header = withTooltip(
-            "Target",
-            "The target cohort of interest "
-          ), 
-          sticky = "left"
-        )
-      )
       
       resultTableServer(
         id = "diagnosticsSummaryTable",
         df = diagSumData,
-        colDefsInput = styleColumns(customColDefs2, diagnosticColumnNames, outcomeIds)
+        colDefsInput = getColDefsESDiag(
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings
+        )
       )
       
       output$esCohortMethodPlot <- shiny::renderPlot(
@@ -338,8 +298,8 @@ evidenceSynthesisServer <- function(
         getSccsEstimation(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          targetId = inputSelected()$targetId,
-          outcomeId = inputSelected()$outcomeId
+          targetId = inputSelected()$targetIds,
+          outcomeId = inputSelected()$outcomeIds
         )
       })
       
@@ -675,6 +635,10 @@ return(unique(result))
 
 createPlotForAnalysis <- function(data) {
   
+  if(is.null(data$comparator)){
+    return(NULL)
+  }
+  
   compText <- data.frame(
     comparatorText = paste0('Comp', 1:length(unique(data$comparator))),
     comparator = unique(data$comparator)
@@ -761,6 +725,10 @@ getSccsEstimation <- function(
   targetId,
   outcomeId
 ){
+  
+  if(is.null(targetId)){
+    return(NULL)
+  }
   
   sql <- "select 
   c1.cohort_name as target,
@@ -928,6 +896,10 @@ createPlotForSccsAnalysis <- function(
   data
 ){
   
+  if(is.null(data)){
+    return(NULL)
+  }
+  
   breaks <- c(0.1, 0.25, 0.5, 1, 2, 4, 6, 8)
   plot <- ggplot2::ggplot(
     data = data, 
@@ -1011,9 +983,14 @@ getOACcombinations <- function(
 getEvidenceSynthDiagnostics <- function(
     connectionHandler, 
     resultDatabaseSettings,
+    inputSelected,
     targetIds,
     outcomeIds
     ){
+  
+  if(is.null(targetIds)){
+    return(NULL)
+  }
   
   sccsDiagTemp <- getSccsAllDiagnosticsSummary(
     connectionHandler = connectionHandler,
@@ -1024,10 +1001,13 @@ getEvidenceSynthDiagnostics <- function(
   
   cmDiagTemp <- getCmDiagnosticsData(
     connectionHandler = connectionHandler, 
-    resultDatabaseSettings = resultDatabaseSettings,
-    targetIds = targetIds,
-    outcomeIds = outcomeIds
+    resultDatabaseSettings = resultDatabaseSettings, 
+    inputSelected = inputSelected
   )
+  
+  if(is.null(cmDiagTemp) | is.null(sccsDiagTemp)){
+    return(NULL)
+  }
   
   # select columns of interest and rename for consistency
   sccsDiagTemp <- diagnosticSummaryFormat(
@@ -1051,4 +1031,68 @@ getEvidenceSynthDiagnostics <- function(
   
   # return
   return(allResult)
+}
+
+
+
+getColDefsESDiag <- function(
+    connectionHandler,
+    resultDatabaseSettings
+){      
+  
+  fixedColumns =  list(
+    databaseName = reactable::colDef(
+      header = withTooltip(
+        "Database",
+        "The database name"
+      ), 
+      sticky = "left"
+    ),
+    target = reactable::colDef(
+      header = withTooltip(
+        "Target",
+        "The target cohort of interest "
+      ), 
+      sticky = "left"
+    )
+  )
+  
+  outcomes <- getESOutcomeIds(
+    connectionHandler = connectionHandler,
+    resultDatabaseSettings = resultDatabaseSettings
+  )
+  
+  analyses <- getOACcombinations(
+    connectionHandler = connectionHandler,
+    resultDatabaseSettings = resultDatabaseSettings
+  )
+  colnameFormat <- merge(unique(names(analyses)), unique(names(outcomes)))
+  colnameFormat <- apply(colnameFormat, 1, function(x){paste(x, collapse = '_', sep = '_')})
+  
+  styleList <- lapply(
+    colnameFormat, 
+    FUN = function(x){
+      reactable::colDef(
+        header = withTooltip(
+          substring(x,1,40),
+          x
+        ),
+        style = function(value) {
+          color <- 'orange'
+          if(is.na(value)){
+            color <- 'black'
+          }else if(value == 'Pass'){
+            color <- '#AFE1AF'
+          }else if(value == 'Fail'){
+            color <- '#E97451'
+          }
+          list(background = color)
+        }
+      )
+    }
+  )
+  names(styleList) <- colnameFormat
+  result <- append(fixedColumns, styleList)
+  
+  return(result)
 }

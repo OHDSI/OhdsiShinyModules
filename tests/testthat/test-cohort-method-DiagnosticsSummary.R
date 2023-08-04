@@ -13,25 +13,6 @@ shiny::testServer(
     
   })
 
-test_that("styleColumns", {
-  
-  oid <- c(1,34)
-  names(oid) <- c('a','b')
-  aid <- c(3)
-  names(aid) <- c('none')
-  
-colss <- styleColumns(
-    customColDefs = list(a=1),
-    outcomeIds = oid, 
-    analysisIds = aid
-)
-
-testthat::expect_is(colss, 'list')
-names(colss) <- c('a', 'a_none', 'b_none')
-testthat::expect_is(colss$b_none$style, 'function')
-testthat::expect_equal(colss$b_none$style('Pass')$background,"#AFE1AF")
-})
-
 test_that("diagnosticSummaryFormat", {
   
   datar <- function(){
@@ -48,59 +29,35 @@ testthat::expect_true(ncol(val) == 4)
 
 })
 
-test_that("getCmDiagCohorts", {
+test_that("getCmDiagnosticData", {
+colDefs <- getColDefsCmDiag(
+  connectionHandler = connectionHandlerCm,
+  resultDatabaseSettings = resultDatabaseSettingsCm
+)
+
+testthat::expect_is(colDefs, 'list')
+testthat::expect_is(colDefs[[1]], 'colDef')
+
+})
+
+test_that("getCmDiagnosticData", {
   
-cohortIds <- getCmDiagCohorts(
-    connectionHandler = connectionHandlerCm,
-    resultDatabaseSettings = resultDatabaseSettingsCm,
-    type = 'target'
+  inputSelected <- function(){
+    return(
+      list(
+        targetIds = 1,
+        comparatorIds = 2,
+        outcomeIds = 3,
+        analysesIds = c(1,2)
+      )
     )
+    }
 
-testthat::expect_true(length(cohortIds) > 0)
-})
-
-test_that("getCmDiagAnalyses", {
-  
-  analysisIds <- getCmDiagAnalyses(
-    connectionHandler = connectionHandlerCm,
-    resultDatabaseSettings = resultDatabaseSettingsCm
-  )
-  
-  testthat::expect_true(length(analysisIds) > 0)
-})
-
-test_that("getCmDiagAnalyses", {
-  
-  analysisIds <- getCmDiagAnalyses(
-    connectionHandler = connectionHandlerCm,
-    resultDatabaseSettings = resultDatabaseSettingsCm
-  )
-  
-  cohortIds <- getCmDiagCohorts(
-    connectionHandler = connectionHandlerCm,
-    resultDatabaseSettings = resultDatabaseSettingsCm,
-    type = 'target'
-  )
-  
-  outcomeIds <- getCmDiagCohorts(
-    connectionHandler = connectionHandlerCm,
-    resultDatabaseSettings = resultDatabaseSettingsCm,
-    type = 'outcome'
-  )
-  
-  comparatorIds <- getCmDiagCohorts(
-    connectionHandler = connectionHandlerCm,
-    resultDatabaseSettings = resultDatabaseSettingsCm,
-    type = 'comparator'
-  )
   
 diag <- getCmDiagnosticsData(
     connectionHandler = connectionHandlerCm,
     resultDatabaseSettings = resultDatabaseSettingsCm,
-    targetIds = cohortIds,
-    outcomeIds = outcomeIds,
-    comparatorIds = comparatorIds,
-    analysisIds = analysisIds
+    inputSelected
 )
 
 testthat::expect_true(nrow(diag) > 0)

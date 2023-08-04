@@ -20,7 +20,8 @@ inputSelectionViewer <- function(id = "input-selection") {
      shinydashboard::box(
        status = 'warning', 
        width = "100%",
-       title = 'Selected: ',
+       title = 'Selected: ', 
+       collapsible = T,
        shiny::uiOutput(ns("inputsText"))
      )
    )

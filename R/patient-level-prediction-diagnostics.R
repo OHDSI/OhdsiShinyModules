@@ -31,10 +31,28 @@
 patientLevelPredictionDiagnosticsViewer <- function(id) {
   ns <- shiny::NS(id)
   
-  shiny::div(
-    reactable::reactableOutput(ns('diagnosticSummaryTable')),
-    shiny::uiOutput(ns('main'))
+  shiny::tagList(
+    shinydashboard::box(
+      collapsible = TRUE,
+      collapsed = TRUE,
+      title = "All Database Diagnostics For Selected Model Design",
+      width = "100%",
+      shiny::htmlTemplate(system.file("patient-level-prediction-www", "main-diagnosticsSummaryHelp.html", package = utils::packageName()))
+    ),
+    shinydashboard::box(
+      status = "warning",
+      width = "100%",
+      shiny::uiOutput(outputId = ns("diagnosticSummaryText"))
+    ),
+    shinydashboard::box(
+      width = "100%",
+      shiny::div(
+        resultTableViewer(ns('diagnosticSummaryTable')),
+        shiny::uiOutput(ns('main'))
+      )
+    )
   )
+  
   
 }
 
@@ -62,222 +80,190 @@ patientLevelPredictionDiagnosticsServer <- function(
     id,
     function(input, output, session) {
       
-      withTooltip <- function(value, tooltip, ...) {
-        shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
-            tippy::tippy(value, tooltip, ...))
-      }
       
-      shiny::observe({
-        if(!is.null(modelDesignId()) ){
-          
-          diagnosticTable <- getPredictionDiagnostics(
-            modelDesignId = modelDesignId(),
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings
-          )
-          # input tables
-          output$diagnosticSummaryTable <- reactable::renderReactable({
-            reactable::reactable(
-              data = cbind(
-                diagnosticTable,
-                participants = rep("",nrow(diagnosticTable)),
-                predictors = rep("",nrow(diagnosticTable)),
-                outcomes = rep("",nrow(diagnosticTable))
-              ),
-              columns = list(
-                '1.1' = reactable::colDef( 
-                  header = withTooltip(
-                    "1.1", 
-                    "Participants: Were appropriate data sources used, e.g. cohort, RCT or nested case-control study data?"
-                    ),
-                  cell = reactable::JS("
+      selectedModelDesign <- shiny::reactive(
+        getModelDesignInfo(
+          connectionHandler = connectionHandler, 
+          resultDatabaseSettings = resultDatabaseSettings,
+          modelDesignId = modelDesignId
+        )
+      )
+      output$diagnosticSummaryText <- shiny::renderUI(selectedModelDesign())
+      
+      diagnosticTable <- shiny::reactive({
+        getPredictionDiagnostics(
+          modelDesignId = modelDesignId(),
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings
+        )
+      })
+      
+      colDefsInput <- list(
+        '1.1' = reactable::colDef( 
+          header = withTooltip(
+            "1.1", 
+            "Participants: Were appropriate data sources used, e.g. cohort, RCT or nested case-control study data?"
+          ),
+          cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
       if(cellInfo.value === 'Fail'){return '\u274c Fail'} else if(cellInfo.value === 'Pass'){return '\u2714\ufe0f Pass'} else{return '? Unkown'}
     }
   ")),
-                '1.2' = reactable::colDef(
-                  header = withTooltip(
-                    "1.2", 
-                    "Participants: Were all inclusions and exclusions of participants appropriate?"
-                  ),
-                  cell = reactable::JS("
+        '1.2' = reactable::colDef(
+          header = withTooltip(
+            "1.2", 
+            "Participants: Were all inclusions and exclusions of participants appropriate?"
+          ),
+          cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
       if(cellInfo.value === 'Fail'){return '\u274c Fail'} else if(cellInfo.value === 'Pass'){return '\u2714\ufe0f Pass'} else{return '? Unkown'}
     }
   ")),
-                '2.1' = reactable::colDef(
-                  header = withTooltip(
-                    "2.1", 
-                    "Predictors: Were predictors defined and assessed in a similar way for all participants?"
-                  ),
-                  cell = reactable::JS("
+        '2.1' = reactable::colDef(
+          header = withTooltip(
+            "2.1", 
+            "Predictors: Were predictors defined and assessed in a similar way for all participants?"
+          ),
+          cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
       if(cellInfo.value === 'Fail'){return '\u274c Fail'} else if(cellInfo.value === 'Pass'){return '\u2714\ufe0f Pass'} else{return '? Unkown'}
     }
   ")),   
-                '2.2' = reactable::colDef(
-                  header = withTooltip(
-                    "2.2", 
-                    "Predictors: Were predictor assessments made without knowledge of outcome data?"
-                  ),
-                  cell = reactable::JS("
+        '2.2' = reactable::colDef(
+          header = withTooltip(
+            "2.2", 
+            "Predictors: Were predictor assessments made without knowledge of outcome data?"
+          ),
+          cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
       if(cellInfo.value === 'Fail'){return '\u274c Fail'} else if(cellInfo.value === 'Pass'){return '\u2714\ufe0f Pass'} else{return '? Unkown'}
     }
   ")),
-                '2.3' = reactable::colDef(
-                  header = withTooltip(
-                    "2.3", 
-                    "Predictors: Are all predictors available at the time the model is intended to be used?"
-                  ),
-                  cell = reactable::JS("
+        '2.3' = reactable::colDef(
+          header = withTooltip(
+            "2.3", 
+            "Predictors: Are all predictors available at the time the model is intended to be used?"
+          ),
+          cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
       if(cellInfo.value === 'Fail'){return '\u274c Fail'} else if(cellInfo.value === 'Pass'){return '\u2714\ufe0f Pass'} else{return '? Unkown'}
     }
   ")),
-                '3.4' = reactable::colDef(
-                  header = withTooltip(
-                    "3.4", 
-                    "Outcome: Was the outcome defined and determined in a similar way for all participants?"
-                  ),
-                  cell = reactable::JS("
+        '3.4' = reactable::colDef(
+          header = withTooltip(
+            "3.4", 
+            "Outcome: Was the outcome defined and determined in a similar way for all participants?"
+          ),
+          cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
       if(cellInfo.value === 'Fail'){return '\u274c Fail'} else if(cellInfo.value === 'Pass'){return '\u2714\ufe0f Pass'} else{return '? Unkown'}
     }
   ")),
-                '3.6' = reactable::colDef(
-                  header = withTooltip(
-                    "3.6", 
-                    "Outcome: Was the time interval between predictor assessment and outcome determination appropriate?"
-                  ),
-                  cell = reactable::JS("
+        '3.6' = reactable::colDef(
+          header = withTooltip(
+            "3.6", 
+            "Outcome: Was the time interval between predictor assessment and outcome determination appropriate?"
+          ),
+          cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
       if(cellInfo.value === 'Fail'){return '\u274c Fail'} else if(cellInfo.value === 'Pass'){return '\u2714\ufe0f Pass'} else{return '? Unkown'}
     }
   ")),
-                '4.1' = reactable::colDef(
-                  header = withTooltip(
-                    "4.1", 
-                    "Design: Were there a reasonable number of participants with the outcome?"
-                  ),
-                  cell = reactable::JS("
+        '4.1' = reactable::colDef(
+          header = withTooltip(
+            "4.1", 
+            "Design: Were there a reasonable number of participants with the outcome?"
+          ),
+          cell = reactable::JS("
     function(cellInfo) {
       // Render as an X mark or check mark
       if(cellInfo.value === 'Fail'){return '\u274c Fail'} else if(cellInfo.value === 'Pass'){return '\u2714\ufe0f Pass'} else{return '? Unkown'}
     }
-  ")),
-                participants = reactable::colDef(
-                  name = "",
-                  sortable = FALSE,
-                  cell = function() htmltools::tags$button("View Participants")
-                ),
-                predictors = reactable::colDef(
-                  name = "",
-                  sortable = FALSE,
-                  cell = function() htmltools::tags$button("View Predictors")
-                ),
-                outcomes = reactable::colDef(
-                  name = "",
-                  sortable = FALSE,
-                  cell = function() htmltools::tags$button("View Outcomes")
-                )
-              ),
-              
-              onClick = reactable::JS(
-                paste0(
-                  "function(rowInfo, column) {
-    // Only handle click events on the 'details' column
-    if (column.id !== 'participants' & column.id !== 'predictors' & column.id !== 'outcomes') {
-      return
-    }
+  "))
+      )
+      
+      modelTableOutputs <- resultTableServer(
+        id = "diagnosticSummaryTable",
+        df = diagnosticTable,
+        colDefsInput = colDefsInput,
+        addActions = c('participants','predictors', 'outcomes')
+      )
 
-    // Display an alert dialog with details for the row
-    //window.alert('Details for row ' + rowInfo.index + ':\\n' + JSON.stringify(rowInfo.values, null, 2))
-
-    // Send the click event to Shiny, which will be available in input$show_details
-    // Note that the row index starts at 0 in JavaScript, so we add 1
-    if(column.id == 'participants'){
-      Shiny.setInputValue('",session$ns('show_participants'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
-    if(column.id == 'predictors'){
-      Shiny.setInputValue('",session$ns('show_predictors'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
-    if(column.id == 'outcomes'){
-      Shiny.setInputValue('",session$ns('show_outcomes'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
-  }"
-                )
-                
-              )
-            )
-            
-          }) # end reactable
-          
-          
+      
           # listen
           # PARTICIPANTS
           #============
-          shiny::observeEvent(
-            input$show_participants,
-            {
-              participants <- getPredictionDiagnosticParticipants(
-                diagnosticId = diagnosticTable$diagnosticId[input$show_participants$index],
-                connectionHandler = connectionHandler,
-                resultDatabaseSettings = resultDatabaseSettings
-              )
-              
-              output$participants <- reactable::renderReactable({
-                reactable::reactable(
-                  data = participants %>% 
-                    dplyr::filter(.data$parameter == ifelse(is.null(input$participantParameters), unique(participants$parameter)[1], input$participantParameters)) %>%
-                    dplyr::select(
-                      c(
+      shiny::observeEvent(modelTableOutputs$actionCount(), {
+
+        if(modelTableOutputs$actionType() == 'participants'){
+          {
+            participants <- getPredictionDiagnosticParticipants(
+              diagnosticId = diagnosticTable()$diagnosticId[modelTableOutputs$actionIndex()$index],
+              connectionHandler = connectionHandler,
+              resultDatabaseSettings = resultDatabaseSettings
+            )
+            
+            output$participants <- reactable::renderReactable({
+              reactable::reactable(
+                data = participants %>% 
+                  dplyr::filter(.data$parameter == ifelse(is.null(input$participantParameters), unique(participants$parameter)[1], input$participantParameters)) %>%
+                  dplyr::select(
+                    c(
                       "probastId",
                       "paramvalue",
                       "metric", 
                       "value"
-                      )
-                    ) %>%
-                    dplyr::mutate(
-                      value = format(.data$value, nsmall = 2, )
-                    )  %>%
-                    tidyr::pivot_wider(
-                      names_from = "paramvalue", #.data$paramvalue, 
-                      values_from = "value" #.data$value
                     )
-                )
-              })
-              output$main <- shiny::renderUI({
-                shiny::div(
-                  shiny::selectInput(
-                    inputId = session$ns('participantParameters'),
-                    label = 'Select Parameter',
-                    multiple = F, 
-                    choices = unique(participants$parameter)
-                  ),
-                  reactable::reactableOutput(session$ns('participants'))
-                )
-              }) # renderUI
-            }
-          ) # end observed event
-          
-          
-          
+                  ) %>%
+                  dplyr::mutate(
+                    value = format(.data$value, nsmall = 2, )
+                  )  %>%
+                  tidyr::pivot_wider(
+                    names_from = "paramvalue", #.data$paramvalue, 
+                    values_from = "value" #.data$value
+                  )
+              )
+            })
+            
+            
+            shiny::showModal(
+              shiny::modalDialog(
+                title = "Participant Diagnostics",
+                shiny::basicPage(
+                  shiny::tags$head(shiny::tags$style(".modal-dialog{ width:95%}")),
+                  shiny::div(
+                    shiny::selectInput(
+                      inputId = session$ns('participantParameters'),
+                      label = 'Select Parameter',
+                      multiple = F, 
+                      choices = unique(participants$parameter)
+                    ),
+                    reactable::reactableOutput(session$ns('participants'))
+                  )
+                ),
+                size = "l",
+                easyClose = T
+              ))
+
+          }
+ 
+        }
+      })
+      
+    
           #  PREDICTOR
           #==================
-          shiny::observeEvent(
-            input$show_predictors,
-            {
-              
+      shiny::observeEvent(modelTableOutputs$actionCount(), {
+        if(modelTableOutputs$actionType() == 'predictors'){
               predTable <- getPredictionDiagnosticPredictors(
-                diagnosticId = diagnosticTable$diagnosticId[input$show_predictors$index],
+                diagnosticId = diagnosticTable()$diagnosticId[modelTableOutputs$actionIndex()$index],
                 connectionHandler = connectionHandler,
                 resultDatabaseSettings = resultDatabaseSettings
               )
@@ -327,33 +313,40 @@ patientLevelPredictionDiagnosticsServer <- function(
                   )
               })
               
-              output$main <- shiny::renderUI({
-                shiny::div(
-                  shiny::p('Were predictor assessments made without knowledge of outcome data? (if outcome occur shortly after index this may be problematic)'),
-                  shiny::p(''),
-                  
-                  shiny::selectInput(
-                    inputId = session$ns('predictorParameters'),
-                    label = 'Select Parameter',
-                    multiple = F, 
-                    choices = unique(predTable$inputType)
+              
+              shiny::showModal(
+                shiny::modalDialog(
+                  title = "Predictor Diagnostics",
+                  shiny::basicPage(
+                    shiny::tags$head(shiny::tags$style(".modal-dialog{ width:95%}")),
+                    shiny::div(
+                      shiny::p('Were predictor assessments made without knowledge of outcome data? (if outcome occur shortly after index this may be problematic)'),
+                      shiny::p(''),
+                      
+                      shiny::selectInput(
+                        inputId = session$ns('predictorParameters'),
+                        label = 'Select Parameter',
+                        multiple = F, 
+                        choices = unique(predTable$inputType)
+                      ),
+                      
+                      plotly::plotlyOutput(session$ns('predictorPlot'))
+                    )
                   ),
-                  
-                  plotly::plotlyOutput(session$ns('predictorPlot'))
-                )
-                
-              }) # renderUI
+                  size = "l",
+                  easyClose = T
+                ))
+
             }
-          )
+        })
           
           # OUTCOME
           # =================
-          shiny::observeEvent(
-            input$show_outcomes,
-            {
-              
+      shiny::observeEvent(modelTableOutputs$actionCount(), {
+        if(modelTableOutputs$actionType() == 'outcomes'){
+         
               outcomeTable <- getPredictionDiagnosticOutcomes(
-                diagnosticId = diagnosticTable$diagnosticId[input$show_outcomes$index],
+                diagnosticId = diagnosticTable()$diagnosticId[modelTableOutputs$actionIndex()$index],
                 connectionHandler = connectionHandler,
                 resultDatabaseSettings = resultDatabaseSettings  
               )
@@ -384,29 +377,34 @@ patientLevelPredictionDiagnosticsServer <- function(
                   )
               })
               
-              output$main <- shiny::renderUI({
-                shiny::div(
-                  shiny::p('Was the outcome determined appropriately? (Are age/sex/year/month trends expected?)'),
-                  shiny::p(''),
-                  
-                  shiny::selectInput(
-                    inputId = session$ns('outcomeParameters'),
-                    label = 'Select Parameter',
-                    multiple = F, 
-                    choices = unique(outcomeTable$aggregation)
+              
+              shiny::showModal(
+                shiny::modalDialog(
+                  title = "Outcome Diagnostics",
+                  shiny::basicPage(
+                    shiny::tags$head(shiny::tags$style(".modal-dialog{ width:95%}")),
+                    shiny::div(
+                      shiny::p('Was the outcome determined appropriately? (Are age/sex/year/month trends expected?)'),
+                      shiny::p(''),
+                      
+                      shiny::selectInput(
+                        inputId = session$ns('outcomeParameters'),
+                        label = 'Select Parameter',
+                        multiple = F, 
+                        choices = unique(outcomeTable$aggregation)
+                      ),
+                      
+                      plotly::plotlyOutput(session$ns('outcomePlot'))
+                    )
                   ),
-                  
-                  plotly::plotlyOutput(session$ns('outcomePlot'))
-                )
-                
-              }) # renderUI
+                  size = "l",
+                  easyClose = T
+                ))
+              
             }
-          )
+          })
           
-          
-          
-        } # not null
-      }) # observe
+        
     }
   ) # server
 }

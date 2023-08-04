@@ -248,35 +248,13 @@ sccsDiagnosticsSummaryServer <- function(
         )
         
         
-        # Summary table
-        customColDefs2 <- list(
-          databaseName = reactable::colDef(
-            header = withTooltip(
-              "Database",
-              "The database name"
-            ),
-            sticky = "left"
-          ),
-          target = reactable::colDef(
-            header = withTooltip(
-              "Target",
-              "The target cohort of interest "
-            ),
-            sticky = "left"
-          ),
-          covariateName = reactable::colDef(
-            header = withTooltip(
-              "Time Period",
-              "The time period of interest"
-            ),
-            sticky = "left"
-          )
-        )
-        
         resultTableServer(
           id = "diagnosticsSummaryTable",
           df = data2,
-          colDefsInput = styleColumns(customColDefs2, outcomeIds, analysisIds)
+          colDefsInput = getColDefsSccsDiag(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings
+          )
         )
       
     }
@@ -470,4 +448,74 @@ getSccsAllDiagnosticsSummary <- function(
   )
   return(result)
   
+}
+
+
+getColDefsSccsDiag <- function(
+    connectionHandler,
+    resultDatabaseSettings
+){      
+  
+  fixedColumns =  list(
+    databaseName = reactable::colDef(
+      header = withTooltip(
+        "Database",
+        "The database name"
+      ),
+      sticky = "left"
+    ),
+    target = reactable::colDef(
+      header = withTooltip(
+        "Target",
+        "The target cohort of interest "
+      ),
+      sticky = "left"
+    ),
+    covariateName = reactable::colDef(
+      header = withTooltip(
+        "Time Period",
+        "The time period of interest"
+      ),
+      sticky = "left"
+    )
+  )
+    
+  outcomes <- getSccsDiagOutcomes(
+    connectionHandler = connectionHandler,
+    resultDatabaseSettings = resultDatabaseSettings
+  )
+  analyses <- getSccsDiagAnalyses(
+    connectionHandler = connectionHandler,
+    resultDatabaseSettings = resultDatabaseSettings
+  )
+  
+  colnameFormat <- merge(unique(names(outcomes)), unique(names(analyses)))
+  colnameFormat <- apply(colnameFormat, 1, function(x){paste(x, collapse = '_', sep = '_')})
+  
+  styleList <- lapply(
+    colnameFormat, 
+    FUN = function(x){
+      reactable::colDef(
+        header = withTooltip(
+          substring(x,1,40),
+          x
+        ),
+        style = function(value) {
+          color <- 'orange'
+          if(is.na(value)){
+            color <- 'black'
+          }else if(value == 'Pass'){
+            color <- '#AFE1AF'
+          }else if(value == 'Fail'){
+            color <- '#E97451'
+          }
+          list(background = color)
+        }
+      )
+    }
+  )
+  names(styleList) <- colnameFormat
+  result <- append(fixedColumns, styleList)
+  
+  return(result)
 }

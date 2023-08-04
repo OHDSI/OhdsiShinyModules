@@ -30,11 +30,15 @@ cohortMethodDiagnosticsSummaryViewer <- function(id) {
   
   shiny::div(
     
-    inputSelectionViewer(ns("input-selection")),
+    #shiny::conditionalPanel(
+    #  condition = 'input.generate != 0',
+    #  ns = shiny::NS(ns("input-selection")),
     
-    shiny::conditionalPanel(
-      condition = 'input.generate != 0',
-      ns = shiny::NS(ns("input-selection")),
+    shinydashboard::box(
+      status = 'info', 
+      width = '100%',
+      title = shiny::span('Cohort Method Diagnostics'),
+      solidHeader = TRUE,
       
       shiny::tabsetPanel(
         type = 'pills',
@@ -58,6 +62,7 @@ cohortMethodDiagnosticsSummaryViewer <- function(id) {
 #' @param id the unique reference id for the module
 #' @param connectionHandler the connection to the PLE results database
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
+#' @param inputSelected  The target id, comparator id, outcome id and analysis id selected by the user
 #'
 #' @return
 #' the PLE diagnostics summary results
@@ -66,133 +71,24 @@ cohortMethodDiagnosticsSummaryViewer <- function(id) {
 cohortMethodDiagnosticsSummaryServer <- function(
     id,
     connectionHandler,
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    inputSelected
 ) {
   
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      targetIds <- getCmDiagCohorts(
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings,
-        type = 'target'
-      )
-      outcomeIds <- getCmDiagCohorts(
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings,
-        type = 'outcome'
-      )
-      comparatorIds <- getCmDiagCohorts(
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings,
-        type = 'comparator'
-      )
-      analysisIds <- getCmDiagAnalyses(
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      
-      inputSelected <- inputSelectionServer(
-        id = "input-selection", 
-        inputSettingList = list(
-          createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
-            varName = 'targetIds',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Target: ',
-              choices = targetIds,
-              selected = targetIds[1],
-              multiple = T,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          ),
-          createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
-            varName = 'outcomeIds',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Outcome: ',
-              choices = outcomeIds,
-              selected = outcomeIds[1],
-              multiple = T,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          ),
-          createInputSetting(
-            rowNumber = 2,                           
-            columnWidth = 6,
-            varName = 'comparatorIds',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Comparator: ',
-              choices = comparatorIds,
-              selected = comparatorIds[1],
-              multiple = T,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          ),
-          
-          createInputSetting(
-            rowNumber = 2,                           
-            columnWidth = 6,
-            varName = 'analysisIds',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Analysis: ',
-              choices = analysisIds,
-              selected = analysisIds[1],
-              multiple = T,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          )
-        )
-      )
-      
       data <- shiny::reactive({
         getCmDiagnosticsData(
           connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          targetIds = inputSelected()$targetIds,
-          outcomeIds = inputSelected()$outcomeIds,
-          comparatorIds = inputSelected()$comparatorIds,
-          analysisIds = inputSelected()$analysisIds
+          inputSelected = inputSelected
         )
       })
       
       data2 <- shiny::reactive({
-        diagnosticSummaryFormat(data)
+          diagnosticSummaryFormat(data)
       })
       
       customColDefs <- list(
@@ -206,13 +102,15 @@ cohortMethodDiagnosticsSummaryServer <- function(
           header = withTooltip(
             "Target",
             "The target cohort of interest "
-          )
+          ),
+          minWidth = 300
         ),
         comparator = reactable::colDef(
           header = withTooltip(
             "Comparator",
             "The comparator cohort of interest "
-          )
+          ),
+          minWidth = 300
         ),
         outcome = reactable::colDef(
           header = withTooltip(
@@ -231,23 +129,47 @@ cohortMethodDiagnosticsSummaryServer <- function(
           header = withTooltip(
             "mdrr",
             "The minimum detectible relative risk"
-          )
+          ),
+          format = reactable::colFormat(digits = 4)
         ),
         ease = reactable::colDef(
           header = withTooltip(
             "ease",
             "The ..."
-          )
+          ),
+          format = reactable::colFormat(digits = 4)
         ),
-        timeTrendP = reactable::colDef(
+        maxSdm = reactable::colDef(
           header = withTooltip(
-            "timeTrendP",
+            "max SDM",
             "The ..."
-          )
+          ),
+          format = reactable::colFormat(digits = 4)
         ),
-        preExposureP = reactable::colDef(
+        sharedMaxSdm = reactable::colDef(
           header = withTooltip(
-            "preExposureP",
+            "shared max SDM",
+            "The ..."
+          ),
+          format = reactable::colFormat(digits = 4)
+        ),
+        equipoise = reactable::colDef(
+          header = withTooltip(
+            "equipoise",
+            "The ..."
+          ),
+          format = reactable::colFormat(digits = 4)
+        ),
+        attritionFraction = reactable::colDef(
+          header = withTooltip(
+            "Attrition fraction",
+            "The ..."
+          ),
+          format = reactable::colFormat(digits = 4)
+        ),
+        balanceDiagnostic = reactable::colDef(
+          header = withTooltip(
+            "balanceDiagnostic",
             "The ..."
           )
         ),
@@ -263,15 +185,15 @@ cohortMethodDiagnosticsSummaryServer <- function(
             "The ..."
           )
         ),
-        timeTrendDiagnostic = reactable::colDef(
+        attritionDiagnostic = reactable::colDef(
           header = withTooltip(
-            "timeTrendDiagnostic",
+            "attritionDiagnostic",
             "The ..."
           )
         ),
-        preExposureDiagnostic = reactable::colDef(
+        equipoiseDiagnostic = reactable::colDef(
           header = withTooltip(
-            "preExposureDiagnostic",
+            "equipoiseDiagnostic",
             "The ..."
           )
         ),
@@ -281,7 +203,9 @@ cohortMethodDiagnosticsSummaryServer <- function(
             "unblind",
             "If the value is 1 then the diagnostics passed and results can be unblinded"
           )
-        )
+        ),
+        
+        summaryValue = reactable::colDef(show = F)
         
       )
         
@@ -291,7 +215,25 @@ cohortMethodDiagnosticsSummaryServer <- function(
         colDefsInput = customColDefs
       )
       
-      customColDefs2 <- list(
+      resultTableServer(
+        id = "diagnosticsSummaryTable",
+        df = data2,
+        colDefsInput = getColDefsCmDiag(
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings
+        )
+      )
+      
+    }
+  )
+}
+
+getColDefsCmDiag <- function(
+    connectionHandler,
+    resultDatabaseSettings
+){      
+  
+     fixedColumns =  list(
         databaseName = reactable::colDef(
           header = withTooltip(
             "Database",
@@ -314,25 +256,18 @@ cohortMethodDiagnosticsSummaryServer <- function(
           sticky = "left"
         )
       )
-      
-      resultTableServer(
-        id = "diagnosticsSummaryTable",
-        df = data2,
-        colDefsInput = styleColumns(customColDefs2, outcomeIds, analysisIds)
-      )
-      
-      
-    }
-  )
-}
-
-styleColumns <- function(
-    customColDefs,
-    outcomeIds, 
-    analysisIds
-){      
+     
+     outcomes <- getCmCohorts(
+       connectionHandler = connectionHandler,
+       resultDatabaseSettings = resultDatabaseSettings,
+       type = 'outcome'
+     )
+     analyses <- getCmAnalyses(
+       connectionHandler = connectionHandler,
+       resultDatabaseSettings = resultDatabaseSettings
+     )
   
-  colnameFormat <- merge(names(outcomeIds), names(analysisIds))
+  colnameFormat <- merge(unique(names(outcomes)), unique(names(analyses)))
   colnameFormat <- apply(colnameFormat, 1, function(x){paste(x, collapse = '_', sep = '_')})
   
   styleList <- lapply(
@@ -358,7 +293,7 @@ styleColumns <- function(
     }
   )
   names(styleList) <- colnameFormat
-  result <- append(customColDefs, styleList)
+  result <- append(fixedColumns, styleList)
   
   return(result)
 }
@@ -368,6 +303,10 @@ diagnosticSummaryFormat <- function(
     idCols = c('databaseName','target', 'comparator'),
     namesFrom = c('outcome','analysis')
     ){
+  
+  if(is.null(data())){
+    return(NULL)
+  }
   
   data2 <- tidyr::pivot_wider(
     data = data(), 
@@ -379,80 +318,23 @@ diagnosticSummaryFormat <- function(
   return(data2)
 }
 
-getCmDiagCohorts <- function(
-    connectionHandler,
-    resultDatabaseSettings,
-    type = 'target'
-){
-  
-  sql <- "
-    SELECT DISTINCT
-      cgcd1.cohort_name as names,
-      cgcd1.cohort_definition_id
-    FROM
-      @schema.@cm_table_prefixdiagnostics_summary cmds
-      INNER JOIN 
-      @schema.@cg_table_prefixcohort_definition cgcd1 
-      ON cmds.@type_id = cgcd1.cohort_definition_id;
-  "
-  
-  result <- connectionHandler$queryDb(
-    sql = sql,
-    schema = resultDatabaseSettings$schema,
-    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-    type = type
-  )
-  
-  res <- result$cohortDefinitionId
-  names(res) <- result$names
-  
-  return(
-    res
-  )
-}
-
-getCmDiagAnalyses <- function(
-  connectionHandler,
-  resultDatabaseSettings
-){
-  
-  sql <- "
-    SELECT DISTINCT
-      cma.analysis_id,
-      cma.description as names
-    FROM
-      @schema.@cm_table_prefixdiagnostics_summary cmds
-      INNER JOIN 
-      @schema.@cm_table_prefixanalysis cma 
-      ON cmds.analysis_id = cma.analysis_id
-      ;
-  "
-  
-  result <-  connectionHandler$queryDb(
-    sql = sql,
-    schema = resultDatabaseSettings$schema,
-    cm_table_prefix = resultDatabaseSettings$cmTablePrefix
-  )
-  
-  res <- result$analysisId
-  names(res) <- result$names
-  
-  return(
-   res
-  )
-  
-}
 
 
 getCmDiagnosticsData <- function(
     connectionHandler, 
     resultDatabaseSettings,
-    targetIds,
-    outcomeIds,
-    comparatorIds = NULL,
-    analysisIds = NULL
+    inputSelected
 ) {
+  
+  targetIds = inputSelected()$targetIds
+  outcomeIds = inputSelected()$outcomeIds
+  comparatorIds = inputSelected()$comparatorIds
+  analysisIds = inputSelected()$analysisIds
+  
+  if(is.null(targetIds) || is.null(outcomeIds)){
+    return(NULL)
+  }
+  
   sql <- "
     SELECT DISTINCT
       dmd.cdm_source_abbreviation database_name,

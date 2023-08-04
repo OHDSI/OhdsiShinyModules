@@ -7,10 +7,8 @@
 cohortMethodSystematicErrorServer(
   id,
   selectedRow,
-  inputParams,
   connectionHandler,
-  resultDatabaseSettings,
-  metaAnalysisDbIds = NULL
+  resultDatabaseSettings
 )
 }
 \arguments{
@@ -18,13 +16,9 @@ cohortMethodSystematicErrorServer(
 
 \item{selectedRow}{the selected row from the main results table}
 
-\item{inputParams}{the selected study parameters of interest}
-
 \item{connectionHandler}{the connection handler to the result databases}
 
 \item{resultDatabaseSettings}{a list containing the result schema and prefixes}
-
-\item{metaAnalysisDbIds}{metaAnalysisDbIds}
 }
 \value{
 the PLE systematic error content server

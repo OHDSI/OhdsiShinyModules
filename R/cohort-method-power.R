@@ -42,10 +42,8 @@ cohortMethodPowerViewer <- function(id) {
 #'
 #' @param id the unique reference id for the module
 #' @param selectedRow the selected row from the main results table 
-#' @param inputParams  the selected study parameters of interest
 #' @param connectionHandler the connection to the PLE results database
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
-#' @param metaAnalysisDbIds metaAnalysisDbIds
 #'
 #' @return
 #' the PLE systematic error power server
@@ -54,10 +52,8 @@ cohortMethodPowerViewer <- function(id) {
 cohortMethodPowerServer <- function(
     id, 
     selectedRow, 
-    inputParams, 
     connectionHandler, 
-    resultDatabaseSettings,
-    metaAnalysisDbIds = NULL
+    resultDatabaseSettings
     ) {
   
   shiny::moduleServer(
@@ -67,12 +63,12 @@ cohortMethodPowerServer <- function(
       
       output$powerTableCaption <- shiny::renderUI({
         row <- selectedRow()
-        if (!is.null(row)) {
+        if (!is.null(row$target)) {
           text <- "<strong>Table 1a.</strong> Number of subjects, follow-up time (in years), number of outcome
       events, and event incidence rate (IR) per 1,000 patient years (PY) in the target (<em>%s</em>) and
       comparator (<em>%s</em>) group after propensity score adjustment, as  well as the minimum detectable  relative risk (MDRR).
       Note that the IR does not account for any stratification."
-          return(shiny::HTML(sprintf(text, inputParams()$target, inputParams()$comparator)))
+          return(shiny::HTML(sprintf(text, row$target, row$comparator)))
         } else {
           return(NULL)
         }
@@ -80,7 +76,7 @@ cohortMethodPowerServer <- function(
       
       output$powerTable <- shiny::renderTable({
         row <- selectedRow()
-        if (is.null(row)) {
+        if (is.null(row$target)) {
           return(NULL)
         } else {
             table <- prepareCohortMethodPowerTable(
@@ -88,8 +84,6 @@ cohortMethodPowerServer <- function(
               connectionHandler = connectionHandler, 
               resultDatabaseSettings = resultDatabaseSettings
               )
-            table$description <- NULL
-            table$databaseId <- NULL
             if (!row$unblind) {
               table$targetOutcomes  <- NA
               table$comparatorOutcomes   <- NA
@@ -112,11 +106,11 @@ cohortMethodPowerServer <- function(
       
       output$timeAtRiskTableCaption <- shiny::renderUI({
         row <- selectedRow()
-        if (!is.null(row)) {
+        if (!is.null(row$target)) {
           text <- "<strong>Table 1b.</strong> Time (days) at risk distribution expressed as
       minimum (min), 25th percentile (P25), median, 75th percentile (P75), and maximum (max) in the target
      (<em>%s</em>) and comparator (<em>%s</em>) cohort after propensity score adjustment."
-          return(shiny::HTML(sprintf(text, inputParams()$target, inputParams()$comparator)))
+          return(shiny::HTML(sprintf(text, row$target, row$comparator)))
         } else {
           return(NULL)
         }
@@ -124,15 +118,15 @@ cohortMethodPowerServer <- function(
       
       output$timeAtRiskTable <- shiny::renderTable({
         row <- selectedRow()
-        if (is.null(row)) {
+        if (is.null(row$target)) {
           return(NULL)
         } else {
             followUpDist <- getCmFollowUpDist(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
-              targetId = inputParams()$target,
-              comparatorId = inputParams()$comparator,
-              outcomeId = inputParams()$outcome,
+              targetId = row$targetId,
+              comparatorId = row$comparatorId,
+              outcomeId = row$outcomeId,
               databaseId = row$databaseId,
               analysisId = row$analysisId
             )
@@ -142,4 +136,152 @@ cohortMethodPowerServer <- function(
         }
       })
     })
+}
+
+
+prepareCohortMethodFollowUpDistTable <- function(followUpDist) {
+  targetRow <- data.frame(Database = followUpDist$databaseId,
+                          Cohort = "Target",
+                          Min = followUpDist$targetMinDays,
+                          P10 = followUpDist$targetP10Days,
+                          P25 = followUpDist$targetP25Days,
+                          Median = followUpDist$targetMedianDays,
+                          P75 = followUpDist$targetP75Days,
+                          P90 = followUpDist$targetP90Days,
+                          Max = followUpDist$targetMaxDays)
+  comparatorRow <- data.frame(Database = followUpDist$databaseId,
+                              Cohort = "Comparator",
+                              Min = followUpDist$comparatorMinDays,
+                              P10 = followUpDist$comparatorP10Days,
+                              P25 = followUpDist$comparatorP25Days,
+                              Median = followUpDist$comparatorMedianDays,
+                              P75 = followUpDist$comparatorP75Days,
+                              P90 = followUpDist$comparatorP90Days,
+                              Max = followUpDist$comparatorMaxDays)
+  table <- rbind(targetRow, comparatorRow)
+  table$Min <- formatC(table$Min, big.mark = ",", format = "d")
+  table$P10 <- formatC(table$P10, big.mark = ",", format = "d")
+  table$P25 <- formatC(table$P25, big.mark = ",", format = "d")
+  table$Median <- formatC(table$Median, big.mark = ",", format = "d")
+  table$P75 <- formatC(table$P75, big.mark = ",", format = "d")
+  table$P90 <- formatC(table$P90, big.mark = ",", format = "d")
+  table$Max <- formatC(table$Max, big.mark = ",", format = "d")
+  if (length(unique(followUpDist$databaseId)) == 1)
+    table$Database <- NULL
+  return(table)
+}
+
+
+prepareCohortMethodPowerTable <- function(
+    mainResults, 
+    connectionHandler , 
+    resultDatabaseSettings
+) {
+  #analyses <- getCohortMethodAnalyses(
+  #  connectionHandler = connectionHandler,
+  #  resultDatabaseSettings = resultDatabaseSettings
+  #)
+  #table <- merge(mainResults, analyses)
+  table <- mainResults
+  alpha <- 0.05
+  power <- 0.8
+  z1MinAlpha <- stats::qnorm(1 - alpha/2)
+  zBeta <- -stats::qnorm(1 - power)
+  pA <- table$targetSubjects/(table$targetSubjects + table$comparatorSubjects)
+  pB <- 1 - pA
+  totalEvents <- abs(table$targetOutcomes) + abs(table$comparatorOutcomes)
+  table$mdrr <- exp(sqrt((zBeta + z1MinAlpha)^2/(totalEvents * pA * pB)))
+  table$targetYears <- table$targetDays/365.25
+  table$comparatorYears <- table$comparatorDays/365.25
+  table$targetIr <- 1000 * table$targetOutcomes/table$targetYears
+  table$comparatorIr <- 1000 * table$comparatorOutcomes/table$comparatorYears
+  table <- table[, c("targetSubjects",
+                     "comparatorSubjects",
+                     "targetYears",
+                     "comparatorYears",
+                     "targetOutcomes",
+                     "comparatorOutcomes",
+                     "targetIr",
+                     "comparatorIr",
+                     "mdrr"), drop = F]
+  table$targetSubjects <- formatC(table$targetSubjects, big.mark = ",", format = "d")
+  table$comparatorSubjects <- formatC(table$comparatorSubjects, big.mark = ",", format = "d")
+  table$targetYears <- formatC(table$targetYears, big.mark = ",", format = "d")
+  table$comparatorYears <- formatC(table$comparatorYears, big.mark = ",", format = "d")
+  table$targetOutcomes <- formatC(table$targetOutcomes, big.mark = ",", format = "d")
+  table$comparatorOutcomes <- formatC(table$comparatorOutcomes, big.mark = ",", format = "d")
+  table$targetIr <- sprintf("%.2f", table$targetIr)
+  table$comparatorIr <- sprintf("%.2f", table$comparatorIr)
+  table$mdrr <- sprintf("%.2f", table$mdrr)
+  table$targetSubjects <- gsub("^-", "<", table$targetSubjects)
+  table$comparatorSubjects <- gsub("^-", "<", table$comparatorSubjects)
+  table$targetOutcomes <- gsub("^-", "<", table$targetOutcomes)
+  table$comparatorOutcomes <- gsub("^-", "<", table$comparatorOutcomes)
+  table$targetIr <- gsub("^-", "<", table$targetIr)
+  table$comparatorIr <- gsub("^-", "<", table$comparatorIr)
+  idx <- (table$targetOutcomes < 0 | table$comparatorOutcomes < 0)
+  table$mdrr[idx] <- paste0(">", table$mdrr[idx])
+  return(table)
+}
+
+
+getCohortMethodAnalyses <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  sql <- "
+  SELECT
+    cma.*
+  FROM
+    @schema.@cm_table_prefixanalysis cma
+  "
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      cm_table_prefix = resultDatabaseSettings$cmTablePrefix
+    )
+  )
+}
+
+getCmFollowUpDist <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    targetId,
+    comparatorId,
+    outcomeId,
+    databaseId = NULL,
+    analysisId
+) {
+  
+  if(is.null(targetId)){
+    return(NULL)
+  }
+  
+  sql <- "
+  SELECT
+    *
+  FROM
+    @schema.@cm_table_prefixfollow_up_dist cmfud
+  WHERE
+    cmfud.target_id = @target_id
+    AND cmfud.comparator_id = @comparator_id
+    AND cmfud.outcome_id = @outcome_id
+    AND cmfud.analysis_id = @analysis_id
+  "
+  if(!is.null(databaseId)) {
+    sql <- paste(sql, paste("AND cmfud.database_id = '@database_id'"), collapse = "\n")
+  }
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+      target_id = targetId,
+      comparator_id = comparatorId,
+      outcome_id = outcomeId,
+      analysis_id = analysisId,
+      database_id = databaseId
+    )
+  )
 }

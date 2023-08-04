@@ -48,96 +48,32 @@ cohortMethodViewer <- function(id) {
     title = shiny::span( shiny::icon("chart-column"), 'Cohort Method'),
     solidHeader = TRUE,
     
-  #shiny::fluidPage(style = "width:1500px;",
-  shinydashboard::box(
-    collapsible = TRUE,
-    collapsed = TRUE,
-    title = "Cohort Method Evidence Explorer",
-    width = "100%"#,
-    #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
-  ),
-  
-            htmltools::tags$head(htmltools::tags$style(type = "text/css", "
-             #loadmessage {
-                                 position: fixed;
-                                 top: 0px;
-                                 left: 0px;
-                                 width: 100%;
-                                 padding: 5px 0px 5px 0px;
-                                 text-align: center;
-                                 font-weight: bold;
-                                 font-size: 100%;
-                                 color: #000000;
-                                 background-color: #ADD8E6;
-                                 z-index: 105;
-                                 }
-                                 ")),
-            shiny::conditionalPanel(id = ns("loadmessage"),
-                             condition = "$('html').hasClass('shiny-busy')",
-                             htmltools::tags$div("Processing...")),
-            shiny::tabsetPanel(
-              type = 'pills',
-              id = ns("mainTabsetPanel"),
-              shiny::tabPanel(
-                title = "Diagnostics",
-                cohortMethodDiagnosticsSummaryViewer(ns("estimationDiganostics"))
-              ),
-              shiny::tabPanel(
-                title = "Results",
-                shiny::fluidRow(
-                  shiny::column(width = 3,
-                         shiny::uiOutput(outputId = ns("targetWidget")),
-                         shiny::uiOutput(outputId = ns("comparatorWidget")),
-                         shiny::uiOutput(outputId = ns("outcomeWidget")),
-                         shiny::uiOutput(outputId = ns("databaseWidget")),
-                         shiny::uiOutput(outputId = ns("analysisWidget"))
-                  ),
-                  shiny::column(width = 9,
-                                cohortMethodResultsTableViewer(ns("resultsTable")),
-                         shiny::conditionalPanel("output.rowIsSelected == true", ns = ns,
-                                                 shiny::tabsetPanel(id = ns("detailsTabsetPanel"),
-                                                                    shiny::tabPanel(title = "Power",
-                                                                                    cohortMethodPowerViewer(ns("power"))
-                                                      ),
-                                                      shiny::tabPanel(title = "Attrition",
-                                                                      cohortMethodAttritionViewer(ns("attrition"))
-                                                      ),
-                                                      shiny::tabPanel(title = "Population characteristics",
-                                                                      cohortMethodPopulationCharacteristicsViewer(ns("popCharacteristics"))
-                                                      ),
-                                                      shiny::tabPanel(title = "Propensity model",
-                                                                      cohortMethodPropensityModelViewer(ns("propensityModel"))
-                                                      ),
-                                                      shiny::tabPanel(title = "Propensity scores",
-                                                                      cohortMethodPropensityScoreDistViewer(ns("propensityScoreDist"))
-                                                      ),
-                                                      shiny::tabPanel(title = "Covariate balance",
-                                                                      cohortMethodCovariateBalanceViewer(ns("covariateBalance"))
-                                                      ),
-                                                      shiny::tabPanel(title = "Systematic error",
-                                                                      cohortMethodSystematicErrorViewer(ns("systematicError"))
-                                                      ),
-                                                      shiny::tabPanel(title = "Forest plot",
-                                                                      cohortMethodForestPlotViewer(ns("forestPlot"))
-                                                      ),
-                                                      shiny::tabPanel(title = "Kaplan-Meier",
-                                                                      cohortMethodKaplanMeierViewer(ns("kaplanMeier"))
-                                                      ),
-                                                      shiny::tabPanel(title = "Subgroups",
-                                                                      cohortMethodSubgroupsViewer(ns("subgroups"))
-                                                      )
-                                                      
-                                          ) # end tabsetPanel
-                         ) # end conditionalPanel
-                  )
-                  
-                ) 
-              )
-            )
+    # Input selection of T, C and Os
+    inputSelectionViewer(ns("input-selection")),
+    
+    shiny::conditionalPanel(
+      condition = 'input.generate != 0',
+      ns = shiny::NS(ns("input-selection")),
+      
+    shiny::tabsetPanel(
+      type = 'pills',
+      id = ns('mainPanel'),
+      
+      shiny::tabPanel(
+        title = "Diagnostics",
+        cohortMethodDiagnosticsSummaryViewer(ns("cmDiganostics"))
+      ),
+      
+      shiny::tabPanel(
+        title = "Results",
+        cohortMethodResultSummaryViewer(ns("cmResults"))
+      )
+    )
+    )
+    
   )
-  
 }
-
+    
 
 #' The module server for the main cohort method module
 #'
@@ -161,203 +97,192 @@ cohortMethodServer <- function(
       
       dataFolder <- NULL
       
-      output$targetWidget <- shiny::renderUI({
-        targets <- getCohortMethodTargetChoices(
-          connectionHandler,
-          resultDatabaseSettings = resultDatabaseSettings
-          )
-        shiny::selectInput(inputId = session$ns("target"),
-                           label = "Target",
-                           choices = getCohortMethodSelectNamedChoices(targets$targetId,
-                                                                     targets$cohortName))
-      })
+      targetIds <- getCmCohorts(
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings,
+        type = 'target'
+      )
+      outcomeIds <- getCmCohorts(
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings,
+        type = 'outcome'
+      )
+      comparatorIds <- getCmCohorts(
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings,
+        type = 'comparator'
+      )
+      analysisIds <- getCmAnalyses(
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
       
-      output$comparatorWidget <- shiny::renderUI({
-        comparators <- getCohortMethodComparatorChoices(
-          connectionHandler,
-          resultDatabaseSettings = resultDatabaseSettings
+      inputSelected <- inputSelectionServer(
+        id = "input-selection", 
+        inputSettingList = list(
+          createInputSetting(
+            rowNumber = 1,                           
+            columnWidth = 6,
+            varName = 'targetIds',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Target: ',
+              choices = targetIds,
+              selected = targetIds[1],
+              multiple = T,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          createInputSetting(
+            rowNumber = 1,                           
+            columnWidth = 6,
+            varName = 'outcomeIds',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Outcome: ',
+              choices = outcomeIds,
+              selected = outcomeIds[1],
+              multiple = T,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          createInputSetting(
+            rowNumber = 2,                           
+            columnWidth = 6,
+            varName = 'comparatorIds',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Comparator: ',
+              choices = comparatorIds,
+              selected = comparatorIds[1],
+              multiple = T,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          
+          createInputSetting(
+            rowNumber = 2,                           
+            columnWidth = 6,
+            varName = 'analysisIds',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Analysis: ',
+              choices = analysisIds,
+              selected = analysisIds[1],
+              multiple = T,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
           )
-        shiny::selectInput(inputId = session$ns("comparator"),
-                           label = "Comparator",
-                           choices = getCohortMethodSelectNamedChoices(comparators$comparatorId,
-                                                                     comparators$cohortName))
-      })
-      
-      output$outcomeWidget <- shiny::renderUI({
-        outcomes <- getCohortMethodOutcomeChoices(
-          connectionHandler,
-          resultDatabaseSettings = resultDatabaseSettings
-          )
-        shiny::selectInput(inputId = session$ns("outcome"),
-                           label = "Outcome",
-                           choices = getCohortMethodSelectNamedChoices(outcomes$outcomeId,
-                                                                     outcomes$cohortName))
-      })
-      output$databaseWidget<- shiny::renderUI({
-        databases <- getCohortMethodDatabaseChoices(
-          connectionHandler,
-          resultDatabaseSettings = resultDatabaseSettings
-          )
-        shiny::checkboxGroupInput(inputId = session$ns("database"),
-                                  label = "Data source",
-                                  choices =  getCohortMethodSelectNamedChoices(databases$databaseId,
-                                                                             databases$cdmSourceAbbreviation),
-                                  selected = unique(databases$databaseId))
-      })
-      output$analysisWidget <- shiny::renderUI({
-        analyses <- getCmAnalysisOptions(
-          connectionHandler,
-          resultDatabaseSettings
-          )
-        shiny::checkboxGroupInput(inputId = session$ns("analysis"),
-                                  label = "Analysis",
-                                  choices =  getCohortMethodSelectNamedChoices(analyses$analysisId,
-                                                                             analyses$description),
-                                  selected = unique(analyses$analysisId))
-      })
-      
-      
-      inputParams <- shiny::reactive({
-        t <- list()
-        t$target <- input$target
-        t$comparator <- input$comparator
-        t$outcome <- input$outcome
-        t$analysis <- input$analysis
-        t$database <- input$database
-        return(t)
-      })
-      
+        )
+      )
       
       cohortMethodDiagnosticsSummaryServer(
-        id = "estimationDiganostics",
+        id = "cmDiganostics",
         connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
+        resultDatabaseSettings = resultDatabaseSettings,
+        inputSelected = inputSelected
         )
       
-      
-      selectedRow <- cohortMethodResultsTableServer(
-        id = "resultsTable",
+      cohortMethodResultSummaryServer(
+        id = "cmResults",
         connectionHandler = connectionHandler,
-        inputParams = inputParams,
-        resultDatabaseSettings = resultDatabaseSettings
-        )
-      
-      output$rowIsSelected <- shiny::reactive({
-        return(!is.null(selectedRow()))
-      })
-      
-      
-      if (!exists("cmInteractionResult")) { # ISSUE: this should be an input resultDatabaseSettings$cmInteractionResult and not null check
-        #TODO: update for testing once subgroup analysis completed
-        shiny::hideTab(inputId = "detailsTabsetPanel", target = "Subgroups",
-                       session = session)
-      }
-      
-      shiny::outputOptions(output, "rowIsSelected", suspendWhenHidden = FALSE)
-      
-      output$isMetaAnalysis <- shiny::reactive({
-        #TODO: update once MA implemented
-        row <- selectedRow()
-        isMetaAnalysis <- FALSE # !is.null(row) && (row$databaseId %in% metaAnalysisDbIds)
-        if (!is.null(row)) {
-          if (isMetaAnalysis) {
-            shiny::hideTab("detailsTabsetPanel", "Attrition", session = session)
-            shiny::hideTab("detailsTabsetPanel", "Population characteristics", session = session)
-            shiny::hideTab("detailsTabsetPanel", "Kaplan-Meier", session = session)
-            shiny::hideTab("detailsTabsetPanel", "Propensity model", session = session)
-            shiny::showTab("detailsTabsetPanel", "Forest plot", session = session)
-          } else {
-            shiny::showTab("detailsTabsetPanel", "Attrition", session = session)
-            shiny::showTab("detailsTabsetPanel", "Population characteristics", session = session)
-            if (row$unblind) {
-              shiny::showTab("detailsTabsetPanel", "Kaplan-Meier", session = session)
-            } else{
-              shiny::hideTab("detailsTabsetPanel", "Kaplan-Meier", session = session)
-            }
-            shiny::showTab("detailsTabsetPanel", "Propensity model", session = session)
-            shiny::hideTab("detailsTabsetPanel", "Forest plot", session = session)
-          }
-        }
-        return(isMetaAnalysis)
-      })
-      shiny::outputOptions(output, "isMetaAnalysis", suspendWhenHidden = FALSE)
-      
-      
-      cohortMethodPowerServer(
-        id = "power",
-        selectedRow = selectedRow,
-        inputParams = inputParams,
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      
-      cohortMethodAttritionServer(
-        id = "attrition",
-        selectedRow = selectedRow,
-        inputParams = inputParams,
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      
-      cohortMethodPopulationCharacteristicsServer(
-        id = "popCharacteristics",
-        selectedRow = selectedRow,
-        inputParams = inputParams,
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      
-      cohortMethodPropensityModelServer(
-        id = "propensityModel",
-        selectedRow = selectedRow,
-        inputParams = inputParams,
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      
-      cohortMethodPropensityScoreDistServer(
-        id = "propensityScoreDist",
-        selectedRow = selectedRow,
-        inputParams = inputParams,
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      
-      cohortMethodCovariateBalanceServer(
-        id = "covariateBalance",
-        selectedRow = selectedRow,
-        inputParams = inputParams,
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      
-      cohortMethodSystematicErrorServer(
-        id = "systematicError",
-        selectedRow = selectedRow,
-        inputParams = inputParams,
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      
-      cohortMethodKaplanMeierServer(
-        id = "kaplanMeier",
-        selectedRow = selectedRow,
-        inputParams = inputParams,
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      
-      #TODO: complete once MA implemented
-      # estimationForestPlotServer("forestPlot", connection, selectedRow, inputParams)
-      
-      #TODO: revisit once subgroup example conducted
-      cohortMethodSubgroupsServer(
-        id = "subgroups",
-        selectedRow = selectedRow,
-        inputParams = inputParams
+        resultDatabaseSettings = resultDatabaseSettings,
+        inputSelected = inputSelected
       )
       
     }
   )
 }
 
+getCmCohorts <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    type = 'target'
+){
+  
+  sql <- "
+    SELECT DISTINCT
+      cgcd1.cohort_name as names,
+      cgcd1.cohort_definition_id
+    FROM
+      @schema.@cm_table_prefixresult cmds
+      INNER JOIN 
+      @schema.@cg_table_prefixcohort_definition cgcd1 
+      ON cmds.@type_id = cgcd1.cohort_definition_id;
+  "
+  
+  result <- connectionHandler$queryDb(
+    sql = sql,
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    type = type
+  )
+  
+  res <- result$cohortDefinitionId
+  names(res) <- result$names
+  
+  return(
+    res
+  )
+}
+
+getCmAnalyses <- function(
+    connectionHandler,
+    resultDatabaseSettings
+){
+  
+  sql <- "
+    SELECT DISTINCT
+      cma.analysis_id,
+      cma.description as names
+    FROM
+      @schema.@cm_table_prefixresult cmds
+      INNER JOIN 
+      @schema.@cm_table_prefixanalysis cma 
+      ON cmds.analysis_id = cma.analysis_id
+      ;
+  "
+  
+  result <-  connectionHandler$queryDb(
+    sql = sql,
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix
+  )
+  
+  res <- result$analysisId
+  names(res) <- result$names
+  
+  return(
+    res
+  )
+  
+}

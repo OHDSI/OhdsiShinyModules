@@ -46,7 +46,6 @@ cohortMethodPropensityScoreDistViewer <- function(id) {
 #'
 #' @param id the unique reference id for the module
 #' @param selectedRow the selected row from the main results table 
-#' @param inputParams  the selected study parameters of interest
 #' @param connectionHandler the connection to the PLE results database
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
 #' @param metaAnalysisDbIds metaAnalysisDbIds
@@ -58,7 +57,6 @@ cohortMethodPropensityScoreDistViewer <- function(id) {
 cohortMethodPropensityScoreDistServer <- function(
     id, 
     selectedRow, 
-    inputParams, 
     connectionHandler, 
     resultDatabaseSettings,
     metaAnalysisDbIds = F
@@ -70,14 +68,14 @@ cohortMethodPropensityScoreDistServer <- function(
       
       psDistPlot <- shiny::reactive({
         row <- selectedRow()
-        if (is.null(row)) {
+        if (is.null(row$targetId)) {
           return(NULL)
         } else {
           ps <- getCohortMethodPs(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetId = inputParams()$target,
-            comparatorId = inputParams()$comparator,
+            targetId = row$targetId,
+            comparatorId = row$comparatorId,
             analysisId = row$analysisId,
             databaseId = row$databaseId
           )
@@ -86,17 +84,11 @@ cohortMethodPropensityScoreDistServer <- function(
             return(NULL) #TODO: handle more gracefully
           }
           
-          targetName <- getCohortNameFromId(
-            connectionHandler = connectionHandler ,
-            resultDatabaseSettings = resultDatabaseSettings,
-            cohortId = inputParams()$target
-            )
-          comparatorName <- getCohortNameFromId(
-            connectionHandler  = connectionHandler ,
-            resultDatabaseSettings = resultDatabaseSettings,
-            cohortId = inputParams()$comparator
-            )
-          plot <- plotCohortMethodPs(ps, targetName$cohortName, comparatorName$cohortName)
+          targetName <- row$target
+            
+          comparatorName <- row$comparator
+          
+          plot <- plotCohortMethodPs(ps, targetName, comparatorName)
           return(plot)
         }
       })
@@ -121,11 +113,55 @@ cohortMethodPropensityScoreDistServer <- function(
   )
 }
 
-
+getCohortMethodPs <- function(
+    connectionHandler, 
+    resultDatabaseSettings,
+    targetId, 
+    comparatorId, 
+    analysisId, 
+    databaseId = NULL
+) {
+  if(is.null(targetId)){
+    return(NULL)
+  }
+  sql <- "
+    SELECT
+      *
+    FROM
+      @schema.@cm_table_prefixpreference_score_dist cmpsd
+    WHERE
+      cmpsd.target_id = @target_id
+      AND cmpsd.comparator_id = @comparator_id
+      AND cmpsd.analysis_id = @analysis_id
+  "
+  if(!is.null(databaseId)) {
+    sql <- paste(sql, paste("AND cmpsd.database_id = '@database_id'"), collapse = "\n")
+  }
+  
+  
+  ps <- connectionHandler$queryDb(
+    sql = sql,
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+    target_id = targetId,
+    comparator_id = comparatorId,
+    analysis_id = analysisId,
+    database_id = databaseId
+  )
+  
+  
+  if (!is.null(databaseId)) {
+    ps$databaseId <- NULL
+  }
+  return(ps)
+}
 
 # CohortMethod-propensityScoreDist
 plotCohortMethodPs <- function(ps, targetName, comparatorName) {
-  if (is.null(ps$databaseId)) {
+  if(is.null(ps$preferenceScore)){
+    return(NULL)
+  }
+  if(is.null(ps$databaseId)) {
     ps <- rbind(data.frame(x = ps$preferenceScore, y = ps$targetDensity, group = targetName),
                 data.frame(x = ps$preferenceScore, y = ps$comparatorDensity, group = comparatorName))
     
