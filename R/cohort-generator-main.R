@@ -231,7 +231,6 @@ cohortGeneratorServer <- function(
       
       inputColsCohortCounts <- colnames(getCohortGeneratorCohortCounts(
         connectionHandler = connectionHandler, 
-        resultsSchema = resultsSchema,
         resultDatabaseSettings = resultDatabaseSettings
       ) %>%
         dplyr::select("cdmSourceName",

@@ -19,11 +19,10 @@ resultTableServer(
 
 \item{colDefsInput}{named list of reactable::colDefs}
 
-\item{downloadedFileName}{string, desired name of downloaded data file. can use the name from the module that is being used}
-
 \item{addActions}{add a button row selector column to the table to a column called 'actions'.
 actions must be a column in df}
 
+\item{downloadedFileName}{string, desired name of downloaded data file. can use the name from the module that is being used}
 }
 \value{
 shiny module server

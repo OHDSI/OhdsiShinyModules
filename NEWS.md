@@ -3,6 +3,7 @@ OhdsiShinyModules v1.2.0
 - updated all models to use the same resultDatabaseSettings
 - made module function naming consistent (modules named after analysis packages)
 - made table prefix inputs consistent across modules
+- updated patientlevelprediction, cohortmethod and sccs to look similar.
 
 OhdsiShinyModules v1.1.0
 ========================

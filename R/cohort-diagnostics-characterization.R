@@ -977,7 +977,7 @@ cohortDiagCharacterizationModule <- function(
 
           sortChoices[[paste(databaseName, "mean")]] <- paste0("mean", i)
         }
-        updateSelectInput(inputId = "sortByRaw", choices = sortChoices, selected = "mean1")
+        shiny::updateSelectInput(inputId = "sortByRaw", choices = sortChoices, selected = "mean1")
 
         sql <- "
           SELECT @select_stament
@@ -1107,7 +1107,7 @@ cohortDiagCharacterizationModule <- function(
           sortChoices[[paste(temporalChoiceName, "mean")]] <- paste0("mean", i)
         }
 
-        updateSelectInput(inputId = "sortByRawTemporal", choices = sortChoices, selected = "mean1")
+        shiny::updateSelectInput(inputId = "sortByRawTemporal", choices = sortChoices, selected = "mean1")
 
         sqlt <- "
           SELECT @select_stament
