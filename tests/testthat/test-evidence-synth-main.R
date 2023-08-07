@@ -9,13 +9,21 @@ shiny::testServer(evidenceSynthesisServer, args = list(
   expect_true(length(targetIds) > 0)
   expect_true(length(outcomeIds) > 0)
   
-  #session$setInputs(
-  # `input-selection-targetId` = 1, 
-  # `input-selection-outcomeId` = 3, 
-  # `input-selection-generate` = 1
-  #)
+  inputSelected(
+    list(
+      targetId = targetIds[1], 
+      targetIds = targetIds[1],
+      target = 'test target',
+      comparatorId = 2, 
+      comparator = 'test comparator',
+      outcome = 'test outcome',
+      outcomeId = 3,
+      outcomeIds = 3
+    )
+    )
   
-  inputSelected(list(targetId = targetIds[1], outcomeId = 3))
+  testthat::expect_is(output$esCohortMethodPlot, 'list')
+  
   testthat::expect_true( nrow(unique(rbind(data(),data2()))) >0 )
   testthat::expect_equal(as.double(inputSelected()$outcomeId), 3)
   

@@ -1,10 +1,5 @@
 context("helpers-sccsPlots")
 
-test_that("prettyHr", {
-  testthat::expect_equal(prettyHr(2), "2.00")
-  testthat::expect_equal(prettyHr(200), "NA")
-})
-
 test_that("convert to dates", {
   testthat::expect_equal(as.character(convertToStartDate(2020,3)), "2020-03-01")
   testthat::expect_equal(as.character(convertToEndDate(2020,11)), "2020-11-30")

@@ -115,9 +115,21 @@ getIncidenceRateResult <- function(dataSource,
   )
   checkmate::reportAssertions(collection = errorMessage)
 
-  sql <- "SELECT ir.*, dt.database_name, cc.cohort_subjects
+  #sql <- "SELECT ir.*, dt.database_name, cc.cohort_subjects
+  #          FROM  @schema.@ir_table ir
+  #          INNER JOIN @schema.@database_table dt ON ir.database_id = dt.database_id
+  #          INNER JOIN @schema.@cc_table cc ON (
+  #            ir.database_id = cc.database_id AND ir.cohort_id = cc.cohort_id
+  #          )
+  #          WHERE ir.cohort_id in (@cohort_ids)
+  #         	  AND ir.database_id in (@database_ids)
+  #          {@gender == TRUE} ? {AND ir.gender != ''} : {  AND ir.gender = ''}
+  #          {@age_group == TRUE} ? {AND ir.age_group != ''} : {  AND ir.age_group = ''}
+  #          {@calendar_year == TRUE} ? {AND ir.calendar_year != ''} : {  AND ir.calendar_year = ''}
+  #            AND ir.person_years > @personYears;"
+  
+  sql <- "SELECT ir.*, cc.cohort_subjects
             FROM  @schema.@ir_table ir
-            INNER JOIN @schema.@database_table dt ON ir.database_id = dt.database_id
             INNER JOIN @schema.@cc_table cc ON (
               ir.database_id = cc.database_id AND ir.cohort_id = cc.cohort_id
             )
@@ -127,6 +139,7 @@ getIncidenceRateResult <- function(dataSource,
             {@age_group == TRUE} ? {AND ir.age_group != ''} : {  AND ir.age_group = ''}
             {@calendar_year == TRUE} ? {AND ir.calendar_year != ''} : {  AND ir.calendar_year = ''}
               AND ir.person_years > @personYears;"
+  
   data <-
     dataSource$connectionHandler$queryDb(
       sql = sql,
@@ -139,11 +152,20 @@ getIncidenceRateResult <- function(dataSource,
       personYears = minPersonYears,
       ir_table = dataSource$prefixTable("incidence_rate"),
       cc_table = dataSource$prefixTable("cohort_count"),
-      database_table = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable),
+      #database_table = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable),
       snakeCaseToCamelCase = TRUE
     ) %>%
       tidyr::tibble()
-
+  
+  # join with dbTable (moved this outside sql)
+  data <- merge(
+    data, 
+    dataSource$dbTable, 
+    by = 'databaseId'
+    )
+  
+  data <- tidyr::as_tibble(data)
+  
   data <- data %>%
     dplyr::mutate(
       gender = dplyr::na_if(.data$gender, ""),

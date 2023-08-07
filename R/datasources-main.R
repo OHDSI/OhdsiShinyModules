@@ -98,9 +98,8 @@ datasourcesServer <- function(
       
       datasourcesData <- shiny::reactive({
         getDatasourcesData(
-        connectionHandler = connectionHandler,
-        resultsSchema = resultDatabaseSettings$schema,
-        databaseMetaData = resultDatabaseSettings$databaseMetaData
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings
       )
       })
       
@@ -186,8 +185,22 @@ datasourcesServer <- function(
     })
 }
 
-
-
+#pull database meta data table
+getDatasourcesData <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT * from @schema.@database_table
+  ;"
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      database_table = resultDatabaseSettings$databaseTable
+    )
+  )
+}
 
 
 

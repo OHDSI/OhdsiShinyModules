@@ -4,10 +4,18 @@
 \alias{aboutServer}
 \title{The module server for the shiny app home}
 \usage{
-aboutServer(id = "homepage")
+aboutServer(
+  id = "homepage",
+  connectionHandler = NULL,
+  resultDatabaseSettings = NULL
+)
 }
 \arguments{
 \item{id}{the unique reference id for the module}
+
+\item{connectionHandler}{a connection to the database with the results}
+
+\item{resultDatabaseSettings}{a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix}
 }
 \value{
 The server for the shiny app home

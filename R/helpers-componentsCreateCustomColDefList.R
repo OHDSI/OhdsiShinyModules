@@ -1,4 +1,3 @@
-
 #' Creating a list of custom column definitions for use in reactables
 #'
 #' @param rawColNames The raw column names taken directly from the source

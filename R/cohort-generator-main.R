@@ -43,8 +43,6 @@ cohortGeneratorViewer <- function(id) {
   
   ns <- shiny::NS(id)
   
-  
-  
   shiny::div(
     
     shinydashboard::box(
@@ -60,7 +58,6 @@ cohortGeneratorViewer <- function(id) {
         width = "100%",
         shiny::htmlTemplate(system.file("cohort-generator-www", "cohort-generator.html", package = utils::packageName()))
       ),
-      
       
       shiny::tabsetPanel(
         id = ns("cohortGeneratorTabs"),
@@ -214,7 +211,7 @@ cohortGeneratorServer <- function(
   connectionHandler, 
   resultDatabaseSettings
 ) {
-  
+
   shiny::moduleServer(
     id,
     function(input, output, session) {
@@ -235,9 +232,7 @@ cohortGeneratorServer <- function(
       inputColsCohortCounts <- colnames(getCohortGeneratorCohortCounts(
         connectionHandler = connectionHandler, 
         resultsSchema = resultsSchema,
-        tablePrefix = resultDatabaseSettings$tablePrefix,
-        databaseTable = resultDatabaseSettings$databaseTable,
-        databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
       ) %>%
         dplyr::select("cdmSourceName",
                       "cohortId",
@@ -274,82 +269,9 @@ cohortGeneratorServer <- function(
         
       })
       
-      # output$cohortCounts <- reactable::renderReactable({
-      #   data <- getCohortGeneratorCohortCounts(
-      #     connectionHandler = connectionHandler, 
-      #     resultsSchema = resultsSchema,
-      #     tablePrefix = resultDatabaseSettings$tablePrefix,
-      #     databaseTable = resultDatabaseSettings$databaseTable,
-      #     databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
-      #     ) %>%
-      #     dplyr::select("cdmSourceName",
-      #                   "cohortId",
-      #                   "cohortName",
-      #                   "cohortSubjects",
-      #                   "cohortEntries")
-      #   
-      #   data2 <- data %>%
-      #     dplyr::select(input$cohortCountsCols)
-      #   
-      #   tryCatch({
-      #   reactable::reactable(data2,
-      #                        columns = list(
-      #                          # Render a "show details" button in the last column of the table.
-      #                          # This button won't do anything by itself, but will trigger the custom
-      #                          # click action on the column.
-      #                          cdmSourceName = reactable::colDef( 
-      #                            header = withTooltip(
-      #                              "Database Name", 
-      #                              "The name of the database"
-      #                            )),
-      #                          cohortId = reactable::colDef( 
-      #                            header = withTooltip(
-      #                              "Cohort ID", 
-      #                              "The unique numeric identifier of the cohort"
-      #                            )),
-      #                          cohortName = reactable::colDef( 
-      #                            header = withTooltip(
-      #                              "Cohort Name", 
-      #                              "The name of the cohort"
-      #                            )),
-      #                          cohortSubjects = reactable::colDef( 
-      #                            header = withTooltip(
-      #                              "Number of Subjects", 
-      #                              "The number of distinct subjects in the cohort"
-      #                            ),
-      #                            format = reactable::colFormat(separators = TRUE
-      #                            )),
-      #                          cohortEntries = reactable::colDef( 
-      #                            header = withTooltip(
-      #                              "Number of Records", 
-      #                              "The number of records in the cohort"
-      #                            ),
-      #                            format = reactable::colFormat(separators = TRUE
-      #                            ))
-      #                        ),
-      #                        filterable = TRUE,
-      #                        sortable = TRUE,
-      #                        resizable = T,
-      #                        searchable = T,
-      #                        striped = T,
-      #                        defaultColDef = reactable::colDef(
-      #                          align = "left"
-      #                        )
-      #   )}, 
-      #   error = function(e){
-      #     shiny::showNotification(paste0('Error: ', 
-      #                                    "Please select at least one column to display")); return(NULL)
-      #   }
-      #   )
-      # })
-      
-      #
       data <- getCohortGeneratorCohortCounts(
         connectionHandler = connectionHandler, 
-        resultsSchema = resultsSchema,
-        tablePrefix = resultDatabaseSettings$tablePrefix,
-        databaseTable = resultDatabaseSettings$databaseTable,
-        databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
       ) %>%
         dplyr::select("cdmSourceName",
                       "cohortId",
@@ -359,51 +281,51 @@ cohortGeneratorServer <- function(
       
       
       rtable <- shiny::reactive({
-        
-        reactable::reactable(data %>%
-                               dplyr::select(input$cohortCountsCols),
-                             columns = list(
-                               # Render a "show details" button in the last column of the table.
-                               # This button won't do anything by itself, but will trigger the custom
-                               # click action on the column.
-                               cdmSourceName = reactable::colDef(
-                                 header = withTooltip(
-                                   "Database Name",
-                                   "The name of the database"
-                                 )),
-                               cohortId = reactable::colDef(
-                                 header = withTooltip(
-                                   "Cohort ID",
-                                   "The unique numeric identifier of the cohort"
-                                 )),
-                               cohortName = reactable::colDef(
-                                 header = withTooltip(
-                                   "Cohort Name",
-                                   "The name of the cohort"
-                                 )),
-                               cohortSubjects = reactable::colDef(
-                                 header = withTooltip(
-                                   "Number of Subjects",
-                                   "The number of distinct subjects in the cohort"
-                                 ),
-                                 format = reactable::colFormat(separators = TRUE
-                                 )),
-                               cohortEntries = reactable::colDef(
-                                 header = withTooltip(
-                                   "Number of Records",
-                                   "The number of records in the cohort"
-                                 ),
-                                 format = reactable::colFormat(separators = TRUE
-                                 ))
-                             ),
-                             filterable = TRUE,
-                             sortable = TRUE,
-                             resizable = T,
-                             searchable = T,
-                             striped = T,
-                             defaultColDef = reactable::colDef(
-                               align = "left"
-                             )
+        reactable::reactable(
+          data %>%
+            dplyr::select(input$cohortCountsCols),
+          columns = list(
+            # Render a "show details" button in the last column of the table.
+            # This button won't do anything by itself, but will trigger the custom
+            # click action on the column.
+            cdmSourceName = reactable::colDef(
+              header = withTooltip(
+                "Database Name",
+                "The name of the database"
+              )),
+            cohortId = reactable::colDef(
+              header = withTooltip(
+                "Cohort ID",
+                "The unique numeric identifier of the cohort"
+              )),
+            cohortName = reactable::colDef(
+              header = withTooltip(
+                "Cohort Name",
+                "The name of the cohort"
+              )),
+            cohortSubjects = reactable::colDef(
+              header = withTooltip(
+                "Number of Subjects",
+                "The number of distinct subjects in the cohort"
+              ),
+              format = reactable::colFormat(separators = TRUE
+              )),
+            cohortEntries = reactable::colDef(
+              header = withTooltip(
+                "Number of Records",
+                "The number of records in the cohort"
+              ),
+              format = reactable::colFormat(separators = TRUE
+              ))
+          ),
+          filterable = TRUE,
+          sortable = TRUE,
+          resizable = T,
+          searchable = T,
+          striped = T,
+          defaultColDef = reactable::colDef(
+            align = "left"
+          )
         )
         
       })
@@ -411,17 +333,21 @@ cohortGeneratorServer <- function(
       output$cohortCounts <- reactable::renderReactable({
         
         tryCatch({
-          
           rtable()
         },
         
         error = function(e){
-          shiny::showNotification(paste0('Error: ',
-                                         "Please select at least one column to display")); return(NULL)
+          shiny::showNotification(
+            paste0(
+              'Error: ',
+              "Please select at least one column to display"
+            )
+          ); 
+          return(NULL)
         }
-        
+          
         )
-      })
+    })
       
       
       # download buttons - counts
@@ -432,10 +358,7 @@ cohortGeneratorServer <- function(
         content = function(con) {
           utils::write.csv(getCohortGeneratorCohortCounts(
             connectionHandler = connectionHandler, 
-            resultsSchema = resultsSchema,
-            tablePrefix = resultDatabaseSettings$tablePrefix,
-            databaseTable = resultDatabaseSettings$databaseTable,
-            databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
+            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
             dplyr::select("cdmSourceName",
                           "cohortId",
@@ -445,27 +368,11 @@ cohortGeneratorServer <- function(
         }
       )
       
-      # output$downloadCohortCountsFiltered <- shiny::downloadHandler(
-      #   filename = function() {
-      #     paste('cohort-count-data-filtered-', Sys.Date(), '.csv', sep='')
-      #   },
-      #   content = function(con) {
-      #     filtered_data <- rtable()$reactiveData()$data()
-      #     filtered_rows <- rtable()$reactiveData()$filteredRows()
-      # 
-      #     utils::write.csv(filtered_data[filtered_rows,],
-      #                      con)
-      #   }
-      # )
-      
       output$cohortGeneration <- reactable::renderReactable({
         data <- getCohortGeneratorCohortMeta(
           connectionHandler = connectionHandler, 
-          resultsSchema = resultsSchema,
-          tablePrefix = resultDatabaseSettings$tablePrefix,
-          databaseTable = resultDatabaseSettings$databaseTable,
-          databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
-        ) %>%
+          resultDatabaseSettings = resultDatabaseSettings
+          ) %>%
           dplyr::select("cdmSourceName",
                         "cohortId",
                         "cohortName",
@@ -499,13 +406,14 @@ cohortGeneratorServer <- function(
                                    "Indicator of if the cohort has been generated"
                                  ),
                                  cell = format_yesorno
-                               ),
+                                 ),
                                startTime = reactable::colDef( 
                                  header = withTooltip(
                                    "Generation Start Time", 
                                    "The time and date the cohort started generating"
                                  ),
                                  format = reactable::colFormat(suffix = " mins"
+                                 #format = reactable::colFormat(datetime = TRUE
                                  )),
                                endTime = reactable::colDef( 
                                  header = withTooltip(
@@ -520,7 +428,8 @@ cohortGeneratorServer <- function(
                                    "The time it took (in minutes) to generate the cohort"
                                  ),
                                  format = reactable::colFormat(digits = 2)
-                               )
+
+                                 )
                              ),
                              filterable = TRUE,
                              sortable = TRUE,
@@ -538,8 +447,7 @@ cohortGeneratorServer <- function(
         content = function(con) {
           utils::write.csv(getCohortGeneratorCohortMeta(
             connectionHandler = connectionHandler, 
-            resultsSchema = resultsSchema,
-            tablePrefix = resultDatabaseSettings$tablePrefix
+            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
             dplyr::select("cohortId",
                           "cohortName",
@@ -552,16 +460,12 @@ cohortGeneratorServer <- function(
       #building attrition table using inclusion rules & stats tables
       rules <- getCohortGeneratorInclusionRules(
         connectionHandler = connectionHandler, 
-        resultsSchema = resultsSchema,
-        tablePrefix = resultDatabaseSettings$tablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
       )
       
       stats <- getCohortGeneratorInclusionStats(
         connectionHandler = connectionHandler, 
-        resultsSchema = resultsSchema,
-        tablePrefix = resultDatabaseSettings$tablePrefix,
-        databaseTable = resultDatabaseSettings$databaseTable,
-        databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
       )
       
       #this gets the full attrition table
@@ -574,13 +478,12 @@ cohortGeneratorServer <- function(
       cohortNames <- unique(inputVals$cohortName)
       databaseIds <- unique(inputVals$cdmSourceName)
       inputValsClean <- dplyr::ungroup(inputVals) %>%
-        dplyr::mutate('modeId' = dplyr::case_when(
-          .data$modeId==1 ~ "Subject",
+        dplyr::mutate(modeId = dplyr::case_when(
+          modeId==1 ~ "Subject",
           TRUE ~ "Record"
-        )
+          )
         )
       modeIds <- unique(inputValsClean$modeId)
-      
       
       # cohortName <- shiny::reactiveVal(cohortNames[1])
       # databaseId <- shiny::reactiveVal(databaseIds[1])
@@ -637,154 +540,408 @@ cohortGeneratorServer <- function(
       
       shiny::observeEvent(
         eventExpr = input$generate,
-        {
-          
-          # if(length(input$selectedCohortName) == 0 | is.null(input$selectedDatabaseId |
-          #                                                    is.null(input$selectedModeId))){
-          #   print('Null ids value')
-          #   return(invisible(NULL))
-          # }
-          
-          selectedInputs(
-            shinydashboard::box(
-              status = 'warning', 
-              width = "100%",
-              title = 'Selected:',
-              collapsible = T,
-              collapsed = F,
-              shiny::div(
-                shiny::fluidRow(
-                  shiny::column(
-                    width = 8,
-                    shiny::tags$b("Cohort:"),
-                    #unique(inputVals$cohortName[inputVals$cohortName %in% input$selectedCohortName])
-                    input$selectedCohortName
-                  ),
-                  shiny::column(
-                    width = 4,
-                    shiny::tags$b("Database:"),
-                    #unique(inputVals$cdmSourceName[inputVals$cdmSourceName == input$selectedDatabaseId])
-                    input$selectedDatabaseId
-                  ),
-                  shiny::column(
-                    width = 4,
-                    shiny::tags$b("Level:"),
-                    #unique(inputValsClean$modeId)[inputValsClean$modeId == input$selectedModeId]
-                    input$selectedModeId
-                  )
-                )
+    {
+      
+      # if(length(input$selectedCohortName) == 0 | is.null(input$selectedDatabaseId |
+      #                                                    is.null(input$selectedModeId))){
+      #   print('Null ids value')
+      #   return(invisible(NULL))
+      # }
+      
+      selectedInputs(
+        shinydashboard::box(
+          status = 'warning', 
+          width = "100%",
+          title = 'Selected:',
+          collapsible = T,
+          collapsed = F,
+          shiny::div(
+            shiny::fluidRow(
+              shiny::column(
+                width = 8,
+                shiny::tags$b("Cohort:"),
+                 #unique(inputVals$cohortName[inputVals$cohortName %in% input$selectedCohortName])
+                input$selectedCohortName
+              ),
+              shiny::column(
+                width = 4,
+                shiny::tags$b("Database:"),
+                #unique(inputVals$cdmSourceName[inputVals$cdmSourceName == input$selectedDatabaseId])
+                input$selectedDatabaseId
+              ),
+              shiny::column(
+                width = 4,
+                shiny::tags$b("Level:"),
+                #unique(inputValsClean$modeId)[inputValsClean$modeId == input$selectedModeId]
+                input$selectedModeId
               )
             )
           )
-          
-          
-          data <- inputValsClean %>%
-            dplyr::filter(cdmSourceName %in% input$selectedDatabaseId & 
-                            cohortName %in% input$selectedCohortName &
-                            modeId %in% input$selectedModeId
+        )
+      )
+
+      
+      data <- inputValsClean %>%
+          dplyr::filter(.data$cdmSourceName %in% input$selectedDatabaseId & 
+                          .data$cohortName %in% input$selectedCohortName &
+                          .data$modeId %in% input$selectedModeId
+          )
+      
+      reactiveData <- shiny::reactive(data)
+      
+      if(!is.null(data)){
+      
+      output$attritionTable <- reactable::renderReactable(
+        reactable::reactable(
+          data =  reactiveData() %>%
+            dplyr::select(c("cdmSourceName", "cohortName", "ruleName",
+                            "personCount", "dropCount",
+                            "dropPerc", "retainPerc")
             )
           
-          reactiveData <- shiny::reactive(data)
+          ,
+          rownames = FALSE, 
+          defaultPageSize = 5,
+          showPageSizeOptions = T, 
+          striped = T,
+          columns = list(
+            cdmSourceName = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Database Name", 
+                "The name of the database"
+              )),
+            cohortName = reactable::colDef( 
+              filterable = TRUE,
+              header = withTooltip(
+                "Cohort Name", 
+                "The name of the cohort"
+              )),
+            ruleName = reactable::colDef( 
+              header = withTooltip(
+                "Inclusion Rule Name", 
+                "The name of the inclusion rule"
+              )),
+            personCount = reactable::colDef( 
+              format = reactable::colFormat(separators = TRUE),
+              header = withTooltip(
+                "Subject/Record Count", 
+                "The number of subjects or records (depending on your selection) remaining after the inclusion rule was applied"
+              )),
+            dropCount = reactable::colDef( 
+              format = reactable::colFormat(separators = TRUE),
+              header = withTooltip(
+                "Number Lost", 
+                "The number of subjects or records (depending on your selection) removed/lost after the inclusion rule was applied"
+              )),
+            dropPerc = reactable::colDef( 
+              format = reactable::colFormat(separators = TRUE),
+              header = withTooltip(
+                "Percentage Lost", 
+                "The percentage of subjects or records (depending on your selection) removed/lost after the inclusion rule was applied compared to the previous rule count"
+              )),
+            retainPerc = reactable::colDef( 
+              format = reactable::colFormat(separators = TRUE),
+              header = withTooltip(
+                "Number Retained", 
+                "The number of subjects or records (depending on your selection) retained after the inclusion rule was applied compared to the previous rule count"
+              ))
+          ),
           
-          if(!is.null(data)){
-            
-            output$attritionTable <- reactable::renderReactable(
-              reactable::reactable(
-                data =  reactiveData() %>%
-                  dplyr::select(c("cdmSourceName", "cohortName", "ruleName",
-                                  "personCount", "dropCount",
-                                  "dropPerc", "retainPerc")
-                  )
-                
-                ,
-                rownames = FALSE, 
-                defaultPageSize = 5,
-                showPageSizeOptions = T, 
-                striped = T,
-                columns = list(
-                  cdmSourceName = reactable::colDef( 
-                    filterable = TRUE,
-                    header = withTooltip(
-                      "Database Name", 
-                      "The name of the database"
-                    )),
-                  cohortName = reactable::colDef( 
-                    filterable = TRUE,
-                    header = withTooltip(
-                      "Cohort Name", 
-                      "The name of the cohort"
-                    )),
-                  ruleName = reactable::colDef( 
-                    header = withTooltip(
-                      "Inclusion Rule Name", 
-                      "The name of the inclusion rule"
-                    )),
-                  personCount = reactable::colDef( 
-                    format = reactable::colFormat(separators = TRUE),
-                    header = withTooltip(
-                      "Subject/Record Count", 
-                      "The number of subjects or records (depending on your selection) remaining after the inclusion rule was applied"
-                    )),
-                  dropCount = reactable::colDef( 
-                    format = reactable::colFormat(separators = TRUE),
-                    header = withTooltip(
-                      "Number Lost", 
-                      "The number of subjects or records (depending on your selection) removed/lost after the inclusion rule was applied"
-                    )),
-                  dropPerc = reactable::colDef( 
-                    format = reactable::colFormat(separators = TRUE),
-                    header = withTooltip(
-                      "Percentage Lost", 
-                      "The percentage of subjects or records (depending on your selection) removed/lost after the inclusion rule was applied compared to the previous rule count"
-                    )),
-                  retainPerc = reactable::colDef( 
-                    format = reactable::colFormat(separators = TRUE),
-                    header = withTooltip(
-                      "Number Retained", 
-                      "The number of subjects or records (depending on your selection) retained after the inclusion rule was applied compared to the previous rule count"
-                    ))
-                ),
-                
-                filterable = TRUE,
-                sortable = TRUE,
-                defaultColDef = reactable::colDef(
-                  align = "left"
-                )
-              )
-            )
-            
-            #attrition plot
-            output$attritionPlot <- plotly::renderPlotly(
-              getCohortAttritionPlot(
-                data
-              )
-            )
-            
-            # download button
-            output$downloadAttritionTable <- shiny::downloadHandler(
-              filename = function() {
-                paste('cohort-attrition-data-', Sys.Date(), '.csv', sep='')
-              },
-              content = function(con) {
-                utils::write.csv(data()
-                                 , con)
-              }
-            )
-          }
-          
-          else{
-            shiny::showNotification('data NULL')
-          }
-          
-        }
+          filterable = TRUE,
+          sortable = TRUE,
+          defaultColDef = reactable::colDef(
+            align = "left"
+          )
+        )
+       )
+      
+      #attrition plot
+      output$attritionPlot <- plotly::renderPlotly(
+        getCohortAttritionPlot(
+          data
+        )
       )
       
+      # download button
+      output$downloadAttritionTable <- shiny::downloadHandler(
+        filename = function() {
+          paste('cohort-attrition-data-', Sys.Date(), '.csv', sep='')
+        },
+        content = function(con) {
+          utils::write.csv(data()
+                           , con)
+        }
+      )
+      }
       
+      else{
+        shiny::showNotification('data NULL')
+      }
       
-      
+    }
+  )
       
       # end of server
       
     }
   )
 }
+
+
+
+
+getCohortGeneratorCohortCounts <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT cc.cohort_id, cc.cohort_entries, cc.cohort_subjects,
+  dt.cdm_source_name, cd.cohort_name 
+  FROM @schema.@cg_table_prefixCOHORT_COUNT cc
+  join @schema.@database_table_prefix@database_table dt
+  on cc.database_id = dt.database_id
+  join @schema.@cg_table_prefixCOHORT_DEFINITION cd
+  on cd.cohort_definition_id = cc.cohort_id
+  ;"
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+      database_table = resultDatabaseSettings$databaseTable,
+      database_table_prefix = resultDatabaseSettings$databaseTablePrefix
+    )
+  )
+}
+
+getCohortGeneratorCohortMeta <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT cg.cohort_id, cg.cohort_name,
+  cg.generation_status, cg.start_time, cg.end_time, dt.cdm_source_name
+  from @schema.@cg_table_prefixCOHORT_GENERATION cg
+  join @schema.@database_table_prefix@database_table dt
+  on cg.database_id = dt.database_id
+  ;"
+  
+  df <- connectionHandler$queryDb(
+    sql = sql,
+    schema = resultDatabaseSettings$schema,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    database_table = resultDatabaseSettings$databaseTable,
+    database_table_prefix = resultDatabaseSettings$databaseTablePrefix
+  )
+  
+  df2 <- df %>%
+    dplyr::mutate(
+      generationDuration = dplyr::case_when(
+        generationStatus == "COMPLETE"
+        ~ tryCatch(
+          {
+            difftime(
+              as.POSIXct(as.numeric(.data$endTime), origin = "1970-01-01"),
+              as.POSIXct(as.numeric(.data$startTime), origin = "1970-01-01"),
+              units="mins"
+            )
+          },
+          error = function(e){return(NA)}
+        ),
+        T ~ NA
+      )
+    )
+  
+  return(df2)
+}
+
+getCohortGeneratorCohortInclusionSummary <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT css.cohort_definition_id, css.base_count, css.final_count, css.mode_id,
+  dt.cdm_source_name, cd.cohort_name 
+  FROM @schema.@cg_table_prefixCOHORT_SUMMARY_STATS css
+  join @schema.@database_table_prefix@database_table dt
+  on css.database_id = dt.database_id
+  join @schema.@cg_table_prefixCOHORT_DEFINITION cd
+  on cd.cohort_definition_id = css.cohort_definition_id
+  ;"
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema =resultDatabaseSettings$schema,
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+      database_table = resultDatabaseSettings$databaseTable,
+      database_table_prefix = resultDatabaseSettings$databaseTablePrefix
+    )
+  )
+}
+
+
+
+getCohortGeneratorInclusionRules <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT ci.cohort_definition_id, ci.rule_sequence, ci.name as rule_name,
+  cd.cohort_name FROM @schema.@cg_table_prefixCOHORT_INCLUSION ci
+  join @schema.@cg_table_prefixCOHORT_DEFINITION cd
+  on cd.cohort_definition_id = ci.cohort_definition_id
+  ;"
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix
+    )
+  )
+}
+
+getCohortGeneratorInclusionStats <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT cir.database_id, cir.cohort_definition_id, cir.inclusion_rule_mask, cir.person_count, cir.mode_id,
+  dt.cdm_source_name FROM @schema.@cg_table_prefixCOHORT_INC_RESULT cir
+  join @schema.@database_table_prefix@database_table dt
+  on cir.database_id = dt.database_id
+  ;"
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+      database_table = resultDatabaseSettings$databaseTable,
+      database_table_prefix = resultDatabaseSettings$databaseTablePrefix
+    )
+  )
+}
+
+getCohortGenerationAttritionTable <- function(
+    rules,
+    stats
+){
+  
+  uniqueCohortIDs <- unique(rules$cohortDefinitionId)
+  
+  attritionTable <- data.frame()
+  
+  for(cohortId in uniqueCohortIDs){
+    
+    cohortRules <- rules %>% 
+      dplyr::filter(.data$cohortDefinitionId==cohortId) %>%
+      dplyr::select("ruleSequence", "ruleName", "cohortName") %>%
+      dplyr::arrange("ruleSequence")
+    
+    testMask = 0
+    
+    for(i in 1:nrow(cohortRules)){
+      
+      rule = cohortRules[i,]
+      
+      testMask = testMask + 2^(rule$ruleSequence)
+      
+      attritionRows <- stats %>%
+        dplyr::filter((.data$cohortDefinitionId == !!cohortId) &
+                        (bitwAnd(.data$inclusionRuleMask, !!testMask) == !!testMask)
+        ) %>% 
+        dplyr::select(-c("databaseId")) %>%
+        dplyr::group_by(.data$cdmSourceName, .data$cohortDefinitionId, .data$modeId) %>%
+        dplyr::summarise(personCount = sum(.data$personCount),
+        )
+      
+      startingCounts <- stats %>%
+        dplyr::select(-c("databaseId")) %>%
+        dplyr::group_by(.data$cdmSourceName, .data$cohortDefinitionId, .data$modeId) %>%
+        dplyr::summarise(personCount = sum(.data$personCount),
+        ) %>%
+        dplyr::mutate(ruleSequence = -1,
+                      ruleName = "Before any inclusion criteria",
+        )
+      
+      attritionRowsFull <- cbind(attritionRows, rule)
+      
+      startingCountsFull <- cbind(startingCounts, rule %>% dplyr::select("cohortName")) %>%
+        dplyr::filter(.data$cohortDefinitionId %in% !!attritionRows$cohortDefinitionId)
+      
+      attritionTable <- rbind(attritionTable, attritionRowsFull, startingCountsFull)
+      
+    }
+    
+  }
+  
+  attritionTableDistinct <- dplyr::distinct(attritionTable)
+  
+  #adding drop counts
+  attritionTableFinal <- attritionTableDistinct %>%
+    dplyr::group_by(
+      .data$cdmSourceName, 
+      .data$cohortDefinitionId, 
+      .data$modeId) %>%
+    dplyr::mutate(
+      dropCount = dplyr::case_when(
+        is.na(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) ~ 0,
+        TRUE ~ dplyr::lag(.data$personCount, order_by = .data$ruleSequence) - .data$personCount
+      ),
+      dropPerc = dplyr::case_when(
+        is.na(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) ~ "0.00%",
+        TRUE ~  paste(
+          round(
+            (.data$dropCount/(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) * 100), 
+            digits = 2
+          ),
+          "%",
+          sep="")
+      ),
+      retainPerc = dplyr::case_when(
+        is.na(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) ~ "100.00%",
+        TRUE ~ paste(
+          round(
+            (.data$personCount/(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) * 100), 
+            digits = 2
+          ),
+          "%",
+          sep="")
+        
+      )
+    )
+  #newdata <- mtcars[order(mpg, -cyl),]
+  return(attritionTableFinal[order(attritionTableFinal$ruleSequence),])
+  
+}
+
+# test <- inputValsClean %>%
+#   dplyr::filter(cohortDefinitionId == 11057 & cdmSourceName == "Optum EHR" & 
+#            modeId == "Subject")
+
+getCohortAttritionPlot <- function(data) {
+  
+  #colorPal <- colorRampPalette(c("darkgreen", "green", "yellow", "orange", "red"))
+  
+  fig <- plotly::plot_ly() 
+  fig %>%
+    plotly::add_trace(
+      type = "funnel",
+      y = data$ruleName,
+      x = data$personCount,
+      texttemplate = "N: %{value:,d}<br>Number Lost: %{text:,d}",
+      marker = list(color = RColorBrewer::brewer.pal(length(unique(data$ruleName)),
+                                                     "Greens"
+      )
+      ),
+      connector = list(fillcolor = "#e9e9bf"),
+      text = data$dropCount,
+      hoverinfo = "percent initial+percent previous" ,
+      hovertemplate='% of Previous: %{percentPrevious:.2%}<br> % of Initial: %{percentInitial:.2%}</b><extra></extra>'
+    ) %>%
+    plotly::layout(title = "Cohort Attrition by Inclusion Rules",
+                   yaxis = list(categoryarray = c(order(data$personCount, decreasing = T)))
+    )
+  
+}
+

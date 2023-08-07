@@ -175,8 +175,7 @@ patientLevelPredictionCovariateSummaryServer <- function(
                 )
               )
             ),
-            easyClose = TRUE,
-            footer = NULL
+            easyClose = TRUE
           ))
         }
       )

@@ -80,6 +80,17 @@ patientLevelPredictionViewer <- function(id=1) {
       ),
       
       shiny::tabPanel(
+        "Diagnostic Summary",  
+        shiny::actionButton(
+          inputId = ns("backToDesignSummaryD"), 
+          label = "Back To Design Summary",
+          shiny::icon("arrow-left"), 
+          style="color: #fff; background-color: #337ab7; border-color: #2e6da4"
+        ),
+        patientLevelPredictionDiagnosticsViewer(ns('diagnostics'))
+      ),
+      
+      shiny::tabPanel(
         "Explore Selected Model",
         
         shiny::actionButton(
@@ -217,6 +228,14 @@ patientLevelPredictionServer <- function(
         )
       })
       
+      shiny::observeEvent(input$backToDesignSummaryD, {
+        shiny::updateTabsetPanel(
+          session = session,
+          inputId = 'allView',
+          selected = 'Model Designs Summary'
+        )
+      })
+      
       # keep a reactive variable tracking the active tab
       singleViewValue <- shiny::reactive({
         input$singleView
@@ -246,10 +265,8 @@ patientLevelPredictionServer <- function(
       shiny::observeEvent(designSummary$modelDesignId(), {
         modelDesignId(designSummary$modelDesignId())
         if(!is.null(designSummary$modelDesignId())){
-          #shiny::showTab(inputId = "allView", session = session, target = "Models Summary")
           shiny::updateTabsetPanel(session, "allView", selected = "Models Summary")
-          #shiny::hideTab(inputId = "allView", session = session, target = "Explore Selected Model")
-        }
+          }
       })
       
       
@@ -279,10 +296,8 @@ patientLevelPredictionServer <- function(
         performanceId(performance$performanceId())
         developmentDatabaseId(performance$developmentDatabaseId())
         if(!is.null(performance$performanceId())){
-          #shiny::showTab(inputId = "allView", session = session, target = "Explore Selected Model")
           shiny::updateTabsetPanel(session, "allView", selected = "Explore Selected Model")
-          #shiny::hideTab(inputId = "allView", session = session, target = "Models Summary")
-        }
+          }
         
         # hide validation tab if non internal val
         if(performance$modelDevelopment() == 1){
@@ -299,11 +314,11 @@ patientLevelPredictionServer <- function(
       # =============================
       # diagnostic viewer - show model diagnostic results
       shiny::observeEvent(designSummary$diagnosticId(), {
-        shiny::showModal(shiny::modalDialog(
-          title = "Diagnostic",
-          patientLevelPredictionDiagnosticsViewer(session$ns('diagnostics'))
-        ))
+        if(!is.null(designSummary$diagnosticId())){
+          shiny::updateTabsetPanel(session, "allView", selected = "Diagnostic Summary")
+        }
       })
+      
       patientLevelPredictionDiagnosticsServer(
         id = 'diagnostics', 
         modelDesignId = designSummary$diagnosticId, 

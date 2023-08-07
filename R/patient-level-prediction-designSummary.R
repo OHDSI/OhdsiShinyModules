@@ -380,10 +380,10 @@ getPredictionDesignSummary <- function(
     dplyr::relocate("devDatabases", .before = "valDatabases") %>%
     dplyr::relocate("diagDatabases", .before = "devDatabases")
   
-  summaryTable <- cbind(
-    actions = rep("",nrow(summaryTable)),
-    summaryTable
-  )
+  ##summaryTable <- cbind(
+  ##  actions = rep("",nrow(summaryTable)),
+  ##  summaryTable
+  ##)
   
   shiny::incProgress(3/3, detail = paste("Finished"))
   

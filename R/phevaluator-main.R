@@ -1,4 +1,4 @@
-# @file description-main.R
+# @file phevaluator-main.R
 #
 # Copyright 2022 Observational Health Data Sciences and Informatics
 #
@@ -159,8 +159,7 @@ phevaluatorServer <- function(
       #which will be used to make choices before generating result(s)
       optionCols <- getPhevalAlgorithmPerformance(
         connectionHandler = connectionHandler,
-        resultsSchema = resultDatabaseSettings$schema,
-        tablePrefix = resultDatabaseSettings$tablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
       ) %>%
         dplyr::select("databaseId", "phenotype")
       
@@ -231,11 +230,10 @@ phevaluatorServer <- function(
           
           getPhevalAlgorithmPerformance(
             connectionHandler = connectionHandler,
-            resultsSchema = resultDatabaseSettings$schema,
-            tablePrefix = resultDatabaseSettings$tablePrefix
+            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
-            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
-                            phenotype %in% input$selectedPhenotypes) %>%
+            dplyr::filter(.data$databaseId %in% input$selectedDatabaseIds & 
+                            .data$phenotype %in% input$selectedPhenotypes) %>%
             dplyr::select("databaseId":"cohortId", "description", "sensitivity95Ci":"analysisId")
         }
       )
@@ -250,12 +248,11 @@ phevaluatorServer <- function(
           
           getPhevalCohortDefinitionSet(
             connectionHandler = connectionHandler,
-            resultsSchema = resultDatabaseSettings$schema,
-            tablePrefix = resultDatabaseSettings$tablePrefix
+            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
             dplyr::mutate(buttonSQL = makeButtonLabel("SQL"),
                           buttonJSON = makeButtonLabel("JSON")) %>%
-            dplyr::filter(phenotype %in% input$selectedPhenotypes)
+            dplyr::filter(.data$phenotype %in% input$selectedPhenotypes)
         }
       )
       
@@ -269,11 +266,12 @@ phevaluatorServer <- function(
           
           getPhevalDiagnostics(
             connectionHandler = connectionHandler,
-            resultsSchema = resultDatabaseSettings$schema,
-            tablePrefix = resultDatabaseSettings$tablePrefix
+            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
-            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
-                            phenotype %in% input$selectedPhenotypes)
+            dplyr::filter(
+              .data$databaseId %in% input$selectedDatabaseIds & 
+              .data$phenotype %in% input$selectedPhenotypes
+              )
         }
       )
       
@@ -287,11 +285,12 @@ phevaluatorServer <- function(
           
           getPhevalEvalInputParams(
             connectionHandler = connectionHandler,
-            resultsSchema = resultDatabaseSettings$schema,
-            tablePrefix = resultDatabaseSettings$tablePrefix
+            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
-            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
-                            phenotype %in% input$selectedPhenotypes)
+            dplyr::filter(
+              .data$databaseId %in% input$selectedDatabaseIds & 
+              .data$phenotype %in% input$selectedPhenotypes
+              )
         }
       )
       
@@ -305,11 +304,12 @@ phevaluatorServer <- function(
           
           getPhevalModelCovars(
             connectionHandler = connectionHandler,
-            resultsSchema = resultDatabaseSettings$schema,
-            tablePrefix = resultDatabaseSettings$tablePrefix
+            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
-            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
-                            phenotype %in% input$selectedPhenotypes)
+            dplyr::filter(
+              .data$databaseId %in% input$selectedDatabaseIds & 
+              .data$phenotype %in% input$selectedPhenotypes
+              )
         }
       )
       
@@ -323,11 +323,12 @@ phevaluatorServer <- function(
           
           getPhevalModelInputParams(
             connectionHandler = connectionHandler,
-            resultsSchema = resultDatabaseSettings$schema,
-            tablePrefix = resultDatabaseSettings$tablePrefix
+            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
-            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
-                            phenotype %in% input$selectedPhenotypes)
+            dplyr::filter(
+              .data$databaseId %in% input$selectedDatabaseIds & 
+              .data$phenotype %in% input$selectedPhenotypes
+              )
         }
       )
       
@@ -341,11 +342,12 @@ phevaluatorServer <- function(
           
           getPhevalModelPerformance(
             connectionHandler = connectionHandler,
-            resultsSchema = resultDatabaseSettings$schema,
-            tablePrefix = resultDatabaseSettings$tablePrefix
+            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
-            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
-                            phenotype %in% input$selectedPhenotypes)
+            dplyr::filter(
+              .data$databaseId %in% input$selectedDatabaseIds & 
+              .data$phenotype %in% input$selectedPhenotypes
+              )
         }
       )
       
@@ -359,11 +361,12 @@ phevaluatorServer <- function(
           
           getPhevalTestSubjects(
             connectionHandler = connectionHandler,
-            resultsSchema = resultDatabaseSettings$schema,
-            tablePrefix = resultDatabaseSettings$tablePrefix
+            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
-            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
-                            phenotype %in% input$selectedPhenotypes)
+            dplyr::filter(
+              .data$databaseId %in% input$selectedDatabaseIds & 
+              .data$phenotype %in% input$selectedPhenotypes
+              )
         }
       )
       
@@ -377,11 +380,12 @@ phevaluatorServer <- function(
 
           getPhevalTestSubjectsCovars(
             connectionHandler = connectionHandler,
-            resultsSchema = resultDatabaseSettings$schema,
-            tablePrefix = resultDatabaseSettings$tablePrefix
+            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
-            dplyr::filter(databaseId %in% input$selectedDatabaseIds & 
-                            phenotype %in% input$selectedPhenotypes)
+            dplyr::filter(
+              .data$databaseId %in% input$selectedDatabaseIds & 
+              .data$phenotype %in% input$selectedPhenotypes
+              )
         }
       )
       
@@ -493,6 +497,193 @@ phevaluatorServer <- function(
       return(invisible(NULL))
       
     })
+}
+
+#add databaseId and phenotype as args into the function
+#pass these into the sql code with 'where'
+
+getPhevalAlgorithmPerformance <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT * FROM @schema.@pv_table_prefixALGORITHM_PERFORMANCE_RESULTS
+  ;"
+  
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      pv_table_prefix = resultDatabaseSettings$pvTablePrefix
+    )
+  )
+}
+
+#test it
+
+# databaseIds = c("CCAE_RS", "Germany_RS")
+# phenotypes = c("hyperprolactinemia")
+# 
+# getPhevalAlgorithmPerformance(connectionHandler = connectionHandler,
+#                           resultsSchema = resultDatabaseDetails$schema,
+#                           tablePrefix = resultDatabaseDetails$tablePrefix
+#                           )
+
+
+getPhevalCohortDefinitionSet <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT * FROM @schema.@pv_table_prefixCOHORT_DEFINITION_SET
+  ;"
+  
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      pv_table_prefix = resultDatabaseSettings$pvTablePrefix
+    )
+  )
+}
+
+getPhevalDiagnostics <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT * FROM @schema.@pv_table_prefixDIAGNOSTICS
+  ;"
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      pv_table_prefix = resultDatabaseSettings$pvTablePrefix
+    )
+  )
+}
+
+getPhevalEvalInputParams <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT * FROM @schema.@pv_table_prefixEVALUATION_INPUT_PARAMETERS
+  ;"
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      pv_table_prefix = resultDatabaseSettings$pvTablePrefix
+    )
+  )
+}
+
+getPhevalModelCovars <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT * FROM @schema.@pv_table_prefixMODEL_COVARIATES
+  ;"
+  
+  df <-  connectionHandler$queryDb(
+    sql = sql,
+    schema = resultDatabaseSettings$schema,
+    pv_table_prefix = resultDatabaseSettings$pvTablePrefix
+  )
+  
+  df$databaseId = stringi::stri_trans_general(df$databaseId, "latin-ascii")
+  df$phenotype = stringi::stri_trans_general(df$phenotype, "latin-ascii")
+  df$analysisName = stringi::stri_trans_general(df$analysisName, "latin-ascii")
+  df$covariateName = stringi::stri_trans_general(df$covariateName, "latin-ascii")
+  
+  return(
+    df
+  )
+}
+
+# d <- getPhevalModelCovars(connectionHandler = connectionHandler,
+#                                    resultsSchema = resultDatabaseDetails$schema,
+#                                    tablePrefix = resultDatabaseDetails$tablePrefix,
+#                                    databaseIds = databaseIds,
+#                                    phenotypes = phenotypes
+# )
+
+
+
+getPhevalModelInputParams <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT * FROM @schema.@pv_table_prefixMODEL_INPUT_PARAMETERS
+  ;"
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      pv_table_prefix = resultDatabaseSettings$pvTablePrefix
+    )
+  )
+}
+
+getPhevalModelPerformance <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT * FROM @schema.@pv_table_prefixMODEL_PERFORMANCE
+  ;"
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      pv_table_prefix = resultDatabaseSettings$pvTablePrefix
+    )
+  )
+}
+
+getPhevalTestSubjects <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT * FROM @schema.@pv_table_prefixTEST_SUBJECTS
+  ;"
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      pv_table_prefix = resultDatabaseSettings$pvTablePrefix
+    )
+  )
+}
+
+getPhevalTestSubjectsCovars <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT * FROM @schema.@pv_table_prefixTEST_SUBJECTS_COVARIATES
+  ;"
+  
+  df <- connectionHandler$queryDb(
+    sql = sql,
+    schema = resultDatabaseSettings$schema,
+    pv_table_prefix = resultDatabaseSettings$pvTablePrefix
+  )
+  
+  df$databaseId = stringi::stri_trans_general(df$databaseId, "latin-ascii")
+  df$phenotype = stringi::stri_trans_general(df$phenotype, "latin-ascii")
+  df$analysisName = stringi::stri_trans_general(df$analysisName, "latin-ascii")
+  df$type = stringi::stri_trans_general(df$type, "latin-ascii")
+  df$covariateName = stringi::stri_trans_general(df$covariateName, "latin-ascii")
+  
+  return(
+    df
+  )
+  
 }
 
 

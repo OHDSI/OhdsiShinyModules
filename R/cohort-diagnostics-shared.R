@@ -90,13 +90,21 @@ formatDataCellValueInDisplayTable <-
 getResultsCohortCounts <- function(dataSource,
                                    cohortIds = NULL,
                                    databaseIds = NULL) {
-  sql <- "SELECT cc.*, db.database_name
+  #sql <- "SELECT cc.*, db.database_name
+  #          FROM  @schema.@table_name cc
+  #          INNER JOIN @schema.@database_table db ON db.database_id = cc.database_id
+  #          WHERE cc.cohort_id IS NOT NULL
+  #          {@use_database_ids} ? { AND cc.database_id in (@database_ids)}
+  #          {@cohort_ids != ''} ? {  AND cc.cohort_id in (@cohort_ids)}
+  #          ;"
+  
+  sql <- "SELECT cc.*
             FROM  @schema.@table_name cc
-            INNER JOIN @schema.@database_table db ON db.database_id = cc.database_id
             WHERE cc.cohort_id IS NOT NULL
             {@use_database_ids} ? { AND cc.database_id in (@database_ids)}
             {@cohort_ids != ''} ? {  AND cc.cohort_id in (@cohort_ids)}
             ;"
+  
   data <-
     dataSource$connectionHandler$queryDb(
       sql = sql,
@@ -104,10 +112,14 @@ getResultsCohortCounts <- function(dataSource,
       cohort_ids = cohortIds,
       use_database_ids = !is.null(databaseIds),
       database_ids = quoteLiterals(databaseIds),
-      table_name = dataSource$prefixTable("cohort_count"),
-      database_table = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable)
+      table_name = dataSource$prefixTable("cohort_count")#,
+      #database_table = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable)
     ) %>%
       tidyr::tibble()
+  
+  # join with dbTable (moved this outside sql)
+  data <- merge(data, dataSource$dbTable, by = 'databaseId')
+  
 
   return(data)
 }

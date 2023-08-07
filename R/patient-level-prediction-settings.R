@@ -120,8 +120,7 @@ patientLevelPredictionSettingsServer <- function(
             shiny::showModal(shiny::modalDialog(
               title = "Cohort description",
               shiny::p(modelDesign()$cohort$cohortJson),
-              easyClose = TRUE,
-              footer = NULL
+              easyClose = TRUE
             ))
             
           
@@ -142,8 +141,7 @@ patientLevelPredictionSettingsServer <- function(
           shiny::showModal(shiny::modalDialog(
             title = "Cohort description",
             shiny::p(modelDesign()$outcome$cohortJson),
-            easyClose = TRUE,
-            footer = NULL
+            easyClose = TRUE
           ))
         }
       )
@@ -163,8 +161,7 @@ patientLevelPredictionSettingsServer <- function(
           shiny::showModal(shiny::modalDialog(
             title = "Exclusions done during data extraction",
             shiny::p(modelDesign()$RestrictPlpData),
-            easyClose = TRUE,
-            footer = NULL
+            easyClose = TRUE
           ))
         }
       )
@@ -190,8 +187,7 @@ patientLevelPredictionSettingsServer <- function(
                 formatPopSettings(modelDesign()$populationSettings)
               )
             ),
-            easyClose = TRUE,
-            footer = NULL
+            easyClose = TRUE
           ))
         }
       )
@@ -215,8 +211,7 @@ patientLevelPredictionSettingsServer <- function(
                 formatCovSettings(modelDesign()$covariateSettings)
               )
             ),
-            easyClose = TRUE,
-            footer = NULL
+            easyClose = TRUE
           ))
         }
       )
@@ -242,8 +237,7 @@ patientLevelPredictionSettingsServer <- function(
                 formatModSettings(modelDesign()$modelSettings  )
               )
             ),
-            easyClose = TRUE,
-            footer = NULL
+            easyClose = TRUE
           ))
         }
       )
@@ -264,8 +258,7 @@ patientLevelPredictionSettingsServer <- function(
             shiny::div(
               shiny::p(modelDesign()$featureEngineeringSettings)
             ),
-            easyClose = TRUE,
-            footer = NULL
+            easyClose = TRUE
           ))
         }
       )
@@ -286,8 +279,7 @@ patientLevelPredictionSettingsServer <- function(
             shiny::div(
               shiny::p(modelDesign()$preprocessSettings)
             ),
-            easyClose = TRUE,
-            footer = NULL
+            easyClose = TRUE
           ))
         }
       )
@@ -308,8 +300,7 @@ patientLevelPredictionSettingsServer <- function(
             shiny::div(
               shiny::p(modelDesign()$splitSettings)
             ),
-            easyClose = TRUE,
-            footer = NULL
+            easyClose = TRUE
           ))
         }
       )
@@ -330,8 +321,7 @@ patientLevelPredictionSettingsServer <- function(
             shiny::div(
               shiny::p(modelDesign()$sampleSettings)
             ),
-            easyClose = TRUE,
-            footer = NULL
+            easyClose = TRUE
           ))
         }
       )

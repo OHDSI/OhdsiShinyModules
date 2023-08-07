@@ -30,33 +30,21 @@ cohortMethodCovariateBalanceViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    shiny::conditionalPanel(condition = "output.isMetaAnalysis == false",
-                     ns = ns,
-                     shiny::uiOutput(outputId = ns("hoverInfoBalanceScatter")),
-                     
-                     plotly::plotlyOutput(ns("balancePlot")),
-                     shiny::uiOutput(outputId = ns("balancePlotCaption")),
-                     
-                     shiny::downloadButton(
-                       ns('downloadCovariateBalance'), 
-                       label = "Download"
-                     ),
-                     
-                     shiny::textInput(ns("covariateHighlight"), "Highlight covariates containing:", ),
-                     shiny::actionButton(ns("covariateHighlightButton"), "Highlight")
-                    
+    shiny::uiOutput(outputId = ns("hoverInfoBalanceScatter")),
+    
+    plotly::plotlyOutput(ns("balancePlot")),
+    shiny::uiOutput(outputId = ns("balancePlotCaption")),
+    
+    shiny::downloadButton(
+      ns('downloadCovariateBalance'), 
+      label = "Download"
     ),
-    shiny::conditionalPanel(condition = "output.isMetaAnalysis == true",
-                     ns = ns,
-                     shiny::plotOutput(outputId = ns("balanceSummaryPlot")),
-                     shiny::uiOutput(outputId = ns("balanceSummaryPlotCaption")),
-                     shiny::div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
-                                shiny::downloadButton(outputId = ns("downloadBalanceSummaryPlotPng"),
-                                        label = "Download plot as PNG"),
-                                shiny::downloadButton(outputId = ns("downloadBalanceSummaryPlotPdf"),
-                                        label = "Download plot as PDF")
-                     ))
+    
+    shiny::textInput(ns("covariateHighlight"), "Highlight covariates containing:", ),
+    shiny::actionButton(ns("covariateHighlightButton"), "Highlight")
+    
   )
+  
 }
 
 
@@ -64,7 +52,6 @@ cohortMethodCovariateBalanceViewer <- function(id) {
 #'
 #' @param id the unique reference id for the module
 #' @param selectedRow the selected row from the main results table 
-#' @param inputParams  the selected study parameters of interest
 #' @param connectionHandler the connection to the PLE results database
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
 #' @param metaAnalysisDbIds metaAnalysisDbIds
@@ -76,7 +63,6 @@ cohortMethodCovariateBalanceViewer <- function(id) {
 cohortMethodCovariateBalanceServer <- function(
     id, 
     selectedRow, 
-    inputParams, 
     connectionHandler, 
     resultDatabaseSettings,
     metaAnalysisDbIds = NULL) {
@@ -88,12 +74,15 @@ cohortMethodCovariateBalanceServer <- function(
       
       balance <- shiny::reactive({
         row <- selectedRow()
+        if(is.null(row$targetId)){
+          return(NULL)
+        }
         balance <- tryCatch({
           getCohortMethodCovariateBalanceShared(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          targetId = inputParams()$target,
-          comparatorId = inputParams()$comparator,
+          targetId = row$targetId,
+          comparatorId = row$comparatorId,
           databaseId = row$databaseId,
           analysisId = row$analysisId)},
           error = function(e){return(NULL)}
@@ -101,16 +90,7 @@ cohortMethodCovariateBalanceServer <- function(
         return(balance)
       })
       
-      output$isMetaAnalysis <- shiny::reactive({
-        return(FALSE)
-        ##TODO: update once MA implemented
-        row <- selectedRow()
-        isMetaAnalysis <- !is.null(row) && (row$databaseId %in% metaAnalysisDbIds)
-        return(isMetaAnalysis)
-      })
-      
-      shiny::outputOptions(output, "isMetaAnalysis", suspendWhenHidden = FALSE)
-      
+
       textSearchCohortMethod <- shiny::reactiveVal(NULL)
       
       shiny::observeEvent(
@@ -206,8 +186,8 @@ cohortMethodCovariateBalanceServer <- function(
           balanceSummary <- getCohortMethodCovariateBalanceSummary(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetId = inputParams()$target,
-            comparatorId = inputParams()$comparator,
+            targetId = row$targetId,
+            comparatorId = row$comparatorId,
             analysisId = row$analysisId,
             databaseId = row$analysisId,
             beforeLabel = paste("Before", row$psStrategy),
@@ -357,7 +337,7 @@ plotCohortMethodCovariateBalanceScatterPlotNew <- function(
     balance,
     beforeLabel = "Before propensity score adjustment",
     afterLabel = "After propensity score adjustment",
-    textsearch = NULL
+    textsearch = shiny::reactiveVal(NULL)
 ){
   
   if(is.null(textsearch())){
@@ -404,5 +384,83 @@ plotCohortMethodCovariateBalanceScatterPlotNew <- function(
       yaxis = list(title = afterLabel, range = limits)
     )
   
+  return(plot)
+}
+
+
+
+plotCohortMethodCovariateBalanceSummary <- function(balanceSummary,
+                                                    threshold = 0,
+                                                    beforeLabel = "Before matching",
+                                                    afterLabel = "After matching") {
+  balanceSummary <- balanceSummary[rev(order(balanceSummary$databaseId)), ]
+  dbs <- data.frame(databaseId = unique(balanceSummary$databaseId),
+                    x = 1:length(unique(balanceSummary$databaseId)))
+  vizData <- merge(balanceSummary, dbs)
+  
+  vizData$type <- factor(vizData$type, levels = c(beforeLabel, afterLabel))
+  
+  plot <- ggplot2::ggplot(vizData, ggplot2::aes(x = .data$x,
+                                                ymin = .data$ymin,
+                                                lower = .data$lower,
+                                                middle = .data$median,
+                                                upper = .data$upper,
+                                                ymax = .data$ymax,
+                                                group = .data$databaseId)) +
+    ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$ymin, ymax = .data$ymin), size = 1) +
+    ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$ymax, ymax = .data$ymax), size = 1) +
+    ggplot2::geom_boxplot(stat = "identity", fill = grDevices::rgb(0, 0, 0.8, alpha = 0.25), size = 1) +
+    ggplot2::geom_hline(yintercept = 0) +
+    ggplot2::scale_x_continuous(limits = c(0.5, max(vizData$x) + 1.75)) +
+    ggplot2::scale_y_continuous("Standardized difference of mean") +
+    ggplot2::coord_flip() +
+    ggplot2::facet_grid(~type) +
+    ggplot2::theme(panel.grid.major.y = ggplot2::element_blank(),
+                   panel.grid.minor.y = ggplot2::element_blank(),
+                   panel.grid.major.x = ggplot2::element_line(color = "#AAAAAA"),
+                   panel.background = ggplot2::element_blank(),
+                   axis.text.y = ggplot2::element_blank(),
+                   axis.title.y = ggplot2::element_blank(),
+                   axis.ticks.y = ggplot2::element_blank(),
+                   axis.text.x = ggplot2::element_text(size = 11),
+                   axis.title.x = ggplot2::element_text(size = 11),
+                   axis.ticks.x = ggplot2::element_line(color = "#AAAAAA"),
+                   strip.background = ggplot2::element_blank(),
+                   strip.text = ggplot2::element_text(size = 11),
+                   plot.margin = grid::unit(c(0,0,0.1,0), "lines"))
+  
+  if (threshold != 0) {
+    plot <- plot + ggplot2::geom_hline(yintercept = c(threshold, -threshold), linetype = "dotted")
+  }
+  after <- vizData[vizData$type == afterLabel, ]
+  after$max <- pmax(abs(after$ymin), abs(after$ymax))
+  text <- data.frame(y = rep(c(after$x, nrow(after) + 1.25) , 3),
+                     x = rep(c(1,2,3), each = nrow(after) + 1),
+                     label = c(c(as.character(after$databaseId),
+                                 "Source",
+                                 formatC(after$covariateCount, big.mark = ",", format = "d"),
+                                 "Covariate\ncount",
+                                 formatC(after$max,  digits = 2, format = "f"),
+                                 paste(afterLabel, "max(absolute)", sep = "\n"))),
+                     dummy = "")
+  
+  data_table <- ggplot2::ggplot(text, ggplot2::aes(x = .data$x, y = .data$y, label = .data$label)) +
+    ggplot2::geom_text(size = 4, hjust=0, vjust=0.5) +
+    ggplot2::geom_hline(ggplot2::aes(yintercept=nrow(after) + 0.5)) +
+    ggplot2::theme(panel.grid.major = ggplot2::element_blank(),
+                   panel.grid.minor = ggplot2::element_blank(),
+                   legend.position = "none",
+                   panel.border = ggplot2::element_blank(),
+                   panel.background = ggplot2::element_blank(),
+                   axis.text.x = ggplot2::element_text(colour="white"),
+                   axis.text.y = ggplot2::element_blank(),
+                   axis.ticks = ggplot2::element_line(colour="white"),
+                   strip.background = ggplot2::element_blank(),
+                   plot.margin = grid::unit(c(0,0,0.1,0), "lines")) +
+    ggplot2::labs(x="",y="") +
+    ggplot2::facet_grid(~dummy) +
+    ggplot2::coord_cartesian(xlim=c(1,4), ylim = c(0.5, max(vizData$x) + 1.75))
+  
+  plot <- gridExtra::grid.arrange(data_table, plot, ncol = 2)
   return(plot)
 }

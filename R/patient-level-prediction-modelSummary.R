@@ -185,8 +185,7 @@ patientLevelPredictionModelSummaryServer <- function(
                     attrition() %>% dplyr::select(-c("performanceId", "outcomeId"))
                   )
                 ),
-                easyClose = TRUE,
-                footer = NULL
+                easyClose = TRUE
               )
               )
 
@@ -329,12 +328,12 @@ getModelDesignPerformanceSummary <- function(
   })
   
   # adding actions column to left
-  summaryTable <- cbind(
-    actions = rep("", nrow(summaryTable)),
-    summaryTable
-  )
+  ##summaryTable <- cbind(
+  ##  actions = rep("", nrow(summaryTable)),
+  ##  summaryTable
+  ##)
   
-  return(summaryTable[,c('actions','Dev', 'Val', 'T','O', 'modelDesignId',
+  return(summaryTable[,c('Dev', 'Val', 'T','O', 'modelDesignId',
                          'TAR', 'AUROC', 'AUPRC', 
                          'T Size', 'O Count','Val (%)', 'O Incidence (%)', 'timeStamp', 'performanceId', 'developmentDatabaseId', 'modelDevelopment', 'type')])
   

@@ -345,13 +345,13 @@ getDecCohortsInputs <- function(
   
   
   sql <- 'select d.database_id, d.cdm_source_abbreviation as database_name
-  from @result_schema.@database_table d;'
+  from @schema.@database_table d;'
   
   #shiny::incProgress(3/4, detail = paste("Extracting databaseIds"))
   
   database <- connectionHandler$queryDb(
     sql = sql,
-    result_schema = resultDatabaseSettings$schema,
+    schema = resultDatabaseSettings$schema,
     database_table = resultDatabaseSettings$databaseTable
   )
   databaseIds <- database$databaseId

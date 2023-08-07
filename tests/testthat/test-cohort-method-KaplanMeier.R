@@ -4,14 +4,8 @@ shiny::testServer(
   app = cohortMethodKaplanMeierServer, 
   args = list(
     selectedRow = shiny::reactiveVal(NULL), 
-    inputParams = shiny::reactiveVal(list(
-      target = 1,
-      comparator = 2, 
-      outcome = 3
-      )), 
     connectionHandler = connectionHandlerCm, 
-    resultDatabaseSettings = resultDatabaseSettingsCm,
-    metaAnalysisDbIds = '1'
+    resultDatabaseSettings = resultDatabaseSettingsCm
   ), 
   expr = {
     
@@ -19,7 +13,21 @@ shiny::testServer(
     testthat::expect_true(is.null(kaplanMeierPlot()))
     
     # make sure this runs if we pick the first row
-    selectedRow(list(databaseId = '1', analysisId = 2, psStrategy = ''))
+    selectedRow(
+      list(
+        databaseId = '1', 
+        cdmSourceAbbreviation = 'Eunomia', 
+        analysisId = 1,
+        description  = 'madeup',
+        target = 'test target',
+        targetId = 1,
+        comparatorId = 2, 
+        comparator = 'test comparator',
+        outcomeId = 3,
+        outcome = 'test outcome',
+        psStrategy = ''
+      )
+    )
     testthat::expect_true(!is.null(kaplanMeierPlot()))
     
     testthat::expect_true(!is.null(output$kaplanMeierPlotPlotCaption))

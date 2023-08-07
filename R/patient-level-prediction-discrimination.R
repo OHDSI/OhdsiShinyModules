@@ -202,10 +202,11 @@ patientLevelPredictionDiscriminationServer <- function(
           values_from = 'value'
         )
         
-        cbind(
-          actions = rep('', nrow(data)),
-          data
-          )
+        ##cbind(
+        ##  actions = rep('', nrow(data)),
+        ##  data
+        ##  )
+        data
 
       })
       

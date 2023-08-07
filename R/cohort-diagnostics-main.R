@@ -107,11 +107,6 @@ getEnabledCdReports <- function(dataSource) {
 createCdDatabaseDataSource <- function(
     connectionHandler,
     resultDatabaseSettings,
-    #schema,
-    #vocabularyDatabaseSchema = schema,
-    #cdTablePrefix = "",
-    #cohortTableName = paste0(tablePrefix, "cohort"),
-    #databaseTableName = paste0(tablePrefix, "database"),
     dataModelSpecificationsPath = system.file("cohort-diagnostics-ref",
                                               "resultsDataModelSpecification.csv",
                                               package = utils::packageName()),
@@ -276,11 +271,21 @@ createCdDatabaseDataSource <- function(
 
 # SO much of the app requires this table in memory - it would be much better to re-write queries to not need it!
 getDatabaseTable <- function(dataSource) {
+  
+  # hot fix
+  if(tolower(paste0(dataSource$databaseTablePrefix, dataSource$databaseTable)) == 'database_meta_data'){
+    databaseTable <- dataSource$connectionHandler$queryDb(
+      "SELECT *, cdm_source_abbreviation as database_name FROM @schema.@table_name",
+      schema = dataSource$schema,
+      table_name = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable)
+    ) # end hot fix
+  } else{
   databaseTable <- loadResultsTable(
     dataSource = dataSource, 
     tableName = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable), 
     required = TRUE
     )
+  }
 
   if (nrow(databaseTable) > 0 &
     "vocabularyVersion" %in% colnames(databaseTable)) {
@@ -302,13 +307,23 @@ getCohortTable <- function(dataSource) {
     ) {
     return(data.frame())
   }
-  cohortTable <- dataSource$connectionHandler$queryDb(
-    "SELECT cohort_id, cohort_name FROM @schema.@table_name",
-    schema = dataSource$schema,
-    table_name = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
-  )
+  # hot fix
+  if(paste0(dataSource$cgTablePrefix, dataSource$cgTable) == 'cg_cohort_definition'){
+    cohortTable <- dataSource$connectionHandler$queryDb(
+      "SELECT cohort_definition_id as cohort_id, cohort_name FROM @schema.@table_name",
+      schema = dataSource$schema,
+      table_name = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
+    )
+   # end hot fix
+  } else{
+    cohortTable <- dataSource$connectionHandler$queryDb(
+      "SELECT cohort_id, cohort_name FROM @schema.@table_name",
+      schema = dataSource$schema,
+      table_name = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
+    )
+  }
 
-  # Old label
+  # Old label - is this needed??
   if ("cohortDefinitionId" %in% names(cohortTable)) {
     cohortTable <- cohortTable %>% dplyr::mutate(cohortId = .data$cohortDefinitionId)
   }

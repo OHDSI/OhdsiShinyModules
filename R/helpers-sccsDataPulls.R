@@ -130,76 +130,7 @@ sccsGetAnalyses <- function(
   return(result2)
 }
 
-getSccsResults <- function(connectionHandler,
-                           resultDatabaseSettings,
-                           exposureIds,
-                           outcomeIds,
-                           databaseIds,
-                           analysisIds) {
-  sql <- "
-  SELECT
-  sr.*,
-  ds.cdm_source_abbreviation as database_name,
-  sds.mdrr,
-  sds.ease,
-  sds.time_trend_p,
-  sds.pre_exposure_p,
-  sds.mdrr_diagnostic,
-  sds.ease_diagnostic,
-  sds.time_trend_diagnostic,
-  sds.pre_exposure_diagnostic,
-  sds.unblind,
-  sc.covariate_name,
-  sc.era_id,
-  sc.covariate_analysis_id,
-  a.description,
-  eos.outcome_id
-  FROM @schema.@sccs_table_prefixresult sr
-  INNER JOIN 
-  @schema.@database_table_prefix@database_table ds 
-  ON sr.database_id = ds.database_id
-  INNER JOIN 
-  @schema.@sccs_table_prefixdiagnostics_summary sds ON (
-    sds.exposures_outcome_set_id = sr.exposures_outcome_set_id AND
-    sds.database_id = sr.database_id AND
-    sds.analysis_id = sr.analysis_id AND
-    sds.covariate_id = sr.covariate_id
-  )
-  INNER JOIN 
-  @schema.@sccs_table_prefixcovariate sc ON (
-    sc.exposures_outcome_set_id = sr.exposures_outcome_set_id AND
-    sc.database_id = sr.database_id AND
-    sc.analysis_id = sr.analysis_id AND
-    sc.covariate_id = sr.covariate_id
-  )
-  INNER JOIN @schema.@sccs_table_prefixexposures_outcome_set eos
-  ON 
-  eos.exposures_outcome_set_id = sr.exposures_outcome_set_id
-  INNER JOIN
-  @schema.@sccs_table_prefixanalysis a
-  on a.analysis_id = sr.analysis_id
-  
-  WHERE sr.analysis_id IN (@analysis_ids)
-  AND sr.database_id IN (@database_ids)
-  AND eos.outcome_id IN (@outcome_ids)
-  AND sc.era_id IN (@exposure_ids)
-  "
 
-  results <- connectionHandler$queryDb(
-    sql,
-    schema = resultDatabaseSettings$schema,
-    database_table_prefix = resultDatabaseSettings$databaseTablePrefix,
-    database_table = resultDatabaseSettings$databaseTable,
-    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-    database_ids = paste(quoteLiterals(databaseIds), collapse = ','),
-    analysis_ids = analysisIds,
-    outcome_ids = paste(outcomeIds, collapse = ','),
-    exposure_ids = paste(exposureIds, collapse = ','),
-    snakeCaseToCamelCase = TRUE
-  )
-
-  return(results)
-}
 
 getSccsModel <- function(connectionHandler,
                          resultDatabaseSettings,

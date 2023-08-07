@@ -211,7 +211,7 @@ connectionHandlerPV  <- ResultModelManager::ConnectionHandler$new(
 
 resultDatabaseSettingsPV = list(
   dbms = 'sqlite',
-  tablePrefix = 'pv_',
+  pvTablePrefix = 'pv_',
   schema = 'main'
 )
 
@@ -231,9 +231,9 @@ connectionHandlerDS  <- ResultModelManager::ConnectionHandler$new(
 
 resultDatabaseSettingsDS = list(
   dbms = 'sqlite',
-  tablePrefix = 'ds_',
+  databaseTablePrefix = '',
   schema = 'main',
-  databaseMetaData = 'DATABASE_META_DATA'
+  databaseTable = 'DATABASE_META_DATA'
 )
 
 #  ====
@@ -249,6 +249,6 @@ withr::defer({
   connectionHandlerCohortDiag$finalize()
   connectionHandlerSccs$finalize()
   connectionHandlerES$finalize()
-  connectionHandlerPV$finalize()
   connectionHandlerDS$finalize()
+  connectionHandlerPV$finalize()
 }, testthat::teardown_env())
