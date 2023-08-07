@@ -437,7 +437,7 @@ cohortDiagnosticsServer <- function(id,
       if ("temporalCovariateValue" %in% dataSource$enabledReports) {
         selection["Cohort Characterization"] <- "characterization"
         selection["Compare Cohort Characterization"] <- "compareCohortCharacterization"
-        selection["Time Distributions"] <- "timeDistributions"
+        selection["Time Distributions"] <- "timeDistribution"
       }
 
       if ("relationship" %in% dataSource$enabledReports)
@@ -457,6 +457,9 @@ cohortDiagnosticsServer <- function(id,
 
       if ("orphanConcepts" %in% dataSource$enabledReports)
         selection["Orphan Concepts"] <- "orphanConcepts"
+
+      if ("indexEventBreakdown" %in% dataSource$enabledReports)
+        selection["Index Event Breakdown"] <- "indexEventBreakdown"
 
       shiny::updateSelectInput(
         inputId = "tabs",

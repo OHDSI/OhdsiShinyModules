@@ -16,7 +16,6 @@ shiny::testServer(cohortDiagCharacterizationModule,
     generateRaw = 1,
     generateReport = 1,
     characterizationDomainIdFilter = domainIdOptions,
-    characterizationAnalysisNameFilter = analysisNameOptions,
     timeIdChoices =  tids$temporalChoices,
     characterizationColumnFilters = "Mean"
   )
@@ -25,12 +24,7 @@ shiny::testServer(cohortDiagCharacterizationModule,
   checkmate::expect_data_frame(getCohortConceptSets())
   checkmate::expect_data_frame(getResolvedConcepts())
   expect_null(getMappedConcepts())
-  expect_error(getFilteredConceptIds())
-
   checkmate::expect_list(selectionsPanel())
-
-  rawTableTimeIdReactable()
-  rawTableReactable()
 
   session$setInputs(
     targetCohort = 18347,
@@ -39,7 +33,5 @@ shiny::testServer(cohortDiagCharacterizationModule,
     proportionOrContinuous = "Continuous",
     characterizationColumnFilters = "Mean and Standard Deviation"
   )
-  rawTableTimeIdReactable()
-  rawTableReactable()
   cohortCharacterizationPrettyTable()
 })

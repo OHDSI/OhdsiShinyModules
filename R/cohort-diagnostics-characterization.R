@@ -143,37 +143,7 @@ cohortDiagCharacterizationView <- function(id) {
               )
             )
           )
-        )
-      ),
-      shiny::conditionalPanel(
-        ns = ns,
-        condition = "input.charType == 'Pretty'",
-        shiny::actionButton(label = "Generate Table", inputId = ns("generateReport"))
-      ),
-      shiny::conditionalPanel(
-        ns = ns,
-        condition = "input.charType == 'Raw'",
-        shiny::actionButton(label = "Generate Table", inputId = ns("generateRaw"))
-      ),
-    ),
-    shiny::conditionalPanel(
-      condition = "input.generateReport > 0 && input.charType == 'Pretty'",
-      ns = ns,
-      shiny::uiOutput(outputId = ns("selections")),
-      shinydashboard::box(
-        width = NULL,
-        shinycssloaders::withSpinner(
-          reactable::reactableOutput(outputId = ns("characterizationTable"))
         ),
-        reactableCsvDownloadButton(ns, "characterizationTable")
-      )
-    ),
-    shiny::conditionalPanel(
-      condition = "input.generateRaw > 0 && input.charType == 'Raw'",
-      ns = ns,
-      shiny::uiOutput(outputId = ns("selectionsRaw")),
-      shinydashboard::box(
-        width = NULL,
         shiny::fluidRow(
           shiny::column(
             width = 4,
@@ -212,22 +182,82 @@ cohortDiagCharacterizationView <- function(id) {
               )
             )
           )
+        )
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.charType == 'Pretty'",
+        shiny::actionButton(label = "Generate Table", inputId = ns("generateReport"))
+      ),
+      shiny::conditionalPanel(
+        ns = ns,
+        condition = "input.charType == 'Raw'",
+        shiny::actionButton(label = "Generate Table", inputId = ns("generateRaw"))
+      ),
+    ),
+    shiny::conditionalPanel(
+      condition = "input.generateReport > 0 && input.charType == 'Pretty'",
+      ns = ns,
+      shiny::uiOutput(outputId = ns("selections")),
+      shinydashboard::box(
+        width = NULL,
+        shinycssloaders::withSpinner(
+          reactable::reactableOutput(outputId = ns("characterizationTable"))
         ),
+        reactableCsvDownloadButton(ns, "characterizationTable")
+      )
+    ),
+    shiny::conditionalPanel(
+      condition = "input.generateRaw > 0 && input.charType == 'Raw'",
+      ns = ns,
+      shiny::uiOutput(outputId = ns("selectionsRaw")),
+      shinydashboard::box(
+        width = NULL,
         shiny::tabsetPanel(
           type = "pills",
           shiny::tabPanel(
             title = "Group by Database",
-            shinycssloaders::withSpinner(
-              reactable::reactableOutput(outputId = ns("characterizationTableRaw"))
+            shiny::fluidRow(
+              shiny::column(width = 6,
+                            shiny::selectInput(inputId = ns("sortByRaw"),
+                                               label = "Sort By",
+                                               choices = NULL)
+              ),
+              shiny::column(width = 2,
+                            shiny::radioButtons(inputId = ns("shortByRawAsc"),
+                                                choices = c(ascending = "ASC", descending = "DESC"),
+                                                selected = "DESC",
+                                                label = "order")
+              ),
+              shiny::column(width = 4,
+                            shiny::textInput(inputId = ns("generalSearchString"),
+                                             label = "",
+                                             placeholder = "Search covariates")
+              ),
             ),
-            reactableCsvDownloadButton(ns, "characterizationTableRaw")
+            largeTableView(id = ns("rawCharTbl"), selectedPageSize = 100)
           ),
           shiny::tabPanel(
-            title = "Group by Time ID",
-            shinycssloaders::withSpinner(
-              reactable::reactableOutput(outputId = ns("characterizationTableRawGroupedByTime"))
+            title = "Group by Time Windows",
+            shiny::fluidRow(
+              shiny::column(width = 6,
+                            shiny::selectInput(inputId = ns("sortByRawTemporal"),
+                                               label = "Sort By",
+                                               choices = NULL)
+              ),
+              shiny::column(width = 2,
+                            shiny::radioButtons(inputId = ns("shortByRawAscTemporal"),
+                                                choices = c(ascending = "ASC", descending = "DESC"),
+                                                selected = "DESC",
+                                                label = "order")
+              ),
+              shiny::column(width = 4,
+                            shiny::textInput(inputId = ns("generalSearchStringTemporal"),
+                                             label = "",
+                                             placeholder = "Search covariates")
+              ),
             ),
-            reactableCsvDownloadButton(ns, "characterizationTableRawGroupedByTime")
+            largeTableView(id = ns("rawCharTblTemporal"), selectedPageSize = 100)
           )
         )
       )
@@ -432,7 +462,6 @@ cohortDiagCharacterizationModule <- function(
   cohortTable = dataSource$cohortTable,
   databaseTable = dataSource$dbTable,
   temporalAnalysisRef = dataSource$temporalAnalysisRef,
-  analysisNameOptions = dataSource$analysisNameOptions,
   domainIdOptions = dataSource$domainIdOptions,
   characterizationTimeIdChoices = dataSource$characterizationTimeIdChoices,
   table1SpecPath = system.file("cohort-diagnostics-ref", "Table1SpecsLong.csv",
@@ -469,7 +498,7 @@ cohortDiagCharacterizationModule <- function(
     targetCohortId <- shiny::reactive(input$targetCohort)
 
     getCohortConceptSets <- shiny::reactive({
-      if (!hasData(input$targetCohort)) {
+      if (!hasData(input$targetCohort) | nrow(dataSource$conceptSets) == 0) {
         return(NULL)
       }
 
@@ -544,7 +573,9 @@ cohortDiagCharacterizationModule <- function(
     getFilteredConceptIds <- shiny::reactive({
       shiny::validate(shiny::need(hasData(selectedDatabaseIds()), "No data sources chosen"))
       shiny::validate(shiny::need(hasData(targetCohortId()), "No cohort chosen"))
-      shiny::validate(shiny::need(hasData(conceptSetIds()), "No concept set id chosen"))
+      if (!hasData(conceptSetIds()))
+        return(NULL)
+
       resolved <- getResolvedConcepts()
       mapped <- getMappedConcepts()
       output <- c()
@@ -753,7 +784,6 @@ cohortDiagCharacterizationModule <- function(
       return(data)
     })
 
-    # Temporal characterization ------------
     rawCharacterizationOutput <- shiny::reactive({
       shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "At least one data source must be selected"))
       shiny::validate(shiny::need(length(targetCohortId()) == 1, "One target cohort must be selected"))
@@ -817,190 +847,323 @@ cohortDiagCharacterizationModule <- function(
                                       inputId = "selectedConceptSet",
                                       selected = NULL,
                                       choices = cohortConcepSetOptions)
-
-      data <- rawCharacterizationOutput()
-      if (!hasData(data)) {
-        return(NULL)
-      }
-      return(data)
     })
 
-    rawTableReactable <- shiny::reactive({
-      data <- cohortCharacterizationDataFiltered()
-      if (is.null(data)) {
-        return(NULL)
+    # Params when user presses button
+    inputButtonParams <- shiny::eventReactive(input$generateRaw, {
+      conceptIds <- getFilteredConceptIds()
+      if (is.null(conceptIds) || is.na(conceptIds)) {
+        conceptIds <- ""
       }
 
-      progress <- shiny::Progress$new()
-      on.exit(progress$close())
-      progress$set(
-        message = "Post processing: Rendering table",
-        value = 0
+      binary <- ""
+      if (input$proportionOrContinuous == "Proportion") {
+        binary <- "y"
+      } else if (input$proportionOrContinuous == "Continuous") {
+        binary <- "n"
+      }
+
+      list(
+        analysis_ids = input$selectedRawAnalysisIds %>% unique(),
+        time_id = selectedTimeIds() %>% unique(),
+        domain_ids = quoteLiterals(input$characterizationDomainIdFilter %>% unique()),
+        table_prefix = dataSource$tablePrefix,
+        cohort_id = targetCohortId(),
+        results_database_schema = dataSource$resultsDatabaseSchema,
+        database_id = quoteLiterals(selectedDatabaseIds()),
+        is_binary = binary,
+        concept_ids = conceptIds,
+        time_invariant_search = -1 %in% selectedTimeIds()
       )
+    })
 
-      keyColumnFields <-
-        c("covariateName", "analysisName", "temporalChoices", "conceptId")
+    getSearchStr <- shiny::reactive({
+      if (input$generalSearchString == "" ||
+        is.na(input$generalSearchString) ||
+        is.null(input$generalSearchString))
+        return('')
 
-      if (input$characterizationColumnFilters == "Mean and Standard Deviation") {
-        dataColumnFields <- c("mean", "sd")
-      } else {
-        dataColumnFields <- c("mean")
-      }
-      countLocation <- 1
+      return(input$generalSearchString)
+    })
+
+    getOrderbyCol <- shiny::reactive({
+      input$sortByRaw
+    })
+
+    # params with default reactive behaviour
+    inputParamsRaw <- shiny::reactive({
+      params <- inputButtonParams()
+      params$search_str <- getSearchStr()
+      params$order_by_col <- getOrderbyCol()
+      params$order_desc <- input$shortByRawAsc == "DESC"
+      params$use_database_id <- FALSE
+      return(params)
+    })
+
+    getSearchStrTemporal <- shiny::reactive({
+      if (input$generalSearchStringTemporal == "" ||
+        is.na(input$generalSearchStringTemporal) ||
+        is.null(input$generalSearchStringTemporal))
+        return('')
+
+      return(input$generalSearchStringTemporal)
+    })
+
+    getOrderbyColTemporal <- shiny::reactive({
+      input$sortByRawTemporal
+    })
 
 
-      if (!hasData(data)) {
-        return(NULL)
-      }
+    # params with default reactive behaviour
+    inputParamsRawTemporal <- shiny::reactive({
+      params <- inputButtonParams()
+      params$search_str <- getSearchStrTemporal()
+      params$order_by_col <- getOrderbyColTemporal()
+      params$order_desc <- input$shortByRawAscTemporal == "DESC"
+      params$time_id <- ""
+      params$use_database_id <- TRUE
+      params$database_table <- dataSource$databaseTableName
+      return(params)
+    })
 
-      countsForHeader <-
-        getDisplayTableHeaderCount(
-          dataSource = dataSource,
-          databaseIds = data$databaseId %>% unique(),
-          cohortIds = data$cohortId %>% unique(),
-          source = "cohort",
-          fields = "Persons"
+    # Set real query from dynamic data
+    # The following is a lot of dynamically generated sql to create a pivoted table to allow
+    # Side by side  view af covariate means
+    shiny::observeEvent(input$generateRaw, {
+      databaseIds <- selectedDatabaseIds()
+      dbId1 <- databaseIds[1]
+      if (!is.null(dbId1)) {
+        columnDefinitions <- list(
+          covariateName = reactable::colDef(name = "Covariate Name", minWidth = 200),
+          analysisName = reactable::colDef(name = "Analysis Name"),
+          temporalChoices = reactable::colDef(name = "Temporal Choices"),
+          conceptId = reactable::colDef(name = "Concept Id"),
+          isBinary = reactable::colDef(show = FALSE)
         )
 
-      data <- data %>%
-        dplyr::select(
-          "covariateName",
-          "analysisName",
-          "startDay",
-          "endDay",
-          "conceptId",
-          "isBinary",
-          "mean",
-          "sd",
-          "cohortId",
-          "databaseId",
-          "temporalChoices"
+        columnGroups <- list()
+
+        sortChoices <- list(
+          "Concept Id" = "tcr.concept_id",
+          "Analysis Name" = "tar.analysis_name",
+          "Covaraiate Name" = "tcr.covariate_name",
+          "Temporal Choices" = "ttr.time_id"
         )
-      showAsPercentage <- any(input$proportionOrContinuous == "Proportion", all(data$isBinary == "Y"))
-      if (input$proportionOrContinuous == "Proportion") {
-        data <- data %>%
-          dplyr::filter(.data$isBinary == "Y") %>%
-          dplyr::select(-"isBinary")
-      } else if (input$proportionOrContinuous == "Continuous") {
-        data <- data %>%
-          dplyr::filter(.data$isBinary == "N") %>%
-          dplyr::select(-"isBinary")
-      }
 
-      if (hasData(selectedConceptSets())) {
-        if (hasData(conceptSetIds())) {
-          data <- data %>%
-            dplyr::filter(.data$conceptId %in% getFilteredConceptIds())
+        for (i in 1:length(databaseIds)) {
+          dbi <- databaseIds[i]
+          columnIdent <- paste0("mean", i)
+          columnDefinitions[[columnIdent]] <- reactable::colDef(name = "Mean",
+                                                                cell = formatCellByBinaryType())
+
+
+          columnIdentSd <- paste0("sd", i)
+          columnDefinitions[[columnIdentSd]] <- reactable::colDef(name = "sd",
+                                                                  show = input$characterizationColumnFilters == "Mean and Standard Deviation",
+                                                                  cell = formatDataCellValueInDisplayTable(showDataAsPercent = FALSE))
+          groupCols <- c(columnIdent)
+          if (input$characterizationColumnFilters == "Mean and Standard Deviation")
+            groupCols <- c(columnIdent, columnIdentSd)
+
+
+          databaseName <- databaseTable %>%
+            dplyr::filter(.data$databaseId == dbi) %>%
+            dplyr::select("databaseName") %>%
+            dplyr::pull()
+
+          columnGroups[[length(columnGroups) + 1]] <- reactable::colGroup(name = databaseName,
+                                                                          columns = groupCols,
+                                                                          align = "center")
+
+          sortChoices[[paste(databaseName, "mean")]] <- paste0("mean", i)
         }
-      }
-      shiny::validate(shiny::need(hasData(data), "No data for selected combination"))
+        updateSelectInput(inputId = "sortByRaw", choices = sortChoices, selected = "mean1")
 
-      getDisplayTableGroupedByDatabaseId(
-        data = data,
-        databaseTable = databaseTable,
-        headerCount = countsForHeader,
-        keyColumns = keyColumnFields,
-        countLocation = countLocation,
-        dataColumns = dataColumnFields,
-        showDataAsPercent = showAsPercentage,
-        sort = TRUE,
-        pageSize = 100
-      )
-    })
+        sql <- "
+          SELECT @select_stament
 
-    output$characterizationTableRaw <- reactable::renderReactable(expr = {
-      data <- rawTableReactable()
-      shiny::validate(shiny::need(hasData(data), "No data for selected combination"))
-      return(data)
-    })
+          FROM @results_database_schema.@table_prefixtemporal_covariate_ref tcr
+          INNER JOIN @results_database_schema.@table_prefixtemporal_analysis_ref tar ON tar.analysis_id = tcr.analysis_id
+          LEFT JOIN @results_database_schema.@table_prefixtemporal_covariate_value tcv ON (
+            tcr.covariate_id = tcv.covariate_id
+          )
+          LEFT JOIN @results_database_schema.@table_prefixtemporal_time_ref ttr ON ttr.time_id = tcv.time_id
+          WHERE tcr.covariate_id IS NOT NULL
+          "
 
+        selectSt <- "
+          tcr.covariate_name,
+          tar.analysis_name,
+          CASE
+            WHEN ttr.start_day IS NULL THEN 'Time Invariant'
+            ELSE CONCAT('T (', ttr.start_day, 'd to ', ttr.end_day, 'd)')
+          END as temporal_choices,
+          tcr.concept_id,
+          is_binary,
+          "
 
-    rawTableTimeIdReactable <- shiny::reactive({
+        selectTemplate <-
+          "
+           MAX(CASE WHEN tcv.database_id = '@db_id_i' THEN tcv.mean END) AS mean@i,
+           MAX(CASE WHEN tcv.database_id = '@db_id_i' THEN tcv.sd END) AS sd@i"
 
-      data <- cohortCharacterizationDataFiltered()
+        havingTemplate <- " MAX(CASE WHEN tcv.database_id = '@db_id_i' THEN tcv.mean END) IS NOT NULL"
 
-      if (is.null(data)) {
-        return(NULL)
-      }
-
-      progress <- shiny::Progress$new()
-      on.exit(progress$close())
-      progress$set(
-        message = "Post processing: Rendering table",
-        value = 0
-      )
-
-      showAsPercentage <- any(input$proportionOrContinuous == "Proportion", all(data$isBinary == "Y"))
-      if (input$proportionOrContinuous == "Proportion") {
-        data <- data %>%
-          dplyr::filter(.data$isBinary == "Y") %>%
-          dplyr::select(-"isBinary")
-      } else if (input$proportionOrContinuous == "Continuous") {
-        data <- data %>%
-          dplyr::filter(.data$isBinary == "N") %>%
-          dplyr::select(-"isBinary")
-      }
-
-      temporalChoicesVar <- data$temporalChoices %>% unique()
-
-      data <-
-        data %>% dplyr::inner_join(databaseTable %>%
-                                     dplyr::select("databaseId", "databaseName"),
-                                   by = "databaseId")
-
-      if (hasData(selectedConceptSets())) {
-        if (hasData(conceptSetIds())) {
-          data <- data %>%
-            dplyr::filter(.data$conceptId %in% getFilteredConceptIds())
+        tplSql <- c()
+        havingSql <- c()
+        # Select casees for each db
+        for (i in 1:length(databaseIds)) {
+          dbIdi <- databaseIds[i]
+          tplSql <- c(tplSql, SqlRender::render(selectTemplate, i = i, db_id_i = dbIdi))
+          havingSql <- c(havingSql, SqlRender::render(havingTemplate, db_id_i = dbIdi))
         }
+
+        tplSql <- paste(tplSql, collapse = ",\n")
+
+        selectSt <- paste(selectSt, tplSql)
+
+        paramSql <-
+          "
+          {DEFAULT @order_by_col = tcr.covariate_name}
+          {DEFAULT @order_desc = TRUE}
+          {@analysis_ids != \"\"} ? { AND tcr.analysis_id IN (@analysis_ids)}
+          {@domain_ids != \"\"} ? { AND tar.domain_id IN (@domain_ids)}
+          {@cohort_id != \"\"} ? { AND tcv.cohort_id IN (@cohort_id)}
+          {@time_id != \"\"} ? { AND (ttr.time_id IN (@time_id) {@time_invariant_search} ? {OR ttr.time_id IS NULL OR ttr.time_id = 0})}
+          {@use_database_id} ? { AND tcv.database_id IN (@database_id)}
+          {@is_binary != ''} ? {AND  lower(is_binary) = '@is_binary'}
+          {@concept_ids != ''} ? {AND  tcr.concept_id IN (@concept_ids)}
+          {@search_str != ''} ? {AND lower(CONCAT(tcr.covariate_name, tar.analysis_name, tcr.concept_id)) LIKE lower('%@search_str%')}
+        "
+
+        grpSql <- SqlRender::render("\n\tGROUP BY tcr.covariate_name, tar.analysis_name, tcr.concept_id, is_binary, ttr.start_day, ttr.end_day
+        HAVING @having_clasuse
+        ", having_clasuse = paste(havingSql, collapse = " OR\n"))
+
+        orderClause <- "{@order_by_col != ''} ? {ORDER BY @order_by_col {@order_desc} ? {DESC} : {ASC}}"
+
+        baseQuery <- SqlRender::render(sql,
+                                       select_stament = selectSt,
+                                       warnOnMissingParameters = FALSE)
+
+
+        baseQuery <- paste(baseQuery, paramSql, grpSql, orderClause)
+        # countQuery <- paste(countQuery, paramSql)
+        ldt <- LargeDataTable$new(connectionHandler = dataSource$connectionHandler,
+                                  baseQuery = baseQuery)
+
+        largeTableServer(id = "rawCharTbl",
+                         ldt,
+                         inputParams = inputParamsRaw,
+                         columns = columnDefinitions,
+                         columnGroups = columnGroups)
       }
 
-      keyColumns <- c("covariateName", "analysisName", "conceptId", "databaseName")
-      data <- data %>%
-        dplyr::select(
-          "covariateName",
-          "analysisName",
-          "databaseName",
-          "temporalChoices",
-          "conceptId",
-          "mean",
-          "sd"
-        ) %>%
-      tidyr::pivot_wider(
-        id_cols = dplyr::all_of(keyColumns),
-        names_from = "temporalChoices",
-        values_from = "mean",
-        names_sep = "_"
-      ) %>%
-        dplyr::relocate(dplyr::all_of(c(keyColumns, temporalChoicesVar))) %>%
-        dplyr::arrange(dplyr::desc(dplyr::across(dplyr::starts_with("T ("))))
+      timeIds <- selectedTimeIds()
+      if (length(timeIds) > 0) {
 
-      if (any(stringr::str_detect(
-        string = colnames(data),
-        pattern = stringr::fixed("T (0")
-      ))) {
-        data <- data %>%
-          dplyr::arrange(dplyr::desc(dplyr::across(dplyr::starts_with("T (0"))))
+        columnDefinitionsT <- list(
+          covariateName = reactable::colDef(name = "Covariate Name", minWidth = 200),
+          analysisName = reactable::colDef(name = "Analysis Name"),
+          temporalChoices = reactable::colDef(name = "Temporal Choices"),
+          conceptId = reactable::colDef(name = "Concept Id"),
+          isBinary = reactable::colDef(show = FALSE)
+        )
+
+        columnGroupsT <- list()
+
+        sortChoices <- list(
+          "Concept Id" = "tcr.concept_id",
+          "Analysis Name" = "tar.analysis_name",
+          "Covaraiate Name" = "tcr.covariate_name",
+          "Database" = "db.database_name"
+        )
+
+        for (i in 1:length(timeIds)) {
+          timeIdi <- timeIds[i]
+          columnIdent <- paste0("mean", i)
+          columnDefinitionsT[[columnIdent]] <- reactable::colDef(name = "Mean",
+                                                                 cell = formatCellByBinaryType())
+
+
+          columnIdentSd <- paste0("sd", i)
+          columnDefinitionsT[[columnIdentSd]] <- reactable::colDef(name = "sd",
+                                                                   show = input$characterizationColumnFilters == "Mean and Standard Deviation",
+                                                                   cell = formatDataCellValueInDisplayTable(showDataAsPercent = FALSE))
+          groupCols <- c(columnIdent)
+          if (input$characterizationColumnFilters == "Mean and Standard Deviation")
+            groupCols <- c(columnIdent, columnIdentSd)
+
+
+          temporalChoiceName <- timeIdOptions %>%
+            dplyr::distinct() %>%
+            dplyr::filter(.data$timeId == timeIdi) %>%
+            dplyr::pull("temporalChoices")
+
+          columnGroupsT[[length(columnGroupsT) + 1]] <- reactable::colGroup(name = temporalChoiceName,
+                                                                            columns = groupCols,
+                                                                            align = "center")
+
+          sortChoices[[paste(temporalChoiceName, "mean")]] <- paste0("mean", i)
+        }
+
+        updateSelectInput(inputId = "sortByRawTemporal", choices = sortChoices, selected = "mean1")
+
+        sqlt <- "
+          SELECT @select_stament
+
+          FROM @results_database_schema.@table_prefixtemporal_covariate_ref tcr
+          LEFT JOIN @results_database_schema.@table_prefixtemporal_analysis_ref tar ON tar.analysis_id = tcr.analysis_id
+          LEFT JOIN @results_database_schema.@table_prefixtemporal_covariate_value tcv ON tcr.covariate_id = tcv.covariate_id
+          INNER JOIN @results_database_schema.@database_table db ON db.database_id = tcv.database_id
+          WHERE tcr.covariate_id IS NOT NULL
+        "
+
+        selectSt <- "db.database_name,
+            tcr.covariate_name,
+            tar.analysis_name,
+            is_binary,
+            tcr.concept_id,"
+
+        selectTemplate <-
+          "MAX(CASE WHEN tcv.time_id = @time_id {@time_id == -1} ? {OR tcv.time_id = 0 OR tcv.time_id IS NULL} THEN tcv.mean END) AS mean@i,
+           MAX(CASE WHEN tcv.time_id = @time_id {@time_id == -1} ? {OR tcv.time_id = 0 OR tcv.time_id IS NULL} THEN tcv.sd END) AS sd@i"
+
+        havingTemplate <-
+          "MAX(CASE WHEN tcv.time_id = @time_id {@time_id == -1} ? {OR tcv.time_id = 0 OR tcv.time_id IS NULL} THEN tcv.mean END) IS NOT NULL"
+
+        havingSql <- c()
+        tplSql <- c()
+        # Select casees for each db
+        for (i in 1:length(timeIds)) {
+          timeId <- timeIds[i]
+          tplSql <- c(tplSql, SqlRender::render(selectTemplate, i = i, time_id = timeId))
+          havingSql <- c(havingSql, SqlRender::render(havingTemplate, time_id = timeId))
+        }
+
+        tplSql <- paste(tplSql, collapse = ", \n")
+        groupClause <- SqlRender::render("
+        GROUP BY db.database_name, tcr.covariate_name, tar.analysis_name, tcr.concept_id, is_binary
+        HAVING @having_clasuse
+        ", having_clasuse = paste(havingSql, collapse = " OR\n"))
+
+        orderClause <- "{@order_by_col != ''} ? {ORDER BY @order_by_col {@order_desc} ? {DESC} : {ASC}}"
+
+        baseQueryTemporal <- SqlRender::render(sqlt,
+                                               select_stament = paste(selectSt, tplSql),
+                                               warnOnMissingParameters = FALSE)
+
+        baseQueryTemporal <- paste(baseQueryTemporal, paramSql, groupClause, orderClause)
+        ldtTemporal <- LargeDataTable$new(connectionHandler = dataSource$connectionHandler,
+                                          baseQuery = baseQueryTemporal)
+
+        ## do the same for the temporal table
+        rawCharTblTemporal <- largeTableServer(id = "rawCharTblTemporal",
+                                               ldtTemporal,
+                                               inputParams = inputParamsRawTemporal,
+                                               columns = columnDefinitionsT,
+                                               columnGroups = columnGroupsT)
       }
-      dataColumns <- temporalChoicesVar
-      progress$set(
-        message = "Rendering table",
-        value = 80
-      )
-
-      getDisplayTableSimple(
-        data = data,
-        keyColumns = keyColumns,
-        dataColumns = dataColumns,
-        showDataAsPercent = showAsPercentage,
-        pageSize = 100
-      )
-    })
-
-    output$characterizationTableRawGroupedByTime <- reactable::renderReactable(expr = {
-      data <- rawTableTimeIdReactable()
-      shiny::validate(shiny::need(hasData(data), "No data for selected combination"))
-      return(data)
     })
   })
 }
