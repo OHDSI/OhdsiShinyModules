@@ -1,4 +1,3 @@
-
 #' The location of the evidence synthesis module helper file
 #'
 #' @details
@@ -27,57 +26,46 @@ evidenceSynthesisHelperFile <- function(){
 evidenceSynthesisViewer <- function(id=1) {
   ns <- shiny::NS(id)
   
+  shinydashboard::box(
+    status = 'info', 
+    width = 12,
+    title = shiny::span( shiny::icon("sliders"), 'Evidence Synthesis'),
+    solidHeader = TRUE,
+    
     shinydashboard::box(
-      status = 'info', 
-      width = 12,
-      title = shiny::span( shiny::icon("sliders"), 'Evidence Synthesis'),
-      solidHeader = TRUE,
+      collapsible = TRUE,
+      collapsed = TRUE,
+      title = "Info",
+      width = "100%"#,
+      #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
+    ),
+    
+    inputSelectionViewer(ns("input-selection")),
+    
+    shiny::conditionalPanel(
+      condition = 'input.generate != 0',
+      ns = shiny::NS(ns("input-selection")),
       
-      shinydashboard::box(
-        collapsible = TRUE,
-        collapsed = TRUE,
-        title = "Info",
-        width = "100%"#,
-        #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
-      ),
-      
-      inputSelectionViewer(ns("input-selection")),
-      
-      #shiny::uiOutput(ns('esCohortMethodSelect')),
-      
-      shiny::conditionalPanel(
-        condition = 'input.generate != 0',
-        ns = shiny::NS(ns("input-selection")),
+      shiny::tabsetPanel(
+        type = 'pills',
+        id = ns('esCohortTabs'),
         
-        shiny::tabsetPanel(
-          type = 'pills',
-          #width = 12,
-          #title = shiny::tagList(shiny::icon("gear"), "Plot and Table"),
-          id = ns('esCohortTabs'),
-          
-          # diagnostic view
-          shiny::tabPanel(
-            title = 'Diagnostics',
-            resultTableViewer(ns("diagnosticsSummaryTable"))
-          ),
-          
-          shiny::tabPanel(
-            "Cohort Method Plot",
-            shiny::plotOutput(ns('esCohortMethodPlot'))
-          ),
-          shiny::tabPanel(
-            "Cohort Method Table",
-            reactable::reactableOutput(ns('esCohortMethodTable')),
-            shiny::downloadButton(
-              ns('downloadCohortMethodTable'), 
-              label = "Download"
-            )
-          ),
-          shiny::tabPanel("SCCS Plot",
-                          shiny::plotOutput(ns('esSccsPlot'))
-          ),
-          shiny::tabPanel("SCCS Table",
-                          reactable::reactableOutput(ns('esSccsTable'))
+        # diagnostic view
+        shiny::tabPanel(
+          title = 'Diagnostics',
+          resultTableViewer(ns("diagnosticsSummaryTable"))
+        ),
+        
+        shiny::tabPanel(
+          "Cohort Method Plot",
+          shiny::plotOutput(ns('esCohortMethodPlot'))
+        ),
+        shiny::tabPanel(
+          "Cohort Method Table",
+          reactable::reactableOutput(ns('esCohortMethodTable')),
+          shiny::downloadButton(
+            ns('downloadCohortMethodTable'), 
+            label = "Download"
           )
         ),
         shiny::tabPanel("SCCS Plot",
@@ -85,12 +73,10 @@ evidenceSynthesisViewer <- function(id=1) {
         ),
         shiny::tabPanel("SCCS Table",
                         reactable::reactableOutput(ns('esSccsTable'))
-        ),
-        shiny::tabPanel("Diagnostics Dashboard",
-                        reactable::reactableOutput(ns('diagnosticsTable'))
         )
       )
-
+    )
+    
   )
   
 }
@@ -175,7 +161,7 @@ evidenceSynthesisServer <- function(
             )
           )
         )
-        )
+      )
       
       # plots and tables
       data <- shiny::reactive({
@@ -222,13 +208,13 @@ evidenceSynthesisServer <- function(
         )
       )
       
-
+      
       output$esCohortMethodTable <- reactable::renderReactable(
         reactable::reactable(
           data =  unique(rbind(data(),data2())) %>%
-          dplyr::select(
-            -c("targetId","outcomeId", "comparatorId", "analysisId")
-          ),
+            dplyr::select(
+              -c("targetId","outcomeId", "comparatorId", "analysisId")
+            ),
           
           rownames = FALSE, 
           defaultPageSize = 5,
@@ -381,15 +367,16 @@ evidenceSynthesisServer <- function(
           )
         )
       )
+      
     }
-    )
+  )
   
 }
 
-    
+
 getESTargetIds <- function(
-  connectionHandler,
-  resultDatabaseSettings
+    connectionHandler,
+    resultDatabaseSettings
 ){
   
   sql <- "select distinct
@@ -418,8 +405,8 @@ getESTargetIds <- function(
 }
 
 getESOutcomeIds <- function(
-  connectionHandler,
-  resultDatabaseSettings
+    connectionHandler,
+    resultDatabaseSettings
 ) {
   sql <- "select distinct
   c1.cohort_name as outcome,
@@ -462,7 +449,7 @@ getCMEstimation <- function(
     resultDatabaseSettings,
     targetId,
     outcomeId
-    ){
+){
   
   if(is.null(targetId)){
     return(NULL)
@@ -544,8 +531,8 @@ getCMEstimation <- function(
           upper = TRUE
         ),
         .data$calibratedP / 2)
-      )
-    
+    )
+  
   return(result)
 }
 
@@ -559,8 +546,8 @@ getMetaEstimation <- function(
   if(is.null(targetId)){
     return(NULL)
   }
-
-sql <- "select 
+  
+  sql <- "select 
   c1.cohort_name as target,
   c2.cohort_name as comparator,
   c3.cohort_name as outcome,
@@ -616,29 +603,29 @@ sql <- "select
    r.target_id = @target_id and
    r.outcome_id = @outcome_id
   ;"
-
-result <- connectionHandler$queryDb(
-  sql = sql,
-  schema = resultDatabaseSettings$schema,
-  cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-  cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-  es_table_prefix = resultDatabaseSettings$esTablePrefix,
-  outcome_id = outcomeId,
-  target_id = targetId
-) %>%
-  dplyr::mutate(
-    calibratedP = ifelse(
-      .data$calibratedRr < 1, 
-      computeTraditionalP(
-        logRr = .data$calibratedLogRr, 
-        seLogRr = .data$calibratedSeLogRr, 
-        twoSided = FALSE, 
-        upper = TRUE
-      ),
-      .data$calibratedP / 2)
-  )
-
-return(unique(result))
+  
+  result <- connectionHandler$queryDb(
+    sql = sql,
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    es_table_prefix = resultDatabaseSettings$esTablePrefix,
+    outcome_id = outcomeId,
+    target_id = targetId
+  ) %>%
+    dplyr::mutate(
+      calibratedP = ifelse(
+        .data$calibratedRr < 1, 
+        computeTraditionalP(
+          logRr = .data$calibratedLogRr, 
+          seLogRr = .data$calibratedSeLogRr, 
+          twoSided = FALSE, 
+          upper = TRUE
+        ),
+        .data$calibratedP / 2)
+    )
+  
+  return(unique(result))
 }
 
 createPlotForAnalysis <- function(data) {
@@ -657,46 +644,46 @@ createPlotForAnalysis <- function(data) {
     compText,
     by = "comparator"
   )
-
-    breaks <- c(0.1, 0.25, 0.5, 1, 2, 4, 6, 8)
-    title <- sprintf("%s", data$outcome[1])
-    plot <- ggplot2::ggplot(
-      data = data,
-      ggplot2::aes(x = .data$calibratedRr, y = .data$comparatorText)) +
-      ggplot2::geom_vline(xintercept = 1, size = 0.5) +
-      ggplot2::geom_point(color = "#000088", alpha = 0.8) +
-      ggplot2::geom_errorbarh(
-        ggplot2::aes(
-          xmin = .data$calibratedCi95Lb, 
-          xmax = .data$calibratedCi95Ub
-          ), 
-        height = 0.5, 
-        color = "#000088", 
-        alpha = 0.8
-        ) +
-      ggplot2::scale_x_log10(
-        "Effect size (Hazard Ratio)", 
-        breaks = breaks, 
-        labels = breaks
-        ) +
-      ggplot2::coord_cartesian(xlim = c(0.1, 10)) + 
-      ggplot2::facet_grid(.data$database ~ .data$description)  +
-      ggplot2::ggtitle(title) +
-      ggplot2::theme(
-        axis.title.y = ggplot2::element_blank(),
-        panel.grid.minor = ggplot2::element_blank(),
-        strip.text.y.right = ggplot2::element_text(angle = 0)
-        ) + 
-      ggplot2::labs(
-        caption = paste(
-          apply(
-            X = compText, 
-            MARGIN = 1, 
-            FUN = function(x){paste(x,collapse = ': ', sep=':')}
-            ), 
-          collapse = '; ')
-      )
-    
+  
+  breaks <- c(0.1, 0.25, 0.5, 1, 2, 4, 6, 8)
+  title <- sprintf("%s", data$outcome[1])
+  plot <- ggplot2::ggplot(
+    data = data,
+    ggplot2::aes(x = .data$calibratedRr, y = .data$comparatorText)) +
+    ggplot2::geom_vline(xintercept = 1, size = 0.5) +
+    ggplot2::geom_point(color = "#000088", alpha = 0.8) +
+    ggplot2::geom_errorbarh(
+      ggplot2::aes(
+        xmin = .data$calibratedCi95Lb, 
+        xmax = .data$calibratedCi95Ub
+      ), 
+      height = 0.5, 
+      color = "#000088", 
+      alpha = 0.8
+    ) +
+    ggplot2::scale_x_log10(
+      "Effect size (Hazard Ratio)", 
+      breaks = breaks, 
+      labels = breaks
+    ) +
+    ggplot2::coord_cartesian(xlim = c(0.1, 10)) + 
+    ggplot2::facet_grid(.data$database ~ .data$description)  +
+    ggplot2::ggtitle(title) +
+    ggplot2::theme(
+      axis.title.y = ggplot2::element_blank(),
+      panel.grid.minor = ggplot2::element_blank(),
+      strip.text.y.right = ggplot2::element_text(angle = 0)
+    ) + 
+    ggplot2::labs(
+      caption = paste(
+        apply(
+          X = compText, 
+          MARGIN = 1, 
+          FUN = function(x){paste(x,collapse = ': ', sep=':')}
+        ), 
+        collapse = '; ')
+    )
+  
   return(plot)
 }
 
@@ -706,10 +693,10 @@ computeTraditionalP <- function(
     seLogRr, 
     twoSided = TRUE, 
     upper = TRUE
-    ) 
+) 
 {
   z <- logRr/seLogRr
-
+  
   pUpperBound <- 1 - stats::pnorm(z)
   pLowerBound <- stats::pnorm(z)
   
@@ -728,10 +715,10 @@ computeTraditionalP <- function(
 
 
 getSccsEstimation <- function(
-  connectionHandler,
-  resultDatabaseSettings,
-  targetId,
-  outcomeId
+    connectionHandler,
+    resultDatabaseSettings,
+    targetId,
+    outcomeId
 ){
   
   if(is.null(targetId)){
@@ -894,14 +881,14 @@ getSccsEstimation <- function(
     outcome_id = outcomeId,
     target_id = targetId
   )
-
+  
   return(rbind(result,result2))
   
 }
-  
+
 
 createPlotForSccsAnalysis <- function(
-  data
+    data
 ){
   
   if(is.null(data)){
@@ -912,23 +899,23 @@ createPlotForSccsAnalysis <- function(
   plot <- ggplot2::ggplot(
     data = data, 
     ggplot2::aes(x = .data$calibratedRr, y = .data$type)
-    ) +
+  ) +
     ggplot2::geom_vline(xintercept = 1, size = 0.5) +
     ggplot2::geom_point(color = "#000088", alpha = 0.8) +
     ggplot2::geom_errorbarh(
       ggplot2::aes(
         xmin = .data$calibratedCi95Lb, 
         xmax = .data$calibratedCi95Ub
-        ), 
+      ), 
       height = 0.5, 
       color = "#000088", 
       alpha = 0.8
-      ) +
+    ) +
     ggplot2::scale_x_log10(
       "Effect size (Incidence Rate Ratio)", 
       breaks = breaks, 
       labels = breaks
-      ) +
+    ) +
     ggplot2::coord_cartesian(xlim = c(0.1, 10)) + 
     ggplot2::facet_grid(.data$database ~ .data$description)  +
     ggplot2::ggtitle(data$outcome[1]) +
@@ -936,7 +923,7 @@ createPlotForSccsAnalysis <- function(
       axis.title.y = ggplot2::element_blank(),
       panel.grid.minor = ggplot2::element_blank(),
       strip.text.y.right = ggplot2::element_text(angle = 0)
-      )
+    )
   return(plot)
 }
 
@@ -944,7 +931,7 @@ createPlotForSccsAnalysis <- function(
 getOACcombinations <- function(
     connectionHandler, 
     resultDatabaseSettings
-    ){
+){
   
   sql <- "SELECT DISTINCT
       CONCAT(cma.description, '_', cgcd2.cohort_name) as col_names
@@ -994,7 +981,7 @@ getEvidenceSynthDiagnostics <- function(
     inputSelected,
     targetIds,
     outcomeIds
-    ){
+){
   
   if(is.null(targetIds)){
     return(NULL)
@@ -1023,7 +1010,7 @@ getEvidenceSynthDiagnostics <- function(
     idCols = c('databaseName','target'),
     namesFrom = c('analysis','covariateName','outcome')
   )
-
+  
   cmDiagTemp <- diagnosticSummaryFormat(
     data = shiny::reactive({cmDiagTemp}),
     idCols = c('databaseName','target'),
@@ -1035,7 +1022,7 @@ getEvidenceSynthDiagnostics <- function(
     y = cmDiagTemp, 
     by = c('databaseName','target'),
     all = T
-    )
+  )
   
   # return
   return(allResult)
