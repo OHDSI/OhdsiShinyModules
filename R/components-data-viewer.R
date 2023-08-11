@@ -148,6 +148,8 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param id string, table id must match resultsTableViewer function
 #' @param df reactive that returns a data frame
 #' @param colDefsInput named list of reactable::colDefs
+#' @param selectedCols string vector of columns the reactable should display to start by default. Defaults to ALL if not specified.
+#' @param sortedCols string vector of columns the reactable should sort by by default. Defaults to no sort if not specified.
 #' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #' @param addActions add a button row selector column to the table to a column called 'actions'.  
 #'                   actions must be a column in df
@@ -159,6 +161,8 @@ resultTableServer <- function(
     id, #string
     df, #data.frame
     colDefsInput,
+    selectedCols = NULL,
+    sortedCols = NULL,
     addActions = NULL,
     downloadedFileName = NULL
 ) #list of colDefs, can use checkmate::assertList, need a check that makes sure names = columns) {
@@ -185,6 +189,24 @@ resultTableServer <- function(
           )} else{
             df()
           }
+      })
+      
+      selectedColumns <- shiny::reactive({
+        if(!is.null(selectedCols)){
+          intersect(colnames(newdf()), selectedCols)
+        }
+        else{
+            colnames(newdf())
+        }
+      })
+      
+      sortedColumns <- shiny::reactive({
+        if(!is.null(sortedCols)){
+          sortedCols
+        }
+        else{
+          NULL
+        }
       })
       
       # add a new entry to colDefs with an action dropdown menu
@@ -216,7 +238,7 @@ resultTableServer <- function(
           inputId = session$ns('dataCols'),
           label = 'Select Columns to Display: ',
           choices = colnames(newdf()),
-          selected = colnames(newdf()),
+          selected = selectedColumns(),
           choicesOpt = list(style = rep_len("color: black;", 999)),
           multiple = T,
           options = shinyWidgets::pickerOptions(
@@ -280,7 +302,7 @@ resultTableServer <- function(
             striped = TRUE,
             highlight = TRUE,
             defaultColDef = reactable::colDef(align = "left"),
-            
+            defaultSorted = sortedColumns(),
             rowStyle = list(
               height = height
               )

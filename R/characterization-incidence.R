@@ -21,7 +21,7 @@
 #'
 #' @details
 #' The user specifies the id for the module
-#'+
+#'
 #' @param id  the unique reference id for the module
 #' 
 #' @return
@@ -31,18 +31,17 @@
 characterizationIncidenceViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
-    
     shinydashboard::box(
       collapsible = TRUE,
       collapsed = TRUE,
       title = "Incidence Rates",
       width = "100%",
       shiny::htmlTemplate(system.file("characterization-www", "help-incidenceRate.html", package = utils::packageName()))
-    ),
+      ),
     
     shinydashboard::box(
       width = "100%",
-      title = 'Options',
+      title = "Options",
       collapsible = TRUE,
       collapsed = F,
       shiny::uiOutput(ns('cohortInputs'))
@@ -52,25 +51,24 @@ characterizationIncidenceViewer <- function(id) {
       condition = "input.generate != 0",
       ns = ns,
       
-      shiny::uiOutput(ns("IRinputsText")),
-    
-    shinydashboard::box(
-      width = "100%",
-      # Title can include an icon
-      title = shiny::tagList(shiny::icon("gear"), "Table"),
+      shiny::uiOutput(ns("inputsText")),
       
-      shiny::downloadButton(
-        ns('downloadInc'), 
-        label = "Download"
-      ),
-      shinycssloaders::withSpinner(
-        reactable::reactableOutput(ns('incTable'))
-      )
+      shiny::tabsetPanel(
+        type = 'pills',
+        id = ns('incMainPanel'),
+        
+        shiny::tabPanel(
+          title = "Incidence Rate Table",
+          resultTableViewer(ns("incidenceRateTable"),
+                            downloadedFileName = "incidenceRateTable-")
+        ),
+        shiny::tabPanel(
+          title = "Incidence Rate Plots",
+          #code to view plot here
+        )
     )
-    )
-    
-    
   )
+)
 }
 
 
@@ -81,7 +79,7 @@ characterizationIncidenceViewer <- function(id) {
 #'
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
-#' @param mainPanelTab the current tab 
+#' @param mainPanelTab the current tab
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #' 
 #' @return
@@ -102,6 +100,13 @@ characterizationIncidenceServer <- function(
       #  return(invisible(NULL))
       #}
       
+      #ns <- session$ns
+      
+      withTooltip <- function(value, tooltip, ...) {
+        shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
+                   tippy::tippy(value, tooltip, ...))
+      }
+      
       cohorts <- getTargetOutcomes(
         connectionHandler,
         resultDatabaseSettings
@@ -116,12 +121,12 @@ characterizationIncidenceServer <- function(
             shiny::column(
               width = 6,
               shinyWidgets::pickerInput(
-                inputId = session$ns('targetId'), 
-                label = 'Target id: ', 
+                inputId = session$ns('targetIds'), 
+                label = 'Targets: ', 
                 choices = cohorts$targetIds, 
-                multiple = FALSE,
+                multiple = T,
                 choicesOpt = list(style = rep_len("color: black;", 999)),
-                selected = 1,
+                selected = cohorts$targetIds,
                 options = shinyWidgets::pickerOptions(
                   actionsBox = TRUE,
                   liveSearch = TRUE,
@@ -135,10 +140,11 @@ characterizationIncidenceServer <- function(
             shiny::column(
               width = 6,
               shinyWidgets::pickerInput(
-                inputId = session$ns('outcomeId'), 
-                label = 'Outcome id: ', 
+                inputId = session$ns('outcomeIds'), 
+                label = 'Outcomes: ', 
                 choices = cohorts$outcomeIds,
-                selected = 1,
+                multiple = T,
+                selected = cohorts$outcomeIds,
                 choicesOpt = list(style = rep_len("color: black;", 999)),
                 options = shinyWidgets::pickerOptions(
                   actionsBox = TRUE,
@@ -159,16 +165,35 @@ characterizationIncidenceServer <- function(
         )
       })
       
-      allDataDownload <- shiny::reactiveVal(data.frame())
-      selectedInputs <- shiny::reactiveVal()
-      output$IRinputsText <- shiny::renderUI(selectedInputs())
+      # allDataDownload <- shiny::reactiveVal(data.frame())
+      # selectedInputs <- shiny::reactiveVal()
+      # output$IRinputsText <- shiny::renderUI(selectedInputs())
       
+      #if generate is pushed, extract the data
+      allData <- shiny::eventReactive(         #we care about returning this value, so we use eventReactive
+        eventExpr = input$generate,                     #could add complexity to event if desired
+        {
+          if (is.null(input$targetIds) |
+              is.null(input$outcomeIds)) {
+            data.frame()
+          }
+          
+          getIncidenceData(targetIds = input$targetIds,
+                           outcomeIds = input$outcomeIds,
+                           connectionHandler = connectionHandler,
+                           resultDatabaseSettings = resultDatabaseSettings
+                           )
+        }
+      )
+      
+      selectedInputs <- shiny::reactiveVal()
+      output$inputsText <- shiny::renderUI(selectedInputs())
 
-      # fetch data when targetId changes
+      # fetch data when targetIds or outcomeIds change
       shiny::observeEvent(
         eventExpr = input$generate,
         {
-          if(is.null(input$targetId) | is.null(input$outcomeId)){
+          if(is.null(input$targetIds) | is.null(input$outcomeIds)){
             return(invisible(NULL))
           }
           
@@ -181,157 +206,301 @@ characterizationIncidenceServer <- function(
                 shiny::fluidRow(
                   shiny::column(
                     width = 6,
-                    shiny::tags$b("Target:"),
-                    names(cohorts$targetIds)[cohorts$targetIds == input$targetId]
+                    shiny::tags$b("Target(s):"),
+                    paste(unique(names(cohorts$targetIds)[cohorts$targetIds %in% input$targetIds]),
+                          collapse = ", "
+                  )
                   ),
                   shiny::column(
                     width = 6,
-                    shiny::tags$b("Outcome:"),
-                    names(cohorts$outcomeIds)[cohorts$outcomeIds == input$outcomeId]
+                    shiny::tags$b("Outcome(s):"),
+                    paste(unique(names(cohorts$outcomeIds)[cohorts$outcomeIds %in% input$outcomeIds]),
+                          collapse = ", "
                   )
-                )
-                
+                  )
               )
             )
           )
-          
-          
-          allData <- getIncidenceData(
-            targetId = input$targetId,
-            outcomeId = input$outcomeId,
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings
-          )
-          
-          allDataDownload(allData )
-          
-          # do the plots reactively
-          output$incTable <- reactable::renderReactable(
-            {
-              reactable::reactable(
-                data = allData %>% 
-                  dplyr::relocate("tar", .after = "cdmSourceAbbreviation") %>%
-                  dplyr::relocate("personsAtRisk", .after = "tar") %>% 
-                  dplyr::relocate("personDays", .after = "personsAtRisk") %>% 
-                  dplyr::relocate("personOutcomes", .after = "personDays") %>% 
-                  dplyr::relocate("incidenceProportionP100p", .after = "personOutcomes") %>% 
-                  dplyr::relocate("incidenceRateP100py", .after = "incidenceProportionP100p") 
-                  ,
-                filterable = TRUE,
-                showPageSizeOptions = TRUE,
-                pageSizeOptions = c(10, 50, 100,1000),
-                defaultPageSize = 50,
-                striped = TRUE,
-                highlight = TRUE,
-                elementId = "desc-incidence-select",
-                
-                columns = list(
-                  cdmSourceAbbreviation = reactable::colDef( 
-                    name = 'Database',
-                    sticky = "left",
-                    filterInput = function(values, name) {
-                      shiny::tags$select(
-                        # Set to undefined to clear the filter
-                        onchange = sprintf("Reactable.setFilter('desc-incidence-select', '%s', event.target.value || undefined)", name),
-                        # "All" has an empty value to clear the filter, and is the default option
-                        shiny::tags$option(value = "", "All"),
-                        lapply(unique(values), shiny::tags$option),
-                        "aria-label" = sprintf("Filter %s", name),
-                        style = "width: 100%; height: 28px;"
-                      )
-                    }
-                  ),
-                  tar = reactable::colDef( 
-                    filterInput = function(values, name) {
-                      shiny::tags$select(
-                        # Set to undefined to clear the filter
-                        onchange = sprintf("Reactable.setFilter('desc-incidence-select', '%s', event.target.value || undefined)", name),
-                        # "All" has an empty value to clear the filter, and is the default option
-                        shiny::tags$option(value = "", "All"),
-                        lapply(unique(values), shiny::tags$option),
-                        "aria-label" = sprintf("Filter %s", name),
-                        style = "width: 100%; height: 28px;"
-                      )
-                    }
-                  ),
-                  refId = reactable::colDef(show = F),
-                  databaseId = reactable::colDef(show = F),
-                  sourceName = reactable::colDef(show = F),
-                  targetCohortDefinitionId = reactable::colDef(show = F),
-                  targetName = reactable::colDef(show = F),
-                  outcomeId = reactable::colDef(show = F),
-                  outcomeCohortDefinitionId = reactable::colDef(show = F),
-                  outcomeName = reactable::colDef(show = F),
-                  outcomeId = reactable::colDef(show = F),
-                  ageId = reactable::colDef(show = F),
-                  genderId = reactable::colDef(show = F),
-                  subgroupId = reactable::colDef(show = F),
-                  incidenceProportionP100p = reactable::colDef(
-                    format = reactable::colFormat(digits = 4)
-                  ),
-                  incidenceRateP100py = reactable::colDef(
-                    format = reactable::colFormat(digits = 4)
-                  )
-                )
-                
-                
-                
-                
-              )
-            }
-          )
-          
+         )
         }
+        )
+      
+      #read in custom column name colDef list from rds file, generated by 
+      #heplers-componentsCreateCustomColDefList.R
+      
+      # customColDefs <- createCustomColDefList(
+      #   rawColNames = names(incidenceColList),
+      #   niceColNames = c("Database",
+      #                    "Ref ID",
+      #                    "Database ID",
+      #                    "Source ID",
+      #                    "Target ID",
+      #                    "Target Name",
+      #                    "Subgroup ID",
+      #                    "Outcome ID",
+      #                    "Outcome Def ID",
+      #                    "Outcome Name",
+      #                    "Clean Window",
+      #                    "Age ID",
+      #                    "Age Group",
+      #                    "Gender ID",
+      #                    "Gender",
+      #                    "Year",
+      #                    "Persons At Risk PE",
+      #                    "Persons At Risk",
+      #                    "Person Days PE",
+      #                    "Person Days",
+      #                    "Person Outcomes PE",
+      #                    "Person Outcomes",
+      #                    "Total Outcomes PE",
+      #                    "Total Outcomes",
+      #                    "Inc. Proportion Per 100P",
+      #                    "Inc. Rate Per 100PY",
+      #                    "Time At Risk"),
+      #   tooltipText = c("The name of the database",
+      #                   "The reference ID",
+      #                   "The database ID",
+      #                   "The source ID",
+      #                   "The cohort definition ID of the target",
+      #                   "The name of the target cohort",
+      #                   "The name of the subgroup",
+      #                   "The cohort definition ID of the outcome",
+      #                   "The cohort definition ID of the outcome (duplicated)",
+      #                   "The name of the outcome cohort",
+      #                   "The clean window (in days)",
+      #                   "The age ID",
+      #                   "The age group category (in years)",
+      #                   "The gender ID",
+      #                   "The gender category",
+      #                   "The start year of the analysis period",
+      #                   "The distinct persons at risk before removing excluded time (pre-exclude) from TAR",
+      #                   "The distinct persons at risk after removing excluded time from TAR",
+      #                   "Total TAR (in days) before excluded time was removed (pre-exclude)",
+      #                   "Total TAR (in days) after excluded time was removed",
+      #                   "The distinct persons with the outcome before removing excluded time (pre-exclude) from TAR",
+      #                   "The distinct persons with the outcome after removing excluded time from TAR",
+      #                   "Total outcomes before removing excluded time (pre-exclude) from TAR",
+      #                   "Total outcomes after removing excluded time from TAR",
+      #                   "The incidence proportion (per 100 people), calculated by personOutcomes/personsAtRisk*100",
+      #                   "The incidence rate (per 100 person years), calculated by outcomes/personDays/365.25*100",
+      #                   "The TAR window (in days)"
+      #                   ),
+      #   customColDefOptions = list(
+      #     list(NULL),
+      #     list(show = F),
+      #     list(show = F),
+      #     list(show = F),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(show = F),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(show = F),
+      #     list(defaultSortOrder = "desc"),
+      #     list(show = F),
+      #     list(defaultSortOrder = "asc"),
+      #     list(defaultSortOrder = "desc"),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(defaultSortOrder = "desc"),
+      #     list(NULL)
+      #   )
+      # )
+      # 
+      # # use the below as a guide to save named colDef list as JSON then read it back!
+      #  ParallelLogger::saveSettingsToJson(customColDefs, "./inst/components-columnInformation/characterization-incidence-colDefs.json")
+      #  loadTest <- ParallelLogger::loadSettingsFromJson("./inst/components-columnInformation/characterization-incidence-colDefs.json")
+      
+      
+      
+      
+      
+      incidenceColList <- ParallelLogger::loadSettingsFromJson(system.file("components-columnInformation",
+                                                                        "characterization-incidence-colDefs.json",
+                                                                        package = "OhdsiShinyModules")
       )
       
-      # download
-      output$downloadInc <- shiny::downloadHandler(
-        filename = function() {
-          paste('incidence-data-', Sys.Date(), '.csv', sep='')
-        },
-        content = function(con) {
-          utils::write.csv(allDataDownload(), con)
-        }
-      )
-    
+      resultTableServer(id = "incidenceRateTable",
+                        df = allData,
+                        selectedCols = c("cdmSourceAbbreviation", "targetName", "outcomeName", "cleanWindow",
+                                         "ageGroupName", "genderName", "startYear", "incidenceProportionP100p",
+                                         "incidenceRateP100py", "tar"),
+                        sortedCols = c("ageGroupName", "genderName", "startYear", "incidenceRateP100py"),
+                        colDefsInput = incidenceColList,
+                        downloadedFileName = "incidenceRateTable-")
       
       return(invisible(NULL))
       
-    }
-  )
+    })
 }
+          
+      
+
+
+    
+          
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          
+          #allDataDownload(allData)
+          
+          # do the plots reactively
+        #   output$incTable <- reactable::renderReactable(
+        #     {
+        #       reactable::reactable(
+        #         data = allData %>% 
+        #           dplyr::relocate("tar", .after = "cdmSourceAbbreviation") %>%
+        #           dplyr::relocate("personsAtRisk", .after = "tar") %>% 
+        #           dplyr::relocate("personDays", .after = "personsAtRisk") %>% 
+        #           dplyr::relocate("personOutcomes", .after = "personDays") %>% 
+        #           dplyr::relocate("incidenceProportionP100p", .after = "personOutcomes") %>% 
+        #           dplyr::relocate("incidenceRateP100py", .after = "incidenceProportionP100p") 
+        #           ,
+        #         filterable = TRUE,
+        #         showPageSizeOptions = TRUE,
+        #         pageSizeOptions = c(10, 50, 100,1000),
+        #         defaultPageSize = 50,
+        #         striped = TRUE,
+        #         highlight = TRUE,
+        #         elementId = "desc-incidence-select",
+        #         
+        #         columns = list(
+        #           cdmSourceAbbreviation = reactable::colDef( 
+        #             name = 'Database',
+        #             sticky = "left",
+        #             filterInput = function(values, name) {
+        #               shiny::tags$select(
+        #                 # Set to undefined to clear the filter
+        #                 onchange = sprintf("Reactable.setFilter('desc-incidence-select', '%s', event.target.value || undefined)", name),
+        #                 # "All" has an empty value to clear the filter, and is the default option
+        #                 shiny::tags$option(value = "", "All"),
+        #                 lapply(unique(values), shiny::tags$option),
+        #                 "aria-label" = sprintf("Filter %s", name),
+        #                 style = "width: 100%; height: 28px;"
+        #               )
+        #             }
+        #           ),
+        #           tar = reactable::colDef( 
+        #             filterInput = function(values, name) {
+        #               shiny::tags$select(
+        #                 # Set to undefined to clear the filter
+        #                 onchange = sprintf("Reactable.setFilter('desc-incidence-select', '%s', event.target.value || undefined)", name),
+        #                 # "All" has an empty value to clear the filter, and is the default option
+        #                 shiny::tags$option(value = "", "All"),
+        #                 lapply(unique(values), shiny::tags$option),
+        #                 "aria-label" = sprintf("Filter %s", name),
+        #                 style = "width: 100%; height: 28px;"
+        #               )
+        #             }
+        #           ),
+        #           refId = reactable::colDef(show = F),
+        #           databaseId = reactable::colDef(show = F),
+        #           sourceName = reactable::colDef(show = F),
+        #           targetCohortDefinitionId = reactable::colDef(show = F),
+        #           targetName = reactable::colDef(show = F),
+        #           outcomeId = reactable::colDef(show = F),
+        #           outcomeCohortDefinitionId = reactable::colDef(show = F),
+        #           outcomeName = reactable::colDef(show = F),
+        #           outcomeId = reactable::colDef(show = F),
+        #           ageId = reactable::colDef(show = F),
+        #           genderId = reactable::colDef(show = F),
+        #           subgroupId = reactable::colDef(show = F),
+        #           incidenceProportionP100p = reactable::colDef(
+        #             format = reactable::colFormat(digits = 4)
+        #           ),
+        #           incidenceRateP100py = reactable::colDef(
+        #             format = reactable::colFormat(digits = 4)
+        #           )
+        #         )
+        #         
+        #         
+        #         
+        #         
+        #       )
+        #     }
+        #   )
+        #   
+        # }
+#       )
+#       
+#       # download
+#       output$downloadInc <- shiny::downloadHandler(
+#         filename = function() {
+#           paste('incidence-data-', Sys.Date(), '.csv', sep='')
+#         },
+#         content = function(con) {
+#           utils::write.csv(allDataDownload(), con)
+#         }
+#       )
+#     
+#       
+#       return(invisible(NULL))
+#       
+#     }
+#   )
+# }
 
 getIncidenceData <- function(
-  targetId,
-  outcomeId,
+  targetIds,
+  outcomeIds,
   connectionHandler,
   resultDatabaseSettings
 ){
   
-  shiny::withProgress(message = 'Getting incidence data', value = 0, {
+  #shiny::withProgress(message = 'Getting incidence data', value = 0, {
     
   sql <- 'select d.cdm_source_abbreviation, i.* 
     from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
     inner join @result_schema.@database_table_name d
     on d.database_id = i.database_id
-    where target_cohort_definition_id = @target_id
-    and outcome_cohort_definition_id = @outcome_id
+    where target_cohort_definition_id in (@target_ids)
+    and outcome_cohort_definition_id in (@outcome_ids)
     ;'
   
-  shiny::incProgress(1/2, detail = paste("Created SQL - Extracting..."))
+  #shiny::incProgress(1/2, detail = paste("Created SQL - Extracting..."))
   
   resultTable <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = resultDatabaseSettings$schema,
     incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix,
-    target_id = targetId,
-    outcome_id = outcomeId,
+    target_ids = paste(as.double(targetIds), collapse = ','),
+    outcome_ids = paste(as.double(outcomeIds), collapse = ','),
     database_table_name = resultDatabaseSettings$databaseTable
   )
   
-  shiny::incProgress(2/2, detail = paste("Done..."))
+  #shiny::incProgress(2/2, detail = paste("Done..."))
   
-  })
+  #})
   
   # format the tar
   resultTable$tar <- paste0('(',resultTable$tarStartWith, " + ", resultTable$tarStartOffset, ') - (', resultTable$tarEndWith, " + ", resultTable$tarEndOffset, ')')
