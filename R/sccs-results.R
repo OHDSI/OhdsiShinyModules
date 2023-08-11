@@ -306,7 +306,7 @@ getSccsResults <- function(connectionHandler,
     sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
     cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
     #database_ids = paste(quoteLiterals(databaseIds), collapse = ','),
-    analysis_ids = analysisIds,
+    analysis_ids = paste(analysisIds, collapse = ','),
     outcome_ids = paste(outcomeIds, collapse = ','),
     exposure_ids = paste(exposureIds, collapse = ','),
     snakeCaseToCamelCase = TRUE
