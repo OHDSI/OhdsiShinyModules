@@ -29,6 +29,8 @@ resultTableServer(
 actions must be a column in df}
 
 \item{downloadedFileName}{string, desired name of downloaded data file. can use the name from the module that is being used}
+
+\item{elementId}{optional string vector of element Id name for custom dropdown filtering if present in the customColDef list. Defaults to NULL.}
 }
 \value{
 shiny module server

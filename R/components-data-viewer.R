@@ -150,6 +150,7 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param colDefsInput named list of reactable::colDefs
 #' @param selectedCols string vector of columns the reactable should display to start by default. Defaults to ALL if not specified.
 #' @param sortedCols string vector of columns the reactable should sort by by default. Defaults to no sort if not specified.
+#' @param elementId optional string vector of element Id name for custom dropdown filtering if present in the customColDef list. Defaults to NULL.
 #' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #' @param addActions add a button row selector column to the table to a column called 'actions'.  
 #'                   actions must be a column in df
@@ -163,6 +164,7 @@ resultTableServer <- function(
     colDefsInput,
     selectedCols = NULL,
     sortedCols = NULL,
+    elementId = NULL,
     addActions = NULL,
     downloadedFileName = NULL
 ) #list of colDefs, can use checkmate::assertList, need a check that makes sure names = columns) {
@@ -203,6 +205,15 @@ resultTableServer <- function(
       sortedColumns <- shiny::reactive({
         if(!is.null(sortedCols)){
           sortedCols
+        }
+        else{
+          NULL
+        }
+      })
+      
+      elementIdName <- shiny::reactive({
+        if(!is.null(elementId)){
+          elementId
         }
         else{
           NULL
@@ -267,6 +278,50 @@ resultTableServer <- function(
         }
       )
       
+      js_code <- "
+// Custom range filter with value label
+function rangeFilter(column, state) {
+  // Get min and max values from raw table data
+  let min = Infinity;
+  let max = 0;
+  state.data.forEach(function(row) {
+    const value = row[column.id];
+    if (value < min) {
+      min = Math.floor(value);
+    } else if (value > max) {
+      max = Math.ceil(value);
+    }
+  });
+
+  const filterValue = column.filterValue || min;
+  const input = React.createElement('input', {
+    type: 'range',
+    value: filterValue,
+    min: min,
+    max: max,
+    onChange: function(event) {
+      // Set to undefined to clear the filter
+      column.setFilter(event.target.value || undefined);
+    },
+    style: { width: '100%', marginRight: '8px' },
+    'aria-label': 'Filter ' + column.name
+  });
+
+  return React.createElement(
+    'div',
+    { style: { display: 'flex', alignItems: 'center', height: '100%' } },
+    [input, filterValue]
+  );
+}
+
+// Filter method that filters numeric columns by minimum value
+function filterMinValue(rows, columnId, filterValue) {
+  return rows.filter(function(row) {
+    return row.values[columnId] >= filterValue;
+  });
+}
+"
+      
       output$resultData <- reactable::renderReactable({
           if (is.null(input$dataCols)) {
             data = newdf()
@@ -305,7 +360,8 @@ resultTableServer <- function(
             defaultSorted = sortedColumns(),
             rowStyle = list(
               height = height
-              )
+              ),
+            elementId = elementIdName()
             #, experimental
             #theme = ohdsiReactableTheme
           )
