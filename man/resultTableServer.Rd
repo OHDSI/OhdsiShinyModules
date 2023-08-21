@@ -10,6 +10,7 @@ resultTableServer(
   colDefsInput,
   selectedCols = NULL,
   sortedCols = NULL,
+  elementId = NULL,
   addActions = NULL,
   downloadedFileName = NULL
 )
@@ -24,6 +25,8 @@ resultTableServer(
 \item{selectedCols}{string vector of columns the reactable should display to start by default. Defaults to ALL if not specified.}
 
 \item{sortedCols}{string vector of columns the reactable should sort by by default. Defaults to no sort if not specified.}
+
+\item{elementId}{optional string vector of element Id name for custom dropdown filtering if present in the customColDef list. Defaults to NULL.}
 
 \item{addActions}{add a button row selector column to the table to a column called 'actions'.
 actions must be a column in df}
