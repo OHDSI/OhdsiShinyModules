@@ -13,12 +13,9 @@ sccsView <- function(id = "sccs-module") {
     title = shiny::span( shiny::icon("people-arrows"), 'Self Controlled Case Series'),
     solidHeader = TRUE,
     
-    shinydashboard::box(
-      collapsible = TRUE,
-      collapsed = TRUE,
-      title = "Info",
-      width = "100%"#,
-      #shiny::htmlTemplate(system.file("cohort-diagnostics-www", "cohortCounts.html", package = utils::packageName()))
+    infoHelperViewer(
+      id = "helper",
+      helpLocation= system.file("sccs-www", "sccs.html", package = utils::packageName())
     ),
     
     inputSelectionViewer(ns("input-selection-sccs")),

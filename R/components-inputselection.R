@@ -126,6 +126,10 @@ inputSelectionServer <- function(
                   width = inputSettingList[[x]]$columnWidth,
                   shiny::tags$b(paste0(inputSettingList[[x]]$uiInputs$label)),
                   if(!is.null(inputSettingList[[x]]$uiInputs$choices)){
+                    # adding below incase a vector with no names is used
+                    if(is.null(names(inputSettingList[[x]]$uiInputs$choices))){
+                      names(inputSettingList[[x]]$uiInputs$choices) <- inputSettingList[[x]]$uiInputs$choices
+                    }
                     paste(names(inputSettingList[[x]]$uiInputs$choices)[inputSettingList[[x]]$uiInputs$choices %in% input[[paste0('input_',x)]]], collapse = ',')
                   } else{
                     paste(input[[paste0('input_',x)]], collapse = ',')
@@ -140,6 +144,75 @@ inputSelectionServer <- function(
       
       return(selectedInput)
           
+    }
+  )
+}
+
+
+
+
+# component module that takes a single row data.frame and returns the values 
+# as string
+
+inputSelectionDfViewer <- function(
+    id = "input-selection-df",
+    title = ''
+) {
+  ns <- shiny::NS(id)
+  
+  shiny::div(
+    shinydashboard::box(
+      title = title,
+      status = "warning",
+      width = "100%", 
+      collapsible = T,
+      shiny::uiOutput(outputId = ns("dataFrameSelection"))
+    )
+  )
+}
+
+
+inputSelectionDfServer <- function(
+    id, 
+    dataFrameRow,
+    ncol = 2
+) {
+  shiny::moduleServer(
+    id,
+    function(input, output, session) {
+      
+      otext <- shiny::reactive({
+        if(is.null(dataFrameRow())){
+          return('')
+        } else{
+          otext <- list()
+          inputNames <- colnames(dataFrameRow())
+          
+          inputValues <- dataFrameRow()
+          
+          rows <- ceiling((1:length(inputNames))/ncol)
+          
+          for(rowInd in unique(rows)){
+            otext[[rowInd]] <- shiny::fluidRow(
+              lapply(which(rows == rowInd), function(x){
+                shiny::column(
+                  width = floor(12/ncol),
+                  shiny::tags$b(paste0(inputNames[x]," :")),
+                  inputValues[x]
+                )
+              }
+              )
+            )
+          }
+          
+          return(otext)
+        }
+      })
+      
+      output$dataFrameSelection <- shiny::renderUI(
+        shiny::div(otext())
+      )
+      
     }
   )
 }

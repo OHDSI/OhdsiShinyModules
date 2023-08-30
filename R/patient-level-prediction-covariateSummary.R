@@ -67,18 +67,10 @@ patientLevelPredictionCovariateSummaryViewer <- function(id) {
         shinydashboard::infoBoxOutput(ns("hyperparameters"), width = 6)
       )
     ),
-    shiny::fluidRow(
-      width=12,
-      shinydashboard::box(status = 'info', 
-                          width = 12,
-                          title = "Model Table", 
-                          solidHeader = TRUE,
-                          shiny::downloadButton("downloadData", "Download Model"),
-                          DT::dataTableOutput(ns('modelView'))
-      )
-    )
+    
+      resultTableViewer(ns('modelView'))
+    
   )
-  
 }
 
 #' The module server for exploring prediction covariate summary results 
@@ -116,11 +108,15 @@ patientLevelPredictionCovariateSummaryServer <- function(
           !is.null(performanceId()) & 
           inputSingleView() == 'Model'
           ){
-          loadPredictionCovSumFromDb(
+          result <- loadPredictionCovSumFromDb(
             performanceId = performanceId, 
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings
           )
+          
+          ind <- c('covariateName','covariateValue','covariateCount','withOutcomeCovariateMean','withNoOutcomeCovariateMean','standardizedMeanDiff') %in% colnames(result) 
+          result[,c('covariateName','covariateValue','covariateCount','withOutcomeCovariateMean','withNoOutcomeCovariateMean','standardizedMeanDiff')[ind]]
+          
         } else{
           NULL
         }
@@ -144,7 +140,6 @@ patientLevelPredictionCovariateSummaryServer <- function(
       })
       
       hyperParamSearch <- shiny::reactive({getPredictionHyperParamSearch(
-        inputSingleView = inputSingleView,
         modelDesignId = modelDesignId,
         databaseId = developmentDatabaseId,
         connectionHandler = connectionHandler,
@@ -162,6 +157,10 @@ patientLevelPredictionCovariateSummaryServer <- function(
       })
       shiny::observeEvent(
         input$showHyperparameters, {
+          
+          print('TESTING hyper-param')
+          print(hyperParamSearch())
+          
           shiny::showModal(shiny::modalDialog(
             title = "Hyper-parameters",
             shiny::div(
@@ -170,8 +169,8 @@ patientLevelPredictionCovariateSummaryServer <- function(
                   as.data.frame(
                     hyperParamSearch()
                   ),
-                  options = list(scrollX = TRUE),
-                  colnames = 'Fold AUROC'
+                  options = list(scrollX = TRUE)#,
+                  #colnames = 'Fold AUROC'
                 )
               )
             ),
@@ -208,9 +207,53 @@ patientLevelPredictionCovariateSummaryServer <- function(
         )
       })
       
-      output$modelView <- DT::renderDataTable(
-        editCovariates(covariateSummary())$table,
-        colnames = editCovariates(covariateSummary())$colnames
+      
+      # covariate table
+      colDefsInput = list(
+        'covariateName' = reactable::colDef( 
+          header = withTooltip(
+            "Covariate Name", 
+            "The covariate name (this often includes the time period relative to index)"
+          ), 
+          minWidth = 200
+        ),
+        'covariateValue' = reactable::colDef( 
+          header = withTooltip(
+            "value", 
+            "The coeffcient for GLM or the variable importance for other models"
+          )
+        ),
+        'covariateCount' = reactable::colDef( 
+          header = withTooltip(
+            "Count", 
+            "The number of patients in the data who had the covariate"
+          )
+        ),
+        'withOutcomeCovariateMean' = reactable::colDef( 
+          header = withTooltip(
+            "Outcome Mean", 
+            "The mean covariate value for patients who had the outcome during TAR"
+          )
+        ),
+        'withNoOutcomeCovariateMean' = reactable::colDef( 
+          header = withTooltip(
+            "Non-outcome Mean", 
+            "The mean covariate value for patients who did not have the outcome during TAR"
+          )
+        ),
+        'standardizedMeanDiff' = reactable::colDef( 
+          header = withTooltip(
+            "Std Mean Diff", 
+            "The standardized mean difference for the covariate comparing those who did and did not have the outcome during TAR"
+          )
+        )
+      )
+      
+      modelTableOutputs <- resultTableServer(
+        id = "modelView",
+        df = covariateSummary,
+        colDefsInput = colDefsInput,
+        addActions = NULL
       )
       
       # covariate model plots
@@ -225,57 +268,20 @@ patientLevelPredictionCovariateSummaryServer <- function(
         covs()$meas 
         })
       
-      # Downloadable csv of model ----
-      output$downloadData <- shiny::downloadHandler(
-        filename = function(){'model.csv'},
-        content = function(file) {
-          utils::write.csv( 
-            covariateSummary(),
-            file, 
-            row.names = FALSE
-          )
-        }
-      )
-
     }
   )
 }
 
 
-# helpers
-
-editCovariates <- function(covs){
-  
-  if(is.null(covs)){
-    return(list(
-      table = data.frame(a=1), 
-      colnames = c('a')
-    )
-    )
-  }
-  
-  if(!is.null(covs$standardizedMeanDiff)){
-    return(list(table = covs[,c('covariateName','covariateValue','covariateCount','withOutcomeCovariateMean','withNoOutcomeCovariateMean','standardizedMeanDiff')],
-                colnames = c('Covariate Name', 'Value','Count', 'Outcome Mean', 'Non-outcome Mean','Std Mean Diff')
-    ))
-  } else{
-    return(list(table = covs[,c('covariateName','covariateValue','covariateCount','withOutcomeCovariateMean','withNoOutcomeCovariateMean')],
-                colnames = c('Covariate Name', 'Value','Count', 'Outcome Mean', 'Non-outcome Mean')
-    ))
-  }
-}
-
-
 # get hyper parameters
 getPredictionHyperParamSearch <- function(
-    inputSingleView,
     modelDesignId,
     databaseId,
     connectionHandler,
     resultDatabaseSettings
 ){
   
-  if(!is.null(modelDesignId()) & inputSingleView() == 'Design Settings'){
+  if(!is.null(modelDesignId())){
     
     sql <- "SELECT train_details FROM @schema.@plp_table_prefixmodels WHERE database_id = @database_id
        and model_design_id = @model_design_id;"

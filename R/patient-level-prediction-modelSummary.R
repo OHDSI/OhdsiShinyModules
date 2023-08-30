@@ -32,22 +32,21 @@ patientLevelPredictionModelSummaryViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::tagList(
-    shinydashboard::box(
-      collapsible = TRUE,
-      collapsed = TRUE,
-      title = "All Database Results For Selected Model Design",
-      width = "100%",
-      shiny::htmlTemplate(system.file("patient-level-prediction-www", "main-modelSummaryHelp.html", package = utils::packageName()))
+    infoHelperViewer(
+      id = "helper",
+      helpLocation= system.file("patient-level-prediction-www", "main-modelSummaryHelp.html", package = utils::packageName())
     ),
-    shinydashboard::box(
-      status = "warning",
-      width = "100%",
-      shiny::uiOutput(outputId = ns("performanceSummaryText"))
-    ),
-    shinydashboard::box(
-      width = "100%",
+    
+    # module that does input selection for a single row DF
+    inputSelectionDfViewer(
+      id = ns("df-output-selection"),
+      title = 'Model Design Selected'
+      ),
+  
+    #shinydashboard::box(
+    #  width = "100%",
       resultTableViewer(ns('performanceSummaryTable'))
-    )
+    #)
   )
 }
 
@@ -75,6 +74,8 @@ patientLevelPredictionModelSummaryServer <- function(
     id,
     function(input, output, session) {
       
+
+      
       selectedModelDesign <- shiny::reactive(
         getModelDesignInfo(
           connectionHandler = connectionHandler, 
@@ -82,8 +83,12 @@ patientLevelPredictionModelSummaryServer <- function(
           modelDesignId = modelDesignId
           )
       )
-      output$performanceSummaryText <- shiny::renderUI(selectedModelDesign())
-
+      
+      inputSelectionDfServer(
+        id = "df-output-selection", 
+        dataFrameRow = selectedModelDesign
+          )
+      
       resultTable <- shiny::reactive(
         getModelDesignPerformanceSummary(
           connectionHandler = connectionHandler, 
@@ -110,13 +115,17 @@ patientLevelPredictionModelSummaryServer <- function(
           header = withTooltip(
             "Target Pop", 
             "The patients who the risk model is applied to"
-          )),
+          ), 
+          minWidth = 300
+          ),
         O = reactable::colDef( 
           filterable = TRUE,
           header = withTooltip(
             "Outcome", 
             "The outcome being predicted"
-          )),
+          ), 
+          minWidth = 300
+          ),
         TAR = reactable::colDef( 
           filterable = TRUE,
           header = withTooltip(
@@ -273,8 +282,16 @@ getModelDesignPerformanceSummary <- function(
              -- results.population_setting_id = model_designs.population_setting_id
              -- and results.plp_data_setting_id = model_designs.plp_data_setting_id
              
-        LEFT JOIN (SELECT cohort_id, cohort_name FROM @schema.@plp_table_prefixcohorts) AS targets ON results.target_id = targets.cohort_id
-        LEFT JOIN (SELECT cohort_id, cohort_name FROM @schema.@plp_table_prefixcohorts) AS outcomes ON results.outcome_id = outcomes.cohort_id
+        LEFT JOIN 
+        (SELECT c.cohort_id, cd.cohort_name FROM @schema.@plp_table_prefixcohorts c
+        inner join @schema.@cg_table_prefixcohort_definition cd
+        on c.cohort_definition_id = cd.cohort_definition_id
+        ) AS targets ON results.target_id = targets.cohort_id
+        LEFT JOIN 
+        (SELECT c.cohort_id, cd.cohort_name FROM @schema.@plp_table_prefixcohorts c
+        inner join @schema.@cg_table_prefixcohort_definition cd
+        on c.cohort_definition_id = cd.cohort_definition_id
+        ) AS outcomes ON results.outcome_id = outcomes.cohort_id
         LEFT JOIN (select dd.database_id, md.cdm_source_abbreviation database_acronym 
                    from @schema.@database_table_prefixdatabase_meta_data md inner join 
                    @schema.@plp_table_prefixdatabase_details dd 
@@ -296,7 +313,8 @@ getModelDesignPerformanceSummary <- function(
     schema = resultDatabaseSettings$schema,
     plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
     model_design_id = modelDesignId(),
-    database_table_prefix = resultDatabaseSettings$databaseTablePrefix
+    database_table_prefix = resultDatabaseSettings$databaseTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
   
   shiny::incProgress(2/3, detail = paste("Data extracted"))
@@ -367,31 +385,85 @@ getModelDesignInfo <- function(
   modelDesignId
 ){
   
+  if(is.null(modelDesignId())){
+    return(NULL)
+  }
+  
   modelType <- connectionHandler$queryDb(
-    'select distinct model_type from @schema.@plp_table_prefixmodels where model_design_id = @model_design_id;',
+    'select distinct model_type from 
+    @schema.@plp_table_prefixmodels 
+    where model_design_id = @model_design_id;',
     schema = resultDatabaseSettings$schema,
     plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
     model_design_id = modelDesignId()
   )
   
+  target <- connectionHandler$queryDb(
+    'select distinct targets.cohort_name as target from 
+    @schema.@plp_table_prefixmodel_designs md 
+    inner join 
+    @schema.@plp_table_prefixcohorts c
+    on md.target_id = c.cohort_id
+    inner join
+    @schema.@cg_table_prefixcohort_definition AS targets
+    on c.cohort_definition_id = targets.cohort_definition_id
+    where md.model_design_id = @model_design_id;',
+    schema = resultDatabaseSettings$schema,
+    plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    model_design_id = modelDesignId()
+  )
+  
+  outcome <- connectionHandler$queryDb(
+    'select distinct targets.cohort_name as outcome from 
+    @schema.@plp_table_prefixmodel_designs md 
+    inner join 
+    @schema.@plp_table_prefixcohorts c
+    on md.outcome_id = c.cohort_id
+    inner join
+    @schema.@cg_table_prefixcohort_definition AS targets
+    on c.cohort_definition_id = targets.cohort_definition_id
+    where md.model_design_id = @model_design_id;',
+    schema = resultDatabaseSettings$schema,
+    plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    model_design_id = modelDesignId()
+  )
+  
+  tar <- connectionHandler$queryDb(
+    'select distinct 
+    tars.tar_start_day, 
+    tars.tar_start_anchor,
+    tars.tar_end_day,
+    tars.tar_end_anchor
+    from @schema.@plp_table_prefixmodel_designs md 
+    inner join 
+    @schema.@plp_table_prefixtars AS tars
+    on md.tar_id = tars.tar_id
+    where md.model_design_id = @model_design_id;',
+    schema = resultDatabaseSettings$schema,
+    plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
+    model_design_id = modelDesignId()
+  )
+   # replace with editTar?
+  tar <- paste0(
+    '( ', tar$tarStartAnchor, ' + ', tar$tarStartDay, ' ) - ( ',
+    tar$tarEndAnchor, ' + ', tar$tarEndDay, ' )'
+    )
+    
   result <- data.frame(
+    target = target,
+    outcome = outcome,
+    tar = tar,
     modelDesignId = modelDesignId(),
     modelType = modelType
   )
-  
-  return(
-    shiny::fluidRow(
-      shiny::column(
-        width = 4,
-        shiny::tags$b("modelDesignId :"),
-        modelDesignId()
-      ),
-      shiny::column(
-        width = 8,
-        shiny::tags$b("modelType :"),
-        modelType
-      )
-    )
-  )
-  
+  return(result)
+
 }
+
+
+
+
+
+

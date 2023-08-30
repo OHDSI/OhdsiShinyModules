@@ -1,21 +1,14 @@
 cohortMethodFullResultViewer <- function(id) {
   ns <- shiny::NS(id)
   
-  shinydashboard::box(
-    status = 'info', 
-    width = '100%',
-    title = shiny::span('Result Explorer'),
-    solidHeader = TRUE,
-    
+  shiny::div(  
     # add selected settings
-    shinydashboard::box(
-      status = 'warning', 
-      width = "100%",
-      title = 'Selected: ', 
-      collapsible = T,
-      shiny::uiOutput(ns('selection'))
-    ),
     
+    inputSelectionDfViewer(
+      id = ns("input-selection-df"), 
+      title = 'Result Selected: '
+    ),
+  
   shiny::tabsetPanel(
     id = ns("fullTabsetPanel"), 
     type = 'pills',
@@ -60,52 +53,42 @@ cohortMethodFullResultServer <- function(
     id,
     connectionHandler,
     resultDatabaseSettings,
-    selectedRow
+    selectedRow,
+    actionCount
 ) {
   
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      output$selection <- shiny::renderUI({
-        otext <- list()
-          otext[[1]] <- shiny::fluidRow(
-              shiny::column(
-                width = 6,
-                shiny::tags$b('Target: '),
-                selectedRow()$target
-              ),
-              shiny::column(
-                width = 6,
-                shiny::tags$b('Comparator: '),
-                selectedRow()$comparator
-              )
-            )
-          otext[[2]] <- shiny::fluidRow(
-            shiny::column(
-              width = 6,
-              shiny::tags$b('Outcome: '),
-              selectedRow()$outcome
-            ),
-            shiny::column(
-              width = 6,
-              shiny::tags$b('Analysis: '),
-              selectedRow()$description
-            )
-            )
-          otext[[3]] <- shiny::fluidRow(
-            shiny::column(
-              width = 3,
-              shiny::tags$b('Database: '),
-              selectedRow()$cdmSourceAbbreviation
-            ),
-            shiny::column(
-              width = 6,
-              shiny::tags$b('')
-            )
+      # reset the tab when a new result is selected
+      shiny::observeEvent(actionCount(), {
+        shiny::updateTabsetPanel(session, "fullTabsetPanel", selected = "Power")
+      })
+      
+      modifiedRow <- shiny::reactive({
+        selectedRow() %>%
+          dplyr::select(
+            "target",
+            "comparator",
+            "outcome",
+            "description",
+            "cdmSourceAbbreviation"
+          ) %>%
+          dplyr::rename(
+            'Target' = .data$target,
+            'Comparator' = .data$comparator,
+            'Outcome' = .data$outcome,
+            'Analysis' = .data$description,
+            'Database' = .data$cdmSourceAbbreviation
           )
-          shiny::div(otext)
-        })
+      })
+      
+      inputSelectionDfServer(
+        id = "input-selection-df", 
+        dataFrameRow = modifiedRow,
+        ncol = 2
+      )
       
       shiny::observeEvent(selectedRow(),{
         if(!is.null(selectedRow()$unblind)){

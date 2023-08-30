@@ -34,12 +34,11 @@ patientLevelPredictionCalibrationViewer <- function(id) {
     
     shiny::fluidRow(
       shinydashboard::box(
-        status = 'info', width = 12,
+        status = 'info', 
+        width = 12,
         title = 'Summary',
         solidHeader = TRUE,
-        shiny::p('Click view to see corresponding plots:'),
-        reactable::reactableOutput(ns('calTable')
-        )
+        resultTableViewer(ns('calTable'))
       )
     ),
     
@@ -98,7 +97,6 @@ patientLevelPredictionCalibrationServer <- function(
       
       sumTable <- shiny::reactive({
         if(!is.null(performanceId()) & inputSingleView() == 'Calibration'){
-          print('Extracting calibration')
           data <- getPredictionResult(
             performanceId = performanceId, 
             connectionHandler = connectionHandler,
@@ -142,40 +140,13 @@ patientLevelPredictionCalibrationServer <- function(
         
       })
       
-      output$calTable <- reactable::renderReactable({
-        reactable::reactable(
-          data =  
-            if(is.null(sumTable())){
-              NULL
-            } else{
-              cbind(
-                view = rep("",nrow( sumTable())),
-                sumTable()
-              )
-            },
-          columns = 
-            list(
-              view = reactable::colDef(
-                name = "",
-                sortable = FALSE,
-                cell = function() htmltools::tags$button("View")
-              )
-            ),onClick = reactable::JS(paste0("function(rowInfo, column) {
-    // Only handle click events on the 'details' column
-    if (column.id !== 'view' ) {
-      return
-    }
-
-    // Send the click event to Shiny, which will be available in input$show_details
-    // Note that the row index starts at 0 in JavaScript, so we add 1
-    if(column.id == 'view'){
-      Shiny.setInputValue('",session$ns('show_view'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
-  }")
-            ),
-          filterable = TRUE
-        )
-      })
+      
+      modelTableOutputs <- resultTableServer(
+        id = "calTable",
+        colDefsInput = NULL,
+        df = sumTable,
+        addActions = c('performance')
+      )
       
       calibrationSummary <- shiny::reactiveVal(NULL)
       demographicSummary <- shiny::reactiveVal(NULL)
@@ -208,10 +179,10 @@ patientLevelPredictionCalibrationServer <- function(
         })
       
       shiny::observeEvent(
-        input$show_view, {
+        modelTableOutputs$actionCount(), {
           
           output$cal <- shiny::renderPlot({
-            type <- trimws(sumTable()$evaluation[input$show_view$index])
+            type <- trimws(sumTable()$evaluation[modelTableOutputs$actionIndex()$index])
             tryCatch(
               {plotSparseCalibration2(
                 calibrationSummary = calibrationSummary(), 
@@ -223,7 +194,7 @@ patientLevelPredictionCalibrationServer <- function(
           })
           
           output$demo <- shiny::renderPlot({
-            type <- trimws(sumTable()$evaluation[input$show_view$index])
+            type <- trimws(sumTable()$evaluation[modelTableOutputs$actionIndex()$index])
             tryCatch(
               plotDemographicSummary(
                 demographicSummary = demographicSummary(), 

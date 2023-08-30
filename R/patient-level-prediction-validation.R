@@ -32,10 +32,8 @@ patientLevelPredictionValidationViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    style = "font-size:70%",
-    shiny::p('Select one or more rows to generate comparison ROC and calibration plots'),
-    DT::dataTableOutput(ns('validationTable')), 
-    
+    resultTableViewer(id = ns('validationTable')),
+
     shiny::fluidRow(
       shinydashboard::box(
         status = 'info',
@@ -86,46 +84,74 @@ patientLevelPredictionValidationServer <- function(
     id,
     function(input, output, session) {
       
-      validationTable <- shiny::eventReactive(inputSingleView(),
-        {
-          
-          getPredictionValSummary(
+      validationTable <- shiny::reactive({
+          res <- getPredictionValSummary(
             connectionHandler = connectionHandler, 
             resultDatabaseSettings = resultDatabaseSettings, 
             modelDesignId = modelDesignId(),
             developmentDatabaseId = developmentDatabaseId(),
             inputSingleView = inputSingleView()
           )  
-
+          if(is.null(res)){
+            return(NULL)
+          }
+          
+          cind <- c('performanceId','modelDesignId','T','O', 'Val', 'AUROC','calibrationInLarge intercept', 'T Size', 'O Count','Val (%)')%in%colnames(res)
+          res[,c('performanceId','modelDesignId','T','O', 'Val', 'AUROC','calibrationInLarge intercept', 'T Size', 'O Count','Val (%)')[cind]]
         }
         )
       
-      
-      output$validationTable <- DT::renderDataTable(
-        {
-          
-          if(!is.null(validationTable())){
-            cind <- c('modelDesignId','T','O', 'Val', 'AUROC','calibrationInLarge intercept', 'T Size', 'O Count','Val (%)')%in%colnames(validationTable())
-            validationTable()[,c('modelDesignId','T','O', 'Val', 'AUROC','calibrationInLarge intercept', 'T Size', 'O Count','Val (%)')[cind]]
-          } else{
-            NULL
-          }
-        }, 
-        escape = FALSE, 
-        filter = 'top', 
-        extensions = 'Buttons', 
-        options = list(
-          dom = 'Blfrtip', 
-          scrollX = TRUE
+      resultTableOutput <- resultTableServer( 
+        id = 'validationTable',
+        df = validationTable,
+        colDefsInput = list(
+        performanceId = reactable::colDef( 
+          show = F
         ),
-        rownames= FALSE 
-      ) #options = list(filter = 'top'))
+        T = reactable::colDef( 
+          minWidth = 300
+        ),
+        O = reactable::colDef( 
+          minWidth = 300
+        )
+        ),
+        addActions = c('add', 'remove')
+        )
+      
+      # listen to actions to create list of selected rows
+      selectedRows <- shiny::reactiveVal(NULL)
+      shiny::observeEvent(
+        resultTableOutput$actionCount(), {
+          if(resultTableOutput$actionType() == 'add'){
+            # add the row to the results
+            resultToAdd <- resultTableOutput$actionIndex()$index
+            updatedRows <- unique(c(selectedRows(), resultToAdd))
+            selectedRows(updatedRows)
+          }
+          if(resultTableOutput$actionType() == 'remove'){
+            # remove the row from the results
+            resultToRemove <- resultTableOutput$actionIndex()$index
+            currentRows <- selectedRows()
+            if(!is.null(currentRows)){
+              if(sum(resultToRemove %in% currentRows)>0){
+                if(length(currentRows) == 1){
+                  selectedRows(NULL)
+                } else{
+                  updatedRows <- currentRows[currentRows != resultToRemove]
+                  selectedRows(updatedRows)
+                }
+              }
+            }
+            
+          }
+        }
+      )
       
       # get validation results
       valResult <- shiny::reactive({
         getPredictionValidationResults(
           validationTable = validationTable,
-          validationRowIds = input$validationTable_rows_selected,
+          validationRowIds = selectedRows,
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings
           )
@@ -167,6 +193,8 @@ getPredictionValidationResults <- function(
   connectionHandler,
   resultDatabaseSettings
   ){
+  
+  validationRowIds <- validationRowIds()
   
   if(!is.null(validationTable()) & !is.null(validationRowIds)){
     valTable <- validationTable()[validationRowIds,,]
@@ -253,8 +281,19 @@ getPredictionValSummary <- function(
          development_database_id = @development_database_id
    ) AS results
          
-    LEFT JOIN (SELECT cohort_id, cohort_name FROM @schema.@plp_table_appendcohorts) AS targets ON results.target_id = targets.cohort_id
-    LEFT JOIN (SELECT cohort_id, cohort_name FROM @schema.@plp_table_appendcohorts) AS outcomes ON results.outcome_id = outcomes.cohort_id
+    LEFT JOIN 
+    (SELECT a.cohort_id, b.cohort_name 
+    FROM @schema.@plp_table_appendcohorts as a inner join
+    @schema.@cg_table_appendcohort_definition as b
+    on a.cohort_definition_id = b.cohort_definition_id) AS targets 
+    ON results.target_id = targets.cohort_id
+    LEFT JOIN 
+    (SELECT a.cohort_id, b.cohort_name 
+    FROM @schema.@plp_table_appendcohorts as a inner join
+    @schema.@cg_table_appendcohort_definition as b
+    on a.cohort_definition_id = b.cohort_definition_id
+    ) AS outcomes 
+    ON results.outcome_id = outcomes.cohort_id
     LEFT JOIN (select dd.database_id, md.cdm_source_abbreviation database_acronym 
                    from @schema.@database_table_appenddatabase_meta_data md inner join 
                    @schema.@plp_table_appenddatabase_details dd 
@@ -277,6 +316,7 @@ getPredictionValSummary <- function(
     model_design_id = modelDesignId,
     development_database_id = developmentDatabaseId,
     plp_table_append = resultDatabaseSettings$plpTablePrefix,
+    cg_table_append = resultDatabaseSettings$cgTablePrefix,
     database_table_append = resultDatabaseSettings$databaseTablePrefix
   )
   

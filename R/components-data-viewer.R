@@ -152,6 +152,7 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param addActions add a button row selector column to the table to a column called 'actions'.  
 #'                   actions must be a column in df
 #' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
+#' @param groupBy The columns to group by 
 #'
 #' @return shiny module server
 #'
@@ -160,7 +161,8 @@ resultTableServer <- function(
     df, #data.frame
     colDefsInput,
     addActions = NULL,
-    downloadedFileName = NULL
+    downloadedFileName = NULL,
+    groupBy = NULL
 ) #list of colDefs, can use checkmate::assertList, need a check that makes sure names = columns) {
   shiny::moduleServer(
     id,
@@ -269,6 +271,7 @@ resultTableServer <- function(
             data,
             columns = colDefs(),
             onClick = onClick,
+            groupBy = groupBy,
             #these can be turned on/off and will overwrite colDef args
             sortable = TRUE,
             resizable = TRUE,

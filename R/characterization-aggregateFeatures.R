@@ -33,20 +33,15 @@ characterizationAggregateFeaturesViewer <- function(id) {
   
   shiny::div(
     
-    shinydashboard::box(
-      collapsible = TRUE,
-      collapsed = TRUE,
-      title = "Outcome Stratified",
-      width = "100%",
-      shiny::htmlTemplate(system.file("characterization-www", "help-OutcomeStratified.html", package = utils::packageName()))
+    infoHelperViewer(
+      id = "helper",
+      helpLocation= system.file("characterization-www", "help-OutcomeStratified.html", package = utils::packageName())
     ),
     
-    # summary table
-    shinydashboard::box(
-      collapsible = TRUE,
-      title = "Options",
-      width = "100%",
-      shiny::uiOutput(ns("AFinputs"))
+    
+    # module that does input selection for a single row DF
+    inputSelectionViewer(
+      id = ns("input-selection")
     ),
     
     # COV: RUN_ID	DATABASE_ID	COHORT_DEFINITION_ID	COVARIATE_ID	SUM_VALUE	AVERAGE_VALUE
@@ -60,32 +55,18 @@ characterizationAggregateFeaturesViewer <- function(id) {
     # add UI to pick database/type 1 and database/type 2
     
     shiny::conditionalPanel(
-      condition = "input.generate != 0",
-      ns = ns,
-      
-      shiny::uiOutput(ns("AFinputsText")),
+      condition = 'input.generate != 0',
+      ns = shiny::NS(ns("input-selection")),
       
       shinydashboard::tabBox(
         width = "100%",
         # Title can include an icon
         title = shiny::tagList(shiny::icon("gear"), "Table and Plots"),
         shiny::tabPanel("Binary Feature Table", 
-                        shiny::downloadButton(
-                          ns('downloadBinary'), 
-                          label = "Download"
-                        ),
-                        shinycssloaders::withSpinner(
-                          reactable::reactableOutput(ns('binaryTable'))
-                        )
+                        resultTableViewer(ns('binaryTable'))
         ),
         shiny::tabPanel("Continuous Feature Table", 
-                        shiny::downloadButton(
-                          ns('downloadContinuous'), 
-                          label = "Download"
-                        ),
-                        shinycssloaders::withSpinner(
-                          reactable::reactableOutput(ns('continuousTable'))
-                        )
+                        resultTableViewer(ns('continuousTable'))
         ),
         shiny::tabPanel("Binary Feature Plot",
                         shinycssloaders::withSpinner(
@@ -118,42 +99,14 @@ characterizationAggregateFeaturesViewer <- function(id) {
 #'
 #' @export
 characterizationAggregateFeaturesServer <- function(
-  id, 
-  connectionHandler,
-  mainPanelTab,
-  resultDatabaseSettings
+    id, 
+    connectionHandler,
+    mainPanelTab,
+    resultDatabaseSettings
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      #if(mainPanelTab() != 'Feature Comparison'){
-      #  return(invisible(NULL))
-      #}
-      
-      binaryData <- shiny::reactiveVal(
-        data.frame(
-          covariateName = '',
-          comp1 = '',
-          comp1sd = '' ,
-          comp2 = '' ,
-          comp2sd = '', 
-          analysisName = '' ,
-          standardizedMeanDiff = ''
-        )
-      )
-      
-      continuousData <- shiny::reactiveVal(
-        data.frame(
-          covariateName = '',
-          comp1 = '',
-          comp1sd = '' ,
-          comp2 = '' ,
-          comp2sd = '', 
-          analysisName = '' ,
-          standardizedMeanDiff = ''
-        )
-      )
       
       types <- c(
         'Target (first exposure)',
@@ -184,392 +137,293 @@ characterizationAggregateFeaturesServer <- function(
       options <- getAggregateFeatureOptions(
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings
-        )
+      )
       
       # get databases
       databases <- getAggregateFeatureDatabases(
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings
-        )
-      
-      
-      # add buttons
-      output$AFinputs <- shiny::renderUI({
-        
-        shiny::fluidPage(
-          shiny::fluidRow(
-            shiny::column(
-              width = 4,
-              shinyWidgets::pickerInput(
-                inputId = session$ns('target'), 
-                label = 'Target: ', 
-                choices = options$targets, 
-                selected = 1,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            shiny::column(
-              width = 4,
-              shinyWidgets::pickerInput(
-                inputId = session$ns('outcome'), 
-                label = 'Outcome: ', 
-                choices = options$outcomes, 
-                selected = 1,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            shiny::column(
-              width = 4,
-              shinyWidgets::pickerInput(
-                inputId = session$ns('tar'), 
-                label = 'Time at risk: ', 
-                choices = options$tars, 
-                selected = 1,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            )
-          ),
-            
-        shiny::fluidRow(
-          shiny::column(
-            width = 3,
-            shinyWidgets::pickerInput(
-              inputId = session$ns('database1'), 
-              label = 'Database 1: ', 
-              choices = databases, 
-              selected = 1,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          ),
-          shiny::column(
-            width = 3,
-            shinyWidgets::pickerInput(
-              inputId = session$ns('type1'), 
-              label = 'Type 1: ', 
-              choices = types, 
-              selected = 3,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          ),
-          shiny::column(
-            width = 3,
-            shinyWidgets::pickerInput(
-              inputId = session$ns('database2'), 
-              label = 'Database 2: ', 
-              choices = databases, 
-              selected = 1,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          ),
-          shiny::column(
-            width = 3,
-            shinyWidgets::pickerInput(
-              inputId = session$ns('type2'), 
-              label = 'Type 2: ', 
-              choices = types, 
-              selected = 4,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          )
-        ), # end row
-        shiny::actionButton(
-                            inputId = session$ns('generate'), 
-                            label = 'Generate Report'
-                          )
-        
-        )
-        
-      })
-      
-      selectedInputs <- shiny::reactiveVal()
-      output$AFinputsText <- shiny::renderUI(selectedInputs())
-      
-      shiny::observeEvent(
-        eventExpr = input$generate,
-        {
-          
-          ind <- which(options$tars == input$tar)
-          
-          
-          selectedInputs(
-            shinydashboard::box(
-              status = 'warning', 
-              width = "100%",
-              title = 'Selected:',
-              shiny::div(
-                shiny::fluidRow(
-                  shiny::column(
-                    width = 4,
-                    shiny::tags$b("Target:"),
-                    names(options$targets)[options$targets == input$target]
-                  ),
-                  shiny::column(
-                    width = 4,
-                    shiny::tags$b("Outcome:"),
-                    names(options$outcomes)[options$outcomes == input$outcome]
-                  ),
-                  shiny::column(
-                    width = 4,
-                    shiny::tags$b("TAR:"),
-                    options$tars[[ind]]
-                  )
-                ),
-                
-                shiny::fluidRow(
-                  shiny::column(
-                    width = 6,
-                    shiny::tags$b("Selection 1")
-                  ),
-                  shiny::column(
-                    width = 6,
-                    shiny::tags$b("Selection 2")
-                  )
-                ),
-                
-                shiny::fluidRow(
-                  shiny::column(
-                    width = 3,
-                    shiny::tags$b("Database:"),
-                    names(databases)[databases == input$database1]
-                  ),
-                  shiny::column(
-                    width = 3,
-                    shiny::tags$b("Type:"),
-                    types[types == input$type1]
-                  ),
-                  shiny::column(
-                    width = 3,
-                    shiny::tags$b("Database:"),
-                    names(databases)[databases == input$database2]
-                  ),
-                  shiny::column(
-                    width = 3,
-                    shiny::tags$b("Type:"),
-                    types[types == input$type2]
-                  )
-                )
-                
-              )
-            )
-          )
-
-          allData <- characterizationGetAggregateData(
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings,
-            targetId = input$target,
-            outcomeId = input$outcome,
-            riskWindowStart = options$tarList[[ind]]$riskWindowStart,
-            riskWindowEnd = options$tarList[[ind]]$riskWindowEnd,
-            startAnchor = options$tarList[[ind]]$startAnchor,
-            endAnchor = options$tarList[[ind]]$endAnchor,
-            database1 = input$database1,
-            database2 = input$database2,
-            type1 = typesTranslate[types == input$type1],
-            type2 = typesTranslate[types == input$type2]
-          )
-          
-          output$binaryPlot <- plotly::renderPlotly(
-            characterizationFeaturePlot(
-              data = allData$binary,
-              valueColumn = 'averageValue'
-            )
-          )
-          output$continuousPlot <- plotly::renderPlotly(
-            characterizationFeaturePlot(
-              data = allData$continuous,
-              valueColumn = 'averageValue'
-            )
-          )
-          
-          binaryData(characterizationFeatureTable(data = allData$binary))
-          continuousData(characterizationFeatureTable(data = allData$continuous))
-          
-          output$binaryTable <- reactable::renderReactable({
-            reactable::reactable(
-              data = binaryData(),
-              
-              showPageSizeOptions = TRUE,
-              pageSizeOptions = c(10, 50, 100,1000),
-              defaultPageSize = 10,
-              striped = TRUE,
-              highlight = TRUE,
-              
-              filterable = TRUE,
-              
-              columns = list(
-                covariateName = reactable::colDef(
-                  name = "Covariate Name", 
-                  filterable = T
-                ),
-                comp1 = reactable::colDef(
-                  name = "Selection 1 mean", 
-                  format = reactable::colFormat(digits = 2, percent = T)
-                ), 
-                comp1sd = reactable::colDef(
-                  name = "Selection 1 stdev", 
-                  format = reactable::colFormat(digits = 2)
-                ),
-                comp2 = reactable::colDef(
-                  name = "Selection 2 mean",
-                  format = reactable::colFormat(digits = 2, percent = T)
-                ), 
-                comp2sd = reactable::colDef(
-                  name = "Selection 2 stdev",
-                  format = reactable::colFormat(digits = 2)
-                ), 
-                analysisName = reactable::colDef(
-                  filterInput = function(values, name) {
-                    shiny::tags$select(
-                      # Set to undefined to clear the filter
-                      onchange = sprintf("Reactable.setFilter('desc-bin-select', '%s', event.target.value || undefined)", name),
-                      # "All" has an empty value to clear the filter, and is the default option
-                      shiny::tags$option(value = "", "All"),
-                      lapply(unique(values), shiny::tags$option),
-                      "aria-label" = sprintf("Filter %s", name),
-                      style = "width: 100%; height: 28px;"
-                    )
-                  }
-                ),
-                standardizedMeanDiff = reactable::colDef(
-                  format = reactable::colFormat(digits = 2)
-                )
-              ),
-              elementId = "desc-bin-select"
-                )
-          })
-          
-          output$continuousTable <- reactable::renderReactable({
-            reactable::reactable(
-              data = continuousData(),
-              
-              showPageSizeOptions = TRUE,
-              pageSizeOptions = c(10, 50, 100,1000),
-              defaultPageSize = 10,
-              striped = TRUE,
-              highlight = TRUE,
-              
-              filterable = TRUE,
-              
-              columns = list(
-                covariateName = reactable::colDef(
-                  name = "Covariate Name", 
-                  filterable = T
-                  ),
-                comp1 = reactable::colDef(
-                  name = "Selection 1 mean", 
-                  format = reactable::colFormat(digits = 2)
-                  ),
-                comp1sd = reactable::colDef(
-                  name = "Selection 1 stdev", 
-                  format = reactable::colFormat(digits = 2)
-                ),
-                comp2 = reactable::colDef(
-                  name = "Selection 2 mean",
-                  format = reactable::colFormat(digits = 2)
-                  ),
-                comp2sd = reactable::colDef(
-                  name = "Selection 2 stdev",
-                  format = reactable::colFormat(digits = 2)
-                ),
-                analysisName = reactable::colDef(
-                  filterInput = function(values, name) {
-                    shiny::tags$select(
-                      # Set to undefined to clear the filter
-                      onchange = sprintf("Reactable.setFilter('desc-cont-select', '%s', event.target.value || undefined)", name),
-                      # "All" has an empty value to clear the filter, and is the default option
-                      shiny::tags$option(value = "", "All"),
-                      lapply(unique(values), shiny::tags$option),
-                      "aria-label" = sprintf("Filter %s", name),
-                      style = "width: 100%; height: 28px;"
-                    )
-                  }
-                ),
-                standardizedMeanDiff = reactable::colDef(
-                  format = reactable::colFormat(digits = 2)
-                  )
-              ),
-              
-              elementId = "desc-cont-select"
-            )
-          })
-          
-        }
       )
       
-      
-      ## download buttons
-      output$downloadBinary <- shiny::downloadHandler(
-          filename = function() {
-             paste('binarydata-', Sys.Date(), '.csv', sep='')
-           },
-          content = function(con) {
-            utils::write.csv(binaryData(), con)
-          }
-         )
-      output$downloadContinuous <- shiny::downloadHandler(
-        filename = function() {
-          paste('continuousdata-', Sys.Date(), '.csv', sep='')
-        },
-        content = function(con) {
-          utils::write.csv(continuousData(), con)
-        }
+      # input selection component
+      inputSelected <- inputSelectionServer(
+        id = "input-selection", 
+        inputSettingList = list(
+          createInputSetting(
+            rowNumber = 1,                           
+            columnWidth = 4,
+            varName = 'targetIds',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Target: ',
+              choices = options$targets,
+              selected = options$targets[1],
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          createInputSetting(
+            rowNumber = 1,                           
+            columnWidth = 4,
+            varName = 'outcomeIds',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Outcome: ',
+              choices = options$outcomes,
+              selected = options$outcomes[1],
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          )
+          ,
+          createInputSetting(
+            rowNumber = 1,                           
+            columnWidth = 4,
+            varName = 'tarIds',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Time at risk: ',
+              choices = options$tars,
+              selected = options$tars[1],
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          )
+          ,
+          createInputSetting(
+            rowNumber = 2,                           
+            columnWidth = 3,
+            varName = 'database1',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Database 1: ',
+              choices = databases,
+              selected = databases[1],
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          )
+          ,
+          createInputSetting(
+            rowNumber = 2,                           
+            columnWidth = 3,
+            varName = 'type1',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Type 1: ',
+              choices = types,
+              selected = types[1],
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          )
+          ,
+          createInputSetting(
+            rowNumber = 2,                           
+            columnWidth = 3,
+            varName = 'database2',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Database 2: ',
+              choices = databases,
+              selected = databases[1],
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          )
+          ,
+          createInputSetting(
+            rowNumber = 2,                           
+            columnWidth = 3,
+            varName = 'type2',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Type 2: ',
+              choices = types,
+              selected = types[2],
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          )
+        )
       )
       
-
-      return(invisible(NULL))
+      allData <- shiny::reactive({
+        characterizationGetAggregateData(
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings,
+        targetId = inputSelected()$targetIds,
+        outcomeId = inputSelected()$outcomeIds,
+        riskWindowStart = options$tarList[[which(options$tars == ifelse(is.null(inputSelected()$tarIds),options$tars[1],inputSelected()$tarIds))]]$riskWindowStart, 
+        riskWindowEnd = options$tarList[[which(options$tars == ifelse(is.null(inputSelected()$tarIds),options$tars[1],inputSelected()$tarIds))]]$riskWindowEnd,
+        startAnchor = options$tarList[[which(options$tars == ifelse(is.null(inputSelected()$tarIds),options$tars[1],inputSelected()$tarIds))]]$startAnchor,
+        endAnchor = options$tarList[[which(options$tars == ifelse(is.null(inputSelected()$tarIds),options$tars[1],inputSelected()$tarIds))]]$endAnchor,
+        database1 = inputSelected()$database1,
+        database2 = inputSelected()$database2,
+        type1 = typesTranslate[types == inputSelected()$type1],
+        type2 = typesTranslate[types == inputSelected()$type2]
+      )
+        })
       
+      output$binaryPlot <- plotly::renderPlotly(
+        characterizationFeaturePlot(
+          data = allData()$binary,
+          valueColumn = 'averageValue'
+        )
+      )
+      output$continuousPlot <- plotly::renderPlotly(
+        characterizationFeaturePlot(
+          data = allData()$continuous,
+          valueColumn = 'averageValue'
+        )
+      )
+      
+      binTableOutputs <- resultTableServer(
+        id = "binaryTable", 
+        df = characterizationFeatureTable(allData()$binary),
+        colDefsInput = list(
+          covariateName = reactable::colDef(
+            name = "Covariate Name", 
+            filterable = T
+          ),
+          comp1 = reactable::colDef(
+            name = "Selection 1 mean", 
+            format = reactable::colFormat(digits = 2, percent = T)
+          ), 
+          comp1sd = reactable::colDef(
+            name = "Selection 1 stdev", 
+            format = reactable::colFormat(digits = 2)
+          ),
+          comp2 = reactable::colDef(
+            name = "Selection 2 mean",
+            format = reactable::colFormat(digits = 2, percent = T)
+          ), 
+          comp2sd = reactable::colDef(
+            name = "Selection 2 stdev",
+            format = reactable::colFormat(digits = 2)
+          ), 
+          analysisName = reactable::colDef( # not sure this will work now
+            filterInput = function(values, name) {
+              shiny::tags$select(
+                # Set to undefined to clear the filter
+                onchange = sprintf("Reactable.setFilter('desc-bin-select', '%s', event.target.value || undefined)", name),
+                # "All" has an empty value to clear the filter, and is the default option
+                shiny::tags$option(value = "", "All"),
+                lapply(unique(values), shiny::tags$option),
+                "aria-label" = sprintf("Filter %s", name),
+                style = "width: 100%; height: 28px;"
+              )
+            }
+          ),
+          standardizedMeanDiff = reactable::colDef(
+            format = reactable::colFormat(digits = 2)
+          )
+        ),
+        addActions = NULL
+      )
+      
+      conTableOutputs <- resultTableServer(
+        id = "continuousTable", 
+        df = characterizationFeatureTable(allData()$continuous),
+        colDefsInput = list(
+          covariateName = reactable::colDef(
+            name = "Covariate Name", 
+            filterable = T
+          ),
+          comp1 = reactable::colDef(
+            name = "Selection 1 mean", 
+            format = reactable::colFormat(digits = 2)
+          ),
+          comp1sd = reactable::colDef(
+            name = "Selection 1 stdev", 
+            format = reactable::colFormat(digits = 2)
+          ),
+          comp2 = reactable::colDef(
+            name = "Selection 2 mean",
+            format = reactable::colFormat(digits = 2)
+          ),
+          comp2sd = reactable::colDef(
+            name = "Selection 2 stdev",
+            format = reactable::colFormat(digits = 2)
+          ),
+          analysisName = reactable::colDef(
+            filterInput = function(values, name) {
+              shiny::tags$select(
+                # Set to undefined to clear the filter
+                onchange = sprintf("Reactable.setFilter('desc-cont-select', '%s', event.target.value || undefined)", name),
+                # "All" has an empty value to clear the filter, and is the default option
+                shiny::tags$option(value = "", "All"),
+                lapply(unique(values), shiny::tags$option),
+                "aria-label" = sprintf("Filter %s", name),
+                style = "width: 100%; height: 28px;"
+              )
+            }
+          ),
+          standardizedMeanDiff = reactable::colDef(
+            format = reactable::colFormat(digits = 2)
+          )
+        ),
+        addActions = NULL
+      )
+   
+     #elementId = "desc-cont-select"
+
+      
+  
+  return(invisible(NULL))
     }
   )
 }
+
 
 getAggregateFeatureOptions <- function(
   connectionHandler,
@@ -704,6 +558,10 @@ characterizationGetAggregateData <- function(
   type2
 ){
   
+  if(is.null(targetId)){
+    return(NULL)
+  }
+  
   shiny::withProgress(message = 'Getting Feature Comparison Data', value = 0, {
   sql <- "SELECT s.RUN_ID, cd.COHORT_DEFINITION_ID
           FROM @schema.@c_table_prefixSETTINGS s
@@ -758,6 +616,11 @@ characterizationGetAggregateData <- function(
     database_id = database2,
     type = type2
   )
+  
+  if(nrow(settingsSecond) == 0){
+    print('no second setting')
+    settingsSecond <- settingsFirst
+  }
   
   shiny::incProgress(2/5, detail = paste("Got second runId and CohortId"))
   

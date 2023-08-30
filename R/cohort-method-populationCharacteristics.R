@@ -30,7 +30,7 @@ cohortMethodPopulationCharacteristicsViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     shiny::uiOutput(outputId = ns("table1Caption")),
-    DT::dataTableOutput(outputId = ns("table1Table"))
+    resultTableViewer(id = ns("table1Table"))
   )
 }
 
@@ -70,59 +70,90 @@ cohortMethodPopulationCharacteristicsServer <- function(
         }
       })
       
-      output$table1Table <- DT::renderDataTable({
-        row <- selectedRow()
-        if (is.null(row)) {
-          return(NULL)
-        } else {
-          balance <- getCohortMethodPopChar(
+      data <- shiny::reactive(
+        {
+          getCohortMethodPopChar(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetId = row$targetId,
-            comparatorId = row$comparatorId,
-            outcomeId = row$outcomeId,
-            databaseId = row$databaseId,
-            analysisId = row$analysisId
+            targetId = selectedRow()$targetId,
+            comparatorId = selectedRow()$comparatorId,
+            outcomeId = selectedRow()$outcomeId,
+            databaseId = selectedRow()$databaseId,
+            analysisId = selectedRow()$analysisId
           )
-          if (nrow(balance) == 0) {
-            return(NULL)
-          }
-          table1 <- prepareCohortMethodTable1(
-            balance = balance,
-            beforeLabel = paste("Before PS adjustment"),
-            afterLabel = paste("After PS adjustment")
+        }
+      )
+      
+      resultTableServer(
+        id = 'table1Table',
+        df = data, 
+        groupBy = 'label',
+        colDefsInput = list(
+          databaseId = reactable::colDef(show = F),
+          covariateId = reactable::colDef(show = F),
+          covariateName = reactable::colDef(
+            name  = 'Covariate', 
+            sortable = F
+            ), 
+          analysisId = reactable::colDef(show = F),
+          beforePsAdjustmentMeanTreated = reactable::colDef(
+            name  = 'Before PS adjustment treated mean',
+            format = reactable::colFormat(
+              digits = 1, percent = T
+            ),
+            sortable = F,
+            cell = function(value) {
+              if (value < 0) paste0("< ",abs(value*100) ,"%") else paste0(value*100, '%')
+            }
+            ),
+          beforePsAdjustmentMeanComparator = reactable::colDef(
+            name  = 'Before PS adjustment comparator mean',
+            format = reactable::colFormat(
+              digits = 1, percent = T
+            ),
+            sortable = F,
+            cell = function(value) {
+              if (value < 0) paste0("< ",abs(value*100) ,"%") else paste0(value*100, '%')
+            }
+          ),
+          absBeforePsAdjustmentStdDiff = reactable::colDef(
+            name  = 'Before PS adjustment standardized mean difference',
+            format = reactable::colFormat(
+              digits = 2
+            ),
+            sortable = F
+          ),
+          afterPsAdjustmentMeanTreated = reactable::colDef(
+            name  = 'After PS adjustment treated mean',
+            format = reactable::colFormat(
+              digits = 1, percent = T
+            ),
+            sortable = F,
+            cell = function(value) {
+              if (value < 0) paste0("< ",abs(value*100) ,"%") else paste0(value*100, '%')
+            }
+          ),
+          afterPsAdjustmentMeanComparator = reactable::colDef(
+            name  = 'After PS adjustment comparator mean',
+            format = reactable::colFormat(
+              digits = 1, percent = T
+            ),
+            sortable = F,
+            cell = function(value) {
+              if (value < 0) paste0("< ",abs(value*100) ,"%") else paste0(value*100, '%')
+            }
+          ),
+          absAfterPsAdjustmentStdDiff = reactable::colDef(
+            name  = 'After PS adjustment standardized mean difference',
+            format = reactable::colFormat(
+              digits = 2
+            ),
+            sortable = F
           )
           
-          container <- htmltools::tags$table(
-            class = 'display',
-            htmltools::tags$thead(
-              htmltools::tags$tr(
-                htmltools::tags$th(rowspan = 3, "Characteristic"),
-                htmltools::tags$th(colspan = 3, class = "dt-center", paste("Before PS adjustment")),
-                htmltools::tags$th(colspan = 3, class = "dt-center", paste("After PS adjustment"))
-              ),
-              htmltools::tags$tr(
-                lapply(table1[1, 2:ncol(table1)], htmltools::tags$th)
-              ),
-              htmltools::tags$tr(
-                lapply(table1[2, 2:ncol(table1)], htmltools::tags$th)
-              )
-            )
-          )
-          options <- list(columnDefs = list(list(className = 'dt-right',  targets = 1:6)),
-                          searching = FALSE,
-                          ordering = FALSE,
-                          paging = FALSE,
-                          bInfo = FALSE)
-          table1 <- DT::datatable(table1[3:nrow(table1), ],
-                                  options = options,
-                                  rownames = FALSE,
-                                  escape = FALSE,
-                                  container = container,
-                                  class = "stripe nowrap compact")
-          return(table1)
-        }
-      })
+        )
+      )
+      
     }
   )
 }
@@ -145,14 +176,14 @@ getCohortMethodPopChar <- function(
       SELECT
         cmcb.database_id,
         cmcb.covariate_id,
-        cmc.covariate_name,
+        cmc.covariate_name, 
         cmc.covariate_analysis_id analysis_id,
-        cmcb.target_mean_before before_matching_mean_treated,
-        cmcb.comparator_mean_before before_matching_mean_comparator,
-        abs(cmcb.std_diff_before) abs_before_matching_std_diff,
-        cmcb.target_mean_after after_matching_mean_treated,
-        cmcb.comparator_mean_after after_matching_mean_comparator,
-        abs(cmcb.std_diff_after) abs_after_matching_std_diff
+        cmcb.target_mean_before before_ps_adjustment_mean_treated,
+        cmcb.comparator_mean_before before_ps_adjustment_mean_comparator,
+        abs(cmcb.std_diff_before) abs_before_ps_adjustment_std_diff,
+        cmcb.target_mean_after after_ps_adjustment_mean_treated,
+        cmcb.comparator_mean_after after_ps_adjustment_mean_comparator,
+        abs(cmcb.std_diff_after) abs_after_ps_adjustment_std_diff
       FROM
         (select * from  @schema.@cm_table_prefixcovariate_balance 
         WHERE target_id = @target_id
@@ -184,149 +215,55 @@ getCohortMethodPopChar <- function(
     shiny::incProgress(3/3, detail = paste("Done - nrows: ", nrow(result)))
   })
   
+  # format
+  pathToCsv <- system.file("cohort-method-ref", "Table1Specs.csv", package = "OhdsiShinyModules")
+  specifications <- utils::read.csv(pathToCsv, stringsAsFactors = FALSE)
+  
+  # get specs without covariates
+  part1 <- merge(
+    result,
+    specifications[which(specifications$covariateIds == ''),-3],
+    by = 'analysisId'
+  ) 
+  
+  covVars <- specifications[which(specifications$covariateIds != ''),-2]
+  covVars <- do.call(
+    what = 'rbind', 
+    args = lapply(1:nrow(covVars), function(i){
+    data.frame(
+      label = covVars$label[i],
+      covariateId  = strsplit(
+      x = covVars$covariateIds[i], 
+      split = ';'
+      )[[1]]
+    )
+  })
+  )
+  part2 <- merge(
+    result,
+    covVars,
+    by = 'covariateId'
+  ) 
+  
+  result <- rbind(part1, part2) %>% 
+    dplyr::arrange(
+      .data$label, 
+      .data$covariateName
+    )
+  
+  # remove text before covariateNames
+  txtRms <- c(
+    'age group: ', 
+    'condition_era group during day -365 through 0 days relative to index: ',
+    'drug_era group during day -365 through 0 days relative to index: '
+  )
+  for(txtRm in txtRms){
+    result$covariateName <- gsub(txtRm,'', result$covariateName)
+  }
+
   return(
     result
   )
   
 }
 
-
-# CohortMethod-populationChar
-prepareCohortMethodTable1 <- function(
-    balance,
-    beforeLabel = "Before stratification",
-    afterLabel = "After stratification",
-    targetLabel = "Target",
-    comparatorLabel = "Comparator",
-    percentDigits = 1,
-    stdDiffDigits = 2,
-    output = "latex",
-    pathToCsv = NULL
-) {
-  
-  
-  if(is.null(pathToCsv)) {
-    pathToCsv <- system.file("cohort-method-ref", "Table1Specs.csv", package = "OhdsiShinyModules")
-  }
-  if (output == "latex") {
-    space <- " "
-  } else {
-    space <- "&nbsp;"
-  }
-  
-  specifications <- utils::read.csv(pathToCsv, stringsAsFactors = FALSE)
-  
-  fixCase <- function(label) {
-    idx <- (toupper(label) == label)
-    if (any(idx)) {
-      label[idx] <- paste0(substr(label[idx], 1, 1),
-                           tolower(substr(label[idx], 2, nchar(label[idx]))))
-    }
-    return(label)
-  }
-  
-  formatPercent <- function(x) {
-    result <- format(round(100 * x, percentDigits), digits = percentDigits + 1, justify = "right")
-    result <- gsub("^-", "<", result)
-    result <- gsub("NA", "", result)
-    result <- gsub(" ", space, result)
-    return(result)
-  }
-  
-  formatStdDiff <- function(x) {
-    result <- format(round(x, stdDiffDigits), digits = stdDiffDigits + 1, justify = "right")
-    result <- gsub("NA", "", result)
-    result <- gsub(" ", space, result)
-    return(result)
-  }
-  
-  resultsTable <- data.frame()
-  for (i in 1:nrow(specifications)) {
-    if (specifications$analysisId[i] == "") {
-      resultsTable <- rbind(resultsTable,
-                            data.frame(Characteristic = specifications$label[i], value = ""))
-    } else {
-      idx <- balance$analysisId == specifications$analysisId[i]
-      if (any(idx)) {
-        if (specifications$covariateIds[i] != "") {
-          covariateIds <- as.numeric(strsplit(specifications$covariateIds[i], ";")[[1]])
-          idx <- balance$covariateId %in% covariateIds
-        } else {
-          covariateIds <- NULL
-        }
-        if (any(idx)) {
-          balanceSubset <- balance[idx, ]
-          if (is.null(covariateIds)) {
-            balanceSubset <- balanceSubset[order(balanceSubset$covariateId), ]
-          } else {
-            balanceSubset <- merge(balanceSubset, data.frame(covariateId = covariateIds,
-                                                             rn = 1:length(covariateIds)))
-            balanceSubset <- balanceSubset[order(balanceSubset$rn, balanceSubset$covariateId), ]
-          }
-          balanceSubset$covariateName <- fixCase(gsub("^.*: ", "", balanceSubset$covariateName))
-          if (specifications$covariateIds[i] == "" || length(covariateIds) > 1) {
-            resultsTable <- rbind(resultsTable, data.frame(Characteristic = specifications$label[i],
-                                                           beforeMatchingMeanTreated = NA,
-                                                           beforeMatchingMeanComparator = NA,
-                                                           absBeforeMatchingStdDiff = NA,
-                                                           afterMatchingMeanTreated = NA,
-                                                           afterMatchingMeanComparator = NA,
-                                                           absAfterMatchingStdDiff = NA,
-                                                           stringsAsFactors = FALSE))
-            resultsTable <- rbind(resultsTable, data.frame(Characteristic = paste0(space,
-                                                                                   space,
-                                                                                   space,
-                                                                                   space,
-                                                                                   balanceSubset$covariateName),
-                                                           beforeMatchingMeanTreated = balanceSubset$beforeMatchingMeanTreated,
-                                                           beforeMatchingMeanComparator = balanceSubset$beforeMatchingMeanComparator,
-                                                           absBeforeMatchingStdDiff = balanceSubset$absBeforeMatchingStdDiff,
-                                                           afterMatchingMeanTreated = balanceSubset$afterMatchingMeanTreated,
-                                                           afterMatchingMeanComparator = balanceSubset$afterMatchingMeanComparator,
-                                                           absAfterMatchingStdDiff = balanceSubset$absAfterMatchingStdDiff,
-                                                           stringsAsFactors = FALSE))
-          } else {
-            resultsTable <- rbind(resultsTable, data.frame(Characteristic = specifications$label[i],
-                                                           beforeMatchingMeanTreated = balanceSubset$beforeMatchingMeanTreated,
-                                                           beforeMatchingMeanComparator = balanceSubset$beforeMatchingMeanComparator,
-                                                           absBeforeMatchingStdDiff = balanceSubset$absBeforeMatchingStdDiff,
-                                                           afterMatchingMeanTreated = balanceSubset$afterMatchingMeanTreated,
-                                                           afterMatchingMeanComparator = balanceSubset$afterMatchingMeanComparator,
-                                                           absAfterMatchingStdDiff = balanceSubset$absAfterMatchingStdDiff,
-                                                           stringsAsFactors = FALSE))
-          }
-        }
-      }
-    }
-  }
-  resultsTable$beforeMatchingMeanTreated <- formatPercent(resultsTable$beforeMatchingMeanTreated)
-  resultsTable$beforeMatchingMeanComparator <- formatPercent(resultsTable$beforeMatchingMeanComparator)
-  resultsTable$absBeforeMatchingStdDiff <- formatStdDiff(resultsTable$absBeforeMatchingStdDiff)
-  resultsTable$afterMatchingMeanTreated <- formatPercent(resultsTable$afterMatchingMeanTreated)
-  resultsTable$afterMatchingMeanComparator <- formatPercent(resultsTable$afterMatchingMeanComparator)
-  resultsTable$absAfterMatchingStdDiff <- formatStdDiff(resultsTable$absAfterMatchingStdDiff)
-  
-  headerRow <- as.data.frame(t(rep("", ncol(resultsTable))))
-  colnames(headerRow) <- colnames(resultsTable)
-  headerRow$beforeMatchingMeanTreated <- targetLabel
-  headerRow$beforeMatchingMeanComparator <- comparatorLabel
-  headerRow$afterMatchingMeanTreated <- targetLabel
-  headerRow$afterMatchingMeanComparator <- comparatorLabel
-  
-  subHeaderRow <- as.data.frame(t(rep("", ncol(resultsTable))))
-  colnames(subHeaderRow) <- colnames(resultsTable)
-  subHeaderRow$Characteristic <- "Characteristic"
-  subHeaderRow$beforeMatchingMeanTreated <- "%"
-  subHeaderRow$beforeMatchingMeanComparator <- "%"
-  subHeaderRow$absBeforeMatchingStdDiff <- "Std. diff"
-  subHeaderRow$afterMatchingMeanTreated <- "%"
-  subHeaderRow$afterMatchingMeanComparator <- "%"
-  subHeaderRow$absAfterMatchingStdDiff <- "Std. diff"
-  
-  resultsTable <- rbind(headerRow, subHeaderRow, resultsTable)
-  
-  colnames(resultsTable) <- rep("", ncol(resultsTable))
-  colnames(resultsTable)[2] <- beforeLabel
-  colnames(resultsTable)[5] <- afterLabel
-  return(resultsTable)
-}
