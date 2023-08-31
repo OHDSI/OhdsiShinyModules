@@ -31,27 +31,26 @@
 characterizationIncidenceViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
-    shinydashboard::box(
-      collapsible = TRUE,
-      collapsed = TRUE,
-      title = "Incidence Rates",
-      width = "100%",
-      shiny::htmlTemplate(system.file("characterization-www", "help-incidenceRate.html", package = utils::packageName()))
-      ),
+    #shinydashboard::box(
+    #  collapsible = TRUE,
+    #  collapsed = TRUE,
+    #  title = "Incidence Rates",
+    #  width = "100%",
+    #  shiny::htmlTemplate(system.file("characterization-www", "help-incidenceRate.html", package = utils::packageName()))
+    #  ),
     
-    shinydashboard::box(
-      width = "100%",
-      title = "Options",
-      collapsible = TRUE,
-      collapsed = F,
-      shiny::uiOutput(ns('cohortInputs'))
+    infoHelperViewer(
+      id = "helper",
+      helpLocation= system.file("characterization-www", "help-incidenceRate.html", package = utils::packageName())
+    ),
+    
+    inputSelectionViewer(
+      id = ns("input-selection")
     ),
     
     shiny::conditionalPanel(
-      condition = "input.generate != 0",
-      ns = ns,
-      
-      shiny::uiOutput(ns("inputsText")),
+      condition = 'input.generate != 0',
+      ns = shiny::NS(ns("input-selection")),
       
       shiny::tabsetPanel(
         type = 'pills',
@@ -66,9 +65,9 @@ characterizationIncidenceViewer <- function(id) {
           title = "Incidence Rate Plots",
           #code to view plot here
         )
+      )
     )
   )
-)
 }
 
 
@@ -87,153 +86,92 @@ characterizationIncidenceViewer <- function(id) {
 #'
 #' @export
 characterizationIncidenceServer <- function(
-  id, 
-  connectionHandler,
-  mainPanelTab,
-  resultDatabaseSettings
+    id, 
+    connectionHandler,
+    mainPanelTab,
+    resultDatabaseSettings
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      #if(mainPanelTab() != 'Time To Event'){
-      #  return(invisible(NULL))
-      #}
-      
-      #ns <- session$ns
-      
-      withTooltip <- function(value, tooltip, ...) {
-        shiny::div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
-                   tippy::tippy(value, tooltip, ...))
-      }
       
       cohorts <- getTargetOutcomes(
         connectionHandler,
         resultDatabaseSettings
       )
       
-
-      # update UI
-      output$cohortInputs <- shiny::renderUI({
-        
-        shiny::fluidPage(
-          shiny::fluidRow(
-            shiny::column(
-              width = 6,
-              shinyWidgets::pickerInput(
-                inputId = session$ns('targetIds'), 
-                label = 'Targets: ', 
-                choices = cohorts$targetIds, 
-                multiple = T,
-                choicesOpt = list(style = rep_len("color: black;", 999)),
-                selected = cohorts$targetIds,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            shiny::column(
-              width = 6,
-              shinyWidgets::pickerInput(
-                inputId = session$ns('outcomeIds'), 
-                label = 'Outcomes: ', 
-                choices = cohorts$outcomeIds,
-                multiple = T,
-                selected = cohorts$outcomeIds,
-                choicesOpt = list(style = rep_len("color: black;", 999)),
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
+      # input selection component
+      inputSelected <- inputSelectionServer(
+        id = "input-selection", 
+        inputSettingList = list(
+          createInputSetting(
+            rowNumber = 1,                           
+            columnWidth = 6,
+            varName = 'targetIds',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Target: ',
+              choices = cohorts$targetIds,
+              selected = cohorts$targetIds[1],
+              multiple = T,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
               )
             )
           ),
-          
-          shiny::actionButton(
-            inputId = session$ns('generate'),
-            label = 'Generate Report'
+          createInputSetting(
+            rowNumber = 1,                           
+            columnWidth = 6,
+            varName = 'outcomeIds',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Outcome: ',
+              choices = cohorts$outcomeIds,
+              selected = cohorts$outcomeIds[1],
+              multiple = T,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
           )
         )
-      })
+      )
+      
+      
       
       # allDataDownload <- shiny::reactiveVal(data.frame())
       # selectedInputs <- shiny::reactiveVal()
       # output$IRinputsText <- shiny::renderUI(selectedInputs())
       
       #if generate is pushed, extract the data
-      allData <- shiny::eventReactive(         #we care about returning this value, so we use eventReactive
-        eventExpr = input$generate,                     #could add complexity to event if desired
-        {
-          if (is.null(input$targetIds) |
-              is.null(input$outcomeIds)) {
-            data.frame()
-          }
-          
-          getIncidenceData(targetIds = input$targetIds,
-                           outcomeIds = input$outcomeIds,
-                           connectionHandler = connectionHandler,
-                           resultDatabaseSettings = resultDatabaseSettings
-                           ) %>%
-            dplyr::relocate(tar, .before = outcomes) %>%
-            dplyr::mutate(dplyr::across(dplyr::where(is.numeric), round, 4))
-        }
-      )
+      allData <- shiny::reactive({
+        getIncidenceData(targetIds = inputSelected()$targetIds,
+                         outcomeIds = inputSelected()$outcomeIds,
+                         connectionHandler = connectionHandler,
+                         resultDatabaseSettings = resultDatabaseSettings
+        ) %>%
+          dplyr::relocate(.data$tar, .before = .data$outcomes) %>%
+          dplyr::mutate(dplyr::across(dplyr::where(is.numeric), round, 4))
+      })
       
-      selectedInputs <- shiny::reactiveVal()
-      output$inputsText <- shiny::renderUI(selectedInputs())
-
-      # fetch data when targetIds or outcomeIds change
-      shiny::observeEvent(
-        eventExpr = input$generate,
-        {
-          if(is.null(input$targetIds) | is.null(input$outcomeIds)){
-            return(invisible(NULL))
-          }
-          
-          selectedInputs(
-            shinydashboard::box(
-              status = 'warning', 
-              width = "100%",
-              title = 'Selected:',
-              shiny::div(
-                shiny::fluidRow(
-                  shiny::column(
-                    width = 6,
-                    shiny::tags$b("Target(s):"),
-                    paste(unique(names(cohorts$targetIds)[cohorts$targetIds %in% input$targetIds]),
-                          collapse = ", "
-                  )
-                  ),
-                  shiny::column(
-                    width = 6,
-                    shiny::tags$b("Outcome(s):"),
-                    paste(unique(names(cohorts$outcomeIds)[cohorts$outcomeIds %in% input$outcomeIds]),
-                          collapse = ", "
-                  )
-                  )
-              )
-            )
-          )
-         )
-        }
-        )
       
       create_select_input <- function(values, name) {
-        tags$select(
+        shiny::tags$select(
           # Set to undefined to clear the filter
           onchange = sprintf("Reactable.setFilter('incidence-select', '%s', event.target.value || undefined)", name),
           # "All" has an empty value to clear the filter, and is the default option
-          tags$option(value = "", "All"),
-          lapply(unique(values), tags$option),
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
           "aria-label" = sprintf("Filter %s", name),
           style = "width: 100%; height: 28px;"
         )
@@ -496,12 +434,12 @@ characterizationIncidenceServer <- function(
       # # use the below as a guide to save named colDef list as JSON then read it back!
       #  ParallelLogger::saveSettingsToJson(customColDefs, "./inst/components-columnInformation/characterization-incidence-colDefs.json")
       #  loadTest <- ParallelLogger::loadSettingsFromJson("./inst/components-columnInformation/characterization-incidence-colDefs.json")
-
-
+      
+      
       
       incidenceColList <- ParallelLogger::loadSettingsFromJson(system.file("components-columnInformation",
-                                                                        "characterization-incidence-colDefs.json",
-                                                                        package = "OhdsiShinyModules")
+                                                                           "characterization-incidence-colDefs.json",
+                                                                           package = "OhdsiShinyModules")
       )
       
       resultTableServer(id = "incidenceRateTable",
@@ -518,13 +456,6 @@ characterizationIncidenceServer <- function(
       
     })
 }
-          
-      
-
-
-    
-          
-          
 
 
 
@@ -547,86 +478,93 @@ characterizationIncidenceServer <- function(
 
 
 
-          
-          #allDataDownload(allData)
-          
-          # do the plots reactively
-        #   output$incTable <- reactable::renderReactable(
-        #     {
-        #       reactable::reactable(
-        #         data = allData %>% 
-        #           dplyr::relocate("tar", .after = "cdmSourceAbbreviation") %>%
-        #           dplyr::relocate("personsAtRisk", .after = "tar") %>% 
-        #           dplyr::relocate("personDays", .after = "personsAtRisk") %>% 
-        #           dplyr::relocate("personOutcomes", .after = "personDays") %>% 
-        #           dplyr::relocate("incidenceProportionP100p", .after = "personOutcomes") %>% 
-        #           dplyr::relocate("incidenceRateP100py", .after = "incidenceProportionP100p") 
-        #           ,
-        #         filterable = TRUE,
-        #         showPageSizeOptions = TRUE,
-        #         pageSizeOptions = c(10, 50, 100,1000),
-        #         defaultPageSize = 50,
-        #         striped = TRUE,
-        #         highlight = TRUE,
-        #         elementId = "desc-incidence-select",
-        #         
-        #         columns = list(
-        #           cdmSourceAbbreviation = reactable::colDef( 
-        #             name = 'Database',
-        #             sticky = "left",
-        #             filterInput = function(values, name) {
-        #               shiny::tags$select(
-        #                 # Set to undefined to clear the filter
-        #                 onchange = sprintf("Reactable.setFilter('desc-incidence-select', '%s', event.target.value || undefined)", name),
-        #                 # "All" has an empty value to clear the filter, and is the default option
-        #                 shiny::tags$option(value = "", "All"),
-        #                 lapply(unique(values), shiny::tags$option),
-        #                 "aria-label" = sprintf("Filter %s", name),
-        #                 style = "width: 100%; height: 28px;"
-        #               )
-        #             }
-        #           ),
-        #           tar = reactable::colDef( 
-        #             filterInput = function(values, name) {
-        #               shiny::tags$select(
-        #                 # Set to undefined to clear the filter
-        #                 onchange = sprintf("Reactable.setFilter('desc-incidence-select', '%s', event.target.value || undefined)", name),
-        #                 # "All" has an empty value to clear the filter, and is the default option
-        #                 shiny::tags$option(value = "", "All"),
-        #                 lapply(unique(values), shiny::tags$option),
-        #                 "aria-label" = sprintf("Filter %s", name),
-        #                 style = "width: 100%; height: 28px;"
-        #               )
-        #             }
-        #           ),
-        #           refId = reactable::colDef(show = F),
-        #           databaseId = reactable::colDef(show = F),
-        #           sourceName = reactable::colDef(show = F),
-        #           targetCohortDefinitionId = reactable::colDef(show = F),
-        #           targetName = reactable::colDef(show = F),
-        #           outcomeId = reactable::colDef(show = F),
-        #           outcomeCohortDefinitionId = reactable::colDef(show = F),
-        #           outcomeName = reactable::colDef(show = F),
-        #           outcomeId = reactable::colDef(show = F),
-        #           ageId = reactable::colDef(show = F),
-        #           genderId = reactable::colDef(show = F),
-        #           subgroupId = reactable::colDef(show = F),
-        #           incidenceProportionP100p = reactable::colDef(
-        #             format = reactable::colFormat(digits = 4)
-        #           ),
-        #           incidenceRateP100py = reactable::colDef(
-        #             format = reactable::colFormat(digits = 4)
-        #           )
-        #         )
-        #         
-        #         
-        #         
-        #         
-        #       )
-        #     }
-        #   )
-        #   
-        # }
+
+
+
+
+
+
+
+
+#allDataDownload(allData)
+
+# do the plots reactively
+#   output$incTable <- reactable::renderReactable(
+#     {
+#       reactable::reactable(
+#         data = allData %>% 
+#           dplyr::relocate("tar", .after = "cdmSourceAbbreviation") %>%
+#           dplyr::relocate("personsAtRisk", .after = "tar") %>% 
+#           dplyr::relocate("personDays", .after = "personsAtRisk") %>% 
+#           dplyr::relocate("personOutcomes", .after = "personDays") %>% 
+#           dplyr::relocate("incidenceProportionP100p", .after = "personOutcomes") %>% 
+#           dplyr::relocate("incidenceRateP100py", .after = "incidenceProportionP100p") 
+#           ,
+#         filterable = TRUE,
+#         showPageSizeOptions = TRUE,
+#         pageSizeOptions = c(10, 50, 100,1000),
+#         defaultPageSize = 50,
+#         striped = TRUE,
+#         highlight = TRUE,
+#         elementId = "desc-incidence-select",
+#         
+#         columns = list(
+#           cdmSourceAbbreviation = reactable::colDef( 
+#             name = 'Database',
+#             sticky = "left",
+#             filterInput = function(values, name) {
+#               shiny::tags$select(
+#                 # Set to undefined to clear the filter
+#                 onchange = sprintf("Reactable.setFilter('desc-incidence-select', '%s', event.target.value || undefined)", name),
+#                 # "All" has an empty value to clear the filter, and is the default option
+#                 shiny::tags$option(value = "", "All"),
+#                 lapply(unique(values), shiny::tags$option),
+#                 "aria-label" = sprintf("Filter %s", name),
+#                 style = "width: 100%; height: 28px;"
+#               )
+#             }
+#           ),
+#           tar = reactable::colDef( 
+#             filterInput = function(values, name) {
+#               shiny::tags$select(
+#                 # Set to undefined to clear the filter
+#                 onchange = sprintf("Reactable.setFilter('desc-incidence-select', '%s', event.target.value || undefined)", name),
+#                 # "All" has an empty value to clear the filter, and is the default option
+#                 shiny::tags$option(value = "", "All"),
+#                 lapply(unique(values), shiny::tags$option),
+#                 "aria-label" = sprintf("Filter %s", name),
+#                 style = "width: 100%; height: 28px;"
+#               )
+#             }
+#           ),
+#           refId = reactable::colDef(show = F),
+#           databaseId = reactable::colDef(show = F),
+#           sourceName = reactable::colDef(show = F),
+#           targetCohortDefinitionId = reactable::colDef(show = F),
+#           targetName = reactable::colDef(show = F),
+#           outcomeId = reactable::colDef(show = F),
+#           outcomeCohortDefinitionId = reactable::colDef(show = F),
+#           outcomeName = reactable::colDef(show = F),
+#           outcomeId = reactable::colDef(show = F),
+#           ageId = reactable::colDef(show = F),
+#           genderId = reactable::colDef(show = F),
+#           subgroupId = reactable::colDef(show = F),
+#           incidenceProportionP100p = reactable::colDef(
+#             format = reactable::colFormat(digits = 4)
+#           ),
+#           incidenceRateP100py = reactable::colDef(
+#             format = reactable::colFormat(digits = 4)
+#           )
+#         )
+#         
+#         
+#         
+#         
+#       )
+#     }
+#   )
+#   
+# }
 #       )
 #       
 #       # download
@@ -647,14 +585,14 @@ characterizationIncidenceServer <- function(
 # }
 
 getIncidenceData <- function(
-  targetIds,
-  outcomeIds,
-  connectionHandler,
-  resultDatabaseSettings
+    targetIds,
+    outcomeIds,
+    connectionHandler,
+    resultDatabaseSettings
 ){
   
   #shiny::withProgress(message = 'Getting incidence data', value = 0, {
-    
+  
   sql <- 'select d.cdm_source_abbreviation, i.* 
     from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
     inner join @result_schema.@database_table_name d
@@ -696,35 +634,35 @@ getTargetOutcomes <- function(
 ){
   
   shiny::withProgress(message = 'Getting incidence inputs', value = 0, {
-  
-  sql <- 'select distinct target_cohort_definition_id, target_name 
+    
+    sql <- 'select distinct target_cohort_definition_id, target_name 
   from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  
-  shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
-
-  targets <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-  )
-  targetIds <- targets$targetCohortDefinitionId
-  names(targetIds) <- targets$targetName
-  
-  sql <- 'select distinct outcome_cohort_definition_id, outcome_name 
+    
+    shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
+    
+    targets <- connectionHandler$queryDb(
+      sql = sql, 
+      result_schema = resultDatabaseSettings$schema,
+      incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+    )
+    targetIds <- targets$targetCohortDefinitionId
+    names(targetIds) <- targets$targetName
+    
+    sql <- 'select distinct outcome_cohort_definition_id, outcome_name 
   from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-
-  shiny::incProgress(2/3, detail = paste("Created SQL - Extracting outcomes"))
-  
-  outcomes <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-  )
-  
-  outcomeIds <- outcomes$outcomeCohortDefinitionId
-  names(outcomeIds) <- outcomes$outcomeName
-  
-  shiny::incProgress(3/3, detail = paste("Done"))
+    
+    shiny::incProgress(2/3, detail = paste("Created SQL - Extracting outcomes"))
+    
+    outcomes <- connectionHandler$queryDb(
+      sql = sql, 
+      result_schema = resultDatabaseSettings$schema,
+      incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+    )
+    
+    outcomeIds <- outcomes$outcomeCohortDefinitionId
+    names(outcomeIds) <- outcomes$outcomeName
+    
+    shiny::incProgress(3/3, detail = paste("Done"))
   })
   
   return(

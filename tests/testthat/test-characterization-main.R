@@ -18,6 +18,6 @@ shiny::testServer(
 
 test_that("Test characterization ui", {
   # Test ui
-  ui <- characterizationViewer()
+  ui <- characterizationViewer(id = 'viewer')
   checkmate::expect_list(ui)
 })

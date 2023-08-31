@@ -27,3 +27,9 @@ shiny::testServer(
 
     
   })
+
+test_that("Test characterizationTable ui", {
+  # Test ui
+  ui <- characterizationTableViewer(id = 'viewer')
+  checkmate::expect_list(ui)
+})

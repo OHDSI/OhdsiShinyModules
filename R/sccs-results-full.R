@@ -96,6 +96,7 @@ sccsFullResultViewer <- function(id) {
   
 }
 
+
 sccsFullResultServer <- function(
     id,
     connectionHandler,
@@ -122,7 +123,6 @@ sccsFullResultServer <- function(
             "databaseName"
           ) %>%
           dplyr::rename(
-            #'Target' = .data$covariateName,
             'Outcome' = .data$outcome,
             'Analysis' = .data$description,
             'Database' = .data$databaseName

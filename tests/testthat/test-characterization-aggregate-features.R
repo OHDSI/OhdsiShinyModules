@@ -26,3 +26,10 @@ shiny::testServer(
     testthat::expect_true(!is.null(allData))
     
   })
+
+
+test_that("Test characterizationAggregateFeatures ui", {
+  # Test ui
+  ui <- characterizationAggregateFeaturesViewer(id = 'viewer')
+  checkmate::expect_list(ui)
+})

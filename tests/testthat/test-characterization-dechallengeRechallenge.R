@@ -25,3 +25,9 @@ shiny::testServer(
     ##testthat::expect_true(!is.null(allData()))
     
   })
+
+test_that("Test characterizationDechallengeRechallenge ui", {
+  # Test ui
+  ui <- characterizationDechallengeRechallengeViewer(id = 'viewer')
+  checkmate::expect_list(ui)
+})
