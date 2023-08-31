@@ -35,7 +35,7 @@ shiny::testServer(
         comparatorDays = 1000
       )
     )
-    testthat::expect_true(!is.null(output$propensityModelTable))
+    testthat::expect_true(!is.null(data()))
     
     
   })

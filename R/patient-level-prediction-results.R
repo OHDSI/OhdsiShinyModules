@@ -131,14 +131,14 @@ patientLevelPredictionResultsServer <- function(
         }
       })
       
-      output$resultSelectText <- shiny::renderUI(
-        getPlpResultSelection(
-          connectionHandler = connectionHandler, 
-          resultDatabaseSettings = resultDatabaseSettings,
-          modelDesignId = modelDesignId,
-          performanceId = performanceId
-        )
-      )
+      #output$resultSelectText <- shiny::renderUI(
+      #  getPlpResultSelection(
+      #    connectionHandler = connectionHandler, 
+      #    resultDatabaseSettings = resultDatabaseSettings,
+      #    modelDesignId = modelDesignId,
+      #    performanceId = performanceId
+      #  )
+      #)
       
       patientLevelPredictionCovariateSummaryServer(
         id = 'covariateSummary',

@@ -357,6 +357,7 @@ getModelDesignPerformanceSummary <- function(
   
 }
 
+# repeated function?
 editTar <- function(summaryTable){
   
   summaryTable <- summaryTable %>% dplyr::mutate(TAR = paste0('(',trimws(.data$tarStartAnchor),' + ',.data$tarStartDay, ') - (',trimws(.data$tarEndAnchor),' + ',.data$tarEndDay, ')' )) %>%
