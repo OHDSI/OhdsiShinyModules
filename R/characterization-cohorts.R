@@ -47,7 +47,12 @@ characterizationTableViewer <- function(id) {
       condition = 'input.generate != 0',
       ns = shiny::NS(ns("input-selection")),
       
-      resultTableViewer(ns("result-table"))
+      largeTableView(
+        id = ns('large-table'), 
+        pageSizeChoices = c(10,25,50,100), 
+        selectedPageSize = 100, 
+        fullDownloads = TRUE
+        )
     )
   )
 }
@@ -88,7 +93,7 @@ characterizationTableServer <- function(
         inputSettingList = list(
           createInputSetting(
             rowNumber = 1,                           
-            columnWidth = 4,
+            columnWidth = 6,
             varName = 'targetIds',
             uiFunction = 'shinyWidgets::pickerInput',
             uiInputs = list(
@@ -107,9 +112,9 @@ characterizationTableServer <- function(
             )
           ),
           createInputSetting(
-            rowNumber = 2,                           
-            columnWidth = 3,
-            varName = 'databaseId',
+            rowNumber = 1,                           
+            columnWidth = 6,
+            varName = 'databaseIds',
             uiFunction = 'shinyWidgets::pickerInput',
             uiInputs = list(
               label = 'Database: ',
@@ -125,49 +130,148 @@ characterizationTableServer <- function(
                 virtualScroll = 50
               )
             )
+          ),
+          
+          createInputSetting(
+            rowNumber = 2,                           
+            columnWidth = 6,
+            varName = 'analysisIds',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Covariate Type: ',
+              choices = inputVals$analysisIds,
+              selected = inputVals$analysisIds[1],
+              multiple = T,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
           )
           
       )
       )
       
-    
-      allData <- shiny::reactive({
-        getDesFEData(
-              targetIds = inputSelected()$targetIds,
-              databaseId = inputSelected()$databaseId,
-              connectionHandler = connectionHandler,
-              resultDatabaseSettings = resultDatabaseSettings
+      
+      inputParams <- shiny::reactive({
+        if(is.null(inputSelected()$targetIds) | is.null(inputSelected()$databaseIds) | is.null(inputSelected()$analysisIds)){
+          return(list(
+            schema = resultDatabaseSettings$schema,
+            c_table_prefix = resultDatabaseSettings$cTablePrefix,
+            analysis_ids = 0
+          ))
+        }
+        temp <- expand.grid(inputSelected()$targetIds,inputSelected()$databaseIds)
+        
+        res <- c(
+          as.character(temp$Var2), 
+          as.character(temp$Var1), 
+          resultDatabaseSettings$schema, 
+          resultDatabaseSettings$cTablePrefix,
+          paste0(inputSelected()$analysisIds, collapse = ',')
             )
-          })
-      
-      #cols: covariateId, covariateName, analysisName,
-      #averageValue_"target", countValue_"target"
-      
-      custom_colDefs <- list(
-        covariateId = reactable::colDef(
-          header = withTooltip("Covariate ID",
-                               "Unique identifier of the covariate")
-        ),
-        covariateName = reactable::colDef(
-          header = withTooltip(
-            "Covariate Name",
-            "The name of the covariate"
+        names(res) <- c(
+          paste0('database', 1:nrow(temp)), 
+          paste0('target', 1:nrow(temp)),
+          'schema',
+          'c_table_prefix',
+          'analysis_ids'
           )
-        ),
-        analysisName = reactable::colDef(
-          header = withTooltip(
-            "Covariate Class",
-            "Class/type of the covariate"
+        res <- as.list(res)
+        return(res)
+      })
+      
+      
+      columns <- shiny::reactive({
+        
+        result <- list(
+          covariateId = reactable::colDef(
+            header = withTooltip("Covariate ID",
+                                 "Unique identifier of the covariate")
+          ),
+          covariateName = reactable::colDef(
+            header = withTooltip(
+              "Covariate Name",
+              "The name of the covariate"
+            )
+          ),
+          analysisName = reactable::colDef(
+            header = withTooltip(
+              "Covariate Class",
+              "Class/type of the covariate"
+            )
           )
         )
+        
+        if(is.null(inputSelected()$targetIds) | is.null(inputSelected()$databaseIds)){
+          return(result) 
+        } else{
+          temp <- expand.grid(inputSelected()$targetIds,inputSelected()$databaseIds)
+          temp[,2] <- as.double(as.character(temp[,2]))
+          
+          for(i in 1:nrow(temp)){
+            
+            targetName = names(inputVals$cohortIds)[temp[i,1] == inputVals$cohortIds]
+            databaseName = names(inputVals$databaseIds)[temp[i,2] == inputVals$databaseIds]
+            
+            result[[length(result) + 1]] <- reactable::colDef(
+              header = withTooltip(
+                paste0("Count-", temp[i,1], '-',temp[i,2]),
+                paste0("The number of patients in database ", databaseName, ' and target ', targetName, ' who has the covariate')
+              )
+            )
+            
+            names(result)[length(result)] <- paste0('countT', temp[i,1], 'D', ifelse(temp[i,2] <0, 'n', ''), abs(temp[i,2]) )
+            
+            result[[length(result) + 1]] <- reactable::colDef(
+              header = withTooltip(
+                paste0("Mean-", temp[i,1], '-', temp[i,2]),
+                paste0("The mean covariate value for patients in database ", databaseName, ' and target ', targetName)
+              ), 
+              format = reactable::colFormat(
+                digits = 3
+                )
+            )
+            names(result)[length(result)] <- paste0('averageT', temp[i,1], 'D', ifelse(temp[i,2] <0, 'n', ''), abs(temp[i,2]) )
+            
+          }
+          return(result) 
+        }
+        
+      })
+      
+      baseQuery <- shiny::reactive({
+        createSqlCharacterizationLargeTable2(
+          targetIds = inputSelected()$targetIds,
+          databaseIds = inputSelected()$databaseIds
+        )
+      }
       )
       
-      resultTableServer(
-        id = "result-table",
-        df = allData,
-        colDefsInput = custom_colDefs
-      )
+      countQuery <- "SELECT count(*) from (select distinct covariate_id, covariate_name FROM @schema.@c_table_prefixcovariate_ref where analysis_id in (@analysis_ids)) temp"
+      
+      # new large table code
+      shiny::observeEvent(baseQuery(),{
+        
+        largeTable <- createLargeSqlQueryDt(
+            connectionHandler = connectionHandler,
+            baseQuery = baseQuery(),
+            countQuery = countQuery
+          )
 
+      largeTableServer(
+        id = 'large-table',
+        ldt = largeTable,
+        inputParams = inputParams,
+        #modifyData = NULL,
+        columns = columns,
+      ) 
+        })
+      
       return(invisible(NULL))
       
     })
@@ -175,93 +279,73 @@ characterizationTableServer <- function(
 }
 
 
-getDesFEData <- function(
+createSqlCharacterizationLargeTable2 <- function(
     targetIds,
-    databaseId,
-    connectionHandler,
-    resultDatabaseSettings
-) {
-  #  shiny::withProgress(message = 'Getting target comparison data', value = 0, {
+    databaseIds
+){
   
-  if(is.null(targetIds)){
-    return(NULL)
+  if(is.null(targetIds) | is.null(databaseIds)){
+    return('SELECT distinct covariate_id, covariate_name FROM @schema.@c_table_prefixcovariate_ref where analysis_id in (@analysis_ids)')
   }
-  if(is.null(databaseId)){
-    return(NULL)
-  }
-  sql <-
-    "select distinct ref.covariate_id, ref.covariate_name, an.analysis_name, c.cohort_name, covs.COUNT_VALUE, covs.AVERAGE_VALUE
-  from
-  (
-  select co.RUN_ID, cd.TARGET_COHORT_ID as COHORT_DEFINITION_ID, co.COVARIATE_ID,
-  co.SUM_VALUE as COUNT_VALUE,	co.AVERAGE_VALUE*100 as AVERAGE_VALUE from
-   @schema.@c_table_prefixCOVARIATES co
-   inner join
-   (select * from @schema.@c_table_prefixcohort_details
-   where DATABASE_ID = '@database_id' and
-   TARGET_COHORT_ID in (@cohort_ids) and COHORT_TYPE = 'T'
-   ) as cd
-   on co.COHORT_DEFINITION_ID = cd.COHORT_DEFINITION_ID
-   and co.DATABASE_ID = cd.DATABASE_ID
-  union
-  select cc.RUN_ID, cds.TARGET_COHORT_ID as COHORT_DEFINITION_ID, cc.COVARIATE_ID,	cc.COUNT_VALUE,	cc.AVERAGE_VALUE from
-    @schema.@c_table_prefixCOVARIATES_continuous cc
-    inner join
-    (select * from @schema.@c_table_prefixcohort_details
-   where DATABASE_ID = '@database_id' and
-   TARGET_COHORT_ID in (@cohort_ids) and COHORT_TYPE = 'T'
-   ) as cds
-   on cc.COHORT_DEFINITION_ID = cds.COHORT_DEFINITION_ID
-    and cc.DATABASE_ID = cds.DATABASE_ID
-  ) covs
+  
+  combinations <- expand.grid(targetIds, databaseIds)
+  combinations[,2] <- as.double(as.character(combinations[,2]))
+  
+sql <- paste0(
+"select ref.covariate_id, ref.covariate_name, an.analysis_name,",
+
+paste(
+  lapply(1:nrow(combinations), function(i){
+    paste0(
+"max(case when temp.selection_id = ",i," then temp.sum_value else 0 end) as count_t",combinations[i,1],'_d',ifelse(combinations[i,2] <0, 'n', ''),abs(combinations[i,2]),",",
+"max(case when temp.selection_id = ",i," then temp.average_value else 0 end) as average_t",combinations[i,1],'_d',ifelse(combinations[i,2] <0, 'n', ''),abs(combinations[i,2])
+)}), collapse = ','),
+
+" from @schema.@c_table_prefixcovariate_ref ref
+ inner join @schema.@c_table_prefixanalysis_ref an
+ on an.RUN_ID = ref.RUN_ID and
+  an.analysis_id = ref.analysis_id and
+  ref.analysis_id in (@analysis_ids)
+  
+
+ left join
+
+( ",
+  
+  
+paste(
+    lapply(1:nrow(combinations), function(i){
+      paste0(
+        "
+  select 
+  co",i,".run_id, co",i,".COVARIATE_ID, co",i,".SUM_VALUE,	co",i,".AVERAGE_VALUE,
+  ",i," as selection_id
+   from
+  @schema.@c_table_prefixCOVARIATES co",i," 
   inner join
-  @schema.@c_table_prefixcovariate_ref ref
-  on covs.RUN_ID = ref.RUN_ID and
-  covs.COVARIATE_ID = ref.COVARIATE_ID
-  inner join @schema.@c_table_prefixanalysis_ref an
-  on an.RUN_ID = ref.RUN_ID and
-  an.analysis_id = ref.analysis_id
-  inner join @schema.@cg_table_prefixcohort_definition c
-  on c.cohort_definition_id = covs.COHORT_DEFINITION_ID
-  ;
-  "
-  
-  #  shiny::incProgress(1/3, detail = paste("Created SQL - Extracting..."))
-  
-  resultTable <- connectionHandler$queryDb(
-    sql = sql,
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-    cohort_ids = paste(as.double(targetIds), collapse = ','),
-    database_id = databaseId
-  )
-  
-  #  shiny::incProgress(2/3, detail = paste("Formating"))
-  
-  #format
-  resultTable$averageValue <- round(
-    x = resultTable$averageValue, 
-    digits = 2
-    )
-  
-  resultTable <- resultTable %>%
-    tidyr::pivot_wider(
-      names_from = "cohortName",
-      #.data$cohortName,
-      values_from = c("averageValue", "countValue"),
-      #c(.data$averageValue, .data$countValue),
-      id_cols = c("covariateId", "covariateName", "analysisName") #c(.data$covariateId, .data$covariateName, .data$analysisName)
-    )
-  
-  resultTable$analysisName <- as.factor(resultTable$analysisName)
-  
-  #  shiny::incProgress(3/3, detail = paste("Done"))
-  
-  # })
-  
-  return(resultTable)
+  (select * from @schema.@c_table_prefixcohort_details
+    where DATABASE_ID = '@database",i,"' and
+    TARGET_COHORT_ID = @target",i," and COHORT_TYPE = 'T'
+  ) as cd",i,"
+  on co",i,".COHORT_DEFINITION_ID = cd",i,".COHORT_DEFINITION_ID
+  and co",i,".DATABASE_ID = cd",i,".DATABASE_ID"
+        )
+
+    }), collapse = ' union '),
+ 
+") temp 
+on ref.run_id = temp.run_id and 
+ref.covariate_id = temp.covariate_id
+
+group by 
+ref.covariate_id, ref.covariate_name, an.analysis_name
+"
+
+)
+return(sql)
 }
+
+
 
 
 getDecCohortsInputs <- function(
@@ -308,6 +392,21 @@ getDecCohortsInputs <- function(
   databaseIds <- database$databaseId
   names(databaseIds) <- database$databaseName
   
+  
+  sql <- 'select distinct analysis_id, analysis_name 
+  from @schema.@c_table_prefixanalysis_ref order by analysis_name desc;'
+  
+  #shiny::incProgress(3/4, detail = paste("Extracting databaseIds"))
+  
+  analyses <- connectionHandler$queryDb(
+    sql = sql,
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix
+  )
+  analysisIds <- analyses$analysisId
+  names(analysisIds) <- analyses$analysisName
+  
+  
   #shiny::incProgress(4/4, detail = paste("Done"))
   
   #  })
@@ -315,7 +414,8 @@ getDecCohortsInputs <- function(
   return(
     list(
       cohortIds = ids,
-      databaseIds = databaseIds
+      databaseIds = databaseIds,
+      analysisIds = analysisIds
     )
   )
   
