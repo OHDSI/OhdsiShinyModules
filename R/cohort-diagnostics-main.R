@@ -105,15 +105,15 @@ getEnabledCdReports <- function(dataSource) {
 #'
 #' @export
 createCdDatabaseDataSource <- function(
-    connectionHandler,
-    resultDatabaseSettings,
-    dataModelSpecificationsPath = system.file("cohort-diagnostics-ref",
-                                              "resultsDataModelSpecification.csv",
-                                              package = utils::packageName()),
-    dataMigrationsRef = system.file("cohort-diagnostics-ref",
-                                    "migrations.csv",
-                                    package = utils::packageName()),
-    displayProgress = FALSE
+  connectionHandler,
+  resultDatabaseSettings,
+  dataModelSpecificationsPath = system.file("cohort-diagnostics-ref",
+                                            "resultsDataModelSpecification.csv",
+                                            package = utils::packageName()),
+  dataMigrationsRef = system.file("cohort-diagnostics-ref",
+                                  "migrations.csv",
+                                  package = utils::packageName()),
+  displayProgress = FALSE
 ) {
 
   checkmate::assertR6(connectionHandler, "ConnectionHandler")
@@ -271,19 +271,19 @@ createCdDatabaseDataSource <- function(
 
 # SO much of the app requires this table in memory - it would be much better to re-write queries to not need it!
 getDatabaseTable <- function(dataSource) {
-  
+
   # hot fix
-  if(tolower(paste0(dataSource$databaseTablePrefix, dataSource$databaseTable)) == 'database_meta_data'){
+  if (tolower(paste0(dataSource$databaseTablePrefix, dataSource$databaseTable)) == 'database_meta_data') {
     databaseTable <- dataSource$connectionHandler$queryDb(
       "SELECT *, cdm_source_abbreviation as database_name FROM @schema.@table_name",
       schema = dataSource$schema,
       table_name = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable)
     ) # end hot fix
-  } else{
-  databaseTable <- loadResultsTable(
-    dataSource = dataSource, 
-    tableName = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable), 
-    required = TRUE
+  } else {
+    databaseTable <- loadResultsTable(
+      dataSource = dataSource,
+      tableName = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable),
+      required = TRUE
     )
   }
 
@@ -301,21 +301,21 @@ getDatabaseTable <- function(dataSource) {
 # SO much of the app requires this table in memory - it would be much better to re-write queries to not need it!
 getCohortTable <- function(dataSource) {
   if (tableIsEmpty(
-      dataSource = dataSource, 
-      tableName = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
-    )
-    ) {
+    dataSource = dataSource,
+    tableName = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
+  )
+  ) {
     return(data.frame())
   }
   # hot fix
-  if(paste0(dataSource$cgTablePrefix, dataSource$cgTable) == 'cg_cohort_definition'){
+  if (paste0(dataSource$cgTablePrefix, dataSource$cgTable) == 'cg_cohort_definition') {
     cohortTable <- dataSource$connectionHandler$queryDb(
       "SELECT cohort_definition_id as cohort_id, cohort_name FROM @schema.@table_name",
       schema = dataSource$schema,
       table_name = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
     )
-   # end hot fix
-  } else{
+    # end hot fix
+  } else {
     cohortTable <- dataSource$connectionHandler$queryDb(
       "SELECT cohort_id, cohort_name FROM @schema.@table_name",
       schema = dataSource$schema,
@@ -407,10 +407,9 @@ getResultsTemporalTimeRef <- function(dataSource) {
 #' @param dataSource                    dataSource optionally created with createCdDatabaseDataSource
 #' @export
 cohortDiagnosticsServer <- function(id,
-                                   connectionHandler,
-                                   resultDatabaseSettings,
-                                   dataSource = NULL) {
-  ns <- shiny::NS(id)
+                                    connectionHandler,
+                                    resultDatabaseSettings,
+                                    dataSource = NULL) {
 
   checkmate::assertClass(dataSource, "CdDataSource", null.ok = TRUE)
   if (is.null(dataSource)) {
@@ -419,70 +418,16 @@ cohortDiagnosticsServer <- function(id,
       createCdDatabaseDataSource(
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings,
-        #schema = resultDatabaseSettings$schema,
-        #vocabularyDatabaseSchema = resultDatabaseSettings$vocabularyDatabaseSchema, # is this in results?
-        #cdTablePrefix = resultDatabaseSettings$cdTablePrefix,
-        #cgTableName = resultDatabaseSettings$cgTable, # different for CD?
-        #databaseTableName = paste0(resultDatabaseSettings$databaseTablePrefix,resultDatabaseSettings$databaseTable),
         displayProgress = TRUE
       )
   }
-
   shiny::moduleServer(id, function(input, output, session) {
     databaseTable <- dataSource$dbTable
     cohortTable <- dataSource$cohortTable
     conceptSets <- dataSource$conceptSets
     cohortCountTable <- dataSource$cohortCountTable
-    enabledReports <- dataSource$enabledReports
     temporalChoices <- dataSource$temporalChoices
     temporalCharacterizationTimeIdChoices <- dataSource$temporalCharacterizationTimeIdChoices
-
-    shiny::observe({
-
-      selection <- c(
-        "Cohort Definitions" = "cohortDefinitions",
-        "Database Information" = "databaseInformation"
-      )
-      if ("cohortCount" %in% dataSource$enabledReports)
-        selection["Cohort Counts"] <- "cohortCounts"
-
-      if ("indexEvents" %in% dataSource$enabledReports)
-        selection["Index Events"] <- "indexEvents"
-
-      if ("temporalCovariateValue" %in% dataSource$enabledReports) {
-        selection["Cohort Characterization"] <- "characterization"
-        selection["Compare Cohort Characterization"] <- "compareCohortCharacterization"
-        selection["Time Distributions"] <- "timeDistribution"
-      }
-
-      if ("relationship" %in% dataSource$enabledReports)
-        selection["Cohort Overlap"] <- "cohortOverlap"
-
-      if ("cohortInclusion" %in% dataSource$enabledReports)
-        selection["Inclusion Rule Statistics"] <- "inclusionRules"
-
-      if ("incidenceRate" %in% dataSource$enabledReports)
-        selection["Incidence"] <- "incidenceRates"
-
-      if ("visitContext" %in% dataSource$enabledReports)
-        selection["Visit Context"] <- "visitContext"
-
-      if ("includedSourceConcept" %in% dataSource$enabledReports)
-        selection["Concepts In Data Source"] <- "conceptsInDataSource"
-
-      if ("orphanConcepts" %in% dataSource$enabledReports)
-        selection["Orphan Concepts"] <- "orphanConcepts"
-
-      if ("indexEventBreakdown" %in% dataSource$enabledReports)
-        selection["Index Event Breakdown"] <- "indexEventBreakdown"
-
-      shiny::updateSelectInput(
-        inputId = "tabs",
-        label = "Select Report",
-        choices = selection,
-        selected = c("cohortDefinitions")
-      )
-    })
 
     # Reacive: targetCohortId
     targetCohortId <- shiny::reactive({
@@ -631,112 +576,19 @@ cohortDiagnosticsServer <- function(id,
       return(input$targetCohort)
     })
 
-    if ("cohort" %in% enabledReports) {
-      cohortDefinitionsModule(id = "cohortDefinitions",
-                              dataSource = dataSource,
-                              cohortDefinitions = cohortSubset)
-    }
+    globalStateVars <- shiny::reactiveValues(
+      cohortIds = cohortIds(),
+      targetCohortId = targetCohortId(),
+      selectedCohort = selectedCohort(),
+      selectedCohorts = selectedCohorts(),
+      cohortDefinitions = cohortSubset(),
+      selectedTemporalTimeIds = selectedTemporalTimeIds(),
+      selectedDatabaseIds = selectedDatabaseIds(),
+      conceptSetIds = conceptSetIds(),
+      selectedConceptSets = selectedConceptSets()
+    )
 
-    if ("includedSourceConcept" %in% enabledReports) {
-      conceptsInDataSourceModule(id = "conceptsInDataSource",
-                                 dataSource = dataSource,
-                                 selectedCohort = selectedCohort,
-                                 selectedDatabaseIds = selectedDatabaseIds,
-                                 targetCohortId = targetCohortId,
-                                 selectedConceptSets = selectedConceptSets,
-                                 databaseTable = databaseTable)
-    }
-
-    if ("orphanConcept" %in% enabledReports) {
-      orphanConceptsModule("orphanConcepts",
-                           dataSource = dataSource,
-                           databaseTable = databaseTable,
-                           selectedCohort = selectedCohort,
-                           selectedDatabaseIds = selectedDatabaseIds,
-                           targetCohortId = targetCohortId,
-                           selectedConceptSets = selectedConceptSets,
-                           conceptSetIds = conceptSetIds)
-    }
-
-    if ("cohortCount" %in% enabledReports) {
-      cohortCountsModule(id = "cohortCounts",
-                         dataSource = dataSource,
-                         cohortTable = cohortTable, # The injection of tables like this should be removed
-                         databaseTable = databaseTable, # The injection of tables like this should be removed
-                         selectedCohorts = selectedCohorts,
-                         selectedDatabaseIds = selectedDatabaseIds,
-                         cohortIds = cohortIds)
-    }
-
-    if ("indexEventBreakdown" %in% enabledReports) {
-      indexEventBreakdownModule("indexEvents",
-                                dataSource = dataSource,
-                                selectedCohort = selectedCohort,
-                                targetCohortId = targetCohortId,
-                                cohortCountTable = cohortCountTable,
-                                selectedDatabaseIds = selectedDatabaseIds)
-    }
-
-    if ("visitContext" %in% enabledReports) {
-      visitContextModule(id = "visitContext",
-                         dataSource = dataSource,
-                         selectedCohort = selectedCohort,
-                         selectedDatabaseIds = selectedDatabaseIds,
-                         targetCohortId = targetCohortId,
-                         cohortCountTable = cohortCountTable,
-                         databaseTable = databaseTable)
-    }
-
-    if ("relationship" %in% enabledReports) {
-      cohortOverlapModule(id = "cohortOverlap",
-                          dataSource = dataSource,
-                          selectedCohorts = selectedCohorts,
-                          selectedDatabaseIds = selectedDatabaseIds,
-                          targetCohortId = targetCohortId,
-                          cohortIds = cohortIds,
-                          cohortTable = cohortTable)
-    }
-
-    if ("temporalCovariateValue" %in% enabledReports) {
-      timeDistributionsModule(id = "timeDistributions",
-                              dataSource = dataSource,
-                              selectedCohorts = selectedCohorts,
-                              cohortIds = cohortIds,
-                              selectedDatabaseIds = selectedDatabaseIds)
-
-      cohortDiagCharacterizationModule(id = "characterization",
-                             dataSource = dataSource)
-
-      compareCohortCharacterizationModule(id = "compareCohortCharacterization",
-                                          dataSource = dataSource)
-    }
-
-    if ("incidenceRate" %in% enabledReports) {
-      incidenceRatesModule(id = "incidenceRates",
-                           dataSource = dataSource,
-                           selectedCohorts = selectedCohorts,
-                           cohortIds = cohortIds,
-                           selectedDatabaseIds = selectedDatabaseIds,
-                           databaseTable = databaseTable,
-                           cohortTable = cohortTable)
-    }
-
-    if ("cohortInclusion" %in% enabledReports) {
-      inclusionRulesModule(id = "inclusionRules",
-                           dataSource = dataSource,
-                           databaseTable = databaseTable,
-                           selectedCohort = selectedCohort,
-                           targetCohortId = targetCohortId,
-                           selectedDatabaseIds = selectedDatabaseIds)
-
-    }
-    databaseInformationModule(id = "databaseInformation",
-                              dataSource = dataSource,
-                              selectedDatabaseIds = selectedDatabaseIds,
-                              databaseTable = databaseTable)
-
-  }
-
-  )
+    return(globalStateVars)
+  })
 
 }

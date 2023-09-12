@@ -14,12 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cdUiControls <- function(ns) {
+cdUiControls <- function(ns, inputPanel) {
   panels <- shiny::tagList(
-    shiny::conditionalPanel(
-      condition = "
-      input.tabs == 'databaseInformation'",
-      ns = ns,
+    if (inputPanel == 'databaseInformation') {
       shinyWidgets::pickerInput(
         inputId = ns("database"),
         label = "Database",
@@ -35,18 +32,10 @@ cdUiControls <- function(ns) {
           virtualScroll = 50
         )
       )
-    ),
-    shiny::conditionalPanel(
-      condition = "input.tabs=='incidenceRates' |
-      input.tabs == 'timeDistribution' |
-      input.tabs == 'cohortCounts' |
-      input.tabs == 'indexEventBreakdown' |
-      input.tabs == 'conceptsInDataSource' |
-      input.tabs == 'orphanConcepts' |
-      input.tabs == 'inclusionRules' |
-      input.tabs == 'visitContext' |
-      input.tabs == 'cohortOverlap'",
-      ns = ns,
+    },
+
+    if (inputPanel %in% c("incidenceRates", 'timeDistribution', 'cohortCounts', 'indexEventBreakdown',
+                          'conceptsInDataSource', 'orphanConcepts', 'inclusionRules', 'visitContext', 'cohortOverlap')) {
       shinyWidgets::pickerInput(
         inputId = ns("databases"),
         label = "Database(s)",
@@ -62,14 +51,8 @@ cdUiControls <- function(ns) {
           virtualScroll = 50
         )
       )
-    ),
-    shiny::conditionalPanel(
-      condition = "
-      input.tabs == 'conceptsInDataSource' |
-      input.tabs == 'orphanConcepts'|
-      input.tabs == 'indexEvents' |
-      input.tabs == 'visitContext'",
-      ns = ns,
+    },
+    if (inputPanel %in% c('conceptsInDataSource', 'orphanConcepts', 'indexEvents', 'visitContext')) {
       shinyWidgets::pickerInput(
         inputId = ns("targetCohort"),
         label = "Cohort",
@@ -85,13 +68,8 @@ cdUiControls <- function(ns) {
           virtualScroll = 50
         )
       )
-    ),
-    shiny::conditionalPanel(
-      condition = "input.tabs == 'cohortCounts' |
-      input.tabs == 'cohortOverlap' |
-      input.tabs == 'incidenceRates' |
-      input.tabs == 'timeDistributions'",
-      ns = ns,
+    },
+    if (inputPanel %in% c('cohortCounts', 'cohortOverlap', 'incidenceRates', 'timeDistributions')) {
       shinyWidgets::pickerInput(
         inputId = ns("cohorts"),
         label = "Cohorts",
@@ -109,12 +87,8 @@ cdUiControls <- function(ns) {
           virtualScroll = 50
         )
       )
-    ),
-    shiny::conditionalPanel(
-      condition = "input.tabs == 'temporalCharacterization' |
-      input.tabs == 'conceptsInDataSource' |
-      input.tabs == 'orphanConcepts'",
-      ns = ns,
+    },
+    if (inputPanel %in% c('temporalCharacterization', 'conceptsInDataSource', 'orphanConcepts')) {
       shinyWidgets::pickerInput(
         inputId = ns("conceptSetsSelected"),
         label = "Concept sets",
@@ -131,7 +105,7 @@ cdUiControls <- function(ns) {
           virtualScroll = 50
         )
       )
-    )
+    }
   )
 
   return(panels)
@@ -170,12 +144,6 @@ cohortDiagnosticsView <- function(id = "DiagnosticsExplorer") {
       title = "Cohort Level Diagnostics",
       width = "100%",
       shiny::fluidRow(
-        shiny::column(
-          shiny::selectInput(inputId = ns("tabs"),
-                             label = "Select Report",
-                             choices = c(), selected = NULL),
-          width = 12
-        ),
         shiny::column(
           cdUiControls(ns),
           width = 12
@@ -250,4 +218,49 @@ cohortDiagnosticsView <- function(id = "DiagnosticsExplorer") {
       )
     )
   )
+}
+
+#' The user interface to the cohort diagnostics viewer module
+#' @param id id
+#' @param parentId parent namespace
+#' @export
+conceptsInDataSourceUi <- function(id, parentId = "DiagnosticsExplorer") {
+  ns <- shiny::NS(id)
+
+  ui <- shiny::fluidPage(
+    shiny::fluidRow(
+      shinydashboard::box(
+        cdUiControls(ns, inputPanel = "conceptsInDataSource"),
+        width = 12
+      )
+    ),
+    shiny::fluidRow(
+      conceptsInDataSourceView(id)
+    )
+  )
+
+  return(ui)
+}
+
+#' The user interface to the cohort diagnostics viewer module
+#' @param id id
+#' @param parentId parent namespace
+#' @export
+visitContextUi <- function(id, parentId = "DiagnosticsExplorer") {
+  ns <- shiny::NS(id)
+  parentNs <- shiny::NS(parentId)
+
+  ui <- shiny::fluidPage(
+    shiny::fluidRow(
+      shinydashboard::box(
+        cdUiControls(parentNs, inputPanel = "visitContext"),
+        width = 12
+      )
+    ),
+    shiny::fluidRow(
+      visitContextView(id)
+    )
+  )
+
+  return(ui)
 }

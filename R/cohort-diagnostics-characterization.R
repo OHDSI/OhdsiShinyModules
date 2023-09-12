@@ -20,8 +20,9 @@
 #'
 #' @param id    Namespace Id - use namespaced id ns("characterization") inside diagnosticsExplorer module
 #' @export
-cohortDiagCharacterizationView <- function(id) {
+cohortDiagCharacterizationView <- function(id, ...) {
   ns <- shiny::NS(id)
+
   shiny::tagList(
     shinydashboard::box(
       collapsible = TRUE,
@@ -496,17 +497,6 @@ cohortDiagCharacterizationModule <- function(
 
     selectedDatabaseIds <- shiny::reactive(input$targetDatabase)
     targetCohortId <- shiny::reactive(input$targetCohort)
-
-    getCohortConceptSets <- shiny::reactive({
-      if (!hasData(input$targetCohort) | nrow(dataSource$conceptSets) == 0) {
-        return(NULL)
-      }
-
-      dataSource$conceptSets %>%
-        dplyr::filter(.data$cohortId == input$targetCohort) %>%
-        dplyr::mutate(name = .data$conceptSetName, id = .data$conceptSetId) %>%
-        dplyr::select("id", "name")
-    })
 
     shiny::observe({
       # Default time windows

@@ -6,7 +6,8 @@
 \usage{
 compareCohortCharacterizationView(
   id,
-  title = "Compare cohort characterization"
+  title = "Compare cohort characterization",
+  ...
 )
 }
 \arguments{

@@ -247,9 +247,9 @@ plotTemporalCompareStandardizedDifference <- function(balance,
 #' @param id    Namespace Id - use namespaced id ns("compareCohortCharacterization") inside diagnosticsExplorer module
 #' @param title     Optional string title field
 #' @export
-compareCohortCharacterizationView <- function(id, title = "Compare cohort characterization") {
+compareCohortCharacterizationView <- function(id, title = "Compare cohort characterization", ...) {
   ns <- shiny::NS(id)
-
+  print(id)
   shiny::tagList(
     shinydashboard::box(
       collapsible = TRUE,
@@ -811,7 +811,6 @@ compareCohortCharacterizationModule <- function(id,
                                                 domainIdOptions = dataSource$domainIdOptions,
                                                 temporalChoices = dataSource$temporalChoices) {
 
-
   shiny::moduleServer(id, function(input, output, session) {
     # Temporal choices (e.g. -30d - 0d ) are dynamic to execution
     timeIdOptions <- getResultsTemporalTimeRef(dataSource = dataSource) %>%
@@ -933,7 +932,6 @@ compareCohortCharacterizationModule <- function(id,
     shiny::observe({
       characterizationDomainOptionsUniverse <- NULL
       charcterizationDomainOptionsSelected <- NULL
-
       if (hasData(temporalAnalysisRef)) {
         characterizationDomainOptionsUniverse <- domainIdOptions
         charcterizationDomainOptionsSelected <-

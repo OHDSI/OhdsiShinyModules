@@ -4,7 +4,7 @@
 \alias{incidenceRatesView}
 \title{incidence Rates View}
 \usage{
-incidenceRatesView(id)
+incidenceRatesView(id, ...)
 }
 \arguments{
 \item{id}{Namespace Id - use namespaced id ns("incidenceRates") inside diagnosticsExplorer module}

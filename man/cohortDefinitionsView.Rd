@@ -4,7 +4,7 @@
 \alias{cohortDefinitionsView}
 \title{Cohort Definitions View}
 \usage{
-cohortDefinitionsView(id)
+cohortDefinitionsView(id, parentId = "DiagnosticsExplorer")
 }
 \arguments{
 \item{id}{Namespace id for module}

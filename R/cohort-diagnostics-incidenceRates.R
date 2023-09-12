@@ -126,7 +126,7 @@ getIncidenceRateResult <- function(dataSource,
             {@age_group == TRUE} ? {AND ir.age_group != ''} : {  AND ir.age_group = ''}
             {@calendar_year == TRUE} ? {AND ir.calendar_year != ''} : {  AND ir.calendar_year = ''}
               AND ir.person_years > @personYears;"
-  
+
   data <-
     dataSource$connectionHandler$queryDb(
       sql = sql,
@@ -143,16 +143,16 @@ getIncidenceRateResult <- function(dataSource,
       snakeCaseToCamelCase = TRUE
     ) %>%
       tidyr::tibble()
-  
+
   # join with dbTable (moved this outside sql)
   data <- merge(
-    data, 
-    dataSource$dbTable, 
+    data,
+    dataSource$dbTable,
     by = 'databaseId'
-    )
-  
+  )
+
   data <- tidyr::as_tibble(data)
-  
+
   data <- data %>%
     dplyr::mutate(
       gender = dplyr::na_if(.data$gender, ""),
@@ -501,9 +501,10 @@ plotIncidenceRate <- function(data,
 #'
 #' @param id    Namespace Id - use namespaced id ns("incidenceRates") inside diagnosticsExplorer module
 #' @export
-incidenceRatesView <- function(id) {
+incidenceRatesView <- function(id, ...) {
   ns <- shiny::NS(id)
   shiny::tagList(
+
     shinydashboard::box(
       collapsible = TRUE,
       collapsed = TRUE,
@@ -511,6 +512,7 @@ incidenceRatesView <- function(id) {
       width = "100%",
       shiny::htmlTemplate(system.file("cohort-diagnostics-www", "incidenceRate.html", package = utils::packageName()))
     ),
+     shinydashboard::box(cdUiControls(ns, inputPanel = "incidenceRates")),
     shinydashboard::box(
       width = NULL,
       status = "primary",
@@ -1042,7 +1044,7 @@ incidenceRatesModule <- function(id,
       )
     })
 
-  output$selectedCohorts <- shiny::renderUI({ selectionsOutput() })
+    output$selectedCohorts <- shiny::renderUI({ selectionsOutput() })
 
   })
 }

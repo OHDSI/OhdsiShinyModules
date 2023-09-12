@@ -302,8 +302,9 @@ exportCohortDefinitionsZip <- function(cohortDefinitions,
 #' Outputs cohort definitions
 #' @param id            Namespace id for module
 #' @export
-cohortDefinitionsView <- function(id) {
+cohortDefinitionsView <- function(id, parentId = "DiagnosticsExplorer") {
   ns <- shiny::NS(id)
+
   ui <- shiny::tagList(
     shinydashboard::box(
       width = NULL,
@@ -514,27 +515,25 @@ getCountForConceptIdInCohort <-
 #' Cohort Definition module
 #' @description
 #' cohort defintion conceptsets, json etc
-#'
+#' @export
 #' @param id                            Namespace id
 #' @param dataSource                    DatabaseConnection
-#' @param cohortDefinitions             reactive of cohort definitions to display
 #' @param databaseTable                 data.frame of databasese, databaseId, name
 #' @param cohortTable                   data.frame of cohorts, cohortId, cohortName
 #' @param cohortCountTable              data.frame of cohortCounts, cohortId, subjects records
 cohortDefinitionsModule <- function(
     id,
     dataSource,
-    cohortDefinitions,
     cohortTable = dataSource$cohortTable,
     cohortCountTable = dataSource$cohortCountTable,
-    databaseTable = dataSource$dbTable
+    databaseTable = dataSource$dbTable,
+    ...
 ) {
-  ns <- shiny::NS(id)
 
   cohortDefinitionServer <- function(input, output, session) {
 
     cohortDefinitionTableData <- shiny::reactive(x = {
-      data <- cohortDefinitions() %>%
+      data <- cohortTable %>%
         dplyr::select("cohortId", "cohortName")
       return(data)
     })

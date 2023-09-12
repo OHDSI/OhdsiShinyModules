@@ -4,7 +4,7 @@
 \alias{cohortDiagCharacterizationView}
 \title{characterization}
 \usage{
-cohortDiagCharacterizationView(id)
+cohortDiagCharacterizationView(id, ...)
 }
 \arguments{
 \item{id}{Namespace Id - use namespaced id ns("characterization") inside diagnosticsExplorer module}

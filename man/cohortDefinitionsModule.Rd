@@ -7,7 +7,6 @@
 cohortDefinitionsModule(
   id,
   dataSource,
-  cohortDefinitions,
   cohortTable = dataSource$cohortTable,
   cohortCountTable = dataSource$cohortCountTable,
   databaseTable = dataSource$dbTable
@@ -17,8 +16,6 @@ cohortDefinitionsModule(
 \item{id}{Namespace id}
 
 \item{dataSource}{DatabaseConnection}
-
-\item{cohortDefinitions}{reactive of cohort definitions to display}
 
 \item{cohortTable}{data.frame of cohorts, cohortId, cohortName}
 
