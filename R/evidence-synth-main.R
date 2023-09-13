@@ -280,11 +280,11 @@ evidenceSynthesisServer <- function(
         )
       })
       
-      output$esSccsPlot <- shiny::renderPlot(
-        createPlotForSccsAnalysis(
-          sccsData()
-        )
-      )
+      output$esSccsPlot <- shiny::renderPlot({
+        sccsRes <- sccsData()
+        shiny::validate(shiny::need(hasData(sccsRes), "No valid data for selected target"))
+        createPlotForSccsAnalysis(sccsRes)
+      })
       
       
       resultTableServer(
@@ -697,7 +697,6 @@ getSccsEstimation <- function(
     targetId,
     outcomeId
 ){
-  
   if(is.null(targetId)){
     return(NULL)
   }
