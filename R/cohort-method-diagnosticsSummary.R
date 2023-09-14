@@ -29,16 +29,6 @@ cohortMethodDiagnosticsSummaryViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    
-    #shiny::conditionalPanel(
-    #  condition = 'input.generate != 0',
-    #  ns = shiny::NS(ns("input-selection")),
-    
-    shinydashboard::box(
-      status = 'info', 
-      width = '100%',
-      title = shiny::span('Cohort Method Diagnostics'),
-      solidHeader = TRUE,
       
       shiny::tabsetPanel(
         type = 'pills',
@@ -52,7 +42,7 @@ cohortMethodDiagnosticsSummaryViewer <- function(id) {
           resultTableViewer(ns("diagnosticsTable"))
         )
       )
-    )
+    #)
   )
 }
 
@@ -176,6 +166,12 @@ cohortMethodDiagnosticsSummaryServer <- function(
         mdrrDiagnostic = reactable::colDef(
           header = withTooltip(
             "mdrrDiagnostic",
+            "The ..."
+          )
+        ),
+        sharedBalanceDiagnostic = reactable::colDef(
+          header = withTooltip(
+            "sharedBalanceDiagnostic",
             "The ..."
           )
         ),
@@ -349,7 +345,7 @@ getCmDiagnosticsData <- function(
       cmds.attrition_fraction,
       cmds.ease,
       cmds.balance_diagnostic,
-      --cmds.shared_balance_diagnostic,
+      cmds.shared_balance_diagnostic, -- added back
       cmds.equipoise_diagnostic,
       cmds.mdrr_diagnostic,
       cmds.attrition_diagnostic,

@@ -155,6 +155,7 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param addActions add a button row selector column to the table to a column called 'actions'.  
 #'                   actions must be a column in df
 #' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
+#' @param groupBy The columns to group by 
 #'
 #' @return shiny module server
 #'
@@ -166,7 +167,8 @@ resultTableServer <- function(
     sortedCols = NULL,
     elementId = NULL,
     addActions = NULL,
-    downloadedFileName = NULL
+    downloadedFileName = NULL,
+    groupBy = NULL
 ) #list of colDefs, can use checkmate::assertList, need a check that makes sure names = columns) {
   shiny::moduleServer(
     id,
@@ -329,12 +331,8 @@ function filterMinValue(rows, columnId, filterValue) {
           else{
             data = newdf()[, input$dataCols, drop = FALSE]
           }
-        if(is.null(data)){
-          return(NULL)
-        }
-        if(nrow(data) == 0){
-          return(NULL)
-        }
+        # Display message when dat is empty
+        shiny::validate(shiny::need(hasData(data), "No data for selection"))
         # set row height based on nchar of table
         if(max(apply(data, 1, function(x) max(nchar(x))), na.rm = T) < 100){
           height <- 40*3
@@ -346,6 +344,7 @@ function filterMinValue(rows, columnId, filterValue) {
             data,
             columns = colDefs(),
             onClick = onClick,
+            groupBy = groupBy,
             #these can be turned on/off and will overwrite colDef args
             sortable = TRUE,
             resizable = TRUE,
@@ -402,9 +401,6 @@ function filterMinValue(rows, columnId, filterValue) {
         )
       )
     })
-
-
-
 
 
 # HELPERS

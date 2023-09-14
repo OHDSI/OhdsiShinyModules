@@ -34,4 +34,30 @@ getPredictionResult <- function(
   return(result)
 }
 
-
+getPredictionTar <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    modelDesignId
+    ){
+  tar <- connectionHandler$queryDb(
+    'select distinct 
+    tars.tar_start_day, 
+    tars.tar_start_anchor,
+    tars.tar_end_day,
+    tars.tar_end_anchor
+    from @schema.@plp_table_prefixmodel_designs md 
+    inner join 
+    @schema.@plp_table_prefixtars AS tars
+    on md.tar_id = tars.tar_id
+    where md.model_design_id = @model_design_id;',
+    schema = resultDatabaseSettings$schema,
+    plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
+    model_design_id = modelDesignId()
+  )
+  
+  tar <- paste0(
+    '( ', tar$tarStartAnchor, ' + ', tar$tarStartDay, ' ) - ( ',
+    tar$tarEndAnchor, ' + ', tar$tarEndDay, ' )'
+  )
+  return(tar)
+}

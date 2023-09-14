@@ -48,6 +48,11 @@ cohortMethodViewer <- function(id) {
     title = shiny::span( shiny::icon("chart-column"), 'Cohort Method'),
     solidHeader = TRUE,
     
+    infoHelperViewer(
+      id = "helper",
+      helpLocation= system.file("cohort-method-www", "cohort-method.html", package = utils::packageName())
+    ),
+    
     # Input selection of T, C and Os
     inputSelectionViewer(ns("input-selection")),
     

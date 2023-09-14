@@ -25,7 +25,7 @@ shiny::testServer(
         psStrategy = ''
       )
     )
-    testthat::expect_true(!is.null(output$table1Table))
+    testthat::expect_true(!is.null(data()))
     
     testthat::expect_true(!is.null(output$table1Caption))
     

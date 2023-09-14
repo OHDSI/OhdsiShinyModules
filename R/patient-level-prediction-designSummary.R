@@ -147,12 +147,16 @@ patientLevelPredictionDesignSummaryServer <- function(
               header = withTooltip(
                 "Target Pop", 
                 "The patients who the risk model is applied to"
-              )),
+              ), 
+              minWidth = 300
+              ),
             outcome = reactable::colDef( 
               header = withTooltip(
                 "Outcome", 
                 "The outcome being predicted"
-              )),
+              ), 
+              minWidth = 300
+              ),
             TAR = reactable::colDef( 
               header = withTooltip(
                 "TAR", 

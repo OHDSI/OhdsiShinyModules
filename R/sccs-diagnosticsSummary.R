@@ -20,12 +20,12 @@
 sccsDiagnosticsSummaryViewer <- function(id) {
   ns <- shiny::NS(id)
   
-  shinydashboard::box(
-    status = 'info', 
-    width = '100%',
-    title = shiny::span('Diagnostic Results'),
-    solidHeader = TRUE,
-    
+  #shinydashboard::box(
+  #  status = 'info', 
+  #  width = '100%',
+  #  title = shiny::span('Diagnostic Results'),
+  #  solidHeader = TRUE,
+  shiny::div(  
       shiny::tabsetPanel(
         type = 'pills',
         id = ns('diagnosticsTablePanel'),

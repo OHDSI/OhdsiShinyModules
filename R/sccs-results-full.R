@@ -1,21 +1,14 @@
 sccsFullResultViewer <- function(id) {
   ns <- shiny::NS(id)
   
-  shinydashboard::box(
-    status = 'info', 
-    width = '100%',
-    title = shiny::span('Result Explorer'),
-    solidHeader = TRUE,
+  shiny::div(
     
-    # add selected settings
-    shinydashboard::box(
-      status = 'warning', 
-      width = "100%",
-      title = 'Selected: ', 
-      collapsible = T,
-      shiny::uiOutput(ns('selection'))
-    ),
-    
+    # add selection module
+    inputSelectionDfViewer(
+      id = ns("input-selection-df"),
+      title = 'Result Selected'
+      ),
+
     shiny::tabsetPanel(
       id = ns("fullTabsetPanel"), 
       type = 'pills',
@@ -103,48 +96,44 @@ sccsFullResultViewer <- function(id) {
   
 }
 
+
 sccsFullResultServer <- function(
     id,
     connectionHandler,
     resultDatabaseSettings,
-    selectedRow
+    selectedRow,
+    actionCount
 ) {
   
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      output$selection <- shiny::renderUI({
-        otext <- list()
-        otext[[1]] <- shiny::fluidRow(
-          shiny::column(
-            width = 6,
-            shiny::tags$b('Target: '),
-            selectedRow()$covariateName
-          ),
-          shiny::column(
-            width = 6,
-            shiny::tags$b('Outcome: '),
-            selectedRow()$outcome
+      # reset the tab when a new result is selected
+      shiny::observeEvent(actionCount(), {
+      shiny::updateTabsetPanel(session, "fullTabsetPanel", selected = "Power")
+    })
+      
+      modifiedRow <- shiny::reactive({
+        selectedRow() %>%
+          dplyr::select(
+            "covariateName",
+            "outcome",
+            "description",
+            "databaseName"
+          ) %>%
+          dplyr::rename(
+            'Outcome' = .data$outcome,
+            'Analysis' = .data$description,
+            'Database' = .data$databaseName
           )
-        )
-        otext[[2]] <- shiny::fluidRow(
-          shiny::column(
-            width = 6,
-            shiny::tags$b('Analysis: '),
-            selectedRow()$description
-          ),
-          shiny::column(
-            width = 3,
-            shiny::tags$b('Database: '),
-            selectedRow()$databaseName
-          )
-        )
-        shiny::div(otext)
       })
       
- 
-      # selected row: :
+      inputSelectionDfServer(
+        id = "input-selection-df", 
+        dataFrameRow = modifiedRow,
+        ncol = 2
+        )
       
       # move these to a different submodule?
       output$powerTable <- shiny::renderTable({

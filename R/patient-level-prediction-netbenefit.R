@@ -33,23 +33,19 @@ patientLevelPredictionNbViewer <- function(id) {
   
   shiny::div(
     
-    shiny::fluidRow(
       shinydashboard::box(
         status = 'info', 
-        width = 12,
+        width = '100%',
         title = 'Select net benefit type to view:',
         solidHeader = TRUE,
         shiny::uiOutput(ns('nbSelect'))
-      )
     ),
     
-    shiny::fluidRow(
       shinydashboard::box(
         status = 'info', 
-        width = 6,
+        width = '100%',
         title = 'Net Benefit Plot',
         solidHeader = TRUE,
-        side = "right",
         shinycssloaders::withSpinner(
           shiny::plotOutput(ns('nbPlot'))
         )
@@ -57,12 +53,11 @@ patientLevelPredictionNbViewer <- function(id) {
       
       shinydashboard::box(
         status = 'info', 
-        width = 6,
-        title = 'Summary',
+        width = '100%',
+        title = 'Table',
         solidHeader = TRUE,
-        DT::dataTableOutput(ns('nbTable'))
+        resultTableViewer(ns('nbTable'))
       )
-    )
   )
 }
 
@@ -102,6 +97,7 @@ patientLevelPredictionNbServer <- function(
               resultDatabaseSettings = resultDatabaseSettings,
               tableName = 'threshold_summary'
             )
+          
           } else{
             NULL
           } 
@@ -118,20 +114,24 @@ patientLevelPredictionNbServer <- function(
         )
       })
       
-      output$nbTable <- DT::renderDataTable({
-        if(is.null(thresholdSummary)){
+      nbData <- shiny::reactive({
+        if(is.null(thresholdSummary())){
           return(NULL)
-        } else{
-          result <- extractNetBenefit(
-            thresholdSummary = thresholdSummary(), 
-            type=trimws(input$nbSelectInput)
-          )
-          #unique(result)
-          result$treatAll <- format(result$treatAll, digits = 2, scientific = F)
-          result$netBenefit <- format(result$netBenefit, digits = 2, scientific = F)
-          result
         }
+        extractNetBenefit(
+          thresholdSummary = thresholdSummary(), 
+          type=trimws(input$nbSelectInput)
+        )
       })
+      
+      #nbData$treatAll <- format(nbData$treatAll, digits = 2, scientific = F)
+      #nbData$netBenefit <- format(nbData$netBenefit, digits = 2, scientific = F)
+      modelTableOutputs <- resultTableServer(
+        id = "nbTable",
+        colDefsInput = NULL,
+        df = nbData,
+        addActions = NULL
+      )
       
       output$nbPlot <- shiny::renderPlot({
         if(is.null(thresholdSummary())){

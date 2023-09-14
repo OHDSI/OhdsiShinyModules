@@ -12,7 +12,8 @@ resultTableServer(
   sortedCols = NULL,
   elementId = NULL,
   addActions = NULL,
-  downloadedFileName = NULL
+  downloadedFileName = NULL,
+  groupBy = NULL
 )
 }
 \arguments{
@@ -32,6 +33,8 @@ resultTableServer(
 actions must be a column in df}
 
 \item{downloadedFileName}{string, desired name of downloaded data file. can use the name from the module that is being used}
+
+\item{groupBy}{The columns to group by}
 }
 \value{
 shiny module server

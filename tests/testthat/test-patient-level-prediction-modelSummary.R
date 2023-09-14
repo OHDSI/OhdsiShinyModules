@@ -18,4 +18,25 @@ shiny::testServer(
     #expect_true(!is.null(performanceId()))
     #expect_true(!is.null(developmentDatabaseId()))
     
+    designInfo <- getModelDesignInfo(
+      connectionHandler = connectionHandler, 
+      resultDatabaseSettings = resultDatabaseSettings,
+      modelDesignId = modelDesignId
+    )
+    expect_true(inherits(designInfo, 'data.frame'))
+    
+    performanceSum <- getModelDesignPerformanceSummary(
+      connectionHandler = connectionHandler, 
+      resultDatabaseSettings = resultDatabaseSettings,
+      modelDesignId = modelDesignId
+    )
+    expect_true(inherits(performanceSum, 'data.frame'))
+    
+    attr <- getAttrition(
+      performanceId = 1,
+      connectionHandler = connectionHandler,
+      resultDatabaseSettings = resultDatabaseSettings
+    )
+    expect_true(inherits(attr, 'data.frame'))
+    
   })
