@@ -1,13 +1,15 @@
 <h3>Description</h3>
-<p>A table showing incidence proportions and rates and other information relating to the analysis.</p>
+<p>A table and plot showing incidence proportions and rates and other information relating to the analysis.</p>
 <p>The incidence rate is computed as 100 * the number of people first entering the cohort / the number of years&rsquo; people were eligible to enter the cohort for the first time. The eligible person time is defined as the time when</p>
 <p>A person was observed in the data source (based on the observation_period table).</p>
 <p>Had the required amount of prior observation time as specified in the cohort entry event criteria. For example, if the cohort definition requires 365 days of observation prior to cohort entry, patients are not eligible to enter the cohort in the first 365 days of their observation period, and this time is not counted in the eligible time.</p>
 <p>If the person enters the cohort, then only the time up to cohort entry. Because we only consider the first cohort entry, persons are no longer eligible to enter to cohort after their first entry.</p>
 <p>Note: If your cohort definition has an inclusion rule that restricts persons based on prior observation time, then this might lead to underestimation of incidence rate as the same prior observation time restriction would not be applied to the denominator. We recommend that you revise the cohort definition to make prior observation time rule part of entry event criteria.</p>
 <h3>Options</h3>
-<p>It is required to select a target and outcome cohort and then click the generate button.</p>
-<p>A table will be displayed with the results from multiple data sources.</p>
+<p>It is required to select at least one target and one outcome cohort and then click the generate button. You then have the option to filter your extracted data based on values of certain parameters.</p>
+<p>You may also specify choices for plotting options such as which variable you'd like to appear on the x-axis, y-axis, trellises, etc. along with p,ot aesthetics such as coloe, size, and plot point size. Note: If your selected combination of inputs to the plot do not yield an informative or sensible visualizaion, it is recommended that you adjust your selections and generate the plot again. The table and the plot will update each time the "Generate Report" button is clicked.</p>
+<p>First, a table will be displayed with the results from multiple data sources. Another tab will also be available to view, which creates a plot of the results.</p>
+<!-- 
 <p>The following columns will be displayed in the table:</p>
 <table style="margin-left: auto; margin-right: auto;">
 <tbody>
@@ -141,7 +143,8 @@
 </tr>
 </tbody>
 </table>
-<p>Once the table is viewable select the download button to create a .csv file with the information contained in the table.</p>
+--> 
+<p>Once the table is viewable select the Download All button to create a .csv file containing all the columns and information from the rae data extract. Select the Download Filtered button to create a .csv file containing only your selected filters, columns, etc. from your current live view of the table.</p>
 <p>Select the next text or an increasing number to review the information contained on subsequent pages of the table.</p>
 <h3>What to look for</h3>
 <p>Are the observed incidence rates in line with expectations? For example, if we have an estimate of the population incidence based on an external source, is the incidence rate comparable to that estimate?</p>
