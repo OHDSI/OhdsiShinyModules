@@ -65,7 +65,7 @@ sccsFullResultViewer <- function(id) {
           shiny::plotOutput(ns("timeTrendPlot"), height = 600),
           shiny::div(
             shiny::strong("Figure 4."),
-            "Per calendar month the number of people observed, the unadjusted rate of the outcome, and the rate of the outcome after adjusting for age, season, and calendar time, if specified in the model. Red indicates months where the adjusted rate was significantly different from the mean adjusted rate."
+            "Per calendar month the ratio people with the outcome adjusted or unadjusted for age, season, and calendar time if specified in the model."
           )
         ),
         shiny::tabPanel(
@@ -224,7 +224,12 @@ sccsFullResultServer <- function(
             databaseId = row$databaseId,
             analysisId = row$analysisId
           )
-          plotTimeTrend(timeTrend)
+
+          if (all(c(hasData(timeTrend$ratio), hasData(timeTrend$adjustedRatio)))) {
+            plotTimeTrend(timeTrend)
+          } else {
+            plotTimeTrendStability(timeTrend)
+          }
         }
       })
       
