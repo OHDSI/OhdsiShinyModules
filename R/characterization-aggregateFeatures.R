@@ -327,9 +327,21 @@ characterizationAggregateFeaturesServer <- function(
         )
       )
       
+      binaryData <- shiny::reactive({
+        characterizationFeatureTable(
+          data = allData()$binary
+        )
+      })
+      
+      continuousData <- shiny::reactive({
+        characterizationFeatureTable(
+          data = allData()$continuous
+        )
+      })
+      
       binTableOutputs <- resultTableServer(
         id = "binaryTable", 
-        df = characterizationFeatureTable(allData()$binary),
+        df = binaryData,
         colDefsInput = list(
           covariateName = reactable::colDef(
             name = "Covariate Name", 
@@ -373,7 +385,7 @@ characterizationAggregateFeaturesServer <- function(
       
       conTableOutputs <- resultTableServer(
         id = "continuousTable", 
-        df = characterizationFeatureTable(allData()$continuous),
+        df = continuousData,
         colDefsInput = list(
           covariateName = reactable::colDef(
             name = "Covariate Name", 
@@ -562,6 +574,10 @@ characterizationGetAggregateData <- function(
     return(NULL)
   }
   
+  if( (database1 == database2) & (type1 == type2) ){
+    return(NULL)
+  }
+  
   shiny::withProgress(message = 'Getting Feature Comparison Data', value = 0, {
   sql <- "SELECT s.RUN_ID, cd.COHORT_DEFINITION_ID
           FROM @schema.@c_table_prefixSETTINGS s
@@ -587,7 +603,7 @@ characterizationGetAggregateData <- function(
     database_id = database1,
     type = type1
   )
-  
+
   shiny::incProgress(1/5, detail = paste("Got first runId and cohortId"))
   
   
@@ -607,8 +623,8 @@ characterizationGetAggregateData <- function(
     sql = sql, 
     schema = resultDatabaseSettings$schema,
     c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    target_id = ifelse(type1 %in% c('firstO','O'), 0, targetId),
-    outcome_id = ifelse(type1 %in% c('T', 'allT'), 0, outcomeId),
+    target_id = ifelse(type2 %in% c('firstO','O'), 0, targetId),
+    outcome_id = ifelse(type2 %in% c('T', 'allT'), 0, outcomeId),
     risk_window_start = riskWindowStart,
     start_anchor = startAnchor,
     risk_window_end = riskWindowEnd,
@@ -789,7 +805,7 @@ descGetTime <- function(x){
 characterizationFeatureTable <- function(
   data
 ){
-  
+
   if(is.null(data)){
     return(NULL)
   }

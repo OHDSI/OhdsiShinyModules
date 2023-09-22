@@ -47,12 +47,9 @@ characterizationTableViewer <- function(id) {
       condition = 'input.generate != 0',
       ns = shiny::NS(ns("input-selection")),
       
-      largeTableView(
-        id = ns('large-table'), 
-        pageSizeChoices = c(10,25,50,100), 
-        selectedPageSize = 100, 
-        fullDownloads = TRUE
-        )
+      # add basic table 
+      resultTableViewer(id = ns('mainTable'))
+    
     )
   )
 }
@@ -100,7 +97,7 @@ characterizationTableServer <- function(
               label = 'Target: ',
               choices = inputVals$cohortIds,
               selected = inputVals$cohortIds,
-              multiple = T,
+              multiple = F,
               options = shinyWidgets::pickerOptions(
                 actionsBox = TRUE,
                 liveSearch = TRUE,
@@ -119,8 +116,8 @@ characterizationTableServer <- function(
             uiInputs = list(
               label = 'Database: ',
               choices = inputVals$databaseIds,
-              selected = 1,
-              multiple = F,
+              selected = inputVals$databaseIds[1],
+              multiple = T,
               options = shinyWidgets::pickerOptions(
                 actionsBox = TRUE,
                 liveSearch = TRUE,
@@ -141,7 +138,7 @@ characterizationTableServer <- function(
               label = 'Covariate Type: ',
               choices = inputVals$analysisIds,
               selected = inputVals$analysisIds[1],
-              multiple = T,
+              multiple = F,
               options = shinyWidgets::pickerOptions(
                 actionsBox = TRUE,
                 liveSearch = TRUE,
@@ -155,36 +152,6 @@ characterizationTableServer <- function(
           
       )
       )
-      
-      
-      inputParams <- shiny::reactive({
-        if(is.null(inputSelected()$targetIds) | is.null(inputSelected()$databaseIds) | is.null(inputSelected()$analysisIds)){
-          return(list(
-            schema = resultDatabaseSettings$schema,
-            c_table_prefix = resultDatabaseSettings$cTablePrefix,
-            analysis_ids = 0
-          ))
-        }
-        temp <- expand.grid(inputSelected()$targetIds,inputSelected()$databaseIds)
-        
-        res <- c(
-          as.character(temp$Var2), 
-          as.character(temp$Var1), 
-          resultDatabaseSettings$schema, 
-          resultDatabaseSettings$cTablePrefix,
-          paste0(inputSelected()$analysisIds, collapse = ',')
-            )
-        names(res) <- c(
-          paste0('database', 1:nrow(temp)), 
-          paste0('target', 1:nrow(temp)),
-          'schema',
-          'c_table_prefix',
-          'analysis_ids'
-          )
-        res <- as.list(res)
-        return(res)
-      })
-      
       
       columns <- shiny::reactive({
         
@@ -234,7 +201,7 @@ characterizationTableServer <- function(
               ), 
               format = reactable::colFormat(
                 digits = 3
-                )
+              )
             )
             names(result)[length(result)] <- paste0('averageT', temp[i,1], 'D', ifelse(temp[i,2] <0, 'n', ''), abs(temp[i,2]) )
             
@@ -244,34 +211,23 @@ characterizationTableServer <- function(
         
       })
       
-      baseQuery <- shiny::reactive({
-        createSqlCharacterizationLargeTable2(
-          targetIds = inputSelected()$targetIds,
-          databaseIds = inputSelected()$databaseIds
-        )
-      }
-      )
-      
-      countQuery <- "SELECT count(*) from (select distinct covariate_id, covariate_name FROM @schema.@c_table_prefixcovariate_ref where analysis_id in (@analysis_ids)) temp"
-      
-      # new large table code
-      shiny::observeEvent(baseQuery(),{
-        
-        largeTable <- createLargeSqlQueryDt(
+      #get results
+        resultTable <- shiny::reactive({
+          getCohortData(
             connectionHandler = connectionHandler,
-            baseQuery = baseQuery(),
-            countQuery = countQuery
+            resultDatabaseSettings = resultDatabaseSettings,
+            targetIds = inputSelected()$targetIds,
+            databaseIds = inputSelected()$databaseIds,
+            analysisIds = inputSelected()$analysisIds
           )
-
-      largeTableServer(
-        id = 'large-table',
-        ldt = largeTable,
-        inputParams = inputParams,
-        #modifyData = NULL,
-        columns = columns,
-      ) 
         })
-      
+
+      resultTableServer(
+        id = 'mainTable',
+        df = resultTable,
+        colDefsInput = columns()
+      ) 
+
       return(invisible(NULL))
       
     })
@@ -279,13 +235,16 @@ characterizationTableServer <- function(
 }
 
 
-createSqlCharacterizationLargeTable2 <- function(
+getCohortData <- function(
+    connectionHandler,
+    resultDatabaseSettings,
     targetIds,
-    databaseIds
+    databaseIds,
+    analysisIds
 ){
   
   if(is.null(targetIds) | is.null(databaseIds)){
-    return('SELECT distinct covariate_id, covariate_name FROM @schema.@c_table_prefixcovariate_ref where analysis_id in (@analysis_ids)')
+   return(NULL)
   }
   
   combinations <- expand.grid(targetIds, databaseIds)
@@ -342,7 +301,28 @@ ref.covariate_id, ref.covariate_name, an.analysis_name
 "
 
 )
-return(sql)
+
+
+  inputs <- c(
+    as.character(combinations$Var2), 
+    as.character(combinations$Var1), 
+    resultDatabaseSettings$schema, 
+    resultDatabaseSettings$cTablePrefix,
+    paste0(analysisIds, collapse = ',')
+  )
+  names(inputs) <- c(
+    paste0('database', 1:nrow(combinations)), 
+    paste0('target', 1:nrow(combinations)),
+    'schema',
+    'c_table_prefix',
+    'analysis_ids'
+  )
+  inputs <- as.list(inputs)
+  inputs$sql <- sql
+  
+  result <- do.call(connectionHandler$queryDb, inputs)
+
+return(result)
 }
 
 
