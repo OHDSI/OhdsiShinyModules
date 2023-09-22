@@ -42,46 +42,89 @@ names(.irPlotNumericChoices) <- c("Incidence Rate (per 100PY)", "Incidence Propo
                                 "Person Days PE")
 
 as_ggplot <- function(x){
-  
-  
-  
   # Open null device to avoid blank page before plot------
-  
   # see cowplot:::as_grob.ggplot
-  
   null_device <- base::getOption(
-    
     "ggpubr.null_device",
-    
     default = cowplot::pdf_null_device
-    
   )
-  
   cur_dev <- grDevices::dev.cur()
-  
   # Open null device to avoid blank page before plot
-  
   null_device(width = 6, height = 6)
-  
   null_dev <- grDevices::dev.cur()
-  
   on.exit({
-    
     grDevices::dev.off(null_dev)
-    
     if (cur_dev > 1) grDevices::dev.set(cur_dev)
-    
   })
-  
-  
-  
   # Convert to ggplot-------------
-  
   cowplot::ggdraw() +
-    
     cowplot::draw_grob(grid::grobTree(x))
-  
 }
+
+# Custom function that takes a ggplotly figure and its facets as arguments.
+# The upper x-values for each domain is set programmatically, but you can adjust
+# the look of the figure by adjusting the width of the facet domain and the 
+# corresponding annotations labels through the domain_offset variable
+fixfacets <- function(figure, facets, domain_offset){
+  
+  fig <- figure
+  
+  # split x ranges from 0 to 1 into
+  # intervals corresponding to number of facets
+  # xHi = highest x for shape
+  xHi <- seq(0, 1, len = length(facets)+1)
+  xHi <- xHi[2:length(xHi)]
+  
+  xOs <- domain_offset
+  
+  # Shape manipulations, identified by dark grey backround: "rgba(217,217,217,1)"
+  # structure: p$x$layout$shapes[[2]]$
+  shp <- fig$x$layout$shapes
+  j <- 1
+  for (i in seq_along(shp)){
+    if (shp[[i]]$fillcolor=="rgba(217,217,217,1)" & (!is.na(shp[[i]]$fillcolor))){
+      #$x$layout$shapes[[i]]$fillcolor <- 'rgba(0,0,255,0.5)' # optionally change color for each label shape
+      fig$x$layout$shapes[[i]]$x1 <- xHi[j]
+      fig$x$layout$shapes[[i]]$x0 <- (xHi[j] - xOs)
+      #fig$x$layout$shapes[[i]]$y <- -0.05
+      j<-j+1
+    }
+  }
+  
+  # annotation manipulations, identified by label name
+  # structure: p$x$layout$annotations[[2]]
+  ann <- fig$x$layout$annotations
+  annos <- facets
+  j <- 1
+  for (i in seq_along(ann)){
+    if (ann[[i]]$text %in% annos){
+      # but each annotation between high and low x,
+      # and set adjustment to center
+      fig$x$layout$annotations[[i]]$x <- (((xHi[j]-xOs)+xHi[j])/2)
+      fig$x$layout$annotations[[i]]$xanchor <- 'center'
+      #print(fig$x$layout$annotations[[i]]$y)
+      #fig$x$layout$annotations[[i]]$y <- -0.05
+      j<-j+1
+    }
+  }
+  
+  # domain manipulations
+  # set high and low x for each facet domain
+  xax <- names(fig$x$layout)
+  j <- 1
+  for (i in seq_along(xax)){
+    if (!is.na(pmatch('xaxis', xax[i]))){
+      #print(p[['x']][['layout']][[lot[i]]][['domain']][2])
+      fig[['x']][['layout']][[xax[i]]][['domain']][2] <- xHi[j]
+      fig[['x']][['layout']][[xax[i]]][['domain']][1] <- xHi[j] - xOs
+      j<-j+1
+    }
+  }
+  
+  return(fig)
+}
+
+
 
 
 #' The module viewer for exploring incidence results 
@@ -138,12 +181,15 @@ characterizationIncidenceViewer <- function(id) {
                   title = "Custom Plot",
                   shinycssloaders::withSpinner(
                     plotly::plotlyOutput(ns('incidencePlot'),
-                                         height = "800px")
+                                         height = "1600px",
+                                         width = "90%")
                   ),
-                   shiny::plotOutput(ns('incidencePlotLegend'),
-                                    width="300px",
-                                    height="300px"
-                                    )
+                  # shiny::br(),
+                  # shiny::p("Legend"),
+                  shiny::plotOutput(ns('incidencePlotLegend'),
+                                        width="100%",
+                                        height="300px"
+                                        )
                   
                 )
               # ,
@@ -526,11 +572,26 @@ characterizationIncidenceServer <- function(
               label = "Use same y-axis scale across plots?"),
           )
         ),
-          
+        shiny::fluidRow(
+          align = "left",
+          shiny::br(),
+          shiny::column(
+            width = 3,
           shiny::actionButton(
             inputId = session$ns('generate'),
-            label = 'Generate Report'
+            label = 'Generate Report',
+            style = "width:300px"
           )
+          ),
+          shiny::column(
+            width = 3,
+          shiny::actionButton(
+            inputId = session$ns("resetButton"),
+            label = "Reset Plot Options to Default",
+          style = "width:200px"
+          )
+          )
+        )
         )
       })
       
@@ -568,6 +629,9 @@ characterizationIncidenceServer <- function(
       
       selectedInputs <- shiny::reactiveVal()
       output$inputsText <- shiny::renderUI(selectedInputs())
+      
+      # selectedCohortInputs <- shiny::reactiveVal()
+      # output$cohortsInputText <- shiny::renderUI(selectedCohortInputs())
 
       # fetch data when targetIds or outcomeIds change
       shiny::observeEvent(
@@ -709,6 +773,44 @@ characterizationIncidenceServer <- function(
          )
         }
         )
+      
+      # # fetch data when targetIds or outcomeIds change
+      # shiny::observeEvent(
+      #   eventExpr = input$generate,
+      #   {
+      #     if(is.null(input$targetIds) | is.null(input$outcomeIds)){
+      #       return(invisible(NULL))
+      #     }
+      #     
+      #     selectedCohortInputs(
+      #        shinydashboard::box(
+      #          status = 'warning', 
+      #          width = "100%",
+      #          title = 'Selected:',
+      #          shiny::div(
+      #            shiny::fluidRow(
+      #             shiny::column(
+      #               width = 4,
+      #               shiny::tags$b("Target(s):"),
+      #               shiny::HTML(paste("<p>", "C", cohorts$targetIds[cohorts$targetIds %in% input$targetIds], ": ",
+      #                                 unique(names(cohorts$targetIds)[cohorts$targetIds %in% input$targetIds]), "</p>"
+      #               )
+      #               )
+      #             ),
+      #             shiny::column(
+      #               width = 4,
+      #               shiny::tags$b("Outcome(s):"),
+      #               shiny::HTML(paste("<p>", "C", cohorts$outcomeIds[cohorts$outcomeIds %in% input$outcomeIds], ": ",
+      #                                 unique(names(cohorts$outcomeIds)[cohorts$outcomeIds %in% input$outcomeIds]), "</p>"
+      #               )
+      #               )
+      #             )
+      #           )
+      #          )
+      #        )
+      #      )
+      #   }
+      # )
     
 
 #load in custom colDefs
@@ -765,6 +867,8 @@ characterizationIncidenceServer <- function(
             "Outcomes:", outcomes
           ))
           
+
+          
           
           
           
@@ -790,6 +894,10 @@ characterizationIncidenceServer <- function(
               dplyr::vars(outcomeIdShort)
             }
           }
+          
+          max_length <- max(nchar(unique(input$plotXAxis)))
+          
+          if (input$plotXTrellis!=input$plotYTrellis){
 
           # Create the base plot with conditional aesthetics
           base_plot <- ggplot2::ggplot(data = plotData,
@@ -806,6 +914,12 @@ characterizationIncidenceServer <- function(
             ggplot2::geom_point(ggplot2::aes(size = if(input$plotSize != "None") .data[[input$plotSize]] else NULL,
                                                alpha = 0.6)
                                   ) 
+          
+          # Rotate x-axis labels if the maximum length is greater than 10
+          if (max_length > 10) {
+            base_plot <- base_plot + 
+              ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
+          }
 
           # Add trellising if it's not NULL
           if (input$plotXTrellis!="None" & input$plotXTrellis!="targetName" & input$plotXTrellis!="outcomeName" & 
@@ -815,9 +929,10 @@ characterizationIncidenceServer <- function(
               cols = vars(.data[[input$plotYTrellis]]),
               scales = if (input$irYscaleFixed) "fixed" else "free_y"
             ) +
-              ggplot2::theme(strip.background = ggplot2::element_rect(fill = "grey85"), strip.placement = "outside",
-                             strip.text = ggplot2::element_text(size = NULL, color = NULL)
-              )
+              ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                             strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+              ) +
+              ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           }
           else if (input$plotXTrellis!="None" & input$plotXTrellis=="targetName" & input$plotXTrellis!="outcomeName" & 
                    input$plotYTrellis!="None" & input$plotYTrellis!="targetName" & input$plotYTrellis!="outcomeName") {
@@ -826,9 +941,10 @@ characterizationIncidenceServer <- function(
               cols = vars(.data[[input$plotYTrellis]]),
               scales = if (input$irYscaleFixed) "fixed" else "free_y"
             ) +
-              ggplot2::theme(strip.background = ggplot2::element_rect(fill = "grey85"), strip.placement = "outside",
-                             strip.text = ggplot2::element_text(size = NULL, color = NULL)
-              )
+              ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                             strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+              ) +
+              ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           }
           else if (input$plotXTrellis!="None" & input$plotXTrellis!="targetName" & input$plotXTrellis=="outcomeName" & 
                    input$plotYTrellis!="None" & input$plotYTrellis!="targetName" & input$plotYTrellis!="outcomeName") {
@@ -837,9 +953,10 @@ characterizationIncidenceServer <- function(
               cols = vars(.data[[input$plotYTrellis]]),
               scales = if (input$irYscaleFixed) "fixed" else "free_y"
             ) +
-              ggplot2::theme(strip.background = ggplot2::element_rect(fill = "grey85"), strip.placement = "outside",
-                             strip.text = ggplot2::element_text(size = NULL, color = NULL)
-              )
+              ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                             strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+              ) +
+              ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           }
           else if (input$plotXTrellis!="None" & input$plotXTrellis!="targetName" & input$plotXTrellis!="outcomeName" & 
                    input$plotYTrellis!="None" & input$plotYTrellis=="targetName" & input$plotYTrellis!="outcomeName") {
@@ -848,9 +965,10 @@ characterizationIncidenceServer <- function(
               cols = vars(targetIdShort),
               scales = if (input$irYscaleFixed) "fixed" else "free_y"
             ) +
-              ggplot2::theme(strip.background = ggplot2::element_rect(fill = "grey85"), strip.placement = "outside",
-                             strip.text = ggplot2::element_text(size = NULL, color = NULL)
-              )
+              ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                             strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+              ) +
+              ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           }
           else if (input$plotXTrellis!="None" & input$plotXTrellis!="targetName" & input$plotXTrellis!="outcomeName" & 
                    input$plotYTrellis!="None" & input$plotYTrellis!="targetName" & input$plotYTrellis=="outcomeName") {
@@ -859,9 +977,10 @@ characterizationIncidenceServer <- function(
               cols = vars(outcomeIdShort),
               scales = if (input$irYscaleFixed) "fixed" else "free_y"
             ) +
-              ggplot2::theme(strip.background = ggplot2::element_rect(fill = "grey85"), strip.placement = "outside",
-                             strip.text = ggplot2::element_text(size = NULL, color = NULL)
-              )
+              ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                             strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+              ) +
+              ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           }
           else if (input$plotXTrellis!="None" & input$plotXTrellis=="targetName" & input$plotXTrellis!="outcomeName" & 
                    input$plotYTrellis!="None" & input$plotYTrellis=="targetName" & input$plotYTrellis!="outcomeName") {
@@ -870,9 +989,10 @@ characterizationIncidenceServer <- function(
               cols = vars(targetIdShort),
               scales = if (input$irYscaleFixed) "fixed" else "free_y"
             ) +
-              ggplot2::theme(strip.background = ggplot2::element_rect(fill = "grey85"), strip.placement = "outside",
-                             strip.text = ggplot2::element_text(size = NULL, color = NULL)
-              )
+              ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                             strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+              ) +
+              ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           }
           else if (input$plotXTrellis!="None" & input$plotXTrellis=="targetName" & input$plotXTrellis!="outcomeName" & 
                    input$plotYTrellis!="None" & input$plotYTrellis!="targetName" & input$plotYTrellis=="outcomeName") {
@@ -881,9 +1001,10 @@ characterizationIncidenceServer <- function(
               cols = vars(outcomeIdShort),
               scales = if (input$irYscaleFixed) "fixed" else "free_y"
             ) +
-              ggplot2::theme(strip.background = ggplot2::element_rect(fill = "grey85"), strip.placement = "outside",
-                             strip.text = ggplot2::element_text(size = NULL, color = NULL)
-              )
+              ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                             strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+              ) +
+              ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           }
           else if (input$plotXTrellis!="None" & input$plotXTrellis!="targetName" & input$plotXTrellis=="outcomeName" & 
                    input$plotYTrellis!="None" & input$plotYTrellis=="targetName" & input$plotYTrellis!="outcomeName") {
@@ -892,9 +1013,10 @@ characterizationIncidenceServer <- function(
               cols = vars(targetIdShort),
               scales = if (input$irYscaleFixed) "fixed" else "free_y"
             ) +
-              ggplot2::theme(strip.background = ggplot2::element_rect(fill = "grey85"), strip.placement = "outside",
-                             strip.text = ggplot2::element_text(size = NULL, color = NULL)
-              )
+              ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                             strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+              ) +
+              ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           }
           else if (input$plotXTrellis!="None" & input$plotXTrellis!="targetName" & input$plotXTrellis=="outcomeName" & 
                    input$plotYTrellis!="None" & input$plotYTrellis!="targetName" & input$plotYTrellis=="outcomeName") {
@@ -903,9 +1025,10 @@ characterizationIncidenceServer <- function(
               cols = vars(outcomeIdShort),
               scales = if (input$irYscaleFixed) "fixed" else "free_y"
             ) +
-              ggplot2::theme(strip.background = ggplot2::element_rect(fill = "grey85"), strip.placement = "outside",
-                             strip.text = ggplot2::element_text(size = NULL, color = NULL)
-              )
+              ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                             strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+              ) +
+              ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           }
           else if (input$plotXTrellis=="None" & input$plotXTrellis!="targetName" & input$plotXTrellis!="outcomeName" & 
                    input$plotYTrellis!="None" & input$plotYTrellis!="targetName" & input$plotYTrellis=="outcomeName") {
@@ -914,9 +1037,10 @@ characterizationIncidenceServer <- function(
               cols = vars(outcomeIdShort),
               scales = if (input$irYscaleFixed) "fixed" else "free_y"
             ) +
-              ggplot2::theme(strip.background = ggplot2::element_rect(fill = "grey85"), strip.placement = "outside",
-                             strip.text = ggplot2::element_text(size = NULL, color = NULL)
-              )
+              ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                             strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+              ) +
+              ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           }
           else if (input$plotXTrellis=="None" & input$plotXTrellis!="targetName" & input$plotXTrellis!="outcomeName" & 
                    input$plotYTrellis!="None" & input$plotYTrellis=="targetName" & input$plotYTrellis!="outcomeName") {
@@ -925,9 +1049,10 @@ characterizationIncidenceServer <- function(
               cols = vars(targetIdShort),
               scales = if (input$irYscaleFixed) "fixed" else "free_y"
             ) +
-              ggplot2::theme(strip.background = ggplot2::element_rect(fill = "grey85"), strip.placement = "outside",
-                             strip.text = ggplot2::element_text(size = NULL, color = NULL)
-              )
+              ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                             strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+              ) +
+              ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           }
           else if (input$plotXTrellis=="None" & input$plotXTrellis!="targetName" & input$plotXTrellis!="outcomeName" & 
                    input$plotYTrellis!="None" & input$plotYTrellis!="targetName" & input$plotYTrellis!="outcomeName") {
@@ -936,9 +1061,10 @@ characterizationIncidenceServer <- function(
               cols = vars(.data[[input$plotYTrellis]]),
               scales = if (input$irYscaleFixed) "fixed" else "free_y"
             ) +
-              ggplot2::theme(strip.background = ggplot2::element_rect(fill = "grey85"), strip.placement = "outside",
-                             strip.text = ggplot2::element_text(size = NULL, color = NULL)
-              )
+              ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                             strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+              ) +
+              ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           }
           else if (input$plotXTrellis!="None" & input$plotXTrellis!="targetName" & input$plotXTrellis!="outcomeName" & 
                    input$plotYTrellis=="None" & input$plotYTrellis!="targetName" & input$plotYTrellis!="outcomeName") {
@@ -947,9 +1073,10 @@ characterizationIncidenceServer <- function(
               cols = NULL,
               scales = if (input$irYscaleFixed) "fixed" else "free_y"
             ) +
-              ggplot2::theme(strip.background = ggplot2::element_rect(fill = "grey85"), strip.placement = "outside",
-                             strip.text = ggplot2::element_text(size = NULL, color = NULL)
-              )
+              ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                             strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+              ) +
+              ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           }
           else if (input$plotXTrellis!="None" & input$plotXTrellis=="targetName" & input$plotXTrellis!="outcomeName" & 
                    input$plotYTrellis=="None" & input$plotYTrellis!="targetName" & input$plotYTrellis!="outcomeName") {
@@ -958,9 +1085,10 @@ characterizationIncidenceServer <- function(
               cols = NULL,
               scales = if (input$irYscaleFixed) "fixed" else "free_y"
             ) +
-              ggplot2::theme(strip.background = ggplot2::element_rect(fill = "grey85"), strip.placement = "outside",
-                             strip.text = ggplot2::element_text(size = NULL, color = NULL)
-              )
+              ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                             strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+              ) +
+              ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           }
           else if (input$plotXTrellis!="None" & input$plotXTrellis!="targetName" & input$plotXTrellis=="outcomeName" & 
                    input$plotYTrellis=="None" & input$plotYTrellis!="targetName" & input$plotYTrellis!="outcomeName") {
@@ -969,9 +1097,10 @@ characterizationIncidenceServer <- function(
               cols = NULL,
               scales = if (input$irYscaleFixed) "fixed" else "free_y"
             ) +
-              ggplot2::theme(strip.background = ggplot2::element_rect(fill = "grey85"), strip.placement = "outside",
-                             strip.text = ggplot2::element_text(size = NULL, color = NULL)
-              )
+              ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                             strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+              ) +
+              ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           }
         
           
@@ -989,8 +1118,12 @@ characterizationIncidenceServer <- function(
                            plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10)),
                            axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 10)),
                            axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 10)),
-                           legend.box = "horizontal"
-                           )   # Suppress the legends for shape, color, and size
+                           legend.box = "horizontal",
+                           panel.spacing = ggplot2::unit(1, "lines"),
+                           strip.background = ggplot2::element_blank(), 
+                           strip.text = ggplot2::element_text(face="bold")
+                           ) +
+            ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
           
           
           
@@ -1022,14 +1155,14 @@ characterizationIncidenceServer <- function(
           #   
           #   
             
-          #}
+          }
           
           
-          # else {
-          #   
-          #   shiny::validate("Plot not rendered!")
-          #   
-          # }
+          else {
+
+            shiny::validate("Cannout use the same trellis for row and column, please make another selection.")
+
+          }
         
         return(base_plot)
           }
@@ -1039,6 +1172,15 @@ characterizationIncidenceServer <- function(
       renderIrPlotNoLegend <- shiny::eventReactive(
         eventExpr = input$generate,
         {
+          plotData <- filteredData() %>%
+            dplyr::filter(tar %in% input$incidenceRateTarFilter)
+          
+          # Get the number of facets in both rows and columns
+          num_rows <- length(unique(plotData[[input$plotXTrellis]]))
+          num_cols <- length(unique(plotData[[input$plotYTrellis]]))
+          
+          max_length <- max(nchar(unique(input$plotXAxis)))
+          
           base_plot <- renderIrPlot()
           
           p <- base_plot +
@@ -1049,10 +1191,32 @@ characterizationIncidenceServer <- function(
           
           # Center the main plot title
           p <- p %>% plotly::layout(title = list(x = 0.5, xanchor = "center"),
-                                    margin = list(t = 100)
-          )
+                                    margin = list(t = 100),
+                                    xaxis = list(tickangle = 45, 
+                                                 title =list(standoff = 40)
+                                                 ),
+                                    yaxis = list(title =list(standoff = 40)
+                                    )
+          ) 
+          
+          # Specify the angle for x-axis labels
+          # if (max_length > 10) {
+          #   p <- p %>% 
+          #     plotly::layout(xaxis = list(tickangle = 45))
+          # }
+          
+          # if(input$plotXTrellis!= "None"){
+          #   
+          #   f <- fixfacets(figure = p, facets <- unique(plotData[,input$plotXTrellis]), domain_offset <- 0.1)
+          #   
+          # }
+          # 
+          # else f <- p
+          # 
+          # return(f)
           
           return(p)
+          
         }
       )
       
@@ -1078,6 +1242,31 @@ characterizationIncidenceServer <- function(
         shiny::renderPlot({
          renderIrPlotLegend()
         })
+      
+      # Track if the "Generate Report" button has been pressed at least once
+      reportGenerated <- reactiveVal(FALSE)
+      
+      
+      # Define an event to reset the plot
+      observeEvent(input$resetButton, {
+        # Reset the input selections to their defaults
+        shinyWidgets::updatePickerInput(session, "incidenceRateTarFilter")
+        shinyWidgets::updatePickerInput(session, "plotXAxis", selected = "startYear")
+        shinyWidgets::updatePickerInput(session, "plotYAxis", selected = "incidenceRateP100py")
+        shinyWidgets::updatePickerInput(session, "plotColor", selected = "cdmSourceAbbreviation")
+        shinyWidgets::updatePickerInput(session, "plotSize", selected = "outcomes")
+        shinyWidgets::updatePickerInput(session, "plotShape", selected = "genderName")
+        shinyWidgets::updatePickerInput(session, "plotXTrellis", selected = "targetName")
+        shinyWidgets::updatePickerInput(session, "plotYTrellis", selected = "outcomeName")
+        shiny::updateCheckboxInput(session, "irYscaleFixed", value = FALSE)
+        
+        shinyjs::click("generate")
+        
+        # Trigger the plot regeneration by incrementing the generation counter
+        isolate({
+          shiny::updateNumericInput(session, "generate", value = input$generate + 1)
+        })
+      })
 
       
       return(invisible(NULL))
