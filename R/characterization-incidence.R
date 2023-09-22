@@ -181,8 +181,7 @@ characterizationIncidenceViewer <- function(id) {
                   title = "Custom Plot",
                   shinycssloaders::withSpinner(
                     plotly::plotlyOutput(ns('incidencePlot'),
-                                         height = "1600px",
-                                         width = "90%")
+                                         height = "1000px")
                   ),
                   # shiny::br(),
                   # shiny::p("Legend"),
@@ -1116,8 +1115,8 @@ characterizationIncidenceServer <- function(
             ggplot2::theme_bw() +
             ggplot2::theme(title = ggplot2::element_text(hjust = 0.5),
                            plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10)),
-                           axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 10)),
-                           axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 10)),
+                           axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 30)),
+                           axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 30)),
                            legend.box = "horizontal",
                            panel.spacing = ggplot2::unit(1, "lines"),
                            strip.background = ggplot2::element_blank(), 
@@ -1191,29 +1190,24 @@ characterizationIncidenceServer <- function(
           
           # Center the main plot title
           p <- p %>% plotly::layout(title = list(x = 0.5, xanchor = "center"),
-                                    margin = list(t = 100),
-                                    xaxis = list(tickangle = 45, 
-                                                 title =list(standoff = 40)
-                                                 ),
-                                    yaxis = list(title =list(standoff = 40)
-                                    )
+                                    margin = list(t = 75, b = 150, l = 125, r = 25),
+                                    #add several xaxis placeholders in case row trellis has several distinct values (this is a workaround)
+                                    xaxis =  list(tickangle = 45),
+                                    xaxis2 =  list(tickangle = 45),
+                                    xaxis3 =  list(tickangle = 45),
+                                    xaxis4 =  list(tickangle = 45),
+                                    xaxis5 =  list(tickangle = 45),
+                                    xaxis6 =  list(tickangle = 45),
+                                    xaxis7 =  list(tickangle = 45),
+                                    xaxis8 =  list(tickangle = 45),
+                                    xaxis9 =  list(tickangle = 45),
+                                    xaxis10 =  list(tickangle = 45),
+                                    xaxis11 =  list(tickangle = 45),
+                                    xaxis12 =  list(tickangle = 45),
+                                    xaxis13 =  list(tickangle = 45),
+                                    xaxis14 =  list(tickangle = 45),
+                                    xaxis15 =  list(tickangle = 45)
           ) 
-          
-          # Specify the angle for x-axis labels
-          # if (max_length > 10) {
-          #   p <- p %>% 
-          #     plotly::layout(xaxis = list(tickangle = 45))
-          # }
-          
-          # if(input$plotXTrellis!= "None"){
-          #   
-          #   f <- fixfacets(figure = p, facets <- unique(plotData[,input$plotXTrellis]), domain_offset <- 0.1)
-          #   
-          # }
-          # 
-          # else f <- p
-          # 
-          # return(f)
           
           return(p)
           
