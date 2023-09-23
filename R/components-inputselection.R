@@ -34,22 +34,27 @@ createInputSetting <- function(
     rowNumber,                           
     columnWidth = 4,
     varName = '',
+    inputReturn = T,
     uiFunction = 'shinyWidgets::pickerInput',
     uiInputs = list(
       label = 'Input: ',
       choices = list(),
       multiple = F,
       options = shinyWidgets::pickerOptions()
-    )
-    
+    ),
+    updateFunction = NULL,
+    collapse = F
     ){
   
   result <- list(
     rowNumber = rowNumber,
     columnWidth = columnWidth,
     varName = varName,
+    inputReturn = inputReturn,
     uiFunction = uiFunction,
-    uiInputs = uiInputs
+    uiInputs = uiInputs,
+    updateFunction = updateFunction,
+    collapse = collapse
   )
   
   class(result) <- 'inputSetting'
@@ -78,7 +83,11 @@ inputSelectionServer <- function(
           lapply(which(rowNumbers == i), function(x){
             
             inputs <- inputSettingList[[x]]$uiInputs
-            inputs$inputId <- session$ns(paste0('input_',x))
+            if(inputSettingList[[x]]$inputReturn){
+              # if using a function that has no return (e.g., div) set 
+              # inputReturn = F
+              inputs$inputId <- session$ns(paste0('input_',x))
+            }
             
             shiny::column(
               width = inputSettingList[[x]]$columnWidth,
@@ -91,6 +100,12 @@ inputSelectionServer <- function(
       rows[[length(rows)+1]] <- shiny::actionButton(
         inputId = session$ns('generate'), 
         label = 'Generate Report'
+      )
+      
+      # add reset here
+      rows[[length(rows)+1]] <- shiny::actionButton(
+        inputId = session$ns('reset'), 
+        label = 'Reset'
       )
       
       output$inputs <- shiny::renderUI({
@@ -130,9 +145,25 @@ inputSelectionServer <- function(
                     if(is.null(names(inputSettingList[[x]]$uiInputs$choices))){
                       names(inputSettingList[[x]]$uiInputs$choices) <- inputSettingList[[x]]$uiInputs$choices
                     }
-                    paste(names(inputSettingList[[x]]$uiInputs$choices)[inputSettingList[[x]]$uiInputs$choices %in% input[[paste0('input_',x)]]], collapse = ',')
+                    
+                    # add selections on new row unless collapse is F
+                    if(!inputSettingList[[x]]$collapse){
+                      shiny::HTML(
+                        paste("<p>", names(inputSettingList[[x]]$uiInputs$choices)[inputSettingList[[x]]$uiInputs$choices %in% input[[paste0('input_',x)]]], '</p>')
+                      )
+                      } else{
+                        paste(names(inputSettingList[[x]]$uiInputs$choices)[inputSettingList[[x]]$uiInputs$choices %in% input[[paste0('input_',x)]]], collapse = ', ')
+                      }
                   } else{
-                    paste(input[[paste0('input_',x)]], collapse = ',')
+                    
+                    # add selections on new row unless collapse is F
+                    if(!inputSettingList[[x]]$collapse){
+                      shiny::HTML(
+                        paste("<p>", input[[paste0('input_',x)]], '</p>')
+                      )
+                    } else{
+                      paste(input[[paste0('input_',x)]], collapse = ', ')
+                    }
                   }
                 )
               }
@@ -140,6 +171,28 @@ inputSelectionServer <- function(
             )
           }
           selectedInputText(shiny::div(otext))
+        })
+      
+      
+      # do the reset stuff
+      shiny::observeEvent(
+        eventExpr = input$reset,
+        {
+          # code to reset to default
+          
+          for(i in 1:length(inputSettingList)){
+            if(!is.null(inputSettingList[[i]]$updateFunction)){
+              
+              # need to test for non-picker inputs
+              do.call(eval(parse(text = inputSettingList[[i]]$updateFunction)), 
+                      list(
+                        session = session, 
+                        inputId = paste0('input_',i), 
+                        selected = inputSettingList[[i]]$uiInputs$selected
+                      ))
+  
+            }
+          }
         })
       
       return(selectedInput)

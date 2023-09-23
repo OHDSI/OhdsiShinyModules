@@ -82,6 +82,7 @@ patientLevelPredictionDesignSummaryServer <- function(
             columnWidth = 6,
             varName = 'targetIds',
             uiFunction = 'shinyWidgets::pickerInput',
+            updateFunction = 'shinyWidgets::updatePickerInput',
             uiInputs = list(
               label = 'Target: ',
               choices = targetIds,
@@ -102,6 +103,7 @@ patientLevelPredictionDesignSummaryServer <- function(
             columnWidth = 6,
             varName = 'outcomeIds',
             uiFunction = 'shinyWidgets::pickerInput',
+            updateFunction = 'shinyWidgets::updatePickerInput',
             uiInputs = list(
               label = 'Outcome: ',
               choices = outcomeIds,
