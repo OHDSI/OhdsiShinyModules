@@ -6,7 +6,8 @@ test_that("convert to dates", {
   testthat::expect_equal(as.character(convertToEndDate(2020,12)), "2020-12-31")
 })
 
-test_that("plotTimeTrend", {
+# Note - this is the old plot
+test_that("plotTimeTrendStability", {
   df <- data.frame(
     calendarYear = c(2011,2012),
     calendarMonth = c(1,1),
@@ -15,9 +16,22 @@ test_that("plotTimeTrend", {
     adjustedRate = runif(2),
     stable = rep(1,2)
   )
+  res <- plotTimeTrendStability(df)
+  testthat::expect_is(res, "ggplot")
+})
+# New plot
+test_that("plotTimeTrend", {
+  df <- data.frame(
+    calendarYear = c(2011,2012),
+    calendarMonth = c(1,1),
+    ratio = runif(2),
+    observedSubjects = rep(100,2),
+    adjustedRatio = runif(2)
+  )
   res <- plotTimeTrend(df)
   testthat::expect_is(res, "ggplot")
 })
+
 
 
 test_that("plotTimeToEventSccs", {
