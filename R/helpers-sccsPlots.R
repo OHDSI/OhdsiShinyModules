@@ -18,7 +18,7 @@ convertToEndDate <- function(year, month) {
   )) - 1)
 }
 
-plotTimeTrend <- function(timeTrend) {
+plotTimeTrendStability <- function(timeTrend) {
   
   timeTrend <- timeTrend %>%
     dplyr::mutate(
@@ -70,6 +70,54 @@ plotTimeTrend <- function(timeTrend) {
     )
   return(plot)
 }
+
+plotTimeTrend <- function(timeTrend) {
+
+  timeTrend <- timeTrend %>%
+    dplyr::mutate(
+      monthStartDate = convertToStartDate(.data$calendarYear, .data$calendarMonth),
+      monthEndDate = convertToEndDate(.data$calendarYear, .data$calendarMonth),
+      ratio = pmax(0, .data$ratio),
+      adjustedRatio = pmax(0, .data$adjustedRatio))
+
+  plotData <- dplyr::bind_rows(
+    dplyr::select(timeTrend, "monthStartDate", "monthEndDate", value = "ratio") %>%
+      dplyr::mutate(type = "Assuming constant rate"),
+    dplyr::select(timeTrend, "monthStartDate", "monthEndDate", value = "adjustedRatio") %>%
+      dplyr::mutate(type = "Adj. For cal. time and season")
+  )
+
+  levels <- c("Assuming constant rate", "Adj. For cal. time and season")
+  plotData$type <- factor(plotData$type, levels = rev(levels))
+
+  theme <- ggplot2::element_text(colour = "#000000", size = 14)
+  themeRA <- ggplot2::element_text(colour = "#000000", size = 14, hjust = 1)
+  plot <- ggplot2::ggplot(plotData, ggplot2::aes(xmin = .data$monthStartDate, xmax = .data$monthEndDate + 1)) +
+    ggplot2::geom_rect(ggplot2::aes(ymax = .data$value),
+                       ymin = 0,
+                       fill = grDevices::rgb(0, 0, 0.8, alpha = 0.6),
+                       alpha = 0.6,
+                       linewidth = 0) +
+    ggplot2::scale_x_date("Calendar time") +
+    ggplot2::scale_y_continuous("Observed / expected", limits = c(0, NA)) +
+    ggplot2::facet_grid(.data$type ~ ., scales = "free_y") +
+    ggplot2::theme(
+      panel.grid.minor = ggplot2::element_blank(),
+      panel.background = ggplot2::element_rect(fill = "#FAFAFA", colour = NA),
+      panel.grid.major = ggplot2::element_line(colour = "#AAAAAA"),
+      axis.ticks = ggplot2::element_blank(),
+      axis.text.y = themeRA,
+      axis.text.x = theme,
+      axis.title = theme,
+      strip.text.y = theme,
+      strip.background = ggplot2::element_blank(),
+      legend.title = ggplot2::element_blank(),
+      legend.position = "top",
+      legend.text = theme
+    )
+  return(plot)
+}
+
 
 plotTimeToEventSccs <- function(timeToEvent) {
   
