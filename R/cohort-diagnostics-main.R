@@ -419,11 +419,6 @@ cohortDiagnosticsServer <- function(id,
       createCdDatabaseDataSource(
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings,
-        #schema = resultDatabaseSettings$schema,
-        #vocabularyDatabaseSchema = resultDatabaseSettings$vocabularyDatabaseSchema, # is this in results?
-        #cdTablePrefix = resultDatabaseSettings$cdTablePrefix,
-        #cgTableName = resultDatabaseSettings$cgTable, # different for CD?
-        #databaseTableName = paste0(resultDatabaseSettings$databaseTablePrefix,resultDatabaseSettings$databaseTable),
         displayProgress = TRUE
       )
   }

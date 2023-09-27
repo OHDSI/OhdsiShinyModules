@@ -805,7 +805,7 @@ cohortDiagCharacterizationModule <- function(
         analysis_ids = input$selectedRawAnalysisIds %>% unique(),
         time_id = selectedTimeIds() %>% unique(),
         domain_ids = quoteLiterals(input$characterizationDomainIdFilter %>% unique()),
-        table_prefix = dataSource$tablePrefix,
+        table_prefix = dataSource$cdTablePrefix,
         cohort_id = targetCohortId(),
         results_database_schema = dataSource$schema,
         database_id = quoteLiterals(selectedDatabaseIds()),
