@@ -16,6 +16,7 @@
 
 cdUiControls <- function(ns) {
   panels <- shiny::tagList(
+    shiny::textOutput(outputId = ns("tabSelected")),
     shiny::conditionalPanel(
       condition = "
       input.tabs == 'databaseInformation'",
@@ -90,7 +91,7 @@ cdUiControls <- function(ns) {
       condition = "input.tabs == 'cohortCounts' |
       input.tabs == 'cohortOverlap' |
       input.tabs == 'incidenceRates' |
-      input.tabs == 'timeDistributions'",
+      input.tabs == 'timeDistribution'",
       ns = ns,
       shinyWidgets::pickerInput(
         inputId = ns("cohorts"),
@@ -230,8 +231,8 @@ cohortDiagnosticsView <- function(id = "DiagnosticsExplorer") {
       ),
       shiny::conditionalPanel(
         ns = ns,
-        condition = "input.tabs == 'timeDistributions'",
-        timeDistributionsView(ns("timeDistributions"))
+        condition = "input.tabs == 'timeDistribution'",
+        timeDistributionsView(id = ns("timeDistributions"))
       ),
       shiny::conditionalPanel(
         ns = ns,

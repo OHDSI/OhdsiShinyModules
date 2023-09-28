@@ -626,6 +626,8 @@ cohortDiagnosticsServer <- function(id,
       return(input$targetCohort)
     })
 
+    output$tabSelected <- shiny::renderText(input$tabs)
+
     if ("cohort" %in% enabledReports) {
       cohortDefinitionsModule(id = "cohortDefinitions",
                               dataSource = dataSource,
