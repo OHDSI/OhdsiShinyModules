@@ -16,7 +16,6 @@
 
 cdUiControls <- function(ns) {
   panels <- shiny::tagList(
-    shiny::textOutput(outputId = ns("tabSelected")),
     shiny::conditionalPanel(
       condition = "
       input.tabs == 'databaseInformation'",

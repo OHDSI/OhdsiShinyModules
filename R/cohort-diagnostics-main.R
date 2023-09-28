@@ -469,7 +469,7 @@ cohortDiagnosticsServer <- function(id,
         selection["Orphan Concepts"] <- "orphanConcepts"
 
       if ("indexEventBreakdown" %in% dataSource$enabledReports)
-        selection["Index Event Breakdown"] <- "indexEventBreakdown"
+        selection["Index Event Breakdown"] <- "indexEvents"
 
       shiny::updateSelectInput(
         inputId = "tabs",
@@ -626,8 +626,6 @@ cohortDiagnosticsServer <- function(id,
       return(input$targetCohort)
     })
 
-    output$tabSelected <- shiny::renderText(input$tabs)
-
     if ("cohort" %in% enabledReports) {
       cohortDefinitionsModule(id = "cohortDefinitions",
                               dataSource = dataSource,
@@ -666,7 +664,7 @@ cohortDiagnosticsServer <- function(id,
     }
 
     if ("indexEventBreakdown" %in% enabledReports) {
-      indexEventBreakdownModule("indexEvents",
+      indexEventBreakdownModule(id = "indexEvents",
                                 dataSource = dataSource,
                                 selectedCohort = selectedCohort,
                                 targetCohortId = targetCohortId,
