@@ -14,9 +14,11 @@ VignetteBuilder: knitr
 Imports:
     checkmate,
     CirceR,
+    cowplot,
     DatabaseConnector,
     dplyr,
     DT,
+    ggh4x,
     ggplot2,
     gridExtra,
     htmltools,

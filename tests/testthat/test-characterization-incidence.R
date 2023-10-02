@@ -9,15 +9,22 @@ shiny::testServer(
   ), 
   expr = {
     
-    # make sure cohorts is a data.frame
-    testthat::expect_true(class(cohorts) == 'list')
-    testthat::expect_true(!is.null(cohorts$targetIds))
-    testthat::expect_true(!is.null(cohorts$outcomeIds))
+    # make sure options is a list
+    testthat::expect_true(class(options) == 'list')
+    testthat::expect_true(!is.null(options$targetIds))
+    testthat::expect_true(!is.null(options$outcomeIds))
     
     # check input$generate does not crash app
-    session$setInputs(`input-selection_targetId` = 1)
-    session$setInputs(`input-selection_outcomeId` = 3)
-    session$setInputs(`input-selection_generate` = T)
+    # need to test generate in ns("input-selection")
+    session$setInputs(`input-selection_generate` = 1)
+    
+    idata <- getIncidenceData(
+      targetIds = options$targetIds[1],
+      outcomeIds = options$outcomeIds[1],
+      connectionHandler = connectionHandler,
+      resultDatabaseSettings = resultDatabaseSettings
+    )
+    testthat::expect_is(idata, 'data.frame')
     
   })
 
