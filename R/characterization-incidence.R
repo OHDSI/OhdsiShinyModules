@@ -137,8 +137,10 @@ characterizationIncidenceViewer <- function(id) {
         
         shiny::tabPanel(
           title = "Incidence Rate Table",
-          resultTableViewer(ns("incidenceRateTable"),
-                            downloadedFileName = "incidenceRateTable-")
+          resultTableViewer(
+            ns("incidenceRateTable"),
+            downloadedFileName = "incidenceRateTable-"
+            )
         ),
         shiny::tabPanel(
           title = "Incidence Rate Plots",
@@ -148,13 +150,15 @@ characterizationIncidenceViewer <- function(id) {
             shiny::tabPanel(
               title = "Custom Plot",
               shinycssloaders::withSpinner(
-                plotly::plotlyOutput(ns('incidencePlot'),
-                                     height = "1600px",
-                                     width = "90%")
+                plotly::plotlyOutput(
+                  ns('incidencePlot'),
+                  height = "1000px"
+                )
               ),
-              shiny::plotOutput(ns('incidencePlotLegend'),
-                                width="100%",
-                                height="300px"
+              shiny::plotOutput(
+                ns('incidencePlotLegend'),
+                width="100%",
+                height="300px"
               )
               
             )
@@ -590,7 +594,8 @@ characterizationIncidenceServer <- function(
         )
       )
       
-      ##class(incidenceColList$genderName$filterMethod) <- "JS_EVAL"
+      ## CHECK - caused error for me but it is in Nate's latest code
+      class(incidenceColList$genderName$filterMethod) <- "JS_EVAL"
       
       renderIrTable <- shiny::reactive(
         {
@@ -618,8 +623,13 @@ characterizationIncidenceServer <- function(
             return(data.frame())
           }
           
+          print(filteredData())
+          print(inputSelected()$incidenceRateTarFilter)
+          
           plotData <- filteredData() %>%
-            dplyr::filter(tar %in% inputSelected()$incidenceRateTarFilter)
+            dplyr::filter(.data$tar %in% inputSelected()$incidenceRateTarFilter)
+          
+          print(plotData)
           
           # Take the specific tar value you want to plot
           tar_value <- unique(plotData$tar)[1]
@@ -642,6 +652,7 @@ characterizationIncidenceServer <- function(
             "Outcomes:", outcomes
           ))
           
+          print(plotData$tooltip)
           
           # Check if color, size, shape, and trellis variables are selected, and set aesthetics accordingly
           color_aesthetic <- NULL
@@ -892,8 +903,8 @@ characterizationIncidenceServer <- function(
               ggplot2::theme(
                 title = ggplot2::element_text(hjust = 0.5),
                 plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10)),
-                axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 10)),
-                axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 10)),
+                axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 30)),
+                axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 30)),
                 legend.box = "horizontal",
                 panel.spacing = ggplot2::unit(1, "lines"),
                 strip.background = ggplot2::element_blank(), 
@@ -969,12 +980,23 @@ characterizationIncidenceServer <- function(
           
           # Center the main plot title
           p <- p %>% plotly::layout(title = list(x = 0.5, xanchor = "center"),
-                                    margin = list(t = 100),
-                                    xaxis = list(tickangle = 45, 
-                                                 title =list(standoff = 40)
-                                    ),
-                                    yaxis = list(title =list(standoff = 40)
-                                    )
+                                    margin = list(t = 75, b = 150, l = 125, r = 25),
+                                    #add several xaxis placeholders in case row trellis has several distinct values (this is a workaround)
+                                    xaxis =  list(tickangle = 45),
+                                    xaxis2 =  list(tickangle = 45),
+                                    xaxis3 =  list(tickangle = 45),
+                                    xaxis4 =  list(tickangle = 45),
+                                    xaxis5 =  list(tickangle = 45),
+                                    xaxis6 =  list(tickangle = 45),
+                                    xaxis7 =  list(tickangle = 45),
+                                    xaxis8 =  list(tickangle = 45),
+                                    xaxis9 =  list(tickangle = 45),
+                                    xaxis10 =  list(tickangle = 45),
+                                    xaxis11 =  list(tickangle = 45),
+                                    xaxis12 =  list(tickangle = 45),
+                                    xaxis13 =  list(tickangle = 45),
+                                    xaxis14 =  list(tickangle = 45),
+                                    xaxis15 =  list(tickangle = 45)
           ) 
           
           return(p)
@@ -1104,7 +1126,8 @@ getIncidenceOptions <- function(
     result_schema = resultDatabaseSettings$schema,
     incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
   )
-  tar <- tars$tarId
+  tar <- paste0('(',tars$tarStartWith, " + ", tars$tarStartOffset, ') - (', tars$tarEndWith, " + ", tars$tarEndOffset, ')')
+  #tar <- tars$tarId
   names(tar) <- paste0('(',tars$tarStartWith, " + ", tars$tarStartOffset, ') - (', tars$tarEndWith, " + ", tars$tarEndOffset, ')')
   
   sql <- 'select distinct age_group_name
