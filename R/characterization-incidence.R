@@ -192,16 +192,6 @@ characterizationIncidenceServer <- function(
 ) {
   shiny::moduleServer(
     id,
-    #' Title
-    #'
-    #' @param input 
-    #' @param output 
-    #' @param session 
-    #'
-    #' @return
-    #' @export
-    #'
-    #' @examples
     function(input, output, session) {
       
       
@@ -573,15 +563,15 @@ characterizationIncidenceServer <- function(
                            connectionHandler = connectionHandler,
                            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
-            dplyr::relocate(tar, .before = outcomes) %>%
-            dplyr::mutate(incidenceProportionP100p = as.numeric(incidenceProportionP100p),
-                          incidenceRateP100py = as.numeric(incidenceRateP100py),
+            dplyr::relocate("tar", .before = "outcomes") %>%
+            dplyr::mutate(incidenceProportionP100p = as.numeric(.data$incidenceProportionP100p),
+                          incidenceRateP100py = as.numeric(.data$incidenceRateP100py),
                           dplyr::across(dplyr::where(is.numeric), round, 4),
-                          targetIdShort = paste("C", targetCohortDefinitionId, sep = ":"),
-                          outcomeIdShort = paste("C", outcomeCohortDefinitionId, sep = ":")) %>%
-            dplyr::filter(ageGroupName %in% inputSelected()$incidenceRateAgeFilter & 
-                            genderName %in% inputSelected()$incidenceRateGenderFilter & 
-                            startYear %in% inputSelected()$incidenceRateCalendarFilter  
+                          targetIdShort = paste("C", .data$targetCohortDefinitionId, sep = ":"),
+                          outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = ":")) %>%
+            dplyr::filter(.data$ageGroupName %in% !!inputSelected()$incidenceRateAgeFilter & 
+                            .data$genderName %in% !!inputSelected()$incidenceRateGenderFilter & 
+                            .data$startYear %in% !!inputSelected()$incidenceRateCalendarFilter  
             )
         }
       )
@@ -623,13 +613,8 @@ characterizationIncidenceServer <- function(
             return(data.frame())
           }
           
-          print(filteredData())
-          print(inputSelected()$incidenceRateTarFilter)
-          
           plotData <- filteredData() %>%
             dplyr::filter(.data$tar %in% inputSelected()$incidenceRateTarFilter)
-          
-          print(plotData)
           
           # Take the specific tar value you want to plot
           tar_value <- unique(plotData$tar)[1]
@@ -652,8 +637,7 @@ characterizationIncidenceServer <- function(
             "Outcomes:", outcomes
           ))
           
-          print(plotData$tooltip)
-          
+        
           # Check if color, size, shape, and trellis variables are selected, and set aesthetics accordingly
           color_aesthetic <- NULL
           size_aesthetic <- NULL
@@ -663,17 +647,17 @@ characterizationIncidenceServer <- function(
           
           if (inputSelected()$plotColor == "Target Cohort" | inputSelected()$plotColor == "Outcome Cohort") {
             color_aesthetic <- if (inputSelected()$plotColor == "Target Cohort") {
-              dplyr::vars(targetIdShort)
+              dplyr::vars(.data$targetIdShort)
             } else if (inputSelected()$plotColor == "Outcome Cohort") {
-              dplyr::vars(outcomeIdShort)
+              dplyr::vars(.data$outcomeIdShort)
             }
           }
           
           if (inputSelected()$plotShape == "Target Cohort" | inputSelected()$plotShape == "Outcome Cohort") {
             shape_aesthetic <- if (inputSelected()$plotShape == "Target Cohort") {
-              dplyr::vars(targetIdShort)
+              dplyr::vars(.data$targetIdShort)
             } else if (inputSelected()$plotShape == "Outcome Cohort") {
-              dplyr::vars(outcomeIdShort)
+              dplyr::vars(.data$outcomeIdShort)
             }
           }
           
@@ -692,7 +676,7 @@ characterizationIncidenceServer <- function(
                            color = if(inputSelected()$plotColor != "None" & inputSelected()$plotColor != "Target Cohort" & 
                                       inputSelected()$plotColor != "Outcome Cohort") .data[[inputSelected()$plotColor]]
                            else color_aesthetic,
-                           text = tooltip
+                           text = .data$tooltip
               )
             ) + 
               ggplot2::geom_point(ggplot2::aes(size = if(inputSelected()$plotSize != "None") .data[[inputSelected()$plotSize]] else NULL,
@@ -709,8 +693,8 @@ characterizationIncidenceServer <- function(
             if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                 inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = vars(.data[[inputSelected()$plotXTrellis]]),
-                cols = vars(.data[[inputSelected()$plotYTrellis]]),
+                rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
+                cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
                 scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -721,8 +705,8 @@ characterizationIncidenceServer <- function(
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = vars(targetIdShort),
-                cols = vars(.data[[inputSelected()$plotYTrellis]]),
+                rows = dplyr::vars(.data$targetIdShort),
+                cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
                 scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -733,8 +717,8 @@ characterizationIncidenceServer <- function(
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = vars(outcomeIdShort),
-                cols = vars(.data[[inputSelected()$plotYTrellis]]),
+                rows = dplyr::vars(.data$outcomeIdShort),
+                cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
                 scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -745,8 +729,8 @@ characterizationIncidenceServer <- function(
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = vars(.data[[inputSelected()$plotXTrellis]]),
-                cols = vars(targetIdShort),
+                rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
+                cols = dplyr::vars(.data$targetIdShort),
                 scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -757,8 +741,8 @@ characterizationIncidenceServer <- function(
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = vars(.data[[inputSelected()$plotXTrellis]]),
-                cols = vars(outcomeIdShort),
+                rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
+                cols = dplyr::vars(.data$outcomeIdShort),
                 scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -769,8 +753,8 @@ characterizationIncidenceServer <- function(
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = vars(targetIdShort),
-                cols = vars(targetIdShort),
+                rows = dplyr::vars(.data$targetIdShort),
+                cols = dplyr::vars(.data$targetIdShort),
                 scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -781,8 +765,8 @@ characterizationIncidenceServer <- function(
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = vars(targetIdShort),
-                cols = vars(outcomeIdShort),
+                rows = dplyr::vars(.data$targetIdShort),
+                cols = dplyr::vars(.data$outcomeIdShort),
                 scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -793,8 +777,8 @@ characterizationIncidenceServer <- function(
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = vars(outcomeIdShort),
-                cols = vars(targetIdShort),
+                rows = dplyr::vars(.data$outcomeIdShort),
+                cols = dplyr::vars(.data$targetIdShort),
                 scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -805,8 +789,8 @@ characterizationIncidenceServer <- function(
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = vars(outcomeIdShort),
-                cols = vars(outcomeIdShort),
+                rows = dplyr::vars(.data$outcomeIdShort),
+                cols = dplyr::vars(.data$outcomeIdShort),
                 scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -818,7 +802,7 @@ characterizationIncidenceServer <- function(
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = NULL,
-                cols = vars(outcomeIdShort),
+                cols = dplyr::vars(.data$outcomeIdShort),
                 scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -830,7 +814,7 @@ characterizationIncidenceServer <- function(
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = NULL,
-                cols = vars(targetIdShort),
+                cols = dplyr::vars(.data$targetIdShort),
                 scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -842,7 +826,7 @@ characterizationIncidenceServer <- function(
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = NULL,
-                cols = vars(.data[[inputSelected()$plotYTrellis]]),
+                cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
                 scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -853,7 +837,7 @@ characterizationIncidenceServer <- function(
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis=="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = vars(.data[[inputSelected()$plotXTrellis]]),
+                rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
                 cols = NULL,
                 scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
               ) +
@@ -865,7 +849,7 @@ characterizationIncidenceServer <- function(
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis=="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = vars(targetIdShort),
+                rows = dplyr::vars(.data$targetIdShort),
                 cols = NULL,
                 scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
               ) +
@@ -877,7 +861,7 @@ characterizationIncidenceServer <- function(
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
                      inputSelected()$plotYTrellis=="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = vars(outcomeIdShort),
+                rows = dplyr::vars(.data$outcomeIdShort),
                 cols = NULL,
                 scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
               ) +
@@ -962,7 +946,7 @@ characterizationIncidenceServer <- function(
           }
           
           plotData <- filteredData() %>%
-            dplyr::filter(tar %in% inputSelected()$incidenceRateTarFilter)
+            dplyr::filter(.data$tar %in% inputSelected()$incidenceRateTarFilter)
           
           # Get the number of facets in both rows and columns
           num_rows <- length(unique(plotData[[inputSelected()$plotXTrellis]]))
