@@ -194,6 +194,7 @@ createCdDatabaseDataSource <- function(
     },
     cgTable = resultDatabaseSettings$cgTable,
     cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    useCgTable = TRUE,
     databaseTable = resultDatabaseSettings$databaseTable,
     databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix,
     dataModelSpecifications = modelSpec
@@ -210,6 +211,16 @@ createCdDatabaseDataSource <- function(
 
   if (displayProgress)
     shiny::setProgress(value = 0.2, message = "Getting cohorts")
+
+
+  dataSource$useCgTable <- !tableIsEmpty(dataSource = dataSource,
+                                          tableName = paste0(dataSource$cgTablePrefix, dataSource$cgTable))
+
+  if (dataSource$useCgTable) {
+    dataSource$cohortTableName <- paste0(dataSource$cgTablePrefix, dataSource$cgTable)
+  } else {
+    dataSource$cohortTableName <- paste0(dataSource$cdTablePrefix, "cohort")
+  }
 
   dataSource$cohortTable <- getCohortTable(dataSource)
 
@@ -300,26 +311,21 @@ getDatabaseTable <- function(dataSource) {
 
 # SO much of the app requires this table in memory - it would be much better to re-write queries to not need it!
 getCohortTable <- function(dataSource) {
-  if (tableIsEmpty(
-      dataSource = dataSource, 
-      tableName = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
-    )
-    ) {
-    return(data.frame())
-  }
-  # hot fix
-  if(paste0(dataSource$cgTablePrefix, dataSource$cgTable) == 'cg_cohort_definition'){
+  if (!tableIsEmpty(
+    dataSource = dataSource,
+    tableName = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
+  )
+  ) {
     cohortTable <- dataSource$connectionHandler$queryDb(
       "SELECT cohort_definition_id as cohort_id, cohort_name FROM @schema.@table_name",
       schema = dataSource$schema,
       table_name = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
     )
-   # end hot fix
-  } else{
+  } else {
     cohortTable <- dataSource$connectionHandler$queryDb(
-      "SELECT cohort_id, cohort_name FROM @schema.@table_name",
+      "SELECT cohort_id, cohort_name FROM @schema.@cd_table_prefixcohort",
       schema = dataSource$schema,
-      table_name = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
+      cd_table_prefix = dataSource$cdTablePrefix
     )
   }
 
