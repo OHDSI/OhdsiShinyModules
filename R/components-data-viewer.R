@@ -334,7 +334,7 @@ function filterMinValue(rows, columnId, filterValue) {
         # Display message when dat is empty
         shiny::validate(shiny::need(hasData(data), "No data for selection"))
         # set row height based on nchar of table
-        if(max(apply(data, 1, function(x) max(nchar(x))), na.rm = T) < 100){
+        if(max(apply(data, 1, function(x) max(nchar(x))), na.rm = T) < 120){
           height <- 40*3
         } else{
           height <- NULL
