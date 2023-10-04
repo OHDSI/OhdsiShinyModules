@@ -209,8 +209,8 @@ getConceptSetDetailsFromCohortDefinition <-
   }
 
 
-getCohortJsonSql <- function(dataSource, cohortIds) {
-  sql <- "SELECT * FROM @schema.@cohort_table
+getCdCohortRows <- function(dataSource, cohortIds) {
+  sql <- "SELECT {@use_cg_table} ? {cohort_definition_id as cohort_id,} * FROM @schema.@cohort_table
     WHERE {@use_cg_table} ? {cohort_definition_id} : {cohort_id} IN (@cohort_ids)"
   dataSource$connectionHandler$queryDb(
     sql = sql,
@@ -574,7 +574,7 @@ cohortDefinitionsModule <- function(
           return(NULL)
         }
         row <- subset[idx[1],]
-        return(getCohortJsonSql(dataSource, row$cohortId))
+        return(getCdCohortRows(dataSource, row$cohortId))
       }
     })
 
@@ -1095,7 +1095,7 @@ cohortDefinitionsModule <- function(
         shiny::withProgress(
           message = "Export is in progress",
         {
-          definitions <- getCohortJsonSql(dataSource, cohortTable$cohortId)
+          definitions <- getCdCohortRows(dataSource, cohortTable$cohortId)
           exportCohortDefinitionsZip(definitions, zipFile = file)
         },
           detail = "Please Wait"

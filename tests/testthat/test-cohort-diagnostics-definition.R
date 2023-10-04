@@ -7,7 +7,7 @@ shiny::testServer(cohortDefinitionsModule, args = list(
 ), {
   getCohortDefinitionResolvedConceptsReactive()
   checkmate::expect_data_frame(cohortDefinitionTableData())
-  defs <- getCohortJsonSql(dataSourceCd, dataSourceCd$cohortTable$cohortId)
+  defs <- getCdCohortRows(dataSourceCd, dataSourceCd$cohortTable$cohortId)
   def <- defs$json[1] %>% RJSONIO::fromJSON(digits = 23)
   checkmate::expect_list(getCirceRenderedExpression(def))
 

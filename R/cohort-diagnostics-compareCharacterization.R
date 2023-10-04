@@ -480,20 +480,6 @@ compareCohortCharacterizationView <- function(id, title = "Compare cohort charac
   )
 }
 
-# Returns data from cohort table of Cohort Diagnostics results data model
-getResultsCohort <- function(dataSource, cohortIds = NULL) {
-  data <- dataSource$connectionHandler$queryDb(
-    sql = "SELECT * FROM @schema.@table_name
-                                          {@cohort_id != \"\"} ? { WHERE cohort_id IN (@cohort_id)};",
-    schema = dataSource$schema,
-    cohort_id = cohortIds,
-    table_name = paste0(dataSource$cgTablePrefix,dataSource$cgTable),
-    snakeCaseToCamelCase = TRUE
-  )
-  return(data)
-}
-
-
 # Returns cohort as feature characterization
 getCohortRelationshipCharacterizationResults <-
   function(dataSource,
@@ -505,7 +491,8 @@ getCohortRelationshipCharacterizationResults <-
         cohortIds = cohortIds,
         databaseIds = databaseIds
       )
-    cohort <- getResultsCohort(dataSource = dataSource)
+    cohort <- getCdCohortRows(dataSource = dataSource,
+                              cohortIds = cohortIds)
 
     cohortRelationships <-
       getResultsCohortRelationships(
@@ -577,6 +564,7 @@ getCohortRelationshipCharacterizationResults <-
                             dplyr::distinct(),
                           by = c("analysisId")
         )
+
     covariateRef <- tidyr::crossing(
       cohort,
       analysisRef %>%
