@@ -194,9 +194,9 @@ createCdDatabaseDataSource <- function(
     },
     cgTable = resultDatabaseSettings$cgTable,
     cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-    useCgTable = TRUE,
-    databaseTable = resultDatabaseSettings$databaseTable,
-    databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix,
+    useCgTable = FALSE,
+    databaseTable = "database",
+    databaseTablePrefix = "cd_",
     dataModelSpecifications = modelSpec
   )
 
@@ -213,14 +213,7 @@ createCdDatabaseDataSource <- function(
     shiny::setProgress(value = 0.2, message = "Getting cohorts")
 
 
-  dataSource$useCgTable <- !tableIsEmpty(dataSource = dataSource,
-                                          tableName = paste0(dataSource$cgTablePrefix, dataSource$cgTable))
-
-  if (dataSource$useCgTable) {
-    dataSource$cohortTableName <- paste0(dataSource$cgTablePrefix, dataSource$cgTable)
-  } else {
-    dataSource$cohortTableName <- paste0(dataSource$cdTablePrefix, "cohort")
-  }
+  dataSource$cohortTableName <- paste0(dataSource$cdTablePrefix, "cohort")
 
   dataSource$cohortTable <- getCohortTable(dataSource)
 
@@ -311,28 +304,11 @@ getDatabaseTable <- function(dataSource) {
 
 # SO much of the app requires this table in memory - it would be much better to re-write queries to not need it!
 getCohortTable <- function(dataSource) {
-  if (!tableIsEmpty(
-    dataSource = dataSource,
-    tableName = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
+  cohortTable <- dataSource$connectionHandler$queryDb(
+    "SELECT cohort_id, cohort_name FROM @schema.@cd_table_prefixcohort",
+    schema = dataSource$schema,
+    cd_table_prefix = dataSource$cdTablePrefix
   )
-  ) {
-    cohortTable <- dataSource$connectionHandler$queryDb(
-      "SELECT cohort_definition_id as cohort_id, cohort_name FROM @schema.@table_name",
-      schema = dataSource$schema,
-      table_name = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
-    )
-  } else {
-    cohortTable <- dataSource$connectionHandler$queryDb(
-      "SELECT cohort_id, cohort_name FROM @schema.@cd_table_prefixcohort",
-      schema = dataSource$schema,
-      cd_table_prefix = dataSource$cdTablePrefix
-    )
-  }
-
-  # Old label - is this needed??
-  if ("cohortDefinitionId" %in% names(cohortTable)) {
-    cohortTable <- cohortTable %>% dplyr::mutate(cohortId = .data$cohortDefinitionId)
-  }
 
   cohortTable <- cohortTable %>%
     dplyr::arrange(.data$cohortId) %>%
