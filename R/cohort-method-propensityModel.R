@@ -30,7 +30,8 @@ cohortMethodPropensityModelViewer <- function(id) {
   
   shiny::div(
     shiny::div(shiny::strong("Table 3."),"Fitted propensity model, listing all coviates with non-zero coefficients. Positive coefficients indicate predictive of the target exposure."),
-    DT::dataTableOutput(outputId = ns("propensityModelTable"))
+    
+    resultTableViewer(id = ns("propensityModelTable"))
   )
 }
 
@@ -57,38 +58,36 @@ cohortMethodPropensityModelServer <- function(
     id,
     function(input, output, session) {
       
-      output$propensityModelTable <- DT::renderDataTable({
-        row <- selectedRow()
-        if (is.null(row)) {
-          return(NULL)
-        } else {
-          model <- getCohortMethodPropensityModel(
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings,
-            targetId = row$targetId,
-            comparatorId = row$comparatorId,
-            databaseId = row$databaseId,
-            analysisId = row$analysisId
-          )
-          
-          table <- prepareCohortMethodPropensityModelTable(model)
-          options = list(columnDefs = list(list(className = 'dt-right',  targets = 0)),
-                         pageLength = 15,
-                         searching = FALSE,
-                         lengthChange = TRUE,
-                         ordering = TRUE,
-                         paging = TRUE)
-          selection = list(mode = "single", target = "row")
-          table <- DT::datatable(table,
-                                 options = options,
-                                 selection = selection,
-                                 rownames = FALSE,
-                                 escape = FALSE,
-                                 class = "stripe nowrap compact")
-          return(table)
-        }
+      data <- shiny::reactive({
+        getCohortMethodPropensityModel(
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          targetId = selectedRow()$targetId,
+          comparatorId = selectedRow()$comparatorId,
+          databaseId = selectedRow()$databaseId,
+          analysisId = selectedRow()$analysisId
+        )
       })
       
+      resultTableServer(
+        id = 'propensityModelTable',
+        df = data, 
+        colDefsInput = list(
+          covariateId = reactable::colDef(
+            show = F
+            ),
+          coefficient = reactable::colDef(
+            name = 'Beta', 
+            format = reactable::colFormat(
+              digits = 3
+            )
+          ), 
+          covariateName = reactable::colDef(
+            name = 'Covariate'
+          )
+        )
+      )
+  
     }
   )
 }
@@ -102,22 +101,10 @@ getCohortMethodPropensityModel <- function(
     analysisId, 
     databaseId
 ) {
-  sqlTmp <- "
-  SELECT
-    cmpm.coefficient,
-    cmc.covariate_id,
-    cmc.covariate_name
-  FROM
-    @schema.@cm_table_prefixcovariate cmc
-    JOIN @schema.@cm_table_prefixpropensity_model cmpm 
-    ON cmc.covariate_id = cmpm.covariate_id 
-    AND cmc.database_id = cmpm.database_id
-  WHERE
-    cmpm.target_id = @target_id
-    AND cmpm.comparator_id = @comparator_id
-    AND cmpm.analysis_id = @analysis_id
-    AND cmpm.database_id = '@database_id'
-  "
+  
+  if(is.null(targetId)){
+    return(NULL)
+  }
   
   sql <- "
     SELECT
@@ -156,15 +143,9 @@ getCohortMethodPropensityModel <- function(
     analysis_id = analysisId,
     database_id = databaseId
   )
+  
+  model <- model %>%
+    dplyr::arrange(dplyr::desc(abs(.data$coefficient)))
+  
   return(model)
-}
-
-prepareCohortMethodPropensityModelTable <- function(model) {
-  rnd <- function(x) {
-    ifelse(x > 10, sprintf("%.1f", x), sprintf("%.2f", x))
-  }
-  table <- model[order(-abs(model$coefficient)), c("coefficient", "covariateName")]
-  table$coefficient <- sprintf("%.2f", table$coefficient)
-  colnames(table) <- c("Beta", "Covariate")
-  return(table)
 }

@@ -115,19 +115,6 @@ getIncidenceRateResult <- function(dataSource,
   )
   checkmate::reportAssertions(collection = errorMessage)
 
-  #sql <- "SELECT ir.*, dt.database_name, cc.cohort_subjects
-  #          FROM  @schema.@ir_table ir
-  #          INNER JOIN @schema.@database_table dt ON ir.database_id = dt.database_id
-  #          INNER JOIN @schema.@cc_table cc ON (
-  #            ir.database_id = cc.database_id AND ir.cohort_id = cc.cohort_id
-  #          )
-  #          WHERE ir.cohort_id in (@cohort_ids)
-  #         	  AND ir.database_id in (@database_ids)
-  #          {@gender == TRUE} ? {AND ir.gender != ''} : {  AND ir.gender = ''}
-  #          {@age_group == TRUE} ? {AND ir.age_group != ''} : {  AND ir.age_group = ''}
-  #          {@calendar_year == TRUE} ? {AND ir.calendar_year != ''} : {  AND ir.calendar_year = ''}
-  #            AND ir.person_years > @personYears;"
-  
   sql <- "SELECT ir.*, cc.cohort_subjects
             FROM  @schema.@ir_table ir
             INNER JOIN @schema.@cc_table cc ON (

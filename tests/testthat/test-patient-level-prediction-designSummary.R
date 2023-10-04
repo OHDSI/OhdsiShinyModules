@@ -9,16 +9,20 @@ shiny::testServer(
   expr = {
     
     expect_true(is.null(modelDesignId()))
-    #session$setInputs(show_details = list(index = 1))
-    #expect_true(!is.null(modelDesignId()))
     
     expect_true(is.null(reportId()))
-    #session$setInputs(show_report = list(index = 1))
-    #expect_true(!is.null(reportId()))
     
     expect_true(is.null(diagnosticId()))
     #session$setInputs(show_diagnostic = list(index = 1))
     #expect_true(!is.null(diagnosticId()))
+    
+    newTars <- getPlpCohortIds(
+      connectionHandler = connectionHandler,
+      resultDatabaseSettings = resultDatabaseSettings,
+      type = 'target'
+    )
+    expect_true(length(newTars)>0)
+    
     
     designSummary <- getPredictionDesignSummary(
       connectionHandler = connectionHandler, #plp?

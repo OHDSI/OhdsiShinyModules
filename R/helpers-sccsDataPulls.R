@@ -205,7 +205,6 @@ getSccsTimeTrend <- function(connectionHandler,
     database_id = databaseId,
     analysis_id = analysisId,
     outcome_id = outcomeId,
-    #exposure_id = exposureId,
     snakeCaseToCamelCase = TRUE
   )
 }

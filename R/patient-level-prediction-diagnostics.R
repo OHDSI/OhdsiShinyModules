@@ -32,17 +32,14 @@ patientLevelPredictionDiagnosticsViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::tagList(
-    shinydashboard::box(
-      collapsible = TRUE,
-      collapsed = TRUE,
-      title = "All Database Diagnostics For Selected Model Design",
-      width = "100%",
-      shiny::htmlTemplate(system.file("patient-level-prediction-www", "main-diagnosticsSummaryHelp.html", package = utils::packageName()))
+    infoHelperViewer(
+      id = "helper",
+      helpLocation= system.file("patient-level-prediction-www", "main-diagnosticsSummaryHelp.html", package = utils::packageName())
     ),
-    shinydashboard::box(
-      status = "warning",
-      width = "100%",
-      shiny::uiOutput(outputId = ns("diagnosticSummaryText"))
+    
+    inputSelectionDfViewer(
+      id = ns("df-output-selection-diag"),
+      title = 'Model Design Selected'
     ),
     shinydashboard::box(
       width = "100%",
@@ -88,7 +85,11 @@ patientLevelPredictionDiagnosticsServer <- function(
           modelDesignId = modelDesignId
         )
       )
-      output$diagnosticSummaryText <- shiny::renderUI(selectedModelDesign())
+      
+      inputSelectionDfServer(
+        id = "df-output-selection-diag", 
+        dataFrameRow = selectedModelDesign
+      )
       
       diagnosticTable <- shiny::reactive({
         getPredictionDiagnostics(

@@ -23,3 +23,10 @@ shiny::testServer(
     
     
   })
+
+
+test_that("Test characterizationTimeToEvent ui", {
+  # Test ui
+  ui <- characterizationTimeToEventViewer(id = 'viewer')
+  checkmate::expect_list(ui)
+})

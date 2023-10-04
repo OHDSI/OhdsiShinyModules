@@ -57,12 +57,10 @@ patientLevelPredictionViewer <- function(id=1) {
       shiny::tabPanel(
         "Model Designs Summary",  
         
-        shinydashboard::box(
-          collapsible = TRUE,
-          collapsed = TRUE,
-          title = "Model Designs Summary",
-          width = "100%",
-          shiny::htmlTemplate(system.file("patient-level-prediction-www", "help-designSummary.html", package = utils::packageName()))
+        
+        infoHelperViewer(
+          id = "helper",
+          helpLocation= system.file("patient-level-prediction-www", "help-designSummary.html", package = utils::packageName())
         ),
         
         patientLevelPredictionDesignSummaryViewer(ns('designSummaryTab'))
@@ -100,62 +98,9 @@ patientLevelPredictionViewer <- function(id=1) {
           style="color: #fff; background-color: #337ab7; border-color: #2e6da4"
         ),
         
-        shinydashboard::box(
-          collapsible = TRUE,
-          collapsed = TRUE,
-          title = "Full Result Explorer",
-          width = "100%",
-          shiny::htmlTemplate(system.file("patient-level-prediction-www", "help-fullResults.html", package = utils::packageName()))
-        ),
+        patientLevelPredictionResultsViewer(ns('prediction-results'))
         
-        shinydashboard::box(
-          status = "warning",
-          width = "100%",
-          shiny::uiOutput(outputId = ns("resultSelectText"))
-        ),
         
-        shiny::tabsetPanel(
-          type = 'pills',
-          id = ns('singleView'),
-          
-          shiny::tabPanel(
-            "Model",
-            patientLevelPredictionCovariateSummaryViewer(ns('covariateSummary'))
-          ),
-          
-          shiny::tabPanel(
-            "Discrimination",  
-            patientLevelPredictionDiscriminationViewer(ns('discrimination'))
-          ),
-          
-          shiny::tabPanel(
-            "Calibration", 
-            patientLevelPredictionCalibrationViewer(ns('calibration'))
-          ),
-          
-          shiny::tabPanel(
-            "Threshold Dependant", 
-            patientLevelPredictionCutoffViewer(ns('cutoff'))
-          ), 
-          
-          shiny::tabPanel(
-            "Net Benefit", 
-            patientLevelPredictionNbViewer(ns('netBenefit'))
-          ),
-          
-          
-          shiny::tabPanel(
-            "Validation",
-            patientLevelPredictionValidationViewer(ns('validation'))
-          ),
-          
-          shiny::tabPanel(
-            "Design Settings",
-            patientLevelPredictionSettingsViewer(ns('settings'))
-          )
-          
-          
-        )
       )
       
     )
@@ -189,27 +134,6 @@ patientLevelPredictionServer <- function(
       #   VIEW SETTINGS
       # =============================
 
-      # when going to the all model design hide tabs
-      shiny::observeEvent(input$allView, {
-        
-        
-        if(!is.null(input$allView)){
-          tempView <- input$allView
-
-          if(tempView != 'Explore Selected Model'){
-            shiny::updateTabsetPanel(
-              session = session,
-              inputId = 'singleView',
-              selected = 'Model'
-            )
-            
-            # 
-          }
-        }
-      }
-      
-      )
-      
       # go back button 
       shiny::observeEvent(input$backToModelSummary, {
         shiny::updateTabsetPanel(
@@ -235,12 +159,6 @@ patientLevelPredictionServer <- function(
           selected = 'Model Designs Summary'
         )
       })
-      
-      # keep a reactive variable tracking the active tab
-      singleViewValue <- shiny::reactive({
-        input$singleView
-      })
-      
       
       # =============================
       #   MODEL DESIGNS
@@ -298,13 +216,6 @@ patientLevelPredictionServer <- function(
         if(!is.null(performance$performanceId())){
           shiny::updateTabsetPanel(session, "allView", selected = "Explore Selected Model")
           }
-        
-        # hide validation tab if non internal val
-        if(performance$modelDevelopment() == 1){
-          shiny::showTab(inputId = "singleView", session = session, target = "Validation")
-        } else{
-          shiny::hideTab(inputId = "singleView", session = session, target = "Validation")
-        }
         
       })
       
@@ -421,199 +332,30 @@ patientLevelPredictionServer <- function(
       # ===========================================
       #  Single Result Exploring Modules
       # ===========================================
-      
-      output$resultSelectText <- shiny::renderUI(
-          getPlpResultSelection(
-            connectionHandler = connectionHandler, 
-            resultDatabaseSettings = resultDatabaseSettings,
-            modelDesignId = modelDesignId,
-            performanceId = performanceId
-          )
-      )
-      
-      patientLevelPredictionCovariateSummaryServer(
-        id = 'covariateSummary',
-        modelDesignId = modelDesignId, # reactive
-        developmentDatabaseId = developmentDatabaseId, # reactive
-        performanceId = performanceId, # reactive
+      tracker <- shiny::reactiveVal(1)
+      shiny::observeEvent(
+        input$allView,
+        {
+          if(input$allView != 'Explore Selected Model'){
+            tracker(tracker() + 1)
+          }
+        }
+        )
+
+      patientLevelPredictionResultsServer(
+        id = 'prediction-results',
+        modelDesignId = modelDesignId, 
+        developmentDatabaseId = developmentDatabaseId ,
+        performanceId = performanceId,
         connectionHandler = connectionHandler,
-        inputSingleView = singleViewValue,
-        resultDatabaseSettings = resultDatabaseSettings
-      ) 
-      
-      patientLevelPredictionSettingsServer(
-        id = 'settings', 
-        modelDesignId = modelDesignId, # reactive
-        developmentDatabaseId = developmentDatabaseId, # reactive
-        performanceId = performanceId, # reactive
-        connectionHandler = connectionHandler, 
-        inputSingleView = singleViewValue,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      
-      patientLevelPredictionCutoffServer(
-        id = 'cutoff', 
-        performanceId = performanceId, 
-        connectionHandler = connectionHandler, 
-        inputSingleView = singleViewValue,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      
-      patientLevelPredictionDiscriminationServer(
-        id = 'discrimination', 
-        performanceId = performanceId, 
-        connectionHandler = connectionHandler, 
-        inputSingleView = singleViewValue,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      
-      patientLevelPredictionCalibrationServer(
-        id = 'calibration', 
-        performanceId = performanceId, 
-        connectionHandler = connectionHandler, 
-        inputSingleView = singleViewValue,
-        resultDatabaseSettings = resultDatabaseSettings
-      ) 
-      
-      patientLevelPredictionNbServer(
-        id = 'netBenefit', 
-        performanceId = performanceId, 
-        connectionHandler = connectionHandler, 
-        inputSingleView = singleViewValue,
-        resultDatabaseSettings = resultDatabaseSettings
-      ) 
-      
-      patientLevelPredictionValidationServer(
-        id = 'validation', 
-        modelDesignId = modelDesignId, # reactive
-        developmentDatabaseId = developmentDatabaseId, # reactive
-        performanceId = performanceId, # reactive
-        connectionHandler = connectionHandler, 
-        inputSingleView = singleViewValue,
-        resultDatabaseSettings = resultDatabaseSettings
-      ) 
+        resultDatabaseSettings = resultDatabaseSettings,
+        performance = performance,
+        tracker = tracker
+        )
       
     }
   )
 }
 
 
-# name too generic
-getPlpResultSelection <- function(
-  connectionHandler, 
-  resultDatabaseSettings,
-  modelDesignId,
-  performanceId
-){
-  
-  if(!inherits(modelDesignId, 'reactive')){
-    modelDesignId <- shiny::reactiveVal(modelDesignId)
-  }
-  if(!inherits(performanceId, 'reactive')){
-    performanceId <- shiny::reactiveVal(performanceId)
-  }
-  
-  if(!is.null(modelDesignId()) & !is.null(performanceId())){
-  
-  modelType <- connectionHandler$queryDb(
-    'select distinct model_type from @schema.@plp_table_prefixmodels where model_design_id = @model_design_id;',
-    schema = resultDatabaseSettings$schema,
-    plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
-    model_design_id = modelDesignId()
-  )
-  
-  developmentDb = connectionHandler$queryDb(
-    'select distinct d.cdm_source_abbreviation from 
-    @schema.@database_table_prefixdatabase_meta_data d
-    inner join
-    @schema.@plp_table_prefixdatabase_details dd
-    on dd.database_meta_data_id = d.database_id
-    inner join
-    @schema.@plp_table_prefixperformances p 
-    on dd.database_id = p.development_database_id
-    where p.performance_id = @performance_id;',
-    schema = resultDatabaseSettings$schema,
-    plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
-    performance_id = performanceId(),
-    database_table_prefix = resultDatabaseSettings$databaseTablePrefix
-  )
 
-  validationDb = connectionHandler$queryDb(
-    'select distinct d.cdm_source_abbreviation from 
-    @schema.@database_table_prefixdatabase_meta_data d
-    inner join
-    @schema.@plp_table_prefixdatabase_details dd
-    on dd.database_meta_data_id = d.database_id
-    inner join
-    @schema.@plp_table_prefixperformances p 
-    on dd.database_id = p.validation_database_id
-    where p.performance_id = @performance_id;',
-    schema = resultDatabaseSettings$schema,
-    plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
-    performance_id = performanceId(),
-    database_table_prefix = resultDatabaseSettings$databaseTablePrefix
-  )
-
-  target <- connectionHandler$queryDb(
-    'select distinct c.cohort_name from 
-    @schema.@plp_table_prefixcohorts c
-    inner join
-    @schema.@plp_table_prefixperformances p 
-    on c.cohort_id = p.target_id
-    where p.performance_id = @performance_id;',
-    schema = resultDatabaseSettings$schema,
-    plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
-    performance_id = performanceId()
-  )
-  outcome <- connectionHandler$queryDb(
-    'select distinct c.cohort_name from 
-    @schema.@plp_table_prefixcohorts c
-    inner join
-    @schema.@plp_table_prefixperformances p 
-    on c.cohort_id = p.outcome_id
-    where p.performance_id = @performance_id;',
-    schema = resultDatabaseSettings$schema,
-    plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
-    performance_id = performanceId()
-  )
-
-  return(
-    shiny::fluidPage(
-      shiny::fluidRow(
-        shiny::column(
-          width = 4,
-          shiny::tags$b("modelDesignId :"),
-          modelDesignId()
-        ),
-        shiny::column(
-          width = 4,
-          shiny::tags$b("modelType :"),
-          modelType
-        ),
-        shiny::column(
-          width = 4,
-          shiny::tags$b("Target :"),
-          target
-        )
-      ),
-      shiny::fluidRow(
-        shiny::column(
-          width = 4,
-          shiny::tags$b("developmentDb :"),
-          developmentDb
-        ),
-        shiny::column(
-          width = 4,
-          shiny::tags$b("validationDb :"),
-          validationDb
-        ),
-        shiny::column(
-          width = 4,
-          shiny::tags$b("outcome :"),
-          outcome
-        )
-      )
-    )
-  )
-  }
-}

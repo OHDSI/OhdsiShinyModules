@@ -538,9 +538,11 @@ cohortDiagCharacterizationModule <- function(
     })
 
     conceptSetIds <- shiny::reactive({
-      if (input$selectedConceptSet == "") {
+      
+      if (!hasData(input$selectedConceptSet) || input$selectedConceptSet == "") {
         return(NULL)
       }
+    
       input$selectedConceptSet
     })
 
@@ -573,6 +575,7 @@ cohortDiagCharacterizationModule <- function(
     getFilteredConceptIds <- shiny::reactive({
       shiny::validate(shiny::need(hasData(selectedDatabaseIds()), "No data sources chosen"))
       shiny::validate(shiny::need(hasData(targetCohortId()), "No cohort chosen"))
+
       if (!hasData(conceptSetIds()))
         return(NULL)
 
@@ -784,71 +787,6 @@ cohortDiagCharacterizationModule <- function(
       return(data)
     })
 
-    rawCharacterizationOutput <- shiny::reactive({
-      shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "At least one data source must be selected"))
-      shiny::validate(shiny::need(length(targetCohortId()) == 1, "One target cohort must be selected"))
-
-      progress <- shiny::Progress$new()
-      on.exit(progress$close())
-      progress$set(
-        message = paste0(
-          "Retrieving characterization output for cohort id ",
-          targetCohortId(),
-          " cohorts and ",
-          length(selectedDatabaseIds()),
-          " data sources."
-        ),
-        value = 20
-      )
-
-      data <- dataSource$connectionHandler$queryDb(
-        sql = "SELECT tcv.*,
-                ref.covariate_name, ref.analysis_id, ref.concept_id,
-                aref.analysis_name, aref.is_binary, aref.domain_id,
-                tref.start_day, tref.end_day
-                FROM @schema.@table_name tcv
-                INNER JOIN @schema.@ref_table_name ref ON ref.covariate_id = tcv.covariate_id
-                INNER JOIN @schema.@analysis_ref_table_name aref ON aref.analysis_id = ref.analysis_id
-                LEFT JOIN @schema.@temporal_time_ref tref ON tref.time_id = tcv.time_id
-                WHERE ref.covariate_id IS NOT NULL
-                {@analysis_ids != \"\"} ? { AND ref.analysis_id IN (@analysis_ids)}
-                {@domain_ids != \"\"} ? { AND aref.domain_id IN (@domain_ids)}
-                {@cohort_id != \"\"} ? { AND tcv.cohort_id IN (@cohort_id)}
-                {@time_id != \"\"} ? { AND (tcv.time_id IN (@time_id) OR tcv.time_id IS NULL OR tcv.time_id = 0)}
-                {@use_database_id} ? { AND database_id IN (@database_id)}
-                ",
-        snakeCaseToCamelCase = TRUE,
-        analysis_ids = input$selectedRawAnalysisIds %>% unique(),
-        time_id = selectedTimeIds() %>% unique(),
-        use_database_id = !is.null(selectedDatabaseIds()),
-        database_id = quoteLiterals(selectedDatabaseIds()),
-        domain_ids = quoteLiterals(input$characterizationDomainIdFilter %>% unique()),
-        table_name = dataSource$prefixTable("temporal_covariate_value"),
-        ref_table_name = dataSource$prefixTable("temporal_covariate_ref"),
-        analysis_ref_table_name = dataSource$prefixTable("temporal_analysis_ref"),
-        temporal_time_ref = dataSource$prefixTable("temporal_time_ref"),
-        cohort_id = targetCohortId(),
-        schema = dataSource$schema
-      ) %>%
-        dplyr::tibble() %>%
-        tidyr::replace_na(replace = list(timeId = -1)) %>%
-        dplyr::mutate(temporalChoices = ifelse(is.na(.data$startDay),
-                                               "Time Invariant",
-                                               paste0("T (", .data$startDay, "d to ", .data$endDay, "d)")))
-        return(data)
-    })
-
-    ## cohortCharacterizationDataFiltered ----
-    cohortCharacterizationDataFiltered <- shiny::eventReactive(input$generateRaw, {
-      cohortConcepSets <- getCohortConceptSets()
-      cohortConcepSetOptions <- c("", cohortConcepSets$id)
-      names(cohortConcepSetOptions) <- c("None selected", cohortConcepSets$name)
-      shinyWidgets::updatePickerInput(session,
-                                      inputId = "selectedConceptSet",
-                                      selected = NULL,
-                                      choices = cohortConcepSetOptions)
-    })
-
     # Params when user presses button
     inputButtonParams <- shiny::eventReactive(input$generateRaw, {
       conceptIds <- getFilteredConceptIds()
@@ -867,9 +805,9 @@ cohortDiagCharacterizationModule <- function(
         analysis_ids = input$selectedRawAnalysisIds %>% unique(),
         time_id = selectedTimeIds() %>% unique(),
         domain_ids = quoteLiterals(input$characterizationDomainIdFilter %>% unique()),
-        table_prefix = dataSource$tablePrefix,
+        table_prefix = dataSource$cdTablePrefix,
         cohort_id = targetCohortId(),
-        results_database_schema = dataSource$resultsDatabaseSchema,
+        results_database_schema = dataSource$schema,
         database_id = quoteLiterals(selectedDatabaseIds()),
         is_binary = binary,
         concept_ids = conceptIds,
@@ -922,7 +860,7 @@ cohortDiagCharacterizationModule <- function(
       params$order_desc <- input$shortByRawAscTemporal == "DESC"
       params$time_id <- ""
       params$use_database_id <- TRUE
-      params$database_table <- dataSource$databaseTableName
+      params$database_table <- dataSource$databaseTable
       return(params)
     })
 
@@ -1113,8 +1051,8 @@ cohortDiagCharacterizationModule <- function(
           SELECT @select_stament
 
           FROM @results_database_schema.@table_prefixtemporal_covariate_ref tcr
-          LEFT JOIN @results_database_schema.@table_prefixtemporal_analysis_ref tar ON tar.analysis_id = tcr.analysis_id
-          LEFT JOIN @results_database_schema.@table_prefixtemporal_covariate_value tcv ON tcr.covariate_id = tcv.covariate_id
+          INNER JOIN @results_database_schema.@table_prefixtemporal_analysis_ref tar ON tar.analysis_id = tcr.analysis_id
+          INNER JOIN @results_database_schema.@table_prefixtemporal_covariate_value tcv ON tcr.covariate_id = tcv.covariate_id
           INNER JOIN @results_database_schema.@database_table db ON db.database_id = tcv.database_id
           WHERE tcr.covariate_id IS NOT NULL
         "

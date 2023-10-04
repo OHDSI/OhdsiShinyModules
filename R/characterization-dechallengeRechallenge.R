@@ -32,43 +32,22 @@ characterizationDechallengeRechallengeViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    shinydashboard::box(
-      collapsible = TRUE,
-      collapsed = TRUE,
-      title = "Dechallenge Rechallenge",
-      width = "100%",
-      shiny::htmlTemplate(system.file("characterization-www", "help-dechallengeRechallenge.html", package = utils::packageName()))
+    # helper component module
+    infoHelperViewer(
+      id = "helper",
+      helpLocation= system.file("characterization-www", "help-dechallengeRechallenge.html", package = utils::packageName())
     ),
     
-    shinydashboard::box(
-      width = "100%",
-      title = 'Options',
-      collapsible = TRUE,
-      collapsed = F,
-      shiny::uiOutput(ns('dechalRechalInputs'))
-    ),
+    # input component module
+    inputSelectionViewer(id = ns('input-selection')),
     
     shiny::conditionalPanel(
-      condition = "input.generate != 0",
-      ns = ns,
+      condition = 'input.generate != 0',
+      ns = shiny::NS(ns("input-selection")),
       
-      shiny::uiOutput(ns("DRinputsText")),
-      
-      shinydashboard::box(
-        width = "100%",
-        # Title can include an icon
-        title = shiny::tagList(shiny::icon("gear"), "Results"),
+      resultTableViewer(ns('tableResults'))
         
-        shiny::div(
-          shiny::downloadButton(
-            ns('downloadDechall'), 
-            label = "Download"
-          ),
-          shinycssloaders::withSpinner(
-            reactable::reactableOutput(ns('tableResults'))
-          )
-        )
-      )
+    
     )
   )
 }
@@ -98,246 +77,147 @@ characterizationDechallengeRechallengeServer <- function(
     id,
     function(input, output, session) {
       
-      #if(mainPanelTab() != 'Time To Event'){
-      #  return(invisible(NULL))
-      #}
-      
+
       # get the possible target ids
       bothIds <- dechalRechalGetIds(
         connectionHandler,
         resultDatabaseSettings
       )
-
-      shiny::observeEvent(
-        input$targetId,{
-          val <- bothIds$outcomeIds[[which(names(bothIds$outcomeIds) == input$targetId)]]
-          shiny::updateSelectInput(
-            session = session,
-            inputId = 'outcomeId', 
-            label = 'Outcome id: ',
-            choices = val
-          )
-        }
-      )
       
-      # update UI
-      output$dechalRechalInputs <- shiny::renderUI({
-        
-            shiny::fluidPage(
-              shiny::fluidRow(
-                shiny::column(
-                  width = 6,
-                  shinyWidgets::pickerInput(
-                    inputId = session$ns('targetId'), 
-                    label = 'Target id: ', 
-                    choices = bothIds$targetIds, 
-                    multiple = FALSE,
-                    choicesOpt = list(style = rep_len("color: black;", 999)),
-                    selected = 1,
-                    options = shinyWidgets::pickerOptions(
-                      actionsBox = TRUE,
-                      liveSearch = TRUE,
-                      size = 10,
-                      liveSearchStyle = "contains",
-                      liveSearchPlaceholder = "Type here to search",
-                      virtualScroll = 50
-                    )
-                  )
-                ),
-                shiny::column(
-                  width = 6,
-                  shinyWidgets::pickerInput(
-                    inputId = session$ns('outcomeId'), 
-                    label = 'Outcome id: ', 
-                    choices = bothIds$outcomeIds[[1]],
-                    selected = 1,
-                    choicesOpt = list(style = rep_len("color: black;", 999)),
-                    options = shinyWidgets::pickerOptions(
-                      actionsBox = TRUE,
-                      liveSearch = TRUE,
-                      size = 10,
-                      liveSearchStyle = "contains",
-                      liveSearchPlaceholder = "Type here to search",
-                      virtualScroll = 50
-                    )
-                  )
-                )
-              ),
-            
-            shiny::actionButton(
-              inputId = session$ns('generate'),
-              label = 'Generate Report'
+      # input selection component
+      inputSelected <- inputSelectionServer(
+        id = "input-selection", 
+        inputSettingList = list(
+          createInputSetting(
+            rowNumber = 1,                           
+            columnWidth = 6,
+            varName = 'targetId',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Target: ',
+              choices = bothIds$targetIds,
+              #choicesOpt = list(style = rep_len("color: black;", 999)),
+              selected = bothIds$targetIds[1],
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          
+          createInputSetting(
+            rowNumber = 1,                           
+            columnWidth = 6,
+            varName = 'outcomeId',
+            uiFunction = 'shinyWidgets::pickerInput',
+            uiInputs = list(
+              label = 'Outcome: ',
+              choices = bothIds$outcomeIds,
+              #choicesOpt = list(style = rep_len("color: black;", 999)),
+              selected = bothIds$outcomeIds[1],
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
             )
           )
-      }
+        )
       )
-      
-      databases <- shiny::reactiveVal(c())
-      dechallengeStopInterval <- shiny::reactiveVal(c())
-      dechallengeEvaluationWindow <- shiny::reactiveVal(c())
-      
-      reactiveData <- shiny::reactiveVal(data.frame())
-      selectedInputs <- shiny::reactiveVal()
-      output$DRinputsText <- shiny::renderUI(selectedInputs())
-      
       
       # fetch data when targetId changes
-      shiny::observeEvent(
-        eventExpr = input$generate,
-        {
-          if(is.null(input$targetId) | is.null(input$outcomeId)){
-            return(invisible(NULL))
-          }
-          
-          selectedInputs(
-            shinydashboard::box(
-              status = 'warning', 
-              width = "100%",
-              title = 'Selected:',
-              shiny::div(
-                shiny::fluidRow(
-                  shiny::column(
-                    width = 6,
-                    shiny::tags$b("Target:"),
-                    names(bothIds$targetIds)[bothIds$targetIds == input$targetId]
-                  ),
-                  shiny::column(
-                    width = 6,
-                    shiny::tags$b("Outcome:"),
-                    names(bothIds$outcomeIds[[1]])[bothIds$outcomeIds[[1]] == input$outcomeId]
-                  )
-                )
-                
-              )
-            )
-          )
-          
-          allData <- getDechalRechalInputsData(
-            targetId = input$targetId,
-            outcomeId = input$outcomeId,
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings
-          )
-          
-          reactiveData(allData)
-          
-          databases(allData$databaseId)
-          dechallengeStopInterval(allData$dechallengeStopInterval)
-          dechallengeEvaluationWindow(allData$dechallengeEvaluationWindow)
-          
-          output$tableResults <- reactable::renderReactable(
-            {
-              reactable::reactable(
-                data = cbind(
-                  view = rep("",nrow(allData)),
-                  allData %>% dplyr::relocate("databaseName")
-                  )
-                ,
-                filterable = TRUE,
-                showPageSizeOptions = TRUE,
-                pageSizeOptions = c(10, 50, 100,1000),
-                defaultPageSize = 50,
-                striped = TRUE,
-                highlight = TRUE,
-                elementId = "desc-dechal-select",
-                
-                columns = list(  
-                  view = reactable::colDef(
-                    name = "",
-                    sortable = FALSE,
-                    cell = function() htmltools::tags$button("Plot Fails")
-                  ),
-                  targetCohortDefinitionId = reactable::colDef(show = F),
-                  databaseId = reactable::colDef(show = F),
-                  outcomeCohortDefinitionId = reactable::colDef(show = F),
-                  
-                  databaseName = reactable::colDef(name = 'Database'),
-                  
-                  pctDechallengeAttempt = reactable::colDef(
-                    format = reactable::colFormat(digits = 2, percent = T)
-                  ),
-                  pctDechallengeSuccess = reactable::colDef(
-                    format = reactable::colFormat(digits = 2, percent = T)
-                  ),
-                  pctDechallengeFail = reactable::colDef(
-                    format = reactable::colFormat(digits = 2, percent = T)
-                  ),
-                  pctRechallengeAttempt = reactable::colDef(
-                    format = reactable::colFormat(digits = 2, percent = T)
-                  ),
-                  pctRechallengeSuccess = reactable::colDef(
-                    format = reactable::colFormat(digits = 2, percent = T)
-                  ),
-                  pctRechallengeFail = reactable::colDef(
-                    format = reactable::colFormat(digits = 2, percent = T)
-                  )
-                  
-                ),
-                onClick = reactable::JS(paste0("function(rowInfo, column) {
-    // Only handle click events on the 'details' column
-    if (column.id !== 'view') {
-      return
-    }
+      allData <-shiny::reactive({
+        getDechalRechalInputsData(
+          targetId = inputSelected()$targetId,
+          outcomeId = inputSelected()$outcomeId,
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings
+        )
+      })
 
-    if(column.id == 'view'){
-      Shiny.setInputValue('",session$ns('databaseRowId'),"', { index: rowInfo.index + 1 }, { priority: 'event' })
-    }
-  }")
-                )
-              )
-                
-                
-                
-            }
+          #databases(allData$databaseId)
+          #dechallengeStopInterval(allData$dechallengeStopInterval)
+          #dechallengeEvaluationWindow(allData$dechallengeEvaluationWindow)
+          
+      tableOutputs <- resultTableServer(
+        id = "tableResults", 
+        df = allData,
+        colDefsInput = list(  
+          targetCohortDefinitionId = reactable::colDef(show = F),
+          databaseId = reactable::colDef(show = F),
+          outcomeCohortDefinitionId = reactable::colDef(show = F),
+          
+          databaseName = reactable::colDef(name = 'Database'),
+          
+          pctDechallengeAttempt = reactable::colDef(
+            format = reactable::colFormat(digits = 2, percent = T)
+          ),
+          pctDechallengeSuccess = reactable::colDef(
+            format = reactable::colFormat(digits = 2, percent = T)
+          ),
+          pctDechallengeFail = reactable::colDef(
+            format = reactable::colFormat(digits = 2, percent = T)
+          ),
+          pctRechallengeAttempt = reactable::colDef(
+            format = reactable::colFormat(digits = 2, percent = T)
+          ),
+          pctRechallengeSuccess = reactable::colDef(
+            format = reactable::colFormat(digits = 2, percent = T)
+          ),
+          pctRechallengeFail = reactable::colDef(
+            format = reactable::colFormat(digits = 2, percent = T)
           )
- 
-        }
+          ),
+        addActions = c('fails')
       )
       
-      
-      # select database to view fails
-      shiny::observeEvent(
-        eventExpr = input$databaseRowId,
-        {
+      failData <- shiny::reactiveVal(NULL)
+      shiny::observeEvent(tableOutputs$actionCount(), {
+        if(!is.null(tableOutputs$actionType())){
+          if(tableOutputs$actionType() == 'fails'){
+            result <- getDechalRechalFailData(
+              targetId = inputSelected()$targetId,
+              outcomeId = inputSelected()$outcomeId,
+              databaseId = allData()$databaseId[tableOutputs$actionIndex()$index], # update?
+              dechallengeStopInterval = allData()$dechallengeStopInterval[tableOutputs$actionIndex()$index],
+              dechallengeEvaluationWindow = allData()$dechallengeEvaluationWindow[tableOutputs$actionIndex()$index],
+              connectionHandler = connectionHandler,
+              resultDatabaseSettings = resultDatabaseSettings
+            )
+            print(result)
+            failData(result)
+            # module to show failed plots
+            shiny::showModal(
+              shiny::modalDialog(
+                title = paste0("Failed Plots: "),
+                size = "l",
+                shiny::plotOutput(session$ns('dechalplot')),
+                easyClose = TRUE,
+                footer = NULL
+              )
+            )
+          }
+        }
+      })
           
-          failData <- getDechalRechalFailData(
-            targetId = input$targetId,
-            outcomeId = input$outcomeId,
-            databaseId = databases()[input$databaseRowId$index],
-            dechallengeStopInterval = dechallengeStopInterval()[input$databaseRowId$index],
-            dechallengeEvaluationWindow = dechallengeEvaluationWindow()[input$databaseRowId$index],
-            resultDatabaseSettings
-          )
           
-        # do the plots reactively
+      # do the plots reactively
         output$dechalplot <- shiny::renderPlot(
           plotDechalRechal(
-            dechalRechalData = failData
+            dechalRechalData = failData()
           )
         )
         
-        # module to show failed plots
-        shiny::showModal(shiny::modalDialog(
-          title = paste0("Failed Plots: "),
-          size = "l",
-          shiny::plotOutput(session$ns('dechalplot')),
-          easyClose = TRUE,
-          footer = NULL
-        ))
-
         
-      })
-      
-      # download button
-      output$downloadDechall <- shiny::downloadHandler(
-        filename = function() {
-          paste('dechal-data-', Sys.Date(), '.csv', sep='')
-        },
-        content = function(con) {
-          utils::write.csv(reactiveData(), con)
-        }
-      )
-    
       
       return(invisible(NULL))
       
@@ -381,21 +261,12 @@ dechalRechalGetIds <- function(
   targetIds <- targetUnique$targetCohortDefinitionId
   names(targetIds) <- targetUnique$target
   
-  outcomeIds <- lapply(targetIds, function(x){
-    
-    outcomeUnique <- bothIds %>% 
-      dplyr::filter(.data$targetCohortDefinitionId == x) %>%
-      dplyr::select(c("outcomeCohortDefinitionId", "outcome")) %>%
-      dplyr::distinct()
-    
-    outcomeIds <- outcomeUnique$outcomeCohortDefinitionId
-    names(outcomeIds) <- outcomeUnique$outcome
-    
-    return(outcomeIds)
-    
-  })
+  outcomeUnique <- bothIds %>% 
+    dplyr::select(c("outcomeCohortDefinitionId", "outcome")) %>%
+    dplyr::distinct()
   
-  names(outcomeIds) <- targetIds
+  outcomeIds <- outcomeUnique$outcomeCohortDefinitionId
+  names(outcomeIds) <- outcomeUnique$outcome
   
   shiny::incProgress(4/4, detail = paste("Finished"))
   
@@ -417,10 +288,13 @@ getDechalRechalInputsData <- function(
   resultDatabaseSettings
 ){
   
+  if(is.null(targetId)){
+    return(NULL)
+  }
   
   shiny::withProgress(message = 'Extracting DECHALLENGE_RECHALLENGE data', value = 0, {
   
-  sql <- "SELECT dr.*, d.CDM_SOURCE_ABBREVIATION as database_name 
+  sql <- "SELECT d.CDM_SOURCE_ABBREVIATION as database_name, dr.*
           FROM @schema.@c_table_prefixDECHALLENGE_RECHALLENGE dr 
           inner join @schema.@database_table d
           on dr.database_id = d.database_id
@@ -456,7 +330,11 @@ getDechalRechalFailData <- function(
   connectionHandler,
   resultDatabaseSettings
 ){
-  
+
+  if(is.null(targetId)){
+    return(NULL)
+  }
+
   shiny::withProgress(message = 'Extracting FAILLED DECHALLENGE_RECHALLENGE data', value = 0, {
     
     sql <- "SELECT * FROM @schema.@c_table_prefixRECHALLENGE_FAIL_CASE_SERIES 
@@ -468,6 +346,16 @@ getDechalRechalFailData <- function(
 
     shiny::incProgress(1/3, detail = paste("Fetching data"))
     
+    sql2 <- SqlRender::render(sql, 
+                              schema = resultDatabaseSettings$schema,
+                      c_table_prefix = resultDatabaseSettings$cTablePrefix,
+                      target_id = targetId,
+                      outcome_id = outcomeId,
+                      database_id = databaseId,
+                      dechallenge_stop_interval = dechallengeStopInterval,
+                      dechallenge_evaluation_window = dechallengeEvaluationWindow
+                      )
+    
     data <- connectionHandler$queryDb(
       sql = sql, 
       schema = resultDatabaseSettings$schema,
@@ -478,7 +366,6 @@ getDechalRechalFailData <- function(
       dechallenge_stop_interval = dechallengeStopInterval,
       dechallenge_evaluation_window = dechallengeEvaluationWindow
     )
-    
     shiny::incProgress(3/3, detail = paste("Finished"))
     
   })
@@ -499,20 +386,6 @@ plotDechalRechal <- function(
   shiny::withProgress(message = 'Plotting DECHALLENGE_RECHALLENGE', value = 0, {
     
     
-    # add the offsets (hack until update results)
-    #dechalRechalData <- dechalRechalData %>% 
-    #  dplyr::mutate(
-    #    dechallengeExposureNumber = .data$firstExposureNumber,
-    #    dechallengeOutcomeNumber = .data$firstOutcomeNumber,
-    #    dechallengeExposureEndDateOffset = difftime(.data$firstExposureStartDate, .data$firstExposureEndDate, units = "days"), 
-    #    dechallengeExposureStartDateOffset = difftime(.data$firstExposureStartDate, .data$firstExposureStartDate, units = "days"), 
-    #    dechallengeOutcomeStartDateOffset = difftime(.data$firstExposureStartDate, .data$firstOutcomeStartDate, units = "days"),  
-    #    rechallengeExposureStartDateOffset = difftime(.data$firstExposureStartDate, .data$rechallengeExposureStartDate, units = "days"),   
-    #    rechallengeExposureEndDateOffset = difftime(.data$firstExposureStartDate, .data$rechallengeExposureEndDate, units = "days"),   
-    #    rechallengeOutcomeStartDateOffset = difftime(.data$firstExposureStartDate, .data$rechallengeOutcomeStartDate, units = "days"),  
-    #  )
-    
-  
     #order the data so that cases are in order of exposure/outcome offsets
     dechalRechalData <- dechalRechalData %>% 
       dplyr::arrange(

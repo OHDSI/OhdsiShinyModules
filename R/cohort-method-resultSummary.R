@@ -34,13 +34,13 @@ cohortMethodResultSummaryViewer <- function(id) {
     
     shiny::tabPanel(
       title = "Table",
-      shinydashboard::box(
-        status = 'info', 
-        width = '100%',
-        title = shiny::span('Result Summary'),
-        solidHeader = TRUE,
+      #shinydashboard::box(
+      #  status = 'info', 
+      #  width = '100%',
+      #  title = shiny::span('Result Summary'),
+     #   solidHeader = TRUE,
         resultTableViewer(ns("resultSummaryTable"))
-      )
+     # )
     ),
     
     shiny::tabPanel(
@@ -115,7 +115,8 @@ cohortMethodResultSummaryServer <- function(
         id = "cmFullResults", 
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings,
-        selectedRow = selectedRow
+        selectedRow = selectedRow,
+        actionCount = resultTableOutputs$actionCount
       )
 
     }

@@ -7,13 +7,8 @@ sccsResultsViewer <- function(id = "sccs-results") {
     
     shiny::tabPanel(
       title = "Table",
-      shinydashboard::box(
-        status = 'info', 
-        width = '100%',
-        title = shiny::span('Result Summary'),
-        solidHeader = TRUE,
         resultTableViewer(ns("resultSummaryTable"))
-      )
+      #)
     ),
     
     shiny::tabPanel(
@@ -81,7 +76,8 @@ sccsResultsServer <- function(
       id = "sccsFullResults", 
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
-      selectedRow = selectedRow
+      selectedRow = selectedRow,
+      actionCount = resultTableOutputs$actionCount
     )
     
     

@@ -419,11 +419,6 @@ cohortDiagnosticsServer <- function(id,
       createCdDatabaseDataSource(
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings,
-        #schema = resultDatabaseSettings$schema,
-        #vocabularyDatabaseSchema = resultDatabaseSettings$vocabularyDatabaseSchema, # is this in results?
-        #cdTablePrefix = resultDatabaseSettings$cdTablePrefix,
-        #cgTableName = resultDatabaseSettings$cgTable, # different for CD?
-        #databaseTableName = paste0(resultDatabaseSettings$databaseTablePrefix,resultDatabaseSettings$databaseTable),
         displayProgress = TRUE
       )
   }
@@ -474,7 +469,7 @@ cohortDiagnosticsServer <- function(id,
         selection["Orphan Concepts"] <- "orphanConcepts"
 
       if ("indexEventBreakdown" %in% dataSource$enabledReports)
-        selection["Index Event Breakdown"] <- "indexEventBreakdown"
+        selection["Index Event Breakdown"] <- "indexEvents"
 
       shiny::updateSelectInput(
         inputId = "tabs",
@@ -669,7 +664,7 @@ cohortDiagnosticsServer <- function(id,
     }
 
     if ("indexEventBreakdown" %in% enabledReports) {
-      indexEventBreakdownModule("indexEvents",
+      indexEventBreakdownModule(id = "indexEvents",
                                 dataSource = dataSource,
                                 selectedCohort = selectedCohort,
                                 targetCohortId = targetCohortId,

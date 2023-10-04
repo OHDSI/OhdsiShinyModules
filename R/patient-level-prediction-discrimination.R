@@ -41,7 +41,6 @@ patientLevelPredictionDiscriminationViewer <- function(id) {
         width = 12,
         title = 'Summary',
         solidHeader = TRUE,
-        shiny::p('Click view to see the corresponding plots:'),
         resultTableViewer(ns('summaryTable'))
       )
     ),

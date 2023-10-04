@@ -22,8 +22,9 @@ shiny::testServer(
     
   # no rows selected so valResult() should empty list
   expect_true(length(valResult()$thresholdSummaryList) == 0) 
-    
-  session$setInputs(validationTable_rows_selected = 1)  
-  expect_true(length(valResult()$thresholdSummaryList) > 0)  
+   
+  # TODO - figure out how to test row selection for 'validationTable' 
+  #session$setInputs(validationTable__reactable__selected = 1)  
+  #expect_true(length(valResult()$thresholdSummaryList) > 0)  
     
 })

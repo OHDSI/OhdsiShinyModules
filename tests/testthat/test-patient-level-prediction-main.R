@@ -27,15 +27,6 @@ shiny::testServer(
     session$setInputs(backToModelSummary = T)
     session$setInputs(backToDesignSummary = T)
     
-    result <- getPlpResultSelection( # prediction??
-        connectionHandler = connectionHandlerPlp, 
-        resultDatabaseSettings = resultDatabaseSettingsPlp,
-        modelDesignId = 1,
-        performanceId = 1
-      )
-    
-    testthat::expect_is(result, 'shiny.tag.list')
-    
   })
 
 

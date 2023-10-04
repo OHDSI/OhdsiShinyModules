@@ -82,6 +82,7 @@ patientLevelPredictionDesignSummaryServer <- function(
             columnWidth = 6,
             varName = 'targetIds',
             uiFunction = 'shinyWidgets::pickerInput',
+            updateFunction = 'shinyWidgets::updatePickerInput',
             uiInputs = list(
               label = 'Target: ',
               choices = targetIds,
@@ -102,6 +103,7 @@ patientLevelPredictionDesignSummaryServer <- function(
             columnWidth = 6,
             varName = 'outcomeIds',
             uiFunction = 'shinyWidgets::pickerInput',
+            updateFunction = 'shinyWidgets::updatePickerInput',
             uiInputs = list(
               label = 'Outcome: ',
               choices = outcomeIds,
@@ -147,12 +149,16 @@ patientLevelPredictionDesignSummaryServer <- function(
               header = withTooltip(
                 "Target Pop", 
                 "The patients who the risk model is applied to"
-              )),
+              ), 
+              minWidth = 300
+              ),
             outcome = reactable::colDef( 
               header = withTooltip(
                 "Outcome", 
                 "The outcome being predicted"
-              )),
+              ), 
+              minWidth = 300
+              ),
             TAR = reactable::colDef( 
               header = withTooltip(
                 "TAR", 

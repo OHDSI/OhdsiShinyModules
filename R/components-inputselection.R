@@ -34,22 +34,27 @@ createInputSetting <- function(
     rowNumber,                           
     columnWidth = 4,
     varName = '',
+    inputReturn = T,
     uiFunction = 'shinyWidgets::pickerInput',
     uiInputs = list(
       label = 'Input: ',
       choices = list(),
       multiple = F,
       options = shinyWidgets::pickerOptions()
-    )
-    
+    ),
+    updateFunction = NULL,
+    collapse = F
     ){
   
   result <- list(
     rowNumber = rowNumber,
     columnWidth = columnWidth,
     varName = varName,
+    inputReturn = inputReturn,
     uiFunction = uiFunction,
-    uiInputs = uiInputs
+    uiInputs = uiInputs,
+    updateFunction = updateFunction,
+    collapse = collapse
   )
   
   class(result) <- 'inputSetting'
@@ -78,7 +83,11 @@ inputSelectionServer <- function(
           lapply(which(rowNumbers == i), function(x){
             
             inputs <- inputSettingList[[x]]$uiInputs
-            inputs$inputId <- session$ns(paste0('input_',x))
+            if(inputSettingList[[x]]$inputReturn){
+              # if using a function that has no return (e.g., div) set 
+              # inputReturn = F
+              inputs$inputId <- session$ns(paste0('input_',x))
+            }
             
             shiny::column(
               width = inputSettingList[[x]]$columnWidth,
@@ -91,6 +100,12 @@ inputSelectionServer <- function(
       rows[[length(rows)+1]] <- shiny::actionButton(
         inputId = session$ns('generate'), 
         label = 'Generate Report'
+      )
+      
+      # add reset here
+      rows[[length(rows)+1]] <- shiny::actionButton(
+        inputId = session$ns('reset'), 
+        label = 'Reset'
       )
       
       output$inputs <- shiny::renderUI({
@@ -126,9 +141,29 @@ inputSelectionServer <- function(
                   width = inputSettingList[[x]]$columnWidth,
                   shiny::tags$b(paste0(inputSettingList[[x]]$uiInputs$label)),
                   if(!is.null(inputSettingList[[x]]$uiInputs$choices)){
-                    paste(names(inputSettingList[[x]]$uiInputs$choices)[inputSettingList[[x]]$uiInputs$choices %in% input[[paste0('input_',x)]]], collapse = ',')
+                    # adding below incase a vector with no names is used
+                    if(is.null(names(inputSettingList[[x]]$uiInputs$choices))){
+                      names(inputSettingList[[x]]$uiInputs$choices) <- inputSettingList[[x]]$uiInputs$choices
+                    }
+                    
+                    # add selections on new row unless collapse is F
+                    if(!inputSettingList[[x]]$collapse){
+                      shiny::HTML(
+                        paste("<p>", names(inputSettingList[[x]]$uiInputs$choices)[inputSettingList[[x]]$uiInputs$choices %in% input[[paste0('input_',x)]]], '</p>')
+                      )
+                      } else{
+                        paste(names(inputSettingList[[x]]$uiInputs$choices)[inputSettingList[[x]]$uiInputs$choices %in% input[[paste0('input_',x)]]], collapse = ', ')
+                      }
                   } else{
-                    paste(input[[paste0('input_',x)]], collapse = ',')
+                    
+                    # add selections on new row unless collapse is F
+                    if(!inputSettingList[[x]]$collapse){
+                      shiny::HTML(
+                        paste("<p>", input[[paste0('input_',x)]], '</p>')
+                      )
+                    } else{
+                      paste(input[[paste0('input_',x)]], collapse = ', ')
+                    }
                   }
                 )
               }
@@ -138,8 +173,99 @@ inputSelectionServer <- function(
           selectedInputText(shiny::div(otext))
         })
       
+      
+      # do the reset stuff
+      shiny::observeEvent(
+        eventExpr = input$reset,
+        {
+          # code to reset to default
+          
+          for(i in 1:length(inputSettingList)){
+            if(!is.null(inputSettingList[[i]]$updateFunction)){
+              
+              # need to test for non-picker inputs
+              do.call(eval(parse(text = inputSettingList[[i]]$updateFunction)), 
+                      list(
+                        session = session, 
+                        inputId = paste0('input_',i), 
+                        selected = inputSettingList[[i]]$uiInputs$selected
+                      ))
+  
+            }
+          }
+        })
+      
       return(selectedInput)
           
+    }
+  )
+}
+
+
+
+
+# component module that takes a single row data.frame and returns the values 
+# as string
+
+inputSelectionDfViewer <- function(
+    id = "input-selection-df",
+    title = ''
+) {
+  ns <- shiny::NS(id)
+  
+  shiny::div(
+    shinydashboard::box(
+      title = title,
+      status = "warning",
+      width = "100%", 
+      collapsible = T,
+      shiny::uiOutput(outputId = ns("dataFrameSelection"))
+    )
+  )
+}
+
+
+inputSelectionDfServer <- function(
+    id, 
+    dataFrameRow,
+    ncol = 2
+) {
+  shiny::moduleServer(
+    id,
+    function(input, output, session) {
+      
+      otext <- shiny::reactive({
+        if(is.null(dataFrameRow())){
+          return('')
+        } else{
+          otext <- list()
+          inputNames <- colnames(dataFrameRow())
+          
+          inputValues <- dataFrameRow()
+          
+          rows <- ceiling((1:length(inputNames))/ncol)
+          
+          for(rowInd in unique(rows)){
+            otext[[rowInd]] <- shiny::fluidRow(
+              lapply(which(rows == rowInd), function(x){
+                shiny::column(
+                  width = floor(12/ncol),
+                  shiny::tags$b(paste0(inputNames[x]," :")),
+                  inputValues[x]
+                )
+              }
+              )
+            )
+          }
+          
+          return(otext)
+        }
+      })
+      
+      output$dataFrameSelection <- shiny::renderUI(
+        shiny::div(otext())
+      )
+      
     }
   )
 }

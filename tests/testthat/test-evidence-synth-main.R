@@ -24,7 +24,7 @@ shiny::testServer(evidenceSynthesisServer, args = list(
   
   testthat::expect_is(output$esCohortMethodPlot, 'list')
   
-  testthat::expect_true( nrow(unique(rbind(data(),data2()))) >0 )
+  testthat::expect_true( nrow(unique(cmdata())) >0 )
   testthat::expect_equal(as.double(inputSelected()$outcomeId), 3)
   
 })
