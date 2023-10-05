@@ -133,10 +133,6 @@ resultDatabaseSettingsCohortDiag <- list(
   dbms = 'sqlite',
   cdTablePrefix = '',
   schema = "main",
-  cgTablePrefix = '',
-  cgTable = "cohort",
-  databaseTablePrefix = '',
-  databaseTable = "database",
   vocabularyDatabaseSchema = "main"
 )
 

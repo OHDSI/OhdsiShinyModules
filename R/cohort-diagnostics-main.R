@@ -273,24 +273,8 @@ createCdDatabaseDataSource <- function(
   return(dataSource)
 }
 
-# SO much of the app requires this table in memory - it would be much better to re-write queries to not need it!
 getDatabaseTable <- function(dataSource) {
-  
-  # hot fix
-  if(tolower(paste0(dataSource$databaseTablePrefix, dataSource$databaseTable)) == 'database_meta_data'){
-    databaseTable <- dataSource$connectionHandler$queryDb(
-      "SELECT *, cdm_source_abbreviation as database_name FROM @schema.@table_name",
-      schema = dataSource$schema,
-      table_name = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable)
-    ) # end hot fix
-  } else{
-  databaseTable <- loadResultsTable(
-    dataSource = dataSource, 
-    tableName = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable), 
-    required = TRUE
-    )
-  }
-
+  databaseTable <- loadResultsTable(dataSource, dataSource$databaseTable, required = TRUE)
   if (nrow(databaseTable) > 0 &
     "vocabularyVersion" %in% colnames(databaseTable)) {
     databaseTable <- databaseTable %>%
