@@ -60,7 +60,7 @@ force_panelsizes <- function(rows = NULL, cols = NULL, respect = NULL, total_wid
     if (!grid::is.unit(total_width)) {
       stop("{.arg total_width} must be a {.cls unit} object.")
     }
-    arg_match0(grid::unitType(total_width), c("cm", "mm", "inches", "points"))
+    rlang::arg_match0(grid::unitType(total_width), c("cm", "mm", "inches", "points"))
   }
   if (!is.null(total_height)) {
     if (grid::is.unit(rows) && !is_null_unit(rows)) {
@@ -69,7 +69,7 @@ force_panelsizes <- function(rows = NULL, cols = NULL, respect = NULL, total_wid
     if (!grid::is.unit(total_height)) {
       stop("{.arg total_height} must be a {.cls unit} object.")
     }
-    arg_match0(grid::unitType(total_height), c("cm", "mm", "inches", "points"))
+    rlang::arg_match0(grid::unitType(total_height), c("cm", "mm", "inches", "points"))
   }
   structure(list(rows = rows, cols = cols, respect = respect, total_width = total_width, total_height = total_height), class = "forcedsize")
 }
