@@ -182,7 +182,7 @@ cohortDiagnosticsView <- function(id = "DiagnosticsExplorer") {
         )
       )
     ),
-    shiny::fluidPage(
+    shiny::tagList(
       shiny::conditionalPanel(
         ns = ns,
         condition = "input.tabs == 'cohortDefinitions'",
