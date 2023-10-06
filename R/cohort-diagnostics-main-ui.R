@@ -40,7 +40,7 @@ cdUiControls <- function(ns) {
       condition = "input.tabs=='incidenceRates' |
       input.tabs == 'timeDistribution' |
       input.tabs == 'cohortCounts' |
-      input.tabs == 'indexEventBreakdown' |
+      input.tabs == 'indexEvents' |
       input.tabs == 'conceptsInDataSource' |
       input.tabs == 'orphanConcepts' |
       input.tabs == 'inclusionRules' |
