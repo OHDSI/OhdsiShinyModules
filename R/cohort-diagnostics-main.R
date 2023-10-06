@@ -274,7 +274,7 @@ createCdDatabaseDataSource <- function(
 }
 
 getDatabaseTable <- function(dataSource) {
-  databaseTable <- loadResultsTable(dataSource, dataSource$databaseTable, required = TRUE)
+  databaseTable <- loadResultsTable(dataSource, dataSource$prefixTable(dataSource$databaseTable), required = TRUE)
   if (nrow(databaseTable) > 0 &
     "vocabularyVersion" %in% colnames(databaseTable)) {
     databaseTable <- databaseTable %>%

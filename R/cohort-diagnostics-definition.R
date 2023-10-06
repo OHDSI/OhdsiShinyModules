@@ -210,14 +210,13 @@ getConceptSetDetailsFromCohortDefinition <-
 
 
 getCdCohortRows <- function(dataSource, cohortIds) {
-  sql <- "SELECT {@use_cg_table} ? {cohort_definition_id as cohort_id,} * FROM @schema.@cohort_table
-    WHERE {@use_cg_table} ? {cohort_definition_id} : {cohort_id} IN (@cohort_ids)"
+  sql <- "SELECT * FROM @schema.@cohort_table
+    WHERE cohort_id IN (@cohort_ids)"
   dataSource$connectionHandler$queryDb(
     sql = sql,
     schema = dataSource$schema,
     cohort_table = dataSource$cohortTableName,
-    cohort_ids = cohortIds,
-    use_cg_table = dataSource$useCgTable
+    cohort_ids = cohortIds
   )
 }
 
