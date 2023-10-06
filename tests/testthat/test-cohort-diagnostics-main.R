@@ -6,6 +6,7 @@ shiny::testServer(cohortDiagnosticsServer, args = list(
   resultDatabaseSettings = resultDatabaseSettingsCohortDiag,
   dataSource = dataSourceCd
 ), {
+  
   ## input tests will go here
   session$setInputs(
     tabs = "cohortCounts",

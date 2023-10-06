@@ -37,6 +37,45 @@ as_ggplot <- function(x){
     cowplot::draw_grob(grid::grobTree(x))
 }
 
+
+is_null_unit <- function (x)
+{
+    if (!grid::is.unit(x)) {
+        return(FALSE)
+    }
+    all(grid::unitType(x) == "null")
+}
+
+force_panelsizes <- function(rows = NULL, cols = NULL, respect = NULL, total_width = NULL, total_height = NULL) {
+  if (!is.null(rows) & !grid::is.unit(rows)) {
+    rows <- grid::unit(rows, "null")
+  }
+  if (!is.null(cols) & !grid::is.unit(cols)) {
+    cols <- grid::unit(cols, "null")
+  }
+  if (!is.null(total_width)) {
+    if (grid::is.unit(cols) && !is_null_unit(cols)) {
+      stop("Cannot set {.arg total_width} when {.arg cols} is not relative.")
+    }
+    if (!grid::is.unit(total_width)) {
+      stop("{.arg total_width} must be a {.cls unit} object.")
+    }
+    rlang::arg_match0(grid::unitType(total_width), c("cm", "mm", "inches", "points"))
+  }
+  if (!is.null(total_height)) {
+    if (grid::is.unit(rows) && !is_null_unit(rows)) {
+      stop("Cannot set {.arg total_height} when {.arg rows} is not relative.")
+    }
+    if (!grid::is.unit(total_height)) {
+      stop("{.arg total_height} must be a {.cls unit} object.")
+    }
+    rlang::arg_match0(grid::unitType(total_height), c("cm", "mm", "inches", "points"))
+  }
+  structure(list(rows = rows, cols = cols, respect = respect, total_width = total_width, total_height = total_height), class = "forcedsize")
+}
+
+
+
 # Custom function that takes a ggplotly figure and its facets as arguments.
 # The upper x-values for each domain is set programmatically, but you can adjust
 # the look of the figure by adjusting the width of the facet domain and the 
@@ -700,7 +739,7 @@ characterizationIncidenceServer <- function(
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) +
-                ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
             }
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
@@ -712,7 +751,7 @@ characterizationIncidenceServer <- function(
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) +
-                ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
             }
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
@@ -724,7 +763,7 @@ characterizationIncidenceServer <- function(
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) +
-                ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
             }
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
@@ -736,7 +775,7 @@ characterizationIncidenceServer <- function(
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) +
-                ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
             }
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
@@ -748,7 +787,7 @@ characterizationIncidenceServer <- function(
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) +
-                ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
             }
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
@@ -760,7 +799,7 @@ characterizationIncidenceServer <- function(
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) +
-                ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
             }
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
@@ -772,7 +811,7 @@ characterizationIncidenceServer <- function(
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) +
-                ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
             }
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
@@ -784,7 +823,7 @@ characterizationIncidenceServer <- function(
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) +
-                ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
             }
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
@@ -796,7 +835,7 @@ characterizationIncidenceServer <- function(
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) +
-                ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
             }
             else if (inputSelected()$plotXTrellis=="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
@@ -808,7 +847,7 @@ characterizationIncidenceServer <- function(
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) +
-                ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
             }
             else if (inputSelected()$plotXTrellis=="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
@@ -820,7 +859,7 @@ characterizationIncidenceServer <- function(
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) +
-                ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
             }
             else if (inputSelected()$plotXTrellis=="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
@@ -832,7 +871,7 @@ characterizationIncidenceServer <- function(
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) +
-                ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
             }
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis=="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
@@ -844,7 +883,7 @@ characterizationIncidenceServer <- function(
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) +
-                ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
             }
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
                      inputSelected()$plotYTrellis=="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
@@ -856,7 +895,7 @@ characterizationIncidenceServer <- function(
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) +
-                ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
             }
             else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
                      inputSelected()$plotYTrellis=="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
@@ -868,7 +907,7 @@ characterizationIncidenceServer <- function(
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) +
-                ggh4x::force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
             }
             
             
@@ -894,7 +933,7 @@ characterizationIncidenceServer <- function(
                 strip.background = ggplot2::element_blank(), 
                 strip.text = ggplot2::element_text(face="bold")
               ) +
-              ggh4x::force_panelsizes(
+              force_panelsizes(
                 rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in")
                 )
             

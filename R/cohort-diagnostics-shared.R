@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2023 Observational Health Data Sciences and Informatics
 #
 # This file is part of CohortDiagnostics
 #
@@ -134,7 +134,7 @@ getDatabaseCounts <- function(dataSource,
       sql = sql,
       schema = dataSource$schema,
       database_ids = quoteLiterals(databaseIds),
-      database_table = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable),
+      database_table = dataSource$databaseTable,
       snakeCaseToCamelCase = TRUE
     ) %>%
       tidyr::tibble()

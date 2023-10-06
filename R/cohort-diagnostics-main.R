@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2023 Observational Health Data Sciences and Informatics
 #
 # This file is part of CohortDiagnostics
 #
@@ -194,8 +194,9 @@ createCdDatabaseDataSource <- function(
     },
     cgTable = resultDatabaseSettings$cgTable,
     cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-    databaseTable = resultDatabaseSettings$databaseTable,
-    databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix,
+    useCgTable = FALSE,
+    databaseTable = "database",
+    databaseTablePrefix = "cd_",
     dataModelSpecifications = modelSpec
   )
 
@@ -210,6 +211,9 @@ createCdDatabaseDataSource <- function(
 
   if (displayProgress)
     shiny::setProgress(value = 0.2, message = "Getting cohorts")
+
+
+  dataSource$cohortTableName <- paste0(dataSource$cdTablePrefix, "cohort")
 
   dataSource$cohortTable <- getCohortTable(dataSource)
 
@@ -269,24 +273,8 @@ createCdDatabaseDataSource <- function(
   return(dataSource)
 }
 
-# SO much of the app requires this table in memory - it would be much better to re-write queries to not need it!
 getDatabaseTable <- function(dataSource) {
-  
-  # hot fix
-  if(tolower(paste0(dataSource$databaseTablePrefix, dataSource$databaseTable)) == 'database_meta_data'){
-    databaseTable <- dataSource$connectionHandler$queryDb(
-      "SELECT *, cdm_source_abbreviation as database_name FROM @schema.@table_name",
-      schema = dataSource$schema,
-      table_name = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable)
-    ) # end hot fix
-  } else{
-  databaseTable <- loadResultsTable(
-    dataSource = dataSource, 
-    tableName = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable), 
-    required = TRUE
-    )
-  }
-
+  databaseTable <- loadResultsTable(dataSource, dataSource$prefixTable(dataSource$databaseTable), required = TRUE)
   if (nrow(databaseTable) > 0 &
     "vocabularyVersion" %in% colnames(databaseTable)) {
     databaseTable <- databaseTable %>%
@@ -300,33 +288,11 @@ getDatabaseTable <- function(dataSource) {
 
 # SO much of the app requires this table in memory - it would be much better to re-write queries to not need it!
 getCohortTable <- function(dataSource) {
-  if (tableIsEmpty(
-      dataSource = dataSource, 
-      tableName = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
-    )
-    ) {
-    return(data.frame())
-  }
-  # hot fix
-  if(paste0(dataSource$cgTablePrefix, dataSource$cgTable) == 'cg_cohort_definition'){
-    cohortTable <- dataSource$connectionHandler$queryDb(
-      "SELECT cohort_definition_id as cohort_id, cohort_name FROM @schema.@table_name",
-      schema = dataSource$schema,
-      table_name = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
-    )
-   # end hot fix
-  } else{
-    cohortTable <- dataSource$connectionHandler$queryDb(
-      "SELECT cohort_id, cohort_name FROM @schema.@table_name",
-      schema = dataSource$schema,
-      table_name = paste0(dataSource$cgTablePrefix, dataSource$cgTable)
-    )
-  }
-
-  # Old label - is this needed??
-  if ("cohortDefinitionId" %in% names(cohortTable)) {
-    cohortTable <- cohortTable %>% dplyr::mutate(cohortId = .data$cohortDefinitionId)
-  }
+  cohortTable <- dataSource$connectionHandler$queryDb(
+    "SELECT cohort_id, cohort_name FROM @schema.@cd_table_prefixcohort",
+    schema = dataSource$schema,
+    cd_table_prefix = dataSource$cdTablePrefix
+  )
 
   cohortTable <- cohortTable %>%
     dplyr::arrange(.data$cohortId) %>%
