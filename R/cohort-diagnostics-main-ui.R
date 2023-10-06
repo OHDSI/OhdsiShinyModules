@@ -67,6 +67,7 @@ cdUiControls <- function(ns) {
       condition = "
       input.tabs == 'conceptsInDataSource' |
       input.tabs == 'orphanConcepts'|
+      input.tabs == 'inclusionRules'|
       input.tabs == 'indexEvents' |
       input.tabs == 'visitContext'",
       ns = ns,
