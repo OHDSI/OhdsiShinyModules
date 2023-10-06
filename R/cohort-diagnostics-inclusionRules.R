@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2023 Observational Health Data Sciences and Informatics
 #
 # This file is part of PatientLevelPrediction
 #
@@ -77,7 +77,7 @@ inclusionRulesView <- function(id) {
 # inclusion Rules Module
 inclusionRulesModule <- function(id,
                                  dataSource,
-                                 databaseTable = dataSource$databaseTable,
+                                 databaseTable = dataSource$dbTable,
                                  selectedCohort,
                                  targetCohortId,
                                  selectedDatabaseIds) {

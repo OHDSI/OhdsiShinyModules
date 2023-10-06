@@ -47,46 +47,46 @@ reference:
     desc: >
       Modules for prediction results.
     contents:
-      - predictionHelperFile
-      - predictionViewer
-      - predictionServer
-      - predictionDiagnosticsServer
-      - predictionDiagnosticsViewer
-      - predictionDesignSummaryViewer
-      - predictionDesignSummaryServer
-      - predictionModelSummaryViewer
-      - predictionModelSummaryServer
-      - predictionSettingsViewer
-      - predictionSettingsServer
-      - predictionCovariateSummaryViewer
-      - predictionCovariateSummaryServer
-      - predictionCutoffViewer
-      - predictionCutoffServer
-      - predictionDiscriminationViewer
-      - predictionDiscriminationServer
-      - predictionCalibrationViewer
-      - predictionCalibrationServer
-      - predictionNbViewer
-      - predictionNbServer
-      - predictionValidationViewer
-      - predictionValidationServer
+      - patientLevelPredictionHelperFile
+      - patientLevelPredictionViewer
+      - patientLevelPredictionServer
+      - patientLevelPredictionDiagnosticsServer
+      - patientLevelPredictionDiagnosticsViewer
+      - patientLevelPredictionDesignSummaryViewer
+      - patientLevelPredictionDesignSummaryServer
+      - patientLevelPredictionModelSummaryViewer
+      - patientLevelPredictionModelSummaryServer
+      - patientLevelPredictionSettingsViewer
+      - patientLevelPredictionSettingsServer
+      - patientLevelPredictionCovariateSummaryViewer
+      - patientLevelPredictionCovariateSummaryServer
+      - patientLevelPredictionCutoffViewer
+      - patientLevelPredictionCutoffServer
+      - patientLevelPredictionDiscriminationViewer
+      - patientLevelPredictionDiscriminationServer
+      - patientLevelPredictionCalibrationViewer
+      - patientLevelPredictionCalibrationServer
+      - patientLevelPredictionNbViewer
+      - patientLevelPredictionNbServer
+      - patientLevelPredictionValidationViewer
+      - patientLevelPredictionValidationServer
   - title: "Decription module"
     desc: >
       Modules for the description analyses.
     contents:
-      - descriptionHelperFile
-      - descriptionViewer
-      - descriptionServer
-      - descriptionAggregateFeaturesViewer
-      - descriptionAggregateFeaturesServer
-      - descriptionDechallengeRechallengeViewer
-      - descriptionDechallengeRechallengeServer
-      - descriptionIncidenceViewer
-      - descriptionIncidenceServer
-      - descriptionTableViewer
-      - descriptionTableServer
-      - descriptionTimeToEventViewer
-      - descriptionTimeToEventServer
+      - characterizationHelperFile
+      - characterizationViewer
+      - characterizationServer
+      - characterizationAggregateFeaturesViewer
+      - characterizationAggregateFeaturesServer
+      - characterizationDechallengeRechallengeViewer
+      - characterizationDechallengeRechallengeServer
+      - characterizationIncidenceViewer
+      - characterizationIncidenceServer
+      - characterizationTableViewer
+      - characterizationTableServer
+      - characterizationTimeToEventViewer
+      - characterizationTimeToEventServer
   - title: "About module"
     desc: >
       Modules for the information page.
@@ -105,35 +105,35 @@ reference:
     desc: >
       Modules for the CohortMethod package.
     contents:
-      - estimationHelperFile
-      - estimationViewer
-      - estimationServer
-      - estimationAttritionViewer
-      - estimationAttritionServer
-      - estimationCovariateBalanceViewer
-      - estimationCovariateBalanceServer
-      - estimationDiagnosticsSummaryViewer
-      - estimationDiagnosticsSummaryServer
-      - estimationForestPlotViewer
-      - estimationForestPlotServer
-      - estimationKaplanMeierViewer
-      - estimationKaplanMeierServer
-      - estimationPopulationCharacteristicsViewer
-      - estimationPopulationCharacteristicsServer
-      - estimationPowerViewer
-      - estimationPowerServer
-      - estimationPropensityModelViewer
-      - estimationPropensityModelServer
-      - estimationPropensityScoreDistViewer
-      - estimationPropensityScoreDistServer
-      - estimationResultsTableViewer
-      - estimationResultsTableServer
-      - estimationSubgroupsViewer
-      - estimationSubgroupsServer
-      - estimationSystematicErrorViewer
-      - estimationSystematicErrorServer
-      - estimationTitlePanelViewer
-      - estimationTitlePanelServer
+      - cohortMethodHelperFile
+      - cohortMethodViewer
+      - cohortMethodServer
+      - cohortMethodAttritionViewer
+      - cohortMethodAttritionServer
+      - cohortMethodCovariateBalanceViewer
+      - cohortMethodCovariateBalanceServer
+      - cohortMethodDiagnosticsSummaryViewer
+      - cohortMethodDiagnosticsSummaryServer
+      - cohortMethodForestPlotViewer
+      - cohortMethodForestPlotServer
+      - cohortMethodKaplanMeierViewer
+      - cohortMethodKaplanMeierServer
+      - cohortMethodPopulationCharacteristicsViewer
+      - cohortMethodPopulationCharacteristicsServer
+      - cohortMethodPowerViewer
+      - cohortMethodPowerServer
+      - cohortMethodPropensityModelViewer
+      - cohortMethodPropensityModelServer
+      - cohortMethodPropensityScoreDistViewer
+      - cohortMethodPropensityScoreDistServer
+      - cohortMethodResultsTableViewer
+      - cohortMethodResultsTableServer
+      - cohortMethodSubgroupsViewer
+      - cohortMethodSubgroupsServer
+      - cohortMethodSystematicErrorViewer
+      - cohortMethodSystematicErrorServer
+      - cohortMethodTitlePanelViewer
+      - cohortMethodTitlePanelServer
   - title: "Data diagnostics module"
     desc: >
       Modules for the DataDiagnostics package.
@@ -152,7 +152,7 @@ reference:
       - cohortDiagnosticsSever 
       - cohortDiagnosticsView
       - cohortDiagnosticsHelperFile      
-      - characterizationView
+      - cohortDiagCharacterizationView
       - cohortCountsModule
       - cohortCountsView
       - cohortDefinitionsModule

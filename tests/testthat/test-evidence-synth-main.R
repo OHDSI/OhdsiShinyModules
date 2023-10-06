@@ -6,10 +6,26 @@ shiny::testServer(evidenceSynthesisServer, args = list(
   resultDatabaseSettings = resultDatabaseSettingsES
 ), {
   
-  #session$setInputs(
-  #)
+  expect_true(length(targetIds) > 0)
+  expect_true(length(outcomeIds) > 0)
   
-  testthat::expect_equal(as.double(outcomeId()), 3)
+  inputSelected(
+    list(
+      targetId = targetIds[1], 
+      targetIds = targetIds[1],
+      target = 'test target',
+      comparatorId = 2, 
+      comparator = 'test comparator',
+      outcome = 'test outcome',
+      outcomeId = 3,
+      outcomeIds = 3
+    )
+    )
+  
+  testthat::expect_is(output$esCohortMethodPlot, 'list')
+  
+  testthat::expect_true( nrow(unique(cmdata())) >0 )
+  testthat::expect_equal(as.double(inputSelected()$outcomeId), 3)
   
 })
 
@@ -24,10 +40,7 @@ test_that("getCMEstimation", {
   
   res <- getCMEstimation(
     connectionHandler = connectionHandlerES,
-    mySchema = 'main',
-    cmTablePrefix = 'cm_',
-    cgTablePrefix = 'cg_',
-    databaseMetaData = 'database_meta_data',
+    resultDatabaseSettings = resultDatabaseSettingsES,
     targetId = 1,
     outcomeId = 3
   )
@@ -40,10 +53,7 @@ test_that("getMetaEstimation", {
   
   res <- getMetaEstimation(
     connectionHandler = connectionHandlerES,
-    mySchema = 'main',
-    cmTablePrefix = 'cm_',
-    cgTablePrefix = 'cg_',
-    esTablePrefix = 'es_',
+    resultDatabaseSettings = resultDatabaseSettingsES,
     targetId = 1,
     outcomeId = 3
   )
@@ -94,11 +104,7 @@ test_that("getSccsEstimation", {
   
 res <- getSccsEstimation(
   connectionHandlerES,
-  mySchema = 'main', 
-  sccsTablePrefix = 'sccs_',
-  cgTablePrefix = 'cg_',
-  esTablePrefix = 'es_',
-  databaseMetaData = 'database_meta_data',
+  resultDatabaseSettings = resultDatabaseSettingsES,
   targetId = 1,
   outcomeId = 3
 )

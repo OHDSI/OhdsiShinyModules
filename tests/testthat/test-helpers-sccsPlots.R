@@ -1,17 +1,13 @@
 context("helpers-sccsPlots")
 
-test_that("prettyHr", {
-  testthat::expect_equal(prettyHr(2), "2.00")
-  testthat::expect_equal(prettyHr(200), "NA")
-})
-
 test_that("convert to dates", {
   testthat::expect_equal(as.character(convertToStartDate(2020,3)), "2020-03-01")
   testthat::expect_equal(as.character(convertToEndDate(2020,11)), "2020-11-30")
   testthat::expect_equal(as.character(convertToEndDate(2020,12)), "2020-12-31")
 })
 
-test_that("plotTimeTrend", {
+# Note - this is the old plot
+test_that("plotTimeTrendStability", {
   df <- data.frame(
     calendarYear = c(2011,2012),
     calendarMonth = c(1,1),
@@ -20,9 +16,22 @@ test_that("plotTimeTrend", {
     adjustedRate = runif(2),
     stable = rep(1,2)
   )
+  res <- plotTimeTrendStability(df)
+  testthat::expect_is(res, "ggplot")
+})
+# New plot
+test_that("plotTimeTrend", {
+  df <- data.frame(
+    calendarYear = c(2011,2012),
+    calendarMonth = c(1,1),
+    ratio = runif(2),
+    observedSubjects = rep(100,2),
+    adjustedRatio = runif(2)
+  )
   res <- plotTimeTrend(df)
   testthat::expect_is(res, "ggplot")
 })
+
 
 
 test_that("plotTimeToEventSccs", {

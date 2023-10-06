@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2023 Observational Health Data Sciences and Informatics
 #
 # This file is part of PatientLevelPrediction
 #
@@ -209,12 +209,15 @@ getConceptSetDetailsFromCohortDefinition <-
   }
 
 
-getCohortJsonSql <- function(dataSource, cohortIds) {
-  sql <- "SELECT * FROM @results_database_schema.@cohort_table WHERE cohort_id IN (@cohort_ids)"
-  dataSource$connectionHandler$queryDb(sql = sql,
-                                       results_database_schema = dataSource$resultsDatabaseSchema,
-                                       cohort_table = dataSource$cohortTableName,
-                                       cohort_ids = cohortIds)
+getCdCohortRows <- function(dataSource, cohortIds) {
+  sql <- "SELECT * FROM @schema.@cohort_table
+    WHERE cohort_id IN (@cohort_ids)"
+  dataSource$connectionHandler$queryDb(
+    sql = sql,
+    schema = dataSource$schema,
+    cohort_table = dataSource$cohortTableName,
+    cohort_ids = cohortIds
+  )
 }
 
 exportCohortDefinitionsZip <- function(cohortDefinitions,
@@ -441,13 +444,13 @@ getCountForConceptIdInCohort <-
            cohortId,
            databaseIds) {
     sql <- "SELECT ics.*
-            FROM  @results_database_schema.@table_name ics
+            FROM  @schema.@table_name ics
             WHERE ics.cohort_id = @cohort_id
              AND database_id in (@database_ids);"
     data <-
       dataSource$connectionHandler$queryDb(
         sql = sql,
-        results_database_schema = dataSource$resultsDatabaseSchema,
+        schema = dataSource$schema,
         cohort_id = cohortId,
         database_ids = quoteLiterals(databaseIds),
         table_name = dataSource$prefixTable("included_source_concept"),
@@ -519,12 +522,14 @@ getCountForConceptIdInCohort <-
 #' @param databaseTable                 data.frame of databasese, databaseId, name
 #' @param cohortTable                   data.frame of cohorts, cohortId, cohortName
 #' @param cohortCountTable              data.frame of cohortCounts, cohortId, subjects records
-cohortDefinitionsModule <- function(id,
-                                    dataSource,
-                                    cohortDefinitions,
-                                    cohortTable = dataSource$cohortTable,
-                                    cohortCountTable = dataSource$cohortCountTable,
-                                    databaseTable = dataSource$databaseTable) {
+cohortDefinitionsModule <- function(
+    id,
+    dataSource,
+    cohortDefinitions,
+    cohortTable = dataSource$cohortTable,
+    cohortCountTable = dataSource$cohortCountTable,
+    databaseTable = dataSource$dbTable
+) {
   ns <- shiny::NS(id)
 
   cohortDefinitionServer <- function(input, output, session) {
@@ -568,7 +573,7 @@ cohortDefinitionsModule <- function(id,
           return(NULL)
         }
         row <- subset[idx[1],]
-        return(getCohortJsonSql(dataSource, row$cohortId))
+        return(getCdCohortRows(dataSource, row$cohortId))
       }
     })
 
@@ -613,10 +618,12 @@ cohortDefinitionsModule <- function(id,
         if (!hasData(data)) {
           return(NULL)
         }
+
         data <- data %>%
+          dplyr::inner_join(databaseTable, by = "databaseId") %>%
           dplyr::filter(.data$cohortId == selectedCohortDefinitionRow()$cohortId) %>%
           dplyr::filter(.data$databaseId %in% databaseTable$databaseId) %>%
-          dplyr::select("databaseId",
+          dplyr::select("databaseName",
                         "cohortSubjects",
                         "cohortEntries") %>%
           dplyr::rename("persons" = "cohortSubjects",
@@ -624,7 +631,7 @@ cohortDefinitionsModule <- function(id,
 
         shiny::validate(shiny::need(hasData(data), "There is no data for this cohort."))
 
-        keyColumns <- c("databaseId")
+        keyColumns <- c("databaseName")
         dataColumns <- c("persons", "events")
 
         displayTable <- getDisplayTableSimple(data = data,
@@ -1087,7 +1094,7 @@ cohortDefinitionsModule <- function(id,
         shiny::withProgress(
           message = "Export is in progress",
         {
-          definitions <- getCohortJsonSql(dataSource, cohortTable$cohortId)
+          definitions <- getCdCohortRows(dataSource, cohortTable$cohortId)
           exportCohortDefinitionsZip(definitions, zipFile = file)
         },
           detail = "Please Wait"

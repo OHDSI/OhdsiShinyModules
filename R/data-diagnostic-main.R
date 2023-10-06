@@ -1,6 +1,6 @@
 # @file data-diagnostic-main.R
 #
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2023 Observational Health Data Sciences and Informatics
 #
 # This file is part of OhdsiShinyModules
 #
@@ -93,15 +93,13 @@ dataDiagnosticServer <- function(
       dataDiagnosticSummaryServer(
         id = 'summary-tab', 
         connectionHandler = connectionHandler, 
-        mySchema = resultDatabaseSettings$schema, 
-        myTableAppend = resultDatabaseSettings$tablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
         )
       
       dataDiagnosticDrillServer(
         id = 'drill-down-tab', 
         connectionHandler = connectionHandler, 
-        mySchema = resultDatabaseSettings$schema, 
-        myTableAppend = resultDatabaseSettings$tablePrefix
+        resultDatabaseSettings = resultDatabaseSettings
       )
     
       

@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2023 Observational Health Data Sciences and Informatics
 #
 # This file is part of PatientLevelPrediction
 #
@@ -89,7 +89,7 @@ getVisitContextResults <- function(dataSource,
 
   sql <- "SELECT visit_context.*,
               standard_concept.concept_name AS visit_concept_name
-            FROM  @results_database_schema.@table_name visit_context
+            FROM  @schema.@table_name visit_context
             INNER JOIN  @vocabulary_database_schema.@concept_table standard_concept
               ON visit_context.visit_concept_id = standard_concept.concept_id
             WHERE database_id in (@database_id)
@@ -97,7 +97,7 @@ getVisitContextResults <- function(dataSource,
   data <-
     dataSource$connectionHandler$queryDb(
       sql = sql,
-      results_database_schema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       vocabulary_database_schema = dataSource$vocabularyDatabaseSchema,
       cohort_ids = cohortIds,
       database_id = quoteLiterals(databaseIds),
@@ -121,7 +121,7 @@ visitContextModule <- function(id = "visitContext",
                                selectedDatabaseIds,
                                targetCohortId,
                                cohortCountTable = dataSource$cohortCountTable,
-                               databaseTable = dataSource$databaseTable) {
+                               databaseTable = dataSource$dbTable) {
   ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
     output$selectedCohorts <- shiny::renderUI(selectedCohort())

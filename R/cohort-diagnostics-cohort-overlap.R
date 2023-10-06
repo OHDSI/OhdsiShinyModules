@@ -1,6 +1,6 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2023 Observational Health Data Sciences and Informatics
 #
-# This file is part of PatientLevelPrediction
+# This file is part of OhdsiShinyModules
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -211,10 +211,8 @@ cohortOverlapView <- function(id) {
               id = ns("overlapPlotContainer"),
               plotly::plotlyOutput(ns("overlapPlot"), width = "100%", height = "300px")
             )
-          )
-        ),
-
-          # complicated way of setting plot height based on number of rows and selection type
+          ),
+           # complicated way of setting plot height based on number of rows and selection type
           # Note that this code is only used because renderUI/ uiOutput didn't seem to update with plotly
           shiny::tags$script(sprintf("
         Shiny.addCustomMessageHandler('%s', function(height) {
@@ -222,7 +220,8 @@ cohortOverlapView <- function(id) {
           plotSpace.querySelector('.svg-container').style.height = height;
           plotSpace.querySelector('.js-plotly-plot').style.height = height;
         });
-      ", ns("overlapPlotHeight"), ns("overlapPlotContainer"))),
+      ", ns("overlapPlotHeight"), ns("overlapPlotContainer")))
+        ),
         shiny::tabPanel(
           title = "Table",
           shiny::fluidRow(
@@ -259,26 +258,48 @@ getResultsCohortRelationships <- function(dataSource,
                                           databaseIds = NULL,
                                           startDays = NULL,
                                           endDays = NULL) {
+  #data <- dataSource$connectionHandler$queryDb(
+  #  sql = "SELECT cr.*, db.database_name
+  #           FROM @schema.@table_name cr
+  #           INNER JOIN @schema.@database_table db ON db.database_id = cr.database_id
+  #           WHERE cr.cohort_id IN (@cohort_id)
+  #           AND cr.database_id IN (@database_id)
+  #            {@comparator_cohort_id != \"\"} ? { AND cr.comparator_cohort_id IN (@comparator_cohort_id)}
+  #            {@start_day != \"\"} ? { AND cr.start_day IN (@start_day)}
+  #            {@end_day != \"\"} ? { AND cr.end_day IN (@end_day)};",
+  #  snakeCaseToCamelCase = TRUE,
+  #  schema = dataSource$schema,
+  #  database_id = quoteLiterals(databaseIds),
+  #  table_name = dataSource$prefixTable("cohort_relationships"),
+  #  database_table = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable),
+  #  cohort_id = cohortIds,
+  #  comparator_cohort_id = comparatorCohortIds,
+  #  start_day = startDays,
+  #  end_day = endDays
+  #) %>%
+  #  dplyr::tibble()
+  
   data <- dataSource$connectionHandler$queryDb(
-    sql = "SELECT cr.*, db.database_name
-             FROM @results_database_schema.@table_name cr
-             INNER JOIN @results_database_schema.@database_table db ON db.database_id = cr.database_id
+    sql = "SELECT cr.*
+             FROM @schema.@table_name cr
              WHERE cr.cohort_id IN (@cohort_id)
              AND cr.database_id IN (@database_id)
               {@comparator_cohort_id != \"\"} ? { AND cr.comparator_cohort_id IN (@comparator_cohort_id)}
               {@start_day != \"\"} ? { AND cr.start_day IN (@start_day)}
               {@end_day != \"\"} ? { AND cr.end_day IN (@end_day)};",
     snakeCaseToCamelCase = TRUE,
-    results_database_schema = dataSource$resultsDatabaseSchema,
+    schema = dataSource$schema,
     database_id = quoteLiterals(databaseIds),
     table_name = dataSource$prefixTable("cohort_relationships"),
-    database_table = dataSource$databaseTableName,
     cohort_id = cohortIds,
     comparator_cohort_id = comparatorCohortIds,
     start_day = startDays,
     end_day = endDays
   ) %>%
     dplyr::tibble()
+  
+  # join with dbTable (moved this outside sql)
+  data <- merge(data, dataSource$dbTable, by = 'databaseId')
 
   return(data)
 }
@@ -577,6 +598,7 @@ cohortOverlapModule <- function(id,
         pagination = TRUE,
         showPagination = TRUE,
         showPageInfo = TRUE,
+        defaultExpanded = TRUE,
         highlight = TRUE,
         striped = TRUE,
         compact = TRUE,

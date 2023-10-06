@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2023 Observational Health Data Sciences and Informatics
 #
 # This file is part of PatientLevelPrediction
 #
@@ -480,20 +480,6 @@ compareCohortCharacterizationView <- function(id, title = "Compare cohort charac
   )
 }
 
-# Returns data from cohort table of Cohort Diagnostics results data model
-getResultsCohort <- function(dataSource, cohortIds = NULL) {
-  data <- dataSource$connectionHandler$queryDb(
-    sql = "SELECT * FROM @results_database_schema.@table_name
-                                          {@cohort_id != \"\"} ? { WHERE cohort_id IN (@cohort_id)};",
-    results_database_schema = dataSource$resultsDatabaseSchema,
-    cohort_id = cohortIds,
-    table_name = dataSource$cohortTableName,
-    snakeCaseToCamelCase = TRUE
-  )
-  return(data)
-}
-
-
 # Returns cohort as feature characterization
 getCohortRelationshipCharacterizationResults <-
   function(dataSource,
@@ -505,7 +491,8 @@ getCohortRelationshipCharacterizationResults <-
         cohortIds = cohortIds,
         databaseIds = databaseIds
       )
-    cohort <- getResultsCohort(dataSource = dataSource)
+    cohort <- getCdCohortRows(dataSource = dataSource,
+                              cohortIds = cohortIds)
 
     cohortRelationships <-
       getResultsCohortRelationships(
@@ -577,6 +564,7 @@ getCohortRelationshipCharacterizationResults <-
                             dplyr::distinct(),
                           by = c("analysisId")
         )
+
     covariateRef <- tidyr::crossing(
       cohort,
       analysisRef %>%
@@ -805,7 +793,7 @@ getCharacterizationOutput <- function(dataSource,
 compareCohortCharacterizationModule <- function(id,
                                                 dataSource,
                                                 cohortTable = dataSource$cohortTable,
-                                                databaseTable = dataSource$databaseTable,
+                                                databaseTable = dataSource$dbTable,
                                                 temporalAnalysisRef = dataSource$temporalAnalysisRef,
                                                 analysisNameOptions = dataSource$analysisNameOptions,
                                                 domainIdOptions = dataSource$domainIdOptions,

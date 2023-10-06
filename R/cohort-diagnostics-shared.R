@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2023 Observational Health Data Sciences and Informatics
 #
 # This file is part of CohortDiagnostics
 #
@@ -36,6 +36,31 @@ hasData <- function(data) {
   return(TRUE)
 }
 
+# Useful if you want to include isBinary in an invisible column and then have the result display as a percentage or
+# Not depending on this value
+formatCellByBinaryType <- function() {
+  reactable::JS(
+    "function(data) {
+      let binaryCol = data.allCells.find(x => x.column.id == 'isBinary')
+      if (binaryCol !== undefined) {
+        if(binaryCol.value == 'Y') {
+          if (isNaN(parseFloat(data.value))) return data.value;
+          if (Number.isInteger(data.value) && data.value > 0) return (100 * data.value).toFixed(0).toString().replace(/(\\d)(?=(\\d{3})+(?!\\d))/g, '$1,') + '%';
+          if (data.value > 999) return (100 * data.value).toFixed(2).replace(/(\\d)(?=(\\d{3})+(?!\\d))/g, '$1,') + '%';
+          if (data.value < 0) return '<' + (Math.abs(data.value) * 100).toFixed(2) + '%';
+          return  (100 * data.value).toFixed(1) + '%';
+        }
+      }
+      if (isNaN(parseFloat(data.value))) return data.value;
+      if (Number.isInteger(data.value) && data.value > 0) return data.value.toFixed(0).toString().replace(/(\\d)(?=(\\d{3})+(?!\\d))/g, '$1,');
+      if (data.value > 999) return data.value.toFixed(1).toString().replace(/(\\d)(?=(\\d{3})+(?!\\d))/g, '$1,');
+      if (data.value < 0) return  '<' + Math.abs(data.value.toFixed(3));
+
+      return data.value.toFixed(1);
+    }")
+}
+
+
 formatDataCellValueInDisplayTable <-
   function(showDataAsPercent = FALSE) {
     if (showDataAsPercent) {
@@ -65,24 +90,36 @@ formatDataCellValueInDisplayTable <-
 getResultsCohortCounts <- function(dataSource,
                                    cohortIds = NULL,
                                    databaseIds = NULL) {
-  sql <- "SELECT cc.*, db.database_name
-            FROM  @results_database_schema.@table_name cc
-            INNER JOIN @results_database_schema.@database_table db ON db.database_id = cc.database_id
+  #sql <- "SELECT cc.*, db.database_name
+  #          FROM  @schema.@table_name cc
+  #          INNER JOIN @schema.@database_table db ON db.database_id = cc.database_id
+  #          WHERE cc.cohort_id IS NOT NULL
+  #          {@use_database_ids} ? { AND cc.database_id in (@database_ids)}
+  #          {@cohort_ids != ''} ? {  AND cc.cohort_id in (@cohort_ids)}
+  #          ;"
+  
+  sql <- "SELECT cc.*
+            FROM  @schema.@table_name cc
             WHERE cc.cohort_id IS NOT NULL
             {@use_database_ids} ? { AND cc.database_id in (@database_ids)}
             {@cohort_ids != ''} ? {  AND cc.cohort_id in (@cohort_ids)}
             ;"
+  
   data <-
     dataSource$connectionHandler$queryDb(
       sql = sql,
-      results_database_schema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       cohort_ids = cohortIds,
       use_database_ids = !is.null(databaseIds),
       database_ids = quoteLiterals(databaseIds),
-      table_name = dataSource$prefixTable("cohort_count"),
-      database_table = dataSource$databaseTableName
+      table_name = dataSource$prefixTable("cohort_count")#,
+      #database_table = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable)
     ) %>%
       tidyr::tibble()
+  
+  # join with dbTable (moved this outside sql)
+  data <- merge(data, dataSource$dbTable, by = 'databaseId')
+  
 
   return(data)
 }
@@ -90,14 +127,14 @@ getResultsCohortCounts <- function(dataSource,
 getDatabaseCounts <- function(dataSource,
                               databaseIds) {
   sql <- "SELECT *
-              FROM  @results_database_schema.@database_table
+              FROM  @schema.@database_table
               WHERE database_id in (@database_ids);"
   data <-
     dataSource$connectionHandler$queryDb(
       sql = sql,
-      results_database_schema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       database_ids = quoteLiterals(databaseIds),
-      database_table = dataSource$databaseTableName,
+      database_table = dataSource$databaseTable,
       snakeCaseToCamelCase = TRUE
     ) %>%
       tidyr::tibble()
@@ -662,8 +699,8 @@ resolvedConceptSet <- function(dataSource,
                     	c.standard_concept,
                     	c.concept_code,
                     	rc.database_id
-                    FROM @results_database_schema.@resolved_concepts_table rc
-                    LEFT JOIN @results_database_schema.@concept_table c
+                    FROM @schema.@resolved_concepts_table rc
+                    LEFT JOIN @schema.@concept_table c
                     ON rc.concept_id = c.concept_id
                     WHERE rc.database_id IN (@database_ids)
                     	AND rc.cohort_id = @cohortId
@@ -672,7 +709,7 @@ resolvedConceptSet <- function(dataSource,
   resolved <-
     dataSource$connectionHandler$queryDb(
       sql = sqlResolved,
-      results_database_schema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       database_ids = quoteLiterals(databaseIds),
       cohortId = cohortId,
       concept_set_id = conceptSetId,
@@ -702,12 +739,12 @@ mappedConceptSet <- function(dataSource,
     		c1.concept_code
     	FROM (
     		SELECT DISTINCT concept_id
-    		FROM @results_database_schema.@resolved_concepts
+    		FROM @schema.@resolved_concepts
     		WHERE database_id IN (@databaseIds)
     			AND cohort_id = @cohort_id
     		) concept_sets
-    	INNER JOIN @results_database_schema.@concept_relationship cr ON concept_sets.concept_id = cr.concept_id_2
-    	INNER JOIN @results_database_schema.@concept c1 ON cr.concept_id_1 = c1.concept_id
+    	INNER JOIN @schema.@concept_relationship cr ON concept_sets.concept_id = cr.concept_id_2
+    	INNER JOIN @schema.@concept c1 ON cr.concept_id_1 = c1.concept_id
     	WHERE relationship_id = 'Maps to'
     		AND standard_concept IS NULL
     	)
@@ -716,14 +753,14 @@ mappedConceptSet <- function(dataSource,
     	c.cohort_id,
     	c.concept_set_id,
     	mapped.*
-    FROM (SELECT DISTINCT concept_id, database_id, cohort_id, concept_set_id FROM @results_database_schema.@resolved_concepts) c
+    FROM (SELECT DISTINCT concept_id, database_id, cohort_id, concept_set_id FROM @schema.@resolved_concepts) c
     INNER JOIN resolved_concepts_mapped mapped ON c.concept_id = mapped.resolved_concept_id
     {@cohort_id != ''} ? { WHERE c.cohort_id = @cohort_id};
     "
   mapped <-
     dataSource$connectionHandler$queryDb(
       sql = sqlMapped,
-      results_database_schema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       databaseIds = quoteLiterals(databaseIds),
       concept = dataSource$prefixTable("concept"),
       concept_relationship = dataSource$prefixTable("concept_relationship"),
@@ -816,12 +853,12 @@ queryResultCovariateValue <- function(dataSource,
   temporalTimeRefData <-
     dataSource$connectionHandler$queryDb(
       sql = "SELECT *
-             FROM @results_database_schema.@table_name
+             FROM @schema.@table_name
              WHERE (time_id IS NOT NULL AND time_id != 0)
               {@start_day != \"\"} ? { AND start_day IN (@start_day)}
               {@end_day != \"\"} ? { AND end_day IN (@end_day)};",
       snakeCaseToCamelCase = TRUE,
-      results_database_schema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       table_name = dataSource$prefixTable("temporal_time_ref"),
       start_day = startDay,
       end_day = endDay
@@ -836,27 +873,27 @@ queryResultCovariateValue <- function(dataSource,
   temporalAnalysisRefData <-
     dataSource$connectionHandler$queryDb(
       sql = "SELECT *
-             FROM @results_database_schema.@table_name
+             FROM @schema.@table_name
               WHERE analysis_id IS NOT NULL
                 {@analysis_ids != \"\"} ? { AND analysis_id IN (@analysis_ids)}
               ;",
       analysis_ids = analysisIds,
       table_name = dataSource$prefixTable("temporal_analysis_ref"),
       snakeCaseToCamelCase = TRUE,
-      results_database_schema = dataSource$resultsDatabaseSchema
+      schema = dataSource$schema
     ) %>%
       dplyr::tibble()
 
   temporalCovariateRefData <-
     dataSource$connectionHandler$queryDb(
       sql = "SELECT *
-             FROM @results_database_schema.@table_name
+             FROM @schema.@table_name
               WHERE covariate_id IS NOT NULL
                 {@analysis_ids != \"\"} ? { AND analysis_id IN (@analysis_ids)};",
       snakeCaseToCamelCase = TRUE,
       analysis_ids = analysisIds,
       table_name = dataSource$prefixTable("temporal_covariate_ref"),
-      results_database_schema = dataSource$resultsDatabaseSchema
+      schema = dataSource$schema
     ) %>%
       dplyr::tibble()
 
@@ -865,8 +902,8 @@ queryResultCovariateValue <- function(dataSource,
     temporalCovariateValueData <-
       dataSource$connectionHandler$queryDb(
         sql = "SELECT tcv.*
-                FROM @results_database_schema.@table_name tcv
-                INNER JOIN @results_database_schema.@ref_table_name ref ON ref.covariate_id = tcv.covariate_id
+                FROM @schema.@table_name tcv
+                INNER JOIN @schema.@ref_table_name ref ON ref.covariate_id = tcv.covariate_id
                 WHERE ref.covariate_id IS NOT NULL
                 {@analysis_ids != \"\"} ? { AND ref.analysis_id IN (@analysis_ids)}
                 {@cohort_id != \"\"} ? { AND tcv.cohort_id IN (@cohort_id)}
@@ -881,7 +918,7 @@ queryResultCovariateValue <- function(dataSource,
         table_name = dataSource$prefixTable("temporal_covariate_value"),
         ref_table_name = dataSource$prefixTable("temporal_covariate_ref"),
         cohort_id = cohortIds,
-        results_database_schema = dataSource$resultsDatabaseSchema,
+        schema = dataSource$schema,
         filter_mean_threshold = meanThreshold
       ) %>%
         dplyr::tibble() %>%
@@ -893,7 +930,7 @@ queryResultCovariateValue <- function(dataSource,
     temporalCovariateValueDistData <-
       dataSource$connectionHandler$queryDb(
         sql = "SELECT *
-             FROM @results_database_schema.@table_name tcv
+             FROM @schema.@table_name tcv
               WHERE covariate_id IS NOT NULL
                 {@covariate_id != \"\"} ? { AND covariate_id IN (@covariate_id)}
                 {@cohort_id != \"\"} ? { AND cohort_id IN (@cohort_id)}
@@ -907,7 +944,7 @@ queryResultCovariateValue <- function(dataSource,
         database_id = quoteLiterals(databaseIds),
         cohort_id = cohortIds,
         table_name = dataSource$prefixTable("temporal_covariate_value_dist"),
-        results_database_schema = dataSource$resultsDatabaseSchema,
+        schema = dataSource$schema,
         filter_mean_threshold = meanThreshold
       ) %>%
         dplyr::tibble() %>%
@@ -946,7 +983,7 @@ getInclusionRuleStats <- function(dataSource,
                                   databaseIds,
                                   modeId = 1) {
   sql <- "SELECT *
-    FROM  @resultsDatabaseSchema.@table_name
+    FROM  @schema.@table_name
     WHERE database_id in (@database_id)
     {@cohort_ids != ''} ? {  AND cohort_id in (@cohort_ids)}
     ;"
@@ -954,7 +991,7 @@ getInclusionRuleStats <- function(dataSource,
   inclusion <-
     dataSource$connectionHandler$queryDb(
       sql = sql,
-      resultsDatabaseSchema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       cohort_ids = cohortIds,
       database_id = quoteLiterals(databaseIds),
       table_name = dataSource$prefixTable("cohort_inclusion"),
@@ -965,7 +1002,7 @@ getInclusionRuleStats <- function(dataSource,
   inclusionResults <-
     dataSource$connectionHandler$queryDb(
       sql = sql,
-      resultsDatabaseSchema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       cohort_ids = cohortIds,
       database_id = quoteLiterals(databaseIds),
       table_name = dataSource$prefixTable("cohort_inc_result"),
@@ -976,7 +1013,7 @@ getInclusionRuleStats <- function(dataSource,
   inclusionStats <-
     dataSource$connectionHandler$queryDb(
       sql = sql,
-      resultsDatabaseSchema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       cohort_ids = cohortIds,
       database_id = quoteLiterals(databaseIds),
       table_name = dataSource$prefixTable("cohort_inc_stats"),

@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2023 Observational Health Data Sciences and Informatics
 #
 # This file is part of PatientLevelPrediction
 #
@@ -17,22 +17,22 @@
 
 # Global ranges for IR values
 getIncidenceRateRanges <- function(dataSource, minPersonYears = 0) {
-  sql <- "SELECT DISTINCT age_group FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
+  sql <- "SELECT DISTINCT age_group FROM @schema.@ir_table WHERE person_years >= @person_years"
 
   ageGroups <- dataSource$connectionHandler$queryDb(
     sql = sql,
-    results_database_schema = dataSource$resultsDatabaseSchema,
+    schema = dataSource$schema,
     ir_table = dataSource$prefixTable("incidence_rate"),
     person_years = minPersonYears,
     snakeCaseToCamelCase = TRUE
   ) %>%
     dplyr::mutate(ageGroup = dplyr::na_if(.data$ageGroup, ""))
 
-  sql <- "SELECT DISTINCT calendar_year FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
+  sql <- "SELECT DISTINCT calendar_year FROM @schema.@ir_table WHERE person_years >= @person_years"
 
   calendarYear <- dataSource$connectionHandler$queryDb(
     sql = sql,
-    results_database_schema = dataSource$resultsDatabaseSchema,
+    schema = dataSource$schema,
     ir_table = dataSource$prefixTable("incidence_rate"),
     person_years = minPersonYears,
     snakeCaseToCamelCase = TRUE
@@ -42,11 +42,11 @@ getIncidenceRateRanges <- function(dataSource, minPersonYears = 0) {
     ) %>%
     dplyr::mutate(calendarYear = as.integer(.data$calendarYear))
 
-  sql <- "SELECT DISTINCT gender FROM @results_database_schema.@ir_table WHERE person_years >= @person_years"
+  sql <- "SELECT DISTINCT gender FROM @schema.@ir_table WHERE person_years >= @person_years"
 
   gender <- dataSource$connectionHandler$queryDb(
     sql = sql,
-    results_database_schema = dataSource$resultsDatabaseSchema,
+    schema = dataSource$schema,
     ir_table = dataSource$prefixTable("incidence_rate"),
     person_years = minPersonYears,
     snakeCaseToCamelCase = TRUE
@@ -57,14 +57,14 @@ getIncidenceRateRanges <- function(dataSource, minPersonYears = 0) {
   sql <- "SELECT
     min(incidence_rate) as min_ir,
     max(incidence_rate) as max_ir
-   FROM @results_database_schema.@ir_table
+   FROM @schema.@ir_table
    WHERE person_years >= @person_years
    AND incidence_rate > 0.0
    "
 
   incidenceRate <- dataSource$connectionHandler$queryDb(
     sql = sql,
-    results_database_schema = dataSource$resultsDatabaseSchema,
+    schema = dataSource$schema,
     ir_table = dataSource$prefixTable("incidence_rate"),
     person_years = minPersonYears,
     snakeCaseToCamelCase = TRUE
@@ -115,10 +115,9 @@ getIncidenceRateResult <- function(dataSource,
   )
   checkmate::reportAssertions(collection = errorMessage)
 
-  sql <- "SELECT ir.*, dt.database_name, cc.cohort_subjects
-            FROM  @results_database_schema.@ir_table ir
-            INNER JOIN @results_database_schema.@database_table dt ON ir.database_id = dt.database_id
-            INNER JOIN @results_database_schema.@cc_table cc ON (
+  sql <- "SELECT ir.*, cc.cohort_subjects
+            FROM  @schema.@ir_table ir
+            INNER JOIN @schema.@cc_table cc ON (
               ir.database_id = cc.database_id AND ir.cohort_id = cc.cohort_id
             )
             WHERE ir.cohort_id in (@cohort_ids)
@@ -127,10 +126,11 @@ getIncidenceRateResult <- function(dataSource,
             {@age_group == TRUE} ? {AND ir.age_group != ''} : {  AND ir.age_group = ''}
             {@calendar_year == TRUE} ? {AND ir.calendar_year != ''} : {  AND ir.calendar_year = ''}
               AND ir.person_years > @personYears;"
+  
   data <-
     dataSource$connectionHandler$queryDb(
       sql = sql,
-      results_database_schema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       cohort_ids = cohortIds,
       database_ids = quoteLiterals(databaseIds),
       gender = stratifyByGender,
@@ -139,11 +139,20 @@ getIncidenceRateResult <- function(dataSource,
       personYears = minPersonYears,
       ir_table = dataSource$prefixTable("incidence_rate"),
       cc_table = dataSource$prefixTable("cohort_count"),
-      database_table = dataSource$databaseTableName,
+      #database_table = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable),
       snakeCaseToCamelCase = TRUE
     ) %>%
       tidyr::tibble()
-
+  
+  # join with dbTable (moved this outside sql)
+  data <- merge(
+    data, 
+    dataSource$dbTable, 
+    by = 'databaseId'
+    )
+  
+  data <- tidyr::as_tibble(data)
+  
   data <- data %>%
     dplyr::mutate(
       gender = dplyr::na_if(.data$gender, ""),
@@ -936,9 +945,9 @@ incidenceRatesModule <- function(id,
                       "incidenceProportion")
 
       barChart <- function(label, width = "100%", height = "1rem", fill = "#337ab7", background = "#ccc") {
-        bar <- div(style = list(background = fill, width = width, height = height))
-        chart <- div(style = list(flexGrow = 1, marginLeft = "0.5rem", background = background), bar)
-        div(style = list(display = "flex", alignItems = "center"), label, chart)
+        bar <- shiny::div(style = list(background = fill, width = width, height = height))
+        chart <- shiny::div(style = list(flexGrow = 1, marginLeft = "0.5rem", background = background), bar)
+        shiny::div(style = list(display = "flex", alignItems = "center"), label, chart)
       }
 
       columnDefs <- list(

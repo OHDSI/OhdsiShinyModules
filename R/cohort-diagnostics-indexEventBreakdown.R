@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2023 Observational Health Data Sciences and Informatics
 #
 # This file is part of PatientLevelPrediction
 #
@@ -101,7 +101,7 @@ getIndexEventBreakdown <- function(dataSource,
               concept.vocabulary_id,
               concept.standard_concept,
               concept.concept_code
-            FROM  @results_database_schema.@table_name index_event_breakdown
+            FROM  @schema.@table_name index_event_breakdown
             INNER JOIN  @vocabulary_database_schema.@concept_table concept
               ON index_event_breakdown.concept_id = concept.concept_id
             WHERE database_id in (@database_id)
@@ -109,7 +109,7 @@ getIndexEventBreakdown <- function(dataSource,
   data <-
     dataSource$connectionHandler$queryDb(
       sql = sql,
-      results_database_schema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       vocabulary_database_schema = dataSource$vocabularyDatabaseSchema,
       cohort_ids = cohortIds,
       database_id = quoteLiterals(databaseIds),
@@ -139,7 +139,7 @@ indexEventBreakdownModule <- function(id,
                                       targetCohortId,
                                       selectedDatabaseIds,
                                       cohortCountTable = dataSource$cohortCountTable,
-                                      databaseTable = dataSource$databaseTable) {
+                                      databaseTable = dataSource$dbTable) {
   ns <- shiny::NS(id)
 
   serverFunction <- function(input, output, session) {

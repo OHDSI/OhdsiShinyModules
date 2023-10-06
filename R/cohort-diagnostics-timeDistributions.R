@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2023 Observational Health Data Sciences and Informatics
 #
 # This file is part of PatientLevelPrediction
 #
@@ -353,7 +353,7 @@ timeDistributionsModule <- function(id,
                                     selectedDatabaseIds,
                                     cohortIds,
                                     cohortTable = dataSource$cohortTable,
-                                    databaseTable = dataSource$databaseTable) {
+                                    databaseTable = dataSource$dbTable) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     output$selectedCohorts <- shiny::renderUI({ selectedCohorts() })

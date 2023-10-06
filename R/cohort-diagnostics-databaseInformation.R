@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2023 Observational Health Data Sciences and Informatics
 #
 # This file is part of PatientLevelPrediction
 #
@@ -58,14 +58,14 @@ databaseInformationView <- function(id) {
 
 getMetaDataResults <- function(dataSource, databaseId) {
   sql <- "SELECT *
-              FROM  @results_database_schema.@metadata
+              FROM  @schema.@metadata
               WHERE database_id = @database_id;"
 
   data <-
     dataSource$connectionHandler$queryDb(
       sql = sql,
       metadata = dataSource$prefixTable("metadata"),
-      results_database_schema = dataSource$resultsDatabaseSchema,
+      schema = dataSource$schema,
       database_id = quoteLiterals(databaseId)
     ) %>%
       tidyr::tibble()
@@ -211,7 +211,7 @@ getExecutionMetadata <- function(dataSource, databaseId) {
 
 
 getDatabaseMetadata <- function(dataSource, databaseTable) {
-  data <- loadResultsTable(dataSource, "metadata", required = TRUE, tablePrefix = dataSource$tablePrefix)
+  data <- loadResultsTable(dataSource, "metadata", required = TRUE, cdTablePrefix = dataSource$cdTablePrefix)
   data <- data %>%
     tidyr::pivot_wider(
       id_cols = c("startTime", "databaseId"),
@@ -289,10 +289,12 @@ getDatabaseMetadata <- function(dataSource, databaseTable) {
 }
 
 # What this module does is incredibly simple. How it does it is not.
-databaseInformationModule <- function(id,
-                                      dataSource,
-                                      selectedDatabaseIds,
-                                      databaseTable = dataSource$databaseTable) {
+databaseInformationModule <- function(
+    id,
+    dataSource,
+    selectedDatabaseIds,
+    databaseTable = dataSource$dbTable
+) {
   ns <- shiny::NS(id)
 
   ## Replace this pre-loading nonsense

@@ -1,9 +1,6 @@
 createPredictionProtocol <- function(
     connectionHandler, 
-  mySchema, 
-  myTableAppend,
-  databaseTableAppend,
-  cohortTableAppend,
+    resultDatabaseSettings,
   modelDesignId,
   output,
   intermediatesDir = file.path(tempdir(), 'plp-prot')
@@ -24,11 +21,11 @@ createPredictionProtocol <- function(
     output_dir = output, 
     params = list(
       connectionHandler = connectionHandler,
-      resultSchema = mySchema, 
-      myTableAppend = myTableAppend,
+      resultSchema = resultDatabaseSettings$schema, 
+      myTableAppend = resultDatabaseSettings$plpTablePrefix,
       modelDesignIds = modelDesignId,
-      databaseTableAppend = databaseTableAppend,
-      cohortTableAppend = cohortTableAppend
+      databaseTableAppend = resultDatabaseSettings$databaseTablePrefix,
+      cohortTableAppend = resultDatabaseSettings$cgTablePrefix
     )
   )
   

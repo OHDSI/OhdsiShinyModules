@@ -16,13 +16,23 @@ dbmsTest <- 'sqlite'
 schemaTest <- 'main'
 
 # =========== CG START
-cohortTablePrefix <- 'cg_'
+cgTablePrefix <- 'cg_'
 
 connectionDetailsCG <- DatabaseConnector::createConnectionDetails(
   server = "../resources/cgDatabase/databaseFile.sqlite",
   dbms = 'sqlite'
 )
 connectionHandlerCG <- ResultModelManager::ConnectionHandler$new(connectionDetailsCG, loadConnection = FALSE)
+
+resultDatabaseSettingsCG <- list(
+  dbms = 'sqlite',
+  cgTablePrefix = 'cg_',
+  cgTablePrefix = 'cg_',
+  databaseTable = 'DATABASE_META_DATA',
+  databaseTablePrefix = '',
+  schema = 'main',
+  tempEmulationSchema = NULL
+)
 
 # =========== CG START
   
@@ -37,8 +47,8 @@ connectionHandlerPlp <- ResultModelManager::ConnectionHandler$new(connectionDeta
 
 resultDatabaseSettingsPlp <- list(
   dbms = 'sqlite', # should this be removed - can use connection
-  tablePrefix = '',
-  cohortTablePrefix = '',
+  plpTablePrefix = '',
+  cgTablePrefix = '',
   databaseTablePrefix = '',
   schema = 'main'
 )
@@ -46,19 +56,22 @@ resultDatabaseSettingsPlp <- list(
 
 
 
-# =========== Desc START
-serverDesc <- "../resources/descDatabase/databaseFile.sqlite"
-connectionDetailsDesc <- DatabaseConnector::createConnectionDetails(
+# =========== characterization START
+serverCharacterization <- "../resources/characterizationDatabase/databaseFile.sqlite"
+connectionDetailsCharacterization <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite',
-  server = serverDesc
+  server = serverCharacterization
 )
 
-connectionHandlerDesc <- ResultModelManager::ConnectionHandler$new(connectionDetailsDesc, loadConnection = FALSE)
+connectionHandlerCharacterization <- ResultModelManager::ConnectionHandler$new(
+  connectionDetailsCharacterization, 
+  loadConnection = FALSE
+  )
 
-resultDatabaseSettingsDesc <- list(
+resultDatabaseSettingsCharacterization <- list(
   dbms = 'sqlite', # should this be removed - can use connection
-  tablePrefix = 'c_',
-  cohortTablePrefix = 'cg_',
+  cTablePrefix = 'c_',
+  cgTablePrefix = 'cg_',
   databaseTablePrefix = '',
   schema = 'main',
   databaseTable = 'DATABASE_META_DATA',
@@ -67,27 +80,30 @@ resultDatabaseSettingsDesc <- list(
 )
 
 
-# =========== Desc START
+# =========== Characterization END
 
 
-# =========== Estimation START
-connectionDetailsEst <- DatabaseConnector::createConnectionDetails(
+# =========== Cohort Method START
+connectionDetailsCm <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite', 
-  server = "../resources/estDatabase/databaseFile.sqlite"
+  server = "../resources/cmDatabase/databaseFile.sqlite"
 )
 
-connectionHandlerEst  <- ResultModelManager::ConnectionHandler$new(connectionDetailsEst, loadConnection = FALSE)
+connectionHandlerCm  <- ResultModelManager::ConnectionHandler$new(
+  connectionDetailsCm, 
+  loadConnection = FALSE
+  )
 
-resultDatabaseSettingsEst <- list(
+resultDatabaseSettingsCm <- list(
   dbms = 'sqlite',
-  tablePrefix = 'cm_',
-  cohortTablePrefix = 'cg_',
+  cmTablePrefix = 'cm_',
+  cgTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA',
   schema = "main",
   tempEmulationSchema = NULL
 )
 
-# =========== Estimation END
+# =========== Cohort Method END
 
 
 # =========== Data diag START
@@ -100,7 +116,7 @@ connectionHandlerDataDiag <- ResultModelManager::ConnectionHandler$new(connectio
 
 resultDatabaseSettingsDataDiag <- list(
   dbms = 'sqlite',
-  tablePrefix = '',
+  ddTablePrefix = '',
   schema = "main"
 )
 
@@ -115,10 +131,9 @@ connectionDetailsCohortDiag <- DatabaseConnector::createConnectionDetails(
 
 resultDatabaseSettingsCohortDiag <- list(
   dbms = 'sqlite',
-  tablePrefix = '',
+  cdTablePrefix = '',
   schema = "main",
-  cohortTableName = "cohort",
-  databaseTableName = "database"
+  vocabularyDatabaseSchema = "main"
 )
 
 connectionHandlerCohortDiag <- ResultModelManager::ConnectionHandler$new(connectionDetailsCohortDiag, loadConnection = FALSE)
@@ -126,11 +141,7 @@ connectionHandlerCohortDiag <- ResultModelManager::ConnectionHandler$new(connect
 dataSourceCd <-
   createCdDatabaseDataSource(
     connectionHandler = connectionHandlerCohortDiag,
-    schema = "main",
-    vocabularyDatabaseSchema = "main",
-    tablePrefix = "",
-    cohortTableName = "cohort",
-    databaseTableName = "database",
+    resultDatabaseSettings = resultDatabaseSettingsCohortDiag,
     displayProgress = FALSE
   )
 
@@ -147,8 +158,8 @@ connectionHandlerSccs  <- ResultModelManager::ConnectionHandler$new(connectionDe
 
 resultDatabaseSettingsSccs <- list(
   dbms = 'sqlite',
-  tablePrefix = 'sccs_',
-  cohortTablePrefix = 'cg_',
+  sccsTablePrefix = 'sccs_',
+  cgTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA',
   schema = "main",
   tempEmulationSchema = NULL
@@ -170,13 +181,55 @@ connectionHandlerES  <- ResultModelManager::ConnectionHandler$new(
 
 resultDatabaseSettingsES <- list(
   dbms = 'sqlite',
-  tablePrefix = 'es_',
+  esTablePrefix = 'es_',
   cgTablePrefix = 'cg_',
   cmTablePrefix = 'cm_',
   sccsTablePrefix = 'sccs_',
-  databaseTable = 'DATABASE_META_DATA',
+  databaseTable = 'DATABASE_META_DATA', 
+  databaseMetaData = 'DATABASE_META_DATA', 
   schema = "main",
   tempEmulationSchema = NULL
+)
+
+#  ====
+
+# ====== PheValuator
+
+connectionDetailsPV <- DatabaseConnector::createConnectionDetails(
+  dbms = 'sqlite',
+  server = "../resources/pvDatabase/phevaluator.sqlite"
+)
+
+connectionHandlerPV  <- ResultModelManager::ConnectionHandler$new(
+  connectionDetailsPV, 
+  loadConnection = FALSE
+)
+
+resultDatabaseSettingsPV = list(
+  dbms = 'sqlite',
+  pvTablePrefix = 'pv_',
+  schema = 'main'
+)
+
+#  ====
+
+# ====== DataSources
+
+connectionDetailsDS <- DatabaseConnector::createConnectionDetails(
+  dbms = 'sqlite',
+  server = "../resources/DSDatabase/databaseFile.sqlite"
+)
+
+connectionHandlerDS  <- ResultModelManager::ConnectionHandler$new(
+  connectionDetailsDS, 
+  loadConnection = FALSE
+)
+
+resultDatabaseSettingsDS = list(
+  dbms = 'sqlite',
+  databaseTablePrefix = '',
+  schema = 'main',
+  databaseTable = 'DATABASE_META_DATA'
 )
 
 #  ====
@@ -186,10 +239,12 @@ withr::defer({
   options("shiny-test-env-enabled" = FALSE)
   connectionHandlerCG$finalize()
   connectionHandlerPlp$finalize()
-  connectionHandlerDesc$finalize()
+  connectionHandlerCharacterization$finalize()
   connectionHandlerDataDiag$finalize()
-  connectionHandlerEst$finalize()
+  connectionHandlerCm$finalize()
   connectionHandlerCohortDiag$finalize()
   connectionHandlerSccs$finalize()
   connectionHandlerES$finalize()
+  connectionHandlerDS$finalize()
+  connectionHandlerPV$finalize()
 }, testthat::teardown_env())
