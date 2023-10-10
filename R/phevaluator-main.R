@@ -481,52 +481,52 @@ phevaluatorServer <- function(
       customColDefs <- utils::modifyList(phevalColList, buttonColDefs)
 
       
-      resultTableServer(id = "algorithmPerformanceResultsTable",
+      resultTableServer(id = ns("algorithmPerformanceResultsTable"),
                         df = dataAlgorithmPerformance,
                         colDefsInput = customColDefs,
                         downloadedFileName = "algorithmPerformanceResultsTable-")
       
-      resultTableServer(id = "cohortDefinitionSetTable",
+      resultTableServer(id = ns("cohortDefinitionSetTable"),
                         df = dataCohortDefinitionSet,
                         colDefsInput = customColDefs,
                         downloadedFileName = "cohortDefinitionSetTable-")
       
-      resultTableServer(id = "diagnosticsTable",
+      resultTableServer(id = ns("diagnosticsTable"),
                         df = dataDiagnostics,
                         colDefsInput = customColDefs,
                         downloadedFileName = "diagnosticsTable-")
       
-      resultTableServer(id = "evaluationInputParametersTable",
+      resultTableServer(id = ns("evaluationInputParametersTable"),
                         df = dataEvalInputParams,
                         colDefsInput = customColDefs,
                         downloadedFileName = "evaluationInputParametersTable-")
       
-      resultTableServer(id = "modelCovariateSummaryTable",
+      resultTableServer(id = ns("modelCovariateSummaryTable"),
                         df = dataModelCovarSummary,
                         colDefsInput = customColDefs,
                         downloadedFileName = "modelCovariateSummaryTable-")
       
-      resultTableServer(id = "modelCovariatesTable",
+      resultTableServer(id = ns("modelCovariatesTable"),
                         df = dataModelCovars,
                         colDefsInput = customColDefs,
                         downloadedFileName = "modelCovariatesTable-")
       
-      resultTableServer(id = "modelInputParametersTable",
+      resultTableServer(id = ns("modelInputParametersTable"),
                         df = dataModelInputParams,
                         colDefsInput = customColDefs,
                         downloadedFileName = "modelInputParametersTable-")
       
-      resultTableServer(id = "modelPerformanceTable",
+      resultTableServer(id = ns("modelPerformanceTable"),
                         df = dataModelPerformance,
                         colDefsInput = customColDefs,
                         downloadedFileName = "modelPerformanceTable-")
       
-      resultTableServer(id = "testSubjectsTable",
+      resultTableServer(id = ns("testSubjectsTable"),
                         df = dataTestSubjects,
                         colDefsInput = customColDefs,
                         downloadedFileName = "testSubjectsTable-")
       
-      resultTableServer(id = "testSubjectsCovariatesTable",
+      resultTableServer(id = ns("testSubjectsCovariatesTable"),
                         df = dataTestSubjectsCovars,
                         colDefsInput = customColDefs,
                         downloadedFileName = "testSubjectsCovariatesTable-")
