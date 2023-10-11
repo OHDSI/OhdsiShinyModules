@@ -458,13 +458,6 @@ phevaluatorServer <- function(
                                                                         package = "OhdsiShinyModules")
       )
       
-      loadTest <- ParallelLogger::loadSettingsFromJson(system.file("components-columnInformation",
-                                                                   "test.json",
-                                                                   package = "OhdsiShinyModules")
-      )
-      
-      phevalColList <- loadTest
-      
       #define custom colDefs for SQL and JSON buttons
       buttonColDefs <- list(
         buttonSQL = reactable::colDef(header = withTooltip("SQL", "Downloads SQL code for the cohort"),
