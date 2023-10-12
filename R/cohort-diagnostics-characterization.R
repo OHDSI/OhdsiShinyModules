@@ -1081,6 +1081,7 @@ cohortDiagCharacterizationModule <- function(
         }
 
         tplSql <- paste(tplSql, collapse = ", \n")
+        ### Edit to resolve column name in db.
         groupClause <- SqlRender::render("
         GROUP BY db.cdm_source_name, tcr.covariate_name, tar.analysis_name, tcr.concept_id, is_binary
         HAVING @having_clasuse
