@@ -1014,7 +1014,7 @@ cohortDiagCharacterizationModule <- function(
           "Concept Id" = "tcr.concept_id",
           "Analysis Name" = "tar.analysis_name",
           "Covariate Name" = "tcr.covariate_name",
-          "Database" = "db.database_name"
+          "Database" = "db.cdm_source_name"
         )
 
         for (i in 1:length(timeIds)) {
@@ -1058,7 +1058,7 @@ cohortDiagCharacterizationModule <- function(
           WHERE tcr.covariate_id IS NOT NULL
         "
 
-        selectSt <- "db.database_name,
+        selectSt <- "db.cdm_source_name,
             tcr.covariate_name,
             tar.analysis_name,
             is_binary,
