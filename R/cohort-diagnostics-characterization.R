@@ -1047,13 +1047,14 @@ cohortDiagCharacterizationModule <- function(
 
         shiny::updateSelectInput(inputId = "sortByRawTemporal", choices = sortChoices, selected = "mean1")
 
+        #### Testing fix for main.Database error when viewing shiny app.
         sqlt <- "
           SELECT @select_stament
 
           FROM @results_database_schema.@table_prefixtemporal_covariate_ref tcr
           INNER JOIN @results_database_schema.@table_prefixtemporal_analysis_ref tar ON tar.analysis_id = tcr.analysis_id
           INNER JOIN @results_database_schema.@table_prefixtemporal_covariate_value tcv ON tcr.covariate_id = tcv.covariate_id
-          INNER JOIN @results_database_schema.@database_table db ON db.database_id = tcv.database_id
+          INNER JOIN @results_database_schema.DATABASE_META_DATA db ON db.database_id = tcv.database_id
           WHERE tcr.covariate_id IS NOT NULL
         "
 
