@@ -1,3 +1,8 @@
+OhdsiShinyModules v2.0.1
+========================
+Bug Fixes:
+- Fix for CohortDiagnostic app not loading when characterization was set to FALSE
+
 OhdsiShinyModules v2.0.0
 ========================
 - updated all models to use the same resultDatabaseSettings
