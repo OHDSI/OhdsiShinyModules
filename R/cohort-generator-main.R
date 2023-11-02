@@ -338,8 +338,7 @@ cohortGeneratorServer <- function(
         error = function(e){
           shiny::showNotification(
             paste0(
-              'Error: ',
-              "Please select at least one column to display"
+              "Loading..."
             )
           ); 
           return(NULL)
