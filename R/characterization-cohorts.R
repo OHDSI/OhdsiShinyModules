@@ -62,7 +62,6 @@ characterizationTableViewer <- function(id) {
 #'
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
-#' @param mainPanelTab the current tab
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #'
 #' @return
@@ -72,7 +71,6 @@ characterizationTableViewer <- function(id) {
 characterizationTableServer <- function(
     id,
     connectionHandler,
-    mainPanelTab,
     resultDatabaseSettings
 ) {
   shiny::moduleServer(

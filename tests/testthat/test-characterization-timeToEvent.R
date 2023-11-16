@@ -4,7 +4,6 @@ shiny::testServer(
   app = characterizationTimeToEventServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization,
-    mainPanelTab = shiny::reactiveVal("Feature Comparison"),
     resultDatabaseSettings = resultDatabaseSettingsCharacterization
   ), 
   expr = {
