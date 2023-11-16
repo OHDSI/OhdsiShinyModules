@@ -1,9 +1,18 @@
-OhdsiShinyModules v1.2.0
+OhdsiShinyModules v2.0.1
+========================
+Bug Fixes:
+- Fix for CohortDiagnostic app not loading when characterization was set to FALSE
+
+OhdsiShinyModules v2.0.0
 ========================
 - updated all models to use the same resultDatabaseSettings
 - made module function naming consistent (modules named after analysis packages)
 - made table prefix inputs consistent across modules
 - updated patientlevelprediction, cohortmethod and sccs to look similar.
+- Updated Cohort Diagnostics characterization to improve overall performance
+- Added plots for incidence in characterization module
+- Added PheValuator package
+- Numerous bug fixes (see github issues)
 
 OhdsiShinyModules v1.1.0
 ========================

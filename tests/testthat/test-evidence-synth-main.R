@@ -61,4 +61,3 @@ test_that("computeTraditionalP", {
   testthat::expect_true(p2 < p1)
   
 })
- 
