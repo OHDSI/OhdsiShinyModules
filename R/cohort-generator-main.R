@@ -455,6 +455,10 @@ cohortGeneratorServer <- function(
         }
       )
       
+      tryCatch(
+        
+        {
+      
       #building attrition table using inclusion rules & stats tables
       rules <- getCohortGeneratorInclusionRules(
         connectionHandler = connectionHandler, 
@@ -475,12 +479,14 @@ cohortGeneratorServer <- function(
       #making a "clean" version where modeId is renamed to sensible values
       cohortNames <- unique(inputVals$cohortName)
       databaseIds <- unique(inputVals$cdmSourceName)
+      
       inputValsClean <- dplyr::ungroup(inputVals) %>%
         dplyr::mutate(modeId = dplyr::case_when(
           modeId==1 ~ "Subject",
           TRUE ~ "Record"
           )
         )
+      
       modeIds <- unique(inputValsClean$modeId)
       
       # cohortName <- shiny::reactiveVal(cohortNames[1])
@@ -680,6 +686,19 @@ cohortGeneratorServer <- function(
     }
   )
       
+    },
+      
+      error = function(e){
+        shiny::showNotification(
+          paste0(
+            "No cohort inclusion result data present."
+          )
+        ); 
+        return(NULL)
+      }
+
+  )
+      
       # end of server
       
     }
@@ -824,6 +843,8 @@ getCohortGenerationAttritionTable <- function(
     rules,
     stats
 ){
+  
+  
   
   uniqueCohortIDs <- unique(rules$cohortDefinitionId)
   
