@@ -4,19 +4,12 @@
 \alias{characterizationTableServer}
 \title{The module server for exploring 1 or more cohorts features}
 \usage{
-characterizationTableServer(
-  id,
-  connectionHandler,
-  mainPanelTab,
-  resultDatabaseSettings
-)
+characterizationTableServer(id, connectionHandler, resultDatabaseSettings)
 }
 \arguments{
 \item{id}{the unique reference id for the module}
 
 \item{connectionHandler}{the connection to the prediction result database}
-
-\item{mainPanelTab}{the current tab}
 
 \item{resultDatabaseSettings}{a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix}
 }

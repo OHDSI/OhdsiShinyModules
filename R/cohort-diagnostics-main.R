@@ -235,14 +235,16 @@ createCdDatabaseDataSource <- function(
   dataSource$temporalAnalysisRef <- loadResultsTable(dataSource, "temporal_analysis_ref", cdTablePrefix = dataSource$cdTablePrefix)
 
   dataSource$temporalChoices <- getResultsTemporalTimeRef(dataSource = dataSource)
-  dataSource$temporalCharacterizationTimeIdChoices <- dataSource$temporalChoices %>%
-    dplyr::arrange(sequence)
 
-  dataSource$characterizationTimeIdChoices <- dataSource$temporalChoices %>%
-    dplyr::filter(.data$isTemporal == 0) %>%
-    dplyr::filter(.data$primaryTimeId == 1) %>%
-    dplyr::arrange(.data$sequence)
+  if (hasData(dataSource$temporalChoices)) {
+    dataSource$temporalCharacterizationTimeIdChoices <- dataSource$temporalChoices %>%
+      dplyr::arrange(.data$sequence)
 
+    dataSource$characterizationTimeIdChoices <- dataSource$temporalChoices %>%
+      dplyr::filter(.data$isTemporal == 0) %>%
+      dplyr::filter(.data$primaryTimeId == 1) %>%
+      dplyr::arrange(.data$sequence)
+  }
 
   if (!is.null(dataSource$temporalAnalysisRef)) {
     dataSource$temporalAnalysisRef <- dplyr::bind_rows(

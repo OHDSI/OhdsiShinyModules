@@ -1,3 +1,14 @@
+OhdsiShinyModules v2.0.2
+========================
+edited characterization server to work with new aggregate features method in characterization package
+edited characterization server to work when one or more characterization result is missing
+edited evidence synth module to highlight the bayesian and fix issue with comparison names not showing
+
+OhdsiShinyModules v2.0.1
+========================
+Bug Fixes:
+- Fix for CohortDiagnostic app not loading when characterization was set to FALSE
+
 OhdsiShinyModules v2.0.0
 ========================
 - updated all models to use the same resultDatabaseSettings
