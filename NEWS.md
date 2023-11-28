@@ -1,3 +1,9 @@
+OhdsiShinyModules v2.0.2
+========================
+edited characterization server to work with new aggregate features method in characterization package
+edited characterization server to work when one or more characterization result is missing
+edited evidence synth module to highlight the bayesian and fix issue with comparison names not showing
+
 OhdsiShinyModules v2.0.1
 ========================
 Bug Fixes:
