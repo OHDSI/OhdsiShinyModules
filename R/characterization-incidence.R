@@ -186,12 +186,12 @@ characterizationIncidenceViewer <- function(id) {
     ),
     
     inputSelectionViewer(
-      id = ns("input-selection")
+      id = ns("input-selection-results")
     ),
     
     shiny::conditionalPanel(
       condition = 'input.generate != 0',
-      ns = shiny::NS(ns("input-selection")),
+      ns = shiny::NS(ns("input-selection-results")),
       
       shiny::tabsetPanel(
         type = 'pills',
@@ -308,19 +308,28 @@ characterizationIncidenceViewer <- function(id) {
             ),
             shiny::tabPanel(
               title = "Custom Plot",
+              shiny::div(
+                inputSelectionViewer(
+                  id = ns("input-selection-custom-plot")
+                )
+              ),
+              shiny::conditionalPanel(
+                condition = 'input.generate != 0',
+                ns = shiny::NS(ns("input-selection-custom-plot")),
               shinycssloaders::withSpinner(
-                plotly::plotlyOutput(
-                  ns('incidencePlot'),
+                shiny::plotOutput(
+                  ns('incidencePlotCustom'),
                   height = "1200px"
                 )
               ),
               shiny::plotOutput(
-                ns('incidencePlotLegend'),
+                ns('incidencePlotLegendCustom'),
                 width="100%",
                 height="500px"
               )
               
             )
+           )
           )
         )
       )
@@ -364,8 +373,8 @@ characterizationIncidenceServer <- function(
      sortedAges <- custom_age_sort(options$ageGroupName)
      
         # input selection component
-        inputSelected <- inputSelectionServer(
-          id = "input-selection", 
+        inputSelectedResults <- inputSelectionServer(
+          id = "input-selection-results", 
           inputSettingList = list(
             createInputSetting(
               rowNumber = 1,                           
@@ -424,7 +433,7 @@ characterizationIncidenceServer <- function(
             # third row
             createInputSetting(
               rowNumber = 3,                           
-              columnWidth = 4,
+              columnWidth = 3,
               varName = 'incidenceRateAgeFilter',
               uiFunction = 'shinyWidgets::pickerInput',
               updateFunction = 'shinyWidgets::updatePickerInput',
@@ -449,7 +458,7 @@ characterizationIncidenceServer <- function(
             
             createInputSetting(
               rowNumber = 3,                           
-              columnWidth = 4,
+              columnWidth = 3,
               varName = 'incidenceRateGenderFilter',
               uiFunction = 'shinyWidgets::pickerInput',
               updateFunction = 'shinyWidgets::updatePickerInput',
@@ -473,7 +482,7 @@ characterizationIncidenceServer <- function(
             
             createInputSetting(
               rowNumber = 3,                           
-              columnWidth = 4,
+              columnWidth = 3,
               varName = 'incidenceRateCalendarFilter',
               uiFunction = 'shinyWidgets::pickerInput',
               updateFunction = 'shinyWidgets::updatePickerInput',
@@ -495,7 +504,35 @@ characterizationIncidenceServer <- function(
               )
             ),
             
+            createInputSetting(
+              rowNumber = 3,                           
+              columnWidth = 3,
+              varName = 'incidenceRateTarFilter',
+              uiFunction = 'shinyWidgets::pickerInput',
+              updateFunction = 'shinyWidgets::updatePickerInput',
+              uiInputs = list(
+                label = 'Select Time at risk (TAR)',
+                choices = options$tar,
+                selected = options$tar[1],
+                multiple = F,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  dropupAuto = TRUE,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
+            )
+          )
+        )
+            
             # 4th row text
+        inputSelectedCustomPlot <- inputSelectionServer(
+          id = "input-selection-custom-plot", 
+          inputSettingList = list(
             createInputSetting(
               rowNumber = 4,                           
               columnWidth = 12,
@@ -606,7 +643,7 @@ characterizationIncidenceServer <- function(
             
             createInputSetting(
               rowNumber = 6,                           
-              columnWidth = 4,
+              columnWidth = 3,
               varName = 'plotColor',
               uiFunction = 'shinyWidgets::pickerInput',
               updateFunction = 'shinyWidgets::updatePickerInput',
@@ -628,7 +665,7 @@ characterizationIncidenceServer <- function(
             ),
             createInputSetting(
               rowNumber = 6,                           
-              columnWidth = 4,
+              columnWidth = 3,
               varName = 'plotSize',
               uiFunction = 'shinyWidgets::pickerInput',
               updateFunction = 'shinyWidgets::updatePickerInput',
@@ -650,7 +687,7 @@ characterizationIncidenceServer <- function(
             ),
             createInputSetting(
               rowNumber = 6,                           
-              columnWidth = 4,
+              columnWidth = 3,
               varName = 'plotShape',
               uiFunction = 'shinyWidgets::pickerInput',
               updateFunction = 'shinyWidgets::updatePickerInput',
@@ -670,35 +707,10 @@ characterizationIncidenceServer <- function(
                 )
               )
             ),
-            
-            # row 7
-            
+
             createInputSetting(
-              rowNumber = 7,                           
-              columnWidth = 8,
-              varName = 'incidenceRateTarFilter',
-              uiFunction = 'shinyWidgets::pickerInput',
-              updateFunction = 'shinyWidgets::updatePickerInput',
-              uiInputs = list(
-                label = 'Select Time at risk (TAR)',
-                choices = options$tar,
-                selected = options$tar[1],
-                multiple = F,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  dropupAuto = TRUE,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            
-            createInputSetting(
-              rowNumber = 7,                           
-              columnWidth = 4,
+              rowNumber = 6,                           
+              columnWidth = 3,
               varName = 'irYscaleFixed',
               uiFunction = 'shiny::checkboxInput',
               uiInputs = list(
@@ -714,21 +726,21 @@ characterizationIncidenceServer <- function(
       
       filteredData <- shiny::reactive(         
         {
-          if (is.null(inputSelected()$targetIds) |
-              is.null(inputSelected()$outcomeIds)
+          if (is.null(inputSelectedResults()$targetIds) |
+              is.null(inputSelectedResults()$outcomeIds)
               ) {
             return(data.frame())
           }
           
-          else if(inputSelected()$targetIds==inputSelected()$outcomeIds &&
-                   length(inputSelected()$targetIds)==1 && length(inputSelected()$outcomeIds)==1
+          else if(inputSelectedResults()$targetIds==inputSelectedResults()$outcomeIds &&
+                   length(inputSelectedResults()$targetIds)==1 && length(inputSelectedResults()$outcomeIds)==1
           ){
             shiny::validate("Target and outcome cohorts must differ from each other. Make a different selection.")
           }
           
           else {
-            getIncidenceData(targetIds = inputSelected()$targetIds,
-                           outcomeIds = inputSelected()$outcomeIds,
+            getIncidenceData(targetIds = inputSelectedResults()$targetIds,
+                           outcomeIds = inputSelectedResults()$outcomeIds,
                            connectionHandler = connectionHandler,
                            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
@@ -738,9 +750,9 @@ characterizationIncidenceServer <- function(
                           dplyr::across(dplyr::where(is.numeric), round, 4),
                           targetIdShort = paste("C", .data$targetCohortDefinitionId, sep = "-"),
                           outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
-            dplyr::filter(.data$ageGroupName %in% !!inputSelected()$incidenceRateAgeFilter & 
-                            .data$genderName %in% !!inputSelected()$incidenceRateGenderFilter & 
-                            .data$startYear %in% !!inputSelected()$incidenceRateCalendarFilter  
+            dplyr::filter(.data$ageGroupName %in% !!inputSelectedResults()$incidenceRateAgeFilter & 
+                            .data$genderName %in% !!inputSelectedResults()$incidenceRateGenderFilter & 
+                            .data$startYear %in% !!inputSelectedResults()$incidenceRateCalendarFilter  
             )
           }
         }
@@ -748,21 +760,21 @@ characterizationIncidenceServer <- function(
       
       filteredDataAggregateForPlot <- shiny::reactive(         
         {
-          if (is.null(inputSelected()$targetIds) |
-              is.null(inputSelected()$outcomeIds)
+          if (is.null(inputSelectedResults()$targetIds) |
+              is.null(inputSelectedResults()$outcomeIds)
           ) {
             return(data.frame())
           }
           
-          else if(inputSelected()$targetIds==inputSelected()$outcomeIds &&
-                  length(inputSelected()$targetIds)==1 && length(inputSelected()$outcomeIds)==1
+          else if(inputSelectedResults()$targetIds==inputSelectedResults()$outcomeIds &&
+                  length(inputSelectedResults()$targetIds)==1 && length(inputSelectedResults()$outcomeIds)==1
           ){
             shiny::validate("Target and outcome cohorts must differ from each other. Make a different selection.")
           }
           
           else {
-            getIncidenceData(targetIds = inputSelected()$targetIds,
-                             outcomeIds = inputSelected()$outcomeIds,
+            getIncidenceData(targetIds = inputSelectedResults()$targetIds,
+                             outcomeIds = inputSelectedResults()$outcomeIds,
                              connectionHandler = connectionHandler,
                              resultDatabaseSettings = resultDatabaseSettings
             ) %>%
@@ -810,16 +822,16 @@ characterizationIncidenceServer <- function(
       '%!in%' <- function(x,y)!('%in%'(x,y))
       
       #ir plots
-      renderIrPlot <- shiny::reactive(
+      irPlotCustom <- shiny::reactive(
         {
-          if (is.null(inputSelected()$targetIds) |
-              is.null(inputSelected()$outcomeIds)) {
+          if (is.null(inputSelectedResults()$targetIds) |
+              is.null(inputSelectedResults()$outcomeIds)) {
             return(data.frame())
           }
           
-          ifelse(inputSelected()$incidenceRateTarFilter %in% filteredData()$tar,
+          ifelse(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar,
           plotData <- filteredData() %>%
-            dplyr::filter(.data$tar %in% inputSelected()$incidenceRateTarFilter),
+            dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
             shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
           )
 
@@ -852,44 +864,43 @@ characterizationIncidenceServer <- function(
           trellis_aesthetic_x <- NULL
           trellis_aesthetic_y <- NULL
           
-          if (inputSelected()$plotColor == "Target Cohort" | inputSelected()$plotColor == "Outcome Cohort") {
-            color_aesthetic <- if (inputSelected()$plotColor == "Target Cohort") {
+          if (inputSelectedCustomPlot()$plotColor == "Target Cohort" | inputSelectedCustomPlot()$plotColor == "Outcome Cohort") {
+            color_aesthetic <- if (inputSelectedCustomPlot()$plotColor == "Target Cohort") {
               dplyr::vars(.data$targetIdShort)
-            } else if (inputSelected()$plotColor == "Outcome Cohort") {
+            } else if (inputSelectedCustomPlot()$plotColor == "Outcome Cohort") {
               dplyr::vars(.data$outcomeIdShort)
             }
           }
           
-          if (inputSelected()$plotShape == "Target Cohort" | inputSelected()$plotShape == "Outcome Cohort") {
-            shape_aesthetic <- if (inputSelected()$plotShape == "Target Cohort") {
+          if (inputSelectedCustomPlot()$plotShape == "Target Cohort" | inputSelectedCustomPlot()$plotShape == "Outcome Cohort") {
+            shape_aesthetic <- if (inputSelectedCustomPlot()$plotShape == "Target Cohort") {
               dplyr::vars(.data$targetIdShort)
-            } else if (inputSelected()$plotShape == "Outcome Cohort") {
+            } else if (inputSelectedCustomPlot()$plotShape == "Outcome Cohort") {
               dplyr::vars(.data$outcomeIdShort)
             }
           }
           
-          max_length <- max(nchar(unique(inputSelected()$plotXAxis)))
+          max_length <- max(nchar(unique(inputSelectedCustomPlot()$plotXAxis)))
           
-          if (inputSelected()$plotXTrellis != inputSelected()$plotYTrellis | 
-              (inputSelected()$plotXTrellis == "(None)" && inputSelected()$plotYTrellis == "(None)")){
+          if (inputSelectedCustomPlot()$plotXTrellis != inputSelectedCustomPlot()$plotYTrellis | 
+              (inputSelectedCustomPlot()$plotXTrellis == "(None)" && inputSelectedCustomPlot()$plotYTrellis == "(None)")){
             
             # Create the base plot with conditional aesthetics
             base_plot <- ggplot2::ggplot(
               data = plotData,
-              ggplot2::aes(x = .data[[inputSelected()$plotXAxis]],
-                           y = .data[[inputSelected()$plotYAxis]],
-                           shape = if(inputSelected()$plotShape != "(None)" & inputSelected()$plotShape != "Target Cohort" & 
-                                      inputSelected()$plotShape != "Outcome Cohort") .data[[inputSelected()$plotShape]]
+              ggplot2::aes(x = .data[[inputSelectedCustomPlot()$plotXAxis]],
+                           y = .data[[inputSelectedCustomPlot()$plotYAxis]],
+                           shape = if(inputSelectedCustomPlot()$plotShape != "(None)" & inputSelectedCustomPlot()$plotShape != "Target Cohort" & 
+                                      inputSelectedCustomPlot()$plotShape != "Outcome Cohort") .data[[inputSelectedCustomPlot()$plotShape]]
                            else shape_aesthetic,
-                           color = if(inputSelected()$plotColor != "(None)" & inputSelected()$plotColor != "Target Cohort" & 
-                                      inputSelected()$plotColor != "Outcome Cohort") .data[[inputSelected()$plotColor]]
-                           else color_aesthetic,
-                           text = .data$tooltip
+                           color = if(inputSelectedCustomPlot()$plotColor != "(None)" & inputSelectedCustomPlot()$plotColor != "Target Cohort" & 
+                                      inputSelectedCustomPlot()$plotColor != "Outcome Cohort") .data[[inputSelectedCustomPlot()$plotColor]]
+                           else color_aesthetic
               )
             ) + 
-              ggplot2::geom_point(ggplot2::aes(size = if(inputSelected()$plotSize != "(None)") .data[[inputSelected()$plotSize]] else NULL,
-                                               alpha = 0.6)
-              ) 
+              ggplot2::geom_point(ggplot2::aes(size = if(inputSelectedCustomPlot()$plotSize != "(None)") .data[[inputSelectedCustomPlot()$plotSize]] else NULL)
+              ) + 
+              ggplot2::scale_size_continuous(range = c(3,7))
             
             # Rotate x-axis labels if the maximum length is greater than 10
             if (max_length > 10) {
@@ -898,176 +909,176 @@ characterizationIncidenceServer <- function(
             }
             
             # Add trellising if it's not NULL
-            if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
-                cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                rows = dplyr::vars(.data[[inputSelectedCustomPlot()$plotXTrellis]]),
+                cols = dplyr::vars(.data[[inputSelectedCustomPlot()$plotYTrellis]]),
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) 
             }
-            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
-              base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data$targetIdShort),
-                cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
-              ) +
-                ggplot2::theme(strip.background = ggplot2::element_blank(), 
-                               strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) 
-            }
-            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
-                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
-              base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data$outcomeIdShort),
-                cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
-              ) +
-                ggplot2::theme(strip.background = ggplot2::element_blank(), 
-                               strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) 
-            }
-            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
-              base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
-                cols = dplyr::vars(.data$targetIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
-              ) +
-                ggplot2::theme(strip.background = ggplot2::element_blank(), 
-                               strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) 
-            }
-            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
-              base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
-                cols = dplyr::vars(.data$outcomeIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
-              ) +
-                ggplot2::theme(strip.background = ggplot2::element_blank(), 
-                               strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) 
-            }
-            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis=="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$targetIdShort),
-                cols = dplyr::vars(.data$targetIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                cols = dplyr::vars(.data[[inputSelectedCustomPlot()$plotYTrellis]]),
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) 
             }
-            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis=="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
+              base_plot <- base_plot + ggplot2::facet_grid(
+                rows = dplyr::vars(.data$outcomeIdShort),
+                cols = dplyr::vars(.data[[inputSelectedCustomPlot()$plotYTrellis]]),
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
+              ) +
+                ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                               strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+                ) 
+            }
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis=="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
+              base_plot <- base_plot + ggplot2::facet_grid(
+                rows = dplyr::vars(.data[[inputSelectedCustomPlot()$plotXTrellis]]),
+                cols = dplyr::vars(.data$targetIdShort),
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
+              ) +
+                ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                               strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+                ) 
+            }
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis=="outcomeName") {
+              base_plot <- base_plot + ggplot2::facet_grid(
+                rows = dplyr::vars(.data[[inputSelectedCustomPlot()$plotXTrellis]]),
+                cols = dplyr::vars(.data$outcomeIdShort),
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
+              ) +
+                ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                               strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+                ) 
+            }
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis=="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis=="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
+              base_plot <- base_plot + ggplot2::facet_grid(
+                rows = dplyr::vars(.data$targetIdShort),
+                cols = dplyr::vars(.data$targetIdShort),
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
+              ) +
+                ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                               strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+                ) 
+            }
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis=="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$targetIdShort),
                 cols = dplyr::vars(.data$outcomeIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) 
             }
-            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
-                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis=="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis=="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$outcomeIdShort),
                 cols = dplyr::vars(.data$targetIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) 
             }
-            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
-                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis=="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$outcomeIdShort),
                 cols = dplyr::vars(.data$outcomeIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) 
             }
-            else if (inputSelected()$plotXTrellis=="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis=="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = NULL,
                 cols = dplyr::vars(.data$outcomeIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) 
             }
-            else if (inputSelected()$plotXTrellis=="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis=="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis=="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = NULL,
                 cols = dplyr::vars(.data$targetIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) 
             }
-            else if (inputSelected()$plotXTrellis=="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis=="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = NULL,
-                cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                cols = dplyr::vars(.data[[inputSelectedCustomPlot()$plotYTrellis]]),
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) 
             }
-            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis=="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis=="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
+                rows = dplyr::vars(.data[[inputSelectedCustomPlot()$plotXTrellis]]),
                 cols = NULL,
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) 
             }
-            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis=="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis=="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis=="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$targetIdShort),
                 cols = NULL,
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) 
             }
-            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
-                     inputSelected()$plotYTrellis=="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis=="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis=="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$outcomeIdShort),
                 cols = NULL,
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
                 ) 
             }
-            else if (inputSelected()$plotXTrellis=="(None)" & inputSelected()$plotYTrellis=="(None)") {
+            else if (inputSelectedCustomPlot()$plotXTrellis=="(None)" & inputSelectedCustomPlot()$plotYTrellis=="(None)") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = NULL,
                 cols = NULL,
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
@@ -1078,30 +1089,38 @@ characterizationIncidenceServer <- function(
             # Rest of your ggplot code remains the same
             base_plot <- base_plot + ggplot2::labs(
               title = paste("Incidence Rate for TAR:", tar_value),
-              x = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelected()$plotXAxis]),
-              y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% inputSelected()$plotYAxis]),
-              color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelected()$plotColor]),
-              size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% inputSelected()$plotSize]),
-              shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelected()$plotShape]
+              x = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelectedCustomPlot()$plotXAxis]),
+              y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% inputSelectedCustomPlot()$plotYAxis]),
+              color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelectedCustomPlot()$plotColor]),
+              size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% inputSelectedCustomPlot()$plotSize]),
+              shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelectedCustomPlot()$plotShape]
               )
             ) +
+              ggplot2::scale_y_log10(breaks = scales::breaks_log(n=6)) +
               ggplot2::guides(alpha = "none") + # Remove the alpha legend
               ggplot2::theme_bw() +
               ggplot2::theme(
-                title = ggplot2::element_text(hjust = 0.5),
-                plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10)),
-                axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 30)),
-                axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 30)),
-                legend.box = "horizontal",
-                legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
-                legend.title = ggplot2::element_text(size=30), #change legend title font size
-                legend.text = ggplot2::element_text(size=20),
-                panel.spacing = ggplot2::unit(1, "lines"),
-                strip.background = ggplot2::element_blank(), 
-                strip.text = ggplot2::element_text(face="bold")
+                plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
+                axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 30), size = 20),
+                axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 30), size = 20),
+                axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
+                axis.text.y = ggplot2::element_text(size = 14),
+                legend.position = "right",
+                legend.box.spacing = ggplot2::unit(3, "pt"),
+                legend.text = ggplot2::element_text(size=10),
+                legend.title = ggplot2::element_text(size=16, face = "bold"),
+                #plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12),
+                #legend.spacing.x = ggplot2::unit(2.0, 'cm'),
+                # legend.box = "horizontal",
+                # legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
+                # legend.title = ggplot2::element_text(size=30), #change legend title font size
+                # legend.text = ggplot2::element_text(size=20),
+                panel.spacing = ggplot2::unit(2, "lines"),
+                # strip.background = ggplot2::element_blank(), 
+                strip.text = ggplot2::element_text(face="bold", size = 14)
               ) + 
-              ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 7)),
-                              color = ggplot2::guide_legend(override.aes = list(size = 7)))
+              ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
+                              color = ggplot2::guide_legend(override.aes = list(size = 6)))
             
             #   
             #   # Create a custom color scale
@@ -1143,24 +1162,24 @@ characterizationIncidenceServer <- function(
       )
       
       #render the event reactive incidence plot without legend
-      renderIrPlotNoLegend <- shiny::reactive(
+      renderIrPlotCustomNoLegend <- shiny::reactive(
         {
-          if (is.null(inputSelected()$targetIds) |
-              is.null(inputSelected()$outcomeIds)) {
+          if (is.null(inputSelectedResults()$targetIds) |
+              is.null(inputSelectedResults()$outcomeIds)) {
             shiny::validate("Please select at least one target and one outcome.")
           }
           
           else {
           plotData <- filteredData() %>%
-            dplyr::filter(.data$tar %in% inputSelected()$incidenceRateTarFilter)
+            dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter)
           
           # Get the number of facets in both rows and columns
-          num_rows <- length(unique(plotData[[inputSelected()$plotXTrellis]]))
-          num_cols <- length(unique(plotData[[inputSelected()$plotYTrellis]]))
+          num_rows <- length(unique(plotData[[inputSelectedCustomPlot()$plotXTrellis]]))
+          num_cols <- length(unique(plotData[[inputSelectedCustomPlot()$plotYTrellis]]))
           
-          max_length <- max(nchar(unique(inputSelected()$plotXAxis)))
+          max_length <- max(nchar(unique(inputSelectedCustomPlot()$plotXAxis)))
           
-          base_plot <- renderIrPlot()
+          base_plot <- irPlotCustom()
           
           p <- base_plot +
             ggplot2::guides(shape = FALSE, color = FALSE, size = FALSE)
@@ -1196,10 +1215,39 @@ characterizationIncidenceServer <- function(
         }
       )
       
-      #render the event reactive incidence plot legend only
-      renderIrPlotLegend <- shiny::reactive(
+      #render the event reactive incidence plot without legend
+      renderIrPlotCustom <- shiny::reactive(
         {
-          base_plot <- renderIrPlot()
+          if (is.null(inputSelectedResults()$targetIds) |
+              is.null(inputSelectedResults()$outcomeIds)) {
+            shiny::validate("Please select at least one target and one outcome.")
+          }
+          
+          else {
+            plotData <- filteredData() %>%
+              dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter)
+            
+            # Get the number of facets in both rows and columns
+            num_rows <- length(unique(plotData[[inputSelectedCustomPlot()$plotXTrellis]]))
+            num_cols <- length(unique(plotData[[inputSelectedCustomPlot()$plotYTrellis]]))
+            
+            max_length <- max(nchar(unique(inputSelectedCustomPlot()$plotXAxis)))
+            
+            base_plot <- irPlotCustom()
+            
+            p <- base_plot
+            
+            return(p)
+            
+          }
+          
+        }
+      )
+      
+      #render the event reactive incidence plot legend only
+      renderIrPlotCustomLegend <- shiny::reactive(
+        {
+          base_plot <- irPlotCustom()
           
           p <- as_ggplot(cowplot::get_legend(base_plot))
           
@@ -1208,14 +1256,14 @@ characterizationIncidenceServer <- function(
       )
       
       
-      output$incidencePlot <-  
-        plotly::renderPlotly({
-          renderIrPlotNoLegend()
+      output$incidencePlotCustom <-  
+        shiny::renderPlot({
+          renderIrPlotCustom()
         })
       
-      output$incidencePlotLegend <-  
+      output$incidencePlotCustomLegend <-  
         shiny::renderPlot({
-          renderIrPlotLegend()
+          renderIrPlotCustomLegend()
         })
       
       
@@ -1234,14 +1282,14 @@ characterizationIncidenceServer <- function(
       renderIrPlotStandardAge <- shiny::reactive(
         {
           
-          if (is.null(inputSelected()$targetIds) |
-              is.null(inputSelected()$outcomeIds)) {
+          if (is.null(inputSelectedResults()$targetIds) |
+              is.null(inputSelectedResults()$outcomeIds)) {
             return(data.frame())
           }
           
-          ifelse(inputSelected()$incidenceRateTarFilter %in% filteredData()$tar,
+          ifelse(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar,
                  plotData <- filteredData() %>%
-                   dplyr::filter(.data$tar %in% inputSelected()$incidenceRateTarFilter),
+                   dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
                  shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
           )
           
@@ -1363,14 +1411,14 @@ characterizationIncidenceServer <- function(
 renderIrPlotStandardAgeSex <- shiny::reactive(
   {
     
-    if (is.null(inputSelected()$targetIds) |
-        is.null(inputSelected()$outcomeIds)) {
+    if (is.null(inputSelectedResults()$targetIds) |
+        is.null(inputSelectedResults()$outcomeIds)) {
       return(data.frame())
     }
     
-    ifelse(inputSelected()$incidenceRateTarFilter %in% filteredData()$tar,
+    ifelse(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar,
            plotData <- filteredData() %>%
-             dplyr::filter(.data$tar %in% inputSelected()$incidenceRateTarFilter),
+             dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
            shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
     )
     
@@ -1491,20 +1539,20 @@ output$downloadPlotStandardAgeSex <- shiny::downloadHandler(
 renderIrPlotStandardYear <- shiny::reactive(
   {
     
-    if (is.null(inputSelected()$targetIds) |
-        is.null(inputSelected()$outcomeIds)) {
+    if (is.null(inputSelectedResults()$targetIds) |
+        is.null(inputSelectedResults()$outcomeIds)) {
       return(data.frame())
     }
     
-    ifelse(inputSelected()$incidenceRateTarFilter %in% filteredData()$tar,
+    ifelse(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar,
            plotData <- filteredData() %>%
-             dplyr::filter(.data$tar %in% inputSelected()$incidenceRateTarFilter),
+             dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
            shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
     )
     
-    ifelse(length(inputSelected()$incidenceRateTarFilter %in% filteredData()$tar) == 1,
+    ifelse(length(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar) == 1,
            plotData <- filteredData() %>%
-             dplyr::filter(.data$tar %in% inputSelected()$incidenceRateTarFilter),
+             dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
            shiny::validate("Please select only one TAR at a time to view yearly plots.")
     )
     
@@ -1630,14 +1678,14 @@ output$downloadPlotStandardYear <- shiny::downloadHandler(
 renderIrPlotStandardAggregate <- shiny::reactive(
   {
     
-    if (is.null(inputSelected()$targetIds) |
-        is.null(inputSelected()$outcomeIds)) {
+    if (is.null(inputSelectedResults()$targetIds) |
+        is.null(inputSelectedResults()$outcomeIds)) {
       return(data.frame())
     }
     
-    ifelse(inputSelected()$incidenceRateTarFilter %in% filteredData()$tar,
+    ifelse(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar,
            plotData <- filteredDataAggregateForPlot() %>%
-             dplyr::filter(.data$tar %in% inputSelected()$incidenceRateTarFilter),
+             dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
            shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
     )
     
