@@ -42,14 +42,27 @@ sccsGetExposures <- function(
   # Note Query rew-written from dplyr because of data type/casting issues with null values in left joins
   sql <- "
   select distinct
-  c.cohort_name as name,
-  e.era_id as exposure_id
+  c1.cohort_name as name,
+  e.era_id as exposure_id,
+  eos.*
   
-  from
-   @schema.@cg_table_prefixcohort_definition as c
-   inner join
-   @schema.@sccs_table_prefixexposure as e
-   on e.era_id = c.cohort_definition_id;
+  from @schema.@sccs_table_prefixresult r
+
+  INNER JOIN @schema.@sccs_table_prefixexposures_outcome_set eos
+      ON r.exposures_outcome_set_id = eos.exposures_outcome_set_id
+
+  INNER JOIN @schema.@sccs_table_prefixcovariate cov
+        ON r.exposures_outcome_set_id = cov.exposures_outcome_set_id
+        AND r.analysis_id = cov.analysis_id
+        AND r.covariate_id = cov.covariate_id
+
+  INNER JOIN @schema.@sccs_table_prefixexposure e
+                ON r.exposures_outcome_set_id = e.exposures_outcome_set_id
+                                AND cov.era_id = e.era_id
+
+  INNER JOIN @schema.@cg_table_prefixcohort_definition as c1 on c.cohort_definition_id = r.era_id
+  WHERE e.true_effect_size IS NULL
+   ;
   "
   exposures <- connectionHandler$queryDb(
     sql,
@@ -58,10 +71,26 @@ sccsGetExposures <- function(
     sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
     snakeCaseToCamelCase = TRUE
   )
-  
+
+  # Requires migration from version 5.1.0
+  if ("nestingCohortId" %in% colnames(exposures)) {
+
+    getNestedNames  <- function(nestIds) {
+      exposures %>% dplyr::filter(.data$exposureId == !!nestId) %>% dplyr::pull("name")
+    }
+
+    exposures <-
+      exposures %>% dplyr::mutate(
+        name = ifelse(
+          is.null(.data$nestingCohortId),
+          .data$name,
+          paste(.data$name, "-", getNestedName(.data$nestingChortId))
+        )
+      )
+  }
+
   result <- exposures$exposureId
   names(result) <- exposures$name
-  
   return(result)
 }
 
