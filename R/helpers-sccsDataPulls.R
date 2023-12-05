@@ -57,10 +57,10 @@ sccsGetExposures <- function(
         AND r.covariate_id = cov.covariate_id
 
   INNER JOIN @schema.@sccs_table_prefixexposure e
-                ON r.exposures_outcome_set_id = e.exposures_outcome_set_id
-                                AND cov.era_id = e.era_id
+        ON r.exposures_outcome_set_id = e.exposures_outcome_set_id
+        AND cov.era_id = e.era_id
 
-  INNER JOIN @schema.@cg_table_prefixcohort_definition as c1 on c.cohort_definition_id = r.era_id
+  INNER JOIN @schema.@cg_table_prefixcohort_definition as c1 on c1.cohort_definition_id = e.era_id
   WHERE e.true_effect_size IS NULL
    ;
   "
@@ -72,21 +72,24 @@ sccsGetExposures <- function(
     snakeCaseToCamelCase = TRUE
   )
 
-  # Requires migration from version 5.1.0
-  if ("nestingCohortId" %in% colnames(exposures)) {
+  # Requires migration from version 5.1.0 of SCCS
+  if (any(!is.null(exposures$nestingCohortId))) {
+    # Get nesting name in separate query, where neccessary
+    nestingNames <- connectionHandler$queryDb(
+      "SELECT cohort_definition_id as nesting_cohort_id,
+              cohort_name as nesting_name
+      FROM @schema.@cg_table_prefixcohort_definition c WHERE c.cohort_definition_id IN (@nesting_ids)",
+      schema = resultDatabaseSettings$schema,
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+      nesting_ids = exposures$nestingCohortId,
+      snakeCaseToCamelCase = TRUE
+    )
 
-    getNestedNames  <- function(nestIds) {
-      exposures %>% dplyr::filter(.data$exposureId == !!nestId) %>% dplyr::pull("name")
-    }
-
-    exposures <-
-      exposures %>% dplyr::mutate(
-        name = ifelse(
-          is.null(.data$nestingCohortId),
-          .data$name,
-          paste(.data$name, "-", getNestedName(.data$nestingChortId))
-        )
-      )
+    exposures <- exposures %>%
+      dplyr::left_join(nestingNames, by = "nestingCohortId") %>%
+      dplyr::mutate(name = ifelse(!is.null(.data$nestingCohortId),
+                                  paste(.data$name, "-", .data$nestingName),
+                                  .data$name))
   }
 
   result <- exposures$exposureId
