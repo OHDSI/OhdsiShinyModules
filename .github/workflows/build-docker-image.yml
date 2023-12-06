@@ -1,0 +1,73 @@
+name: build-and-push-ohdsi-docker-image-to-Docker-Hub
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+env:
+  DOCKER_IMAGE: ohdsi/ohdsi-shiny-modules
+  MAINTAINER: Jamie Gilbert <gilbert@ohdsi.org>
+  AUTHOR: Jamie Gilbert <gilbert@ohdsi.org>
+  APP_NAME: ohdsi-shiny-modules
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Docker meta
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v1
+        with:
+          images: ${{ env.DOCKER_IMAGE }}
+          tag-match: v(.*)
+          tag-match-group: 1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build Docker image and push to Docker Hub
+        id: build_and_push
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./Dockerfile
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            APP_NAME=${{ env.APP_NAME }}
+            GIT_BRANCH=${{ steps.docker_meta.outputs.version }}
+            GIT_COMMIT_ID_ABBREV=${{ steps.build_params.outputs.sha8 }}
+            GITHUB_PAT=${{ secrets.GH_TOKEN }}
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: |
+            ${{ steps.docker_meta.outputs.labels }}
+            maintainer=${{ env.MAINTAINER }}
+            org.opencontainers.image.authors=${{ env.AUTHOR }}
+            org.opencontainers.image.vendor=OHDSI
+            org.opencontainers.image.licenses=Apache-2.0
+
+      - name: Inspect Docker image
+        run: |
+          docker pull ${{ env.DOCKER_IMAGE }}:${{ steps.docker_meta.outputs.version }}
+          docker image inspect ${{ env.DOCKER_IMAGE }}:${{ steps.docker_meta.outputs.version }}
