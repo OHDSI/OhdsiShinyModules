@@ -229,7 +229,7 @@ characterizationIncidenceViewer <- function(id) {
                 shiny::plotOutput(
                   ns('incidencePlotStandardAge'),
                   width="100%",
-                  height="1200px"
+                  height="500px"
                 )
               )
             ),
@@ -253,7 +253,7 @@ characterizationIncidenceViewer <- function(id) {
                 shiny::plotOutput(
                   ns('incidencePlotStandardAgeSex'),
                   width="100%",
-                  height="1200px"
+                  height="500px"
                 )
               )
             ),
@@ -277,7 +277,7 @@ characterizationIncidenceViewer <- function(id) {
                 shiny::plotOutput(
                   ns('incidencePlotStandardYear'),
                   width="100%",
-                  height="2400px"
+                  height="500px"
                 )
               )
             ),
@@ -302,7 +302,7 @@ characterizationIncidenceViewer <- function(id) {
                 shiny::plotOutput(
                   ns('incidencePlotStandardAggregate'),
                   width="100%",
-                  height="1200px"
+                  height="500px"
                 )
               )
             ),
@@ -319,7 +319,7 @@ characterizationIncidenceViewer <- function(id) {
               shinycssloaders::withSpinner(
                 shiny::plotOutput(
                   ns('incidencePlotCustom'),
-                  height = "1200px"
+                  height = "500px"
                 )
               ),
               shiny::plotOutput(
@@ -753,7 +753,9 @@ characterizationIncidenceServer <- function(
             dplyr::filter(.data$ageGroupName %in% !!inputSelectedResults()$incidenceRateAgeFilter & 
                             .data$genderName %in% !!inputSelectedResults()$incidenceRateGenderFilter & 
                             .data$startYear %in% !!inputSelectedResults()$incidenceRateCalendarFilter  
-            )
+            ) %>%
+              dplyr::relocate("targetIdShort", .after = "targetName") %>%
+              dplyr::relocate("outcomeIdShort", .after = "outcomeName")
           }
         }
       )
@@ -783,7 +785,9 @@ characterizationIncidenceServer <- function(
                             incidenceRateP100py = as.numeric(.data$incidenceRateP100py),
                             dplyr::across(dplyr::where(is.numeric), round, 4),
                             targetIdShort = paste("C", .data$targetCohortDefinitionId, sep = "-"),
-                            outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-"))
+                            outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
+              dplyr::relocate("targetIdShort", .after = "targetName") %>%
+              dplyr::relocate("outcomeIdShort", .after = "outcomeName")
       
           }
         }
@@ -810,7 +814,7 @@ characterizationIncidenceServer <- function(
       resultTableServer(
         id = "incidenceRateTable",
         df = renderIrTable,
-        selectedCols = c("cdmSourceAbbreviation", "targetName", "outcomeName",
+        selectedCols = c("cdmSourceAbbreviation", "targetName", "targetIdShort", "outcomeName", "outcomeIdShort",
                          "ageGroupName", "genderName", "startYear", "tar", "outcomes",
                          "incidenceProportionP100p", "incidenceRateP100py"),
         sortedCols = c("ageGroupName", "genderName", "startYear", "incidenceRateP100py"),
@@ -1556,6 +1560,14 @@ renderIrPlotStandardYear <- shiny::reactive(
            shiny::validate("Please select only one TAR at a time to view yearly plots.")
     )
     
+    ifelse((length(inputSelectedResults()$targetIds) == 1) & 
+             (length(inputSelectedResults()$outcomeIds) == 1), 
+           plotData <- plotData,
+           shiny::validate("Please select only one Target and Outcome at a time to view yearly plots.")
+    )
+    
+    
+    
     plotData <- plotData %>%
       dplyr::filter(genderName != "Any" & 
                       startYear != "Any") %>%
@@ -1566,6 +1578,10 @@ renderIrPlotStandardYear <- shiny::reactive(
       dplyr::rename("Target" = targetIdShort,
                     "Outcome" = outcomeIdShort,
                     "Age" = ageGroupName)
+    
+    #get unique shorthand cohort name
+    unique_target <- unique(plotData$Target)
+    unique_outcome <- unique(plotData$Outcome)
     
     
     # Get unique target and outcome labels
@@ -1592,27 +1608,36 @@ renderIrPlotStandardYear <- shiny::reactive(
       )
     ) + 
       ggplot2::geom_point(
-        ggplot2::aes(size = 3)
+        ggplot2::aes(size = 2.5)
       ) + 
       ggplot2::geom_line(ggplot2::aes(linetype = genderName)) +
+      ggplot2::scale_colour_brewer(palette = "Dark2") +
       #geom_jitter() +
       #scale_size_continuous(range = c(5,15)) +
-      ggplot2::scale_colour_brewer(palette = "Dark2") +
-      ggplot2::facet_grid(
-        rows = dplyr::vars(Age),
-        cols = dplyr::vars(Outcome),
-        labeller = ggplot2::labeller(.rows = ageLabeller,
-                                     .cols = outcomeLabeller),
-        scales = "free_y"
-      ) + 
+      # ggplot2::scale_colour_brewer(palette = "Dark2") +
+      # ggplot2::facet_grid(
+      #   rows = dplyr::vars(Outcome),
+      #   cols = dplyr::vars(Age),
+      #   labeller = ggplot2::labeller(.rows = outcomeLabeller,
+      #                                .cols = ageLabeller),
+      #   scales = "free_y"
+      # ) + 
+      ggplot2::facet_wrap(
+        ~Age,
+        labeller = "label_both",
+        scales = "free_x",
+        nrow = 2
+      ) +
       # scale_y_continuous(#breaks = base_breaks(),
       #                    trans = 'log10')
-      ggplot2::scale_y_log10(breaks = scales::breaks_log(n=6))
+      ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                                  n.breaks = 3)
     
     base_plot <- base_plot + ggplot2::labs(
       title = paste("Incidence Rate for Time at Risk:", tar_value),
+      subtitle = paste("Target = ", unique_target, "; Outcome = ", unique_outcome, sep = ""),
       x = paste(names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "startYear"]), "\n"),
-      y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]),
+      y = paste(names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]), " (log10 scale)"),
       color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
       #size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "outcomes"]),
       shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
@@ -1623,15 +1648,18 @@ renderIrPlotStandardYear <- shiny::reactive(
       ggplot2::theme_bw() +
       ggplot2::theme(
         plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
-        axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 30), size = 20),
-        axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 30), size = 20),
+        plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
+        axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
+        axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
         axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
         axis.text.y = ggplot2::element_text(size = 14),
-        legend.position = "right",
+        legend.position = "bottom",
         legend.box.spacing = ggplot2::unit(3, "pt"),
         legend.text = ggplot2::element_text(size=10),
         legend.title = ggplot2::element_text(size=16, face = "bold"),
-        plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12),
+        legend.title.align = 0.5,
+        plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
+                                             margin = ggplot2::margin(t = 20)),
         #legend.spacing.x = ggplot2::unit(2.0, 'cm'),
         # legend.box = "horizontal",
         # legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
@@ -1639,7 +1667,9 @@ renderIrPlotStandardYear <- shiny::reactive(
         # legend.text = ggplot2::element_text(size=20),
          panel.spacing = ggplot2::unit(2, "lines"),
         # strip.background = ggplot2::element_blank(), 
-        strip.text = ggplot2::element_text(face="bold", size = 14)
+        strip.text = ggplot2::element_text(face="bold", size = 14),
+        strip.background = ggplot2::element_blank(),
+        strip.clip = "off"
       ) + 
       ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
                       color = ggplot2::guide_legend(override.aes = list(size = 6))
