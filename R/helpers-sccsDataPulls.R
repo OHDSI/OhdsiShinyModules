@@ -70,26 +70,32 @@ sccsGetExposures <- function(
     cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
     sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
     snakeCaseToCamelCase = TRUE
-  )
+  ) %>%
+    dplyr::select(-"exposuresOutcomeSetId",
+                  -"outcomeId") %>%
+    dplyr::distinct()
 
   # Requires migration from version 5.1.0 of SCCS
-  if (any(!is.null(exposures$nestingCohortId))) {
+  if (any(!is.null(exposures$nestingCohortId), !is.na(exposures$nestingCohortId))) {
     # Get nesting name in separate query, where neccessary
+    uniqueValues <- unique(exposures$nestingCohortId)
     nestingNames <- connectionHandler$queryDb(
-      "SELECT cohort_definition_id as nesting_cohort_id,
+      "SELECT DISTINCT
+              cohort_definition_id as nesting_cohort_id,
               cohort_name as nesting_name
       FROM @schema.@cg_table_prefixcohort_definition c WHERE c.cohort_definition_id IN (@nesting_ids)",
       schema = resultDatabaseSettings$schema,
       cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-      nesting_ids = exposures$nestingCohortId,
+      nesting_ids = uniqueValues[!is.na(uniqueValues)],
       snakeCaseToCamelCase = TRUE
     )
 
     exposures <- exposures %>%
       dplyr::left_join(nestingNames, by = "nestingCohortId") %>%
-      dplyr::mutate(name = ifelse(!is.null(.data$nestingCohortId),
+      dplyr::mutate(name = ifelse(!is.na(.data$nestingCohortId),
                                   paste(.data$name, "-", .data$nestingName),
-                                  .data$name))
+                                  .data$name)) %>%
+      dplyr::distinct()
   }
 
   result <- exposures$exposureId
