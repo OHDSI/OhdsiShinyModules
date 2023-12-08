@@ -16,10 +16,9 @@ shiny::testServer(
     session$setInputs(`input-selection_tarIds` = options$tars[1]) 
     session$setInputs(`input-selection_targetIds` = options$targets[1]) 
     session$setInputs(`input-selection_outcomeIds` = options$outcomes[1]) 
-    session$setInputs(`input-selection_database1` = 'eunomia')
-    session$setInputs(`input-selection_database2` = 'eunomia')
-    session$setInputs(`input-selection_type1` = types[1])
-    session$setInputs(`input-selection_type2` = types[2])
+    session$setInputs(`input-selection_database` = 'eunomia')
+    session$setInputs(`input-selection_index` = 'T')
+    session$setInputs(`input-selection_firstO` = T)
     session$setInputs(`input-selection_generate` = TRUE)
     
     testthat::expect_true(!is.null(allData))
