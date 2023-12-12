@@ -35,6 +35,38 @@ sccsGetOutcomes <- function(
 }
 
 
+sccsGetIndications <- function(connectionHandler,
+                               resultDatabaseSettings,
+                               exposureIds) {
+
+  sql <- "SELECT
+      c.cohort_definition_id as indication_id,
+      c.cohort_name as name,
+      STRING_AGG(distinct CAST(e.era_id AS VARCHAR) , ';') as exposure_ids
+   FROM @schema.@cg_table_prefixcohort_definition c
+   INNER JOIN @schema.@sccs_table_prefixexposures_outcome_set eos on eos.nesting_cohort_id = c.cohort_definition_id
+
+  INNER JOIN @schema.@sccs_table_prefixcovariate cov
+        ON eos.exposures_outcome_set_id = cov.exposures_outcome_set_id
+
+  INNER JOIN @schema.@sccs_table_prefixexposure e
+        ON eos.exposures_outcome_set_id = e.exposures_outcome_set_id
+        AND cov.era_id = e.era_id
+
+   GROUP BY c.cohort_definition_id,  c.cohort_name
+  "
+  result <- connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    snakeCaseToCamelCase = TRUE
+  )
+
+  result
+}
+
+
 sccsGetExposures <- function(
     connectionHandler, 
     resultDatabaseSettings
@@ -43,8 +75,7 @@ sccsGetExposures <- function(
   sql <- "
   select distinct
   c1.cohort_name as name,
-  e.era_id as exposure_id,
-  eos.*
+  e.era_id as exposure_id
   
   from @schema.@sccs_table_prefixresult r
 
@@ -70,33 +101,7 @@ sccsGetExposures <- function(
     cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
     sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
     snakeCaseToCamelCase = TRUE
-  ) %>%
-    dplyr::select(-"exposuresOutcomeSetId",
-                  -"outcomeId") %>%
-    dplyr::distinct()
-
-  # Requires migration from version 5.1.0 of SCCS
-  if (any(!is.null(exposures$nestingCohortId), !is.na(exposures$nestingCohortId))) {
-    # Get nesting name in separate query, where neccessary
-    uniqueValues <- unique(exposures$nestingCohortId)
-    nestingNames <- connectionHandler$queryDb(
-      "SELECT DISTINCT
-              cohort_definition_id as nesting_cohort_id,
-              cohort_name as nesting_name
-      FROM @schema.@cg_table_prefixcohort_definition c WHERE c.cohort_definition_id IN (@nesting_ids)",
-      schema = resultDatabaseSettings$schema,
-      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-      nesting_ids = uniqueValues[!is.na(uniqueValues)],
-      snakeCaseToCamelCase = TRUE
-    )
-
-    exposures <- exposures %>%
-      dplyr::left_join(nestingNames, by = "nestingCohortId") %>%
-      dplyr::mutate(name = ifelse(!is.na(.data$nestingCohortId),
-                                  paste(.data$name, "-", .data$nestingName),
-                                  .data$name)) %>%
-      dplyr::distinct()
-  }
+  )
 
   result <- exposures$exposureId
   names(result) <- exposures$name
