@@ -35,15 +35,17 @@ sccsGetOutcomes <- function(
 }
 
 
-sccsGetIndications <- function(connectionHandler,
-                               resultDatabaseSettings) {
+sccsGetExposureIndications <- function(connectionHandler,
+                                       resultDatabaseSettings) {
 
   sql <- "SELECT
-      c.cohort_definition_id as indication_id,
-      c.cohort_name as indication_name,
-      e.era_id AS exposure_id
-   FROM @schema.@cg_table_prefixcohort_definition c
-   INNER JOIN @schema.@sccs_table_prefixexposures_outcome_set eos on eos.nesting_cohort_id = c.cohort_definition_id
+      e.era_id AS exposure_id,
+      c2.cohort_name as exposure_name,
+      coalesce(c.cohort_definition_id, -1) as indication_id,
+      coalesce(c.cohort_name, 'No indication') as indication_name
+
+   FROM @schema.@sccs_table_prefixexposures_outcome_set eos
+   LEFT JOIN @schema.@cg_table_prefixcohort_definition c on eos.nesting_cohort_id = c.cohort_definition_id
 
   INNER JOIN @schema.@sccs_table_prefixcovariate cov
         ON eos.exposures_outcome_set_id = cov.exposures_outcome_set_id
@@ -52,7 +54,8 @@ sccsGetIndications <- function(connectionHandler,
         ON eos.exposures_outcome_set_id = e.exposures_outcome_set_id
         AND cov.era_id = e.era_id
 
-   GROUP BY c.cohort_definition_id,  c.cohort_name, e.era_id
+   INNER JOIN @schema.@cg_table_prefixcohort_definition c2 on e.era_id = c2.cohort_definition_id
+   GROUP BY c.cohort_definition_id,  c.cohort_name, e.era_id, c2.cohort_name
   "
   result <- connectionHandler$queryDb(
     sql,

@@ -74,30 +74,38 @@ sccsServer <- function(
     connectionHandler = connectionHandler,
     resultDatabaseSettings = resultDatabaseSettings
     )
-  exposures <- sccsGetExposures(
-    connectionHandler = connectionHandler,
-    resultDatabaseSettings = resultDatabaseSettings
-  )
+
   analyses <- sccsGetAnalyses(
     connectionHandler = connectionHandler,
     resultDatabaseSettings = resultDatabaseSettings
   )
 
   if (useNestingIndications) {
-    indicationsTbl <- sccsGetIndications(
+    # Requires migration in 5.1.0 of cohort generator
+    expIndicationsTbl <- sccsGetExposureIndications(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings
     )
 
-    exposuresTbl <- data.frame(exposureId = exposures,
-                               exposureName = names(exposures))
+  } else {
+    # Backwards compatability
+    expIndicationsTbl <- sccsGetExposures(
+      connectionHandler = connectionHandler,
+      resultDatabaseSettings = resultDatabaseSettings
+    )
+  }
 
-    expIndicationsTbl <- indicationsTbl %>%
-      dplyr::inner_join(exposuresTbl, by = "exposureId") %>%
+ expIndicationsTbl <- expIndicationsTbl %>%
       dplyr::mutate(exposureIndicationId = paste(.data$exposureId,
                                                  .data$indicationId))
 
-    namesCallback <- function(inputSelected) {
+  exposureChoices <- expIndicationsTbl %>%
+      shinyWidgets::prepare_choices(label = .data$indicationName,
+                                    value = .data$exposureIndicationId,
+                                    group_by = .data$exposureName,
+                                    alias = .data$exposureName)
+
+  namesCallback <- function(inputSelected) {
       if (is.null(inputSelected))
         return("")
 
@@ -112,13 +120,7 @@ sccsServer <- function(
       paste(res$exposureName, "\n\t-", res$indicationName)
     }
 
-    exposureChoices <- expIndicationsTbl %>%
-      shinyWidgets::prepare_choices(label = .data$indicationName,
-                                    value = .data$exposureIndicationId,
-                                    group_by = .data$exposureName,
-                                    alias = .data$exposureName)
-
-    exposureSelectionInput <- createInputSetting(
+  exposureSelectionInput <- createInputSetting(
       rowNumber = 1,
       columnWidth = 6,
       varName = 'exposure',
@@ -132,22 +134,6 @@ sccsServer <- function(
       ),
       namesCallback = namesCallback
     )
-  } else {
-    exposureSelectionInput <- createInputSetting(
-      rowNumber = 1,
-      columnWidth = 6,
-      varName = 'exposure',
-      uiFunction = 'shinyWidgets::virtualSelectInput',
-      updateFunction = "shinyWidgets::updateVirtualSelectInput",
-      uiInputs = list(
-        label = 'Target: ',
-        choices = exposures,
-        selected = exposures[1],
-        multiple = F,
-        search = TRUE
-      )
-    )
-  }
 
   shiny::moduleServer(id, function(input, output, session) {
 
