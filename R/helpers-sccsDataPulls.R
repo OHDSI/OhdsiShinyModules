@@ -36,13 +36,12 @@ sccsGetOutcomes <- function(
 
 
 sccsGetIndications <- function(connectionHandler,
-                               resultDatabaseSettings,
-                               exposureIds) {
+                               resultDatabaseSettings) {
 
   sql <- "SELECT
       c.cohort_definition_id as indication_id,
-      c.cohort_name as name,
-      STRING_AGG(distinct CAST(e.era_id AS VARCHAR) , ';') as exposure_ids
+      c.cohort_name as indication_name,
+      e.era_id AS exposure_id
    FROM @schema.@cg_table_prefixcohort_definition c
    INNER JOIN @schema.@sccs_table_prefixexposures_outcome_set eos on eos.nesting_cohort_id = c.cohort_definition_id
 
@@ -53,7 +52,7 @@ sccsGetIndications <- function(connectionHandler,
         ON eos.exposures_outcome_set_id = e.exposures_outcome_set_id
         AND cov.era_id = e.era_id
 
-   GROUP BY c.cohort_definition_id,  c.cohort_name
+   GROUP BY c.cohort_definition_id,  c.cohort_name, e.era_id
   "
   result <- connectionHandler$queryDb(
     sql,
