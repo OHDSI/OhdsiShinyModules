@@ -120,7 +120,10 @@ sccsServer <- function(
       paste(res$exposureName, "\n\t-", res$indicationName)
     }
 
-  exposureSelectionInput <- createInputSetting(
+  shiny::moduleServer(id, function(input, output, session) {
+
+   inputSettings <- list(
+     createInputSetting(
       rowNumber = 1,
       columnWidth = 12,
       varName = 'exposure',
@@ -136,12 +139,7 @@ sccsServer <- function(
         keepAlwaysOpen = FALSE
       ),
       namesCallback = namesCallback
-    )
-
-  shiny::moduleServer(id, function(input, output, session) {
-
-   inputSettings <- list(
-     exposureSelectionInput,
+    ),
      createInputSetting(
        rowNumber = 2,
        columnWidth = 6,
