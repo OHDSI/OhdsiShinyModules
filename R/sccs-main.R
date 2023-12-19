@@ -122,7 +122,7 @@ sccsServer <- function(
 
   exposureSelectionInput <- createInputSetting(
       rowNumber = 1,
-      columnWidth = 6,
+      columnWidth = 12,
       varName = 'exposure',
       uiFunction = 'shinyWidgets::virtualSelectInput',
       updateFunction = "shinyWidgets::updateVirtualSelectInput",
@@ -130,7 +130,10 @@ sccsServer <- function(
         label = 'Target/Indication: ',
         choices = exposureChoices,
         multiple = FALSE,
-        search = TRUE
+        search = TRUE,
+        searchGroup = TRUE,
+        hasOptionDescription = TRUE,
+        keepAlwaysOpen = FALSE
       ),
       namesCallback = namesCallback
     )
@@ -140,7 +143,7 @@ sccsServer <- function(
    inputSettings <- list(
      exposureSelectionInput,
      createInputSetting(
-       rowNumber = 1,
+       rowNumber = 2,
        columnWidth = 6,
        varName = 'outcome',
        uiFunction = 'shinyWidgets::virtualSelectInput',
