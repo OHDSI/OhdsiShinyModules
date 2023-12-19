@@ -342,13 +342,11 @@ getCmDiagnosticsData <- function(
       cmds.shared_max_sdm,
       cmds.equipoise,
       cmds.mdrr,
-      cmds.attrition_fraction,
       cmds.ease,
       cmds.balance_diagnostic,
       cmds.shared_balance_diagnostic, -- added back
       cmds.equipoise_diagnostic,
       cmds.mdrr_diagnostic,
-      cmds.attrition_diagnostic,
       cmds.ease_diagnostic,
       cmds.unblind
     FROM
