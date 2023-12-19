@@ -150,13 +150,6 @@ cohortMethodDiagnosticsSummaryServer <- function(
           ),
           format = reactable::colFormat(digits = 4)
         ),
-        attritionFraction = reactable::colDef(
-          header = withTooltip(
-            "Attrition fraction",
-            "The ..."
-          ),
-          format = reactable::colFormat(digits = 4)
-        ),
         balanceDiagnostic = reactable::colDef(
           header = withTooltip(
             "balanceDiagnostic",
@@ -178,12 +171,6 @@ cohortMethodDiagnosticsSummaryServer <- function(
         easeDiagnostic = reactable::colDef(
           header = withTooltip(
             "easeDiagnostic",
-            "The ..."
-          )
-        ),
-        attritionDiagnostic = reactable::colDef(
-          header = withTooltip(
-            "attritionDiagnostic",
             "The ..."
           )
         ),
