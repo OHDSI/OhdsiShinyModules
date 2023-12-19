@@ -38,104 +38,42 @@ as_ggplot <- function(x){
 }
 
 
-is_null_unit <- function (x)
-{
-    if (!grid::is.unit(x)) {
-        return(FALSE)
-    }
-    all(grid::unitType(x) == "null")
-}
+# is_null_unit <- function (x)
+# {
+#     if (!grid::is.unit(x)) {
+#         return(FALSE)
+#     }
+#     all(grid::unitType(x) == "null")
+# }
+# 
+# force_panelsizes <- function(rows = NULL, cols = NULL, respect = NULL, total_width = NULL, total_height = NULL) {
+#   if (!is.null(rows) & !grid::is.unit(rows)) {
+#     rows <- grid::unit(rows, "null")
+#   }
+#   if (!is.null(cols) & !grid::is.unit(cols)) {
+#     cols <- grid::unit(cols, "null")
+#   }
+#   if (!is.null(total_width)) {
+#     if (grid::is.unit(cols) && !is_null_unit(cols)) {
+#       stop("Cannot set {.arg total_width} when {.arg cols} is not relative.")
+#     }
+#     if (!grid::is.unit(total_width)) {
+#       stop("{.arg total_width} must be a {.cls unit} object.")
+#     }
+#     rlang::arg_match0(grid::unitType(total_width), c("cm", "mm", "inches", "points"))
+#   }
+#   if (!is.null(total_height)) {
+#     if (grid::is.unit(rows) && !is_null_unit(rows)) {
+#       stop("Cannot set {.arg total_height} when {.arg rows} is not relative.")
+#     }
+#     if (!grid::is.unit(total_height)) {
+#       stop("{.arg total_height} must be a {.cls unit} object.")
+#     }
+#     rlang::arg_match0(grid::unitType(total_height), c("cm", "mm", "inches", "points"))
+#   }
+#   structure(list(rows = rows, cols = cols, respect = respect, total_width = total_width, total_height = total_height), class = "forcedsize")
+# }
 
-force_panelsizes <- function(rows = NULL, cols = NULL, respect = NULL, total_width = NULL, total_height = NULL) {
-  if (!is.null(rows) & !grid::is.unit(rows)) {
-    rows <- grid::unit(rows, "null")
-  }
-  if (!is.null(cols) & !grid::is.unit(cols)) {
-    cols <- grid::unit(cols, "null")
-  }
-  if (!is.null(total_width)) {
-    if (grid::is.unit(cols) && !is_null_unit(cols)) {
-      stop("Cannot set {.arg total_width} when {.arg cols} is not relative.")
-    }
-    if (!grid::is.unit(total_width)) {
-      stop("{.arg total_width} must be a {.cls unit} object.")
-    }
-    rlang::arg_match0(grid::unitType(total_width), c("cm", "mm", "inches", "points"))
-  }
-  if (!is.null(total_height)) {
-    if (grid::is.unit(rows) && !is_null_unit(rows)) {
-      stop("Cannot set {.arg total_height} when {.arg rows} is not relative.")
-    }
-    if (!grid::is.unit(total_height)) {
-      stop("{.arg total_height} must be a {.cls unit} object.")
-    }
-    rlang::arg_match0(grid::unitType(total_height), c("cm", "mm", "inches", "points"))
-  }
-  structure(list(rows = rows, cols = cols, respect = respect, total_width = total_width, total_height = total_height), class = "forcedsize")
-}
-
-# Custom function that takes a ggplotly figure and its facets as arguments.
-# The upper x-values for each domain is set programmatically, but you can adjust
-# the look of the figure by adjusting the width of the facet domain and the 
-# corresponding annotations labels through the domain_offset variable
-fixfacets <- function(figure, facets, domain_offset){
-  
-  fig <- figure
-  
-  # split x ranges from 0 to 1 into
-  # intervals corresponding to number of facets
-  # xHi = highest x for shape
-  xHi <- seq(0, 1, len = length(facets)+1)
-  xHi <- xHi[2:length(xHi)]
-  
-  xOs <- domain_offset
-  
-  # Shape manipulations, identified by dark grey backround: "rgba(217,217,217,1)"
-  # structure: p$x$layout$shapes[[2]]$
-  shp <- fig$x$layout$shapes
-  j <- 1
-  for (i in seq_along(shp)){
-    if (shp[[i]]$fillcolor=="rgba(217,217,217,1)" & (!is.na(shp[[i]]$fillcolor))){
-      #$x$layout$shapes[[i]]$fillcolor <- 'rgba(0,0,255,0.5)' # optionally change color for each label shape
-      fig$x$layout$shapes[[i]]$x1 <- xHi[j]
-      fig$x$layout$shapes[[i]]$x0 <- (xHi[j] - xOs)
-      #fig$x$layout$shapes[[i]]$y <- -0.05
-      j<-j+1
-    }
-  }
-  
-  # annotation manipulations, identified by label name
-  # structure: p$x$layout$annotations[[2]]
-  ann <- fig$x$layout$annotations
-  annos <- facets
-  j <- 1
-  for (i in seq_along(ann)){
-    if (ann[[i]]$text %in% annos){
-      # but each annotation between high and low x,
-      # and set adjustment to center
-      fig$x$layout$annotations[[i]]$x <- (((xHi[j]-xOs)+xHi[j])/2)
-      fig$x$layout$annotations[[i]]$xanchor <- 'center'
-      #print(fig$x$layout$annotations[[i]]$y)
-      #fig$x$layout$annotations[[i]]$y <- -0.05
-      j<-j+1
-    }
-  }
-  
-  # domain manipulations
-  # set high and low x for each facet domain
-  xax <- names(fig$x$layout)
-  j <- 1
-  for (i in seq_along(xax)){
-    if (!is.na(pmatch('xaxis', xax[i]))){
-      #print(p[['x']][['layout']][[lot[i]]][['domain']][2])
-      fig[['x']][['layout']][[xax[i]]][['domain']][2] <- xHi[j]
-      fig[['x']][['layout']][[xax[i]]][['domain']][1] <- xHi[j] - xOs
-      j<-j+1
-    }
-  }
-  
-  return(fig)
-}
 
 # Define the custom age sorting function
 custom_age_sort <- function(age_categories) {
@@ -229,7 +167,7 @@ characterizationIncidenceViewer <- function(id) {
                 shiny::plotOutput(
                   ns('incidencePlotStandardAge'),
                   width="100%",
-                  height="500px"
+                  height="600px"
                 )
               )
             ),
@@ -253,7 +191,7 @@ characterizationIncidenceViewer <- function(id) {
                 shiny::plotOutput(
                   ns('incidencePlotStandardAgeSex'),
                   width="100%",
-                  height="500px"
+                  height="600px"
                 )
               )
             ),
@@ -302,7 +240,7 @@ characterizationIncidenceViewer <- function(id) {
                 shiny::plotOutput(
                   ns('incidencePlotStandardAggregate'),
                   width="100%",
-                  height="500px"
+                  height="600px"
                 )
               )
             ),
@@ -325,7 +263,7 @@ characterizationIncidenceViewer <- function(id) {
               shiny::plotOutput(
                 ns('incidencePlotLegendCustom'),
                 width="100%",
-                height="500px"
+                height="600px"
               )
               
             )
@@ -1297,6 +1235,12 @@ characterizationIncidenceServer <- function(
                  shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
           )
           
+          #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
+          ifelse(length(inputSelectedResults()$targetId) * length(inputSelectedResults()$outcomeId) <= 10,
+                 plotData <- filteredData(),
+                 shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
+          )
+          
           plotData <- plotData %>%
             dplyr::filter(ageGroupName != "Any" & 
                             genderName == "Any" & 
@@ -1314,8 +1258,8 @@ characterizationIncidenceServer <- function(
           # })
           
           # Get unique target and outcome labels
-          unique_target_labels <- unique(plotData$targetLabel)
-          unique_outcome_labels <- unique(plotData$outcomeLabel)
+          unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
+          unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
           
           # Combine all unique values into a final vector
           final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
@@ -1341,15 +1285,17 @@ characterizationIncidenceServer <- function(
             #geom_jitter() +
             #scale_size_continuous(range = c(5,15)) +
             ggplot2::scale_colour_brewer(palette = "Dark2") +
-            ggplot2::facet_grid(
-              rows = dplyr::vars(Target),
-              cols = dplyr::vars(Outcome),
-              labeller = ggplot2::labeller(.rows = targetLabeller,
-                                           .cols = outcomeLabeller
-              ),
-              scales = "free_y"
+            ggplot2::facet_wrap(
+              Target~Outcome,
+              labeller = "label_both",
+              scales = "free_x",
+              nrow = 2,
+              ncol = 5
+              #,
+              #strip.position = "right"
             ) + 
-            ggplot2::scale_y_log10(breaks = scales::breaks_log(n=6))
+            ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                                        n.breaks = 4)
           
           base_plot <- base_plot + ggplot2::labs(
             title = paste("Incidence Rate for Time at Risk:", tar_value),
@@ -1364,23 +1310,28 @@ characterizationIncidenceServer <- function(
             ggplot2::theme_bw() +
             ggplot2::theme(
               plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
-              axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 30), size = 20),
-              axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 30), size = 20),
+              plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
+              axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
+              axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
               axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
               axis.text.y = ggplot2::element_text(size = 14),
-              legend.position = "right",
+              legend.position = "bottom",
               legend.box.spacing = ggplot2::unit(3, "pt"),
               legend.text = ggplot2::element_text(size=10),
               legend.title = ggplot2::element_text(size=16, face = "bold"),
-              plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12),
+              legend.title.align = 0.5,
+              plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
+                                                   margin = ggplot2::margin(t = 20)),
               #legend.spacing.x = ggplot2::unit(2.0, 'cm'),
               # legend.box = "horizontal",
               # legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
               # legend.title = ggplot2::element_text(size=30), #change legend title font size
               # legend.text = ggplot2::element_text(size=20),
-               panel.spacing = ggplot2::unit(2, "lines"),
+              panel.spacing = ggplot2::unit(2, "lines"),
               # strip.background = ggplot2::element_blank(), 
-              strip.text = ggplot2::element_text(face="bold", size = 14)
+              strip.text = ggplot2::element_text(face="bold", size = 14),
+              strip.background = ggplot2::element_blank(),
+              strip.clip = "off"
             ) + 
             ggplot2::guides(#shape = ggplot2::guide_legend(override.aes = list(size = 6)),
                             color = ggplot2::guide_legend(override.aes = list(size = 6))
@@ -1426,6 +1377,12 @@ renderIrPlotStandardAgeSex <- shiny::reactive(
            shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
     )
     
+    #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
+    ifelse(length(inputSelectedResults()$targetId) * length(inputSelectedResults()$outcomeId) <= 10,
+           plotData <- filteredData(),
+           shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
+    )
+    
     plotData <- plotData %>%
       dplyr::filter(ageGroupName != "Any" & 
                       genderName != "Any" & 
@@ -1443,8 +1400,8 @@ renderIrPlotStandardAgeSex <- shiny::reactive(
     # })
     
     # Get unique target and outcome labels
-    unique_target_labels <- unique(plotData$targetLabel)
-    unique_outcome_labels <- unique(plotData$outcomeLabel)
+    unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
+    unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
     
     # Combine all unique values into a final vector
     final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
@@ -1470,16 +1427,17 @@ renderIrPlotStandardAgeSex <- shiny::reactive(
       #geom_jitter() +
       #scale_size_continuous(range = c(5,15)) +
       ggplot2::scale_colour_brewer(palette = "Dark2") +
-      ggplot2::facet_grid(
-        rows = dplyr::vars(Target),
-        cols = dplyr::vars(Outcome
-                           #, Age
-                           ),
-        labeller = ggplot2::labeller(.rows = targetLabeller,
-                                     .cols = outcomeLabeller),
-        scales = "free_y"
+      ggplot2::facet_wrap(
+        Target~Outcome,
+        labeller = "label_both",
+        scales = "free_x",
+        nrow = 2,
+        ncol = 5
+        #,
+        #strip.position = "right"
       ) + 
-      ggplot2::scale_y_log10(breaks = scales::breaks_log(n=6))
+      ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                                  n.breaks = 4)
     
     base_plot <- base_plot + ggplot2::labs(
       title = paste("Incidence Rate for Time at Risk:", tar_value),
@@ -1487,30 +1445,35 @@ renderIrPlotStandardAgeSex <- shiny::reactive(
       y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]),
       color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
       #size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "outcomes"]),
-      shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
+      #shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
       caption = caption_text
     ) +
       ggplot2::guides(alpha = "none", size = "none") + # Remove the alpha and size legend
       ggplot2::theme_bw() +
       ggplot2::theme(
         plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
-        axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 30), size = 20),
-        axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 30), size = 20),
+        plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
+        axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
+        axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
         axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
         axis.text.y = ggplot2::element_text(size = 14),
-        legend.position = "right",
+        legend.position = "bottom",
         legend.box.spacing = ggplot2::unit(3, "pt"),
         legend.text = ggplot2::element_text(size=10),
         legend.title = ggplot2::element_text(size=16, face = "bold"),
-        plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12),
+        legend.title.align = 0.5,
+        plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
+                                             margin = ggplot2::margin(t = 20)),
         #legend.spacing.x = ggplot2::unit(2.0, 'cm'),
         # legend.box = "horizontal",
         # legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
         # legend.title = ggplot2::element_text(size=30), #change legend title font size
         # legend.text = ggplot2::element_text(size=20),
-         panel.spacing = ggplot2::unit(2, "lines"),
+        panel.spacing = ggplot2::unit(2, "lines"),
         # strip.background = ggplot2::element_blank(), 
-        strip.text = ggplot2::element_text(face="bold", size = 14)
+        strip.text = ggplot2::element_text(face="bold", size = 14),
+        strip.background = ggplot2::element_blank(),
+        strip.clip = "off"
       ) + 
       ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
                       color = ggplot2::guide_legend(override.aes = list(size = 6))
@@ -1585,8 +1548,8 @@ renderIrPlotStandardYear <- shiny::reactive(
     
     
     # Get unique target and outcome labels
-    unique_target_labels <- unique(plotData$targetLabel)
-    unique_outcome_labels <- unique(plotData$outcomeLabel)
+    unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
+    unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
     
     # Combine all unique values into a final vector
     final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
@@ -1719,6 +1682,12 @@ renderIrPlotStandardAggregate <- shiny::reactive(
            shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
     )
     
+    #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
+    ifelse(length(inputSelectedResults()$targetId) * length(inputSelectedResults()$outcomeId) <= 10,
+           plotData <- filteredData(),
+           shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
+    )
+    
     plotData <- plotData %>%
       dplyr::filter(ageGroupName == "Any" & 
                       genderName == "Any") %>%
@@ -1730,8 +1699,8 @@ renderIrPlotStandardAggregate <- shiny::reactive(
                     "Age" = ageGroupName)
     
     # Get unique target and outcome labels
-    unique_target_labels <- unique(plotData$targetLabel)
-    unique_outcome_labels <- unique(plotData$outcomeLabel)
+    unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
+    unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
     
     # Combine all unique values into a final vector
     final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
@@ -1756,45 +1725,54 @@ renderIrPlotStandardAggregate <- shiny::reactive(
       ) + 
       #ggplot2::geom_jitter() +
       #scale_size_continuous(range = c(5,15)) +
-      ggplot2::facet_grid(
-        rows = dplyr::vars(Target),
-        cols = dplyr::vars(Outcome),
-        labeller = ggplot2::labeller(.rows = targetLabeller,
-                                     .cols = outcomeLabeller),
-        scales = "free_y"
+      ggplot2::scale_colour_brewer(palette = "Dark2") +
+      ggplot2::facet_wrap(
+        Target~Outcome,
+        labeller = "label_both",
+        scales = "free_x",
+        nrow = 2,
+        ncol = 5
+        #,
+        #strip.position = "right"
       ) + 
-      ggplot2::scale_y_log10(breaks = scales::breaks_log(n=6))
+      ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                                  n.breaks = 4)
     
     base_plot <- base_plot + ggplot2::labs(
       title = paste("Incidence Rate for Time at Risk:", tar_value),
-      x = paste(names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "startYear"]), "\n"),
+      x = paste(names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "ageGroupName"]), "\n"),
       y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]),
       color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
       #size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "outcomes"]),
       #shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
       caption = caption_text
     ) +
-      ggplot2::guides(alpha = "none", size = "none") + # Remove the alpha legend
+      ggplot2::guides(alpha = "none", size = "none") + # Remove the alpha and size legend
       ggplot2::theme_bw() +
       ggplot2::theme(
         plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
-        axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 30), size = 20),
-        axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 30), size = 20),
+        plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
+        axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
+        axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
         axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
         axis.text.y = ggplot2::element_text(size = 14),
-        legend.position = "right",
+        legend.position = "bottom",
         legend.box.spacing = ggplot2::unit(3, "pt"),
         legend.text = ggplot2::element_text(size=10),
         legend.title = ggplot2::element_text(size=16, face = "bold"),
-        plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12),
+        legend.title.align = 0.5,
+        plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
+                                             margin = ggplot2::margin(t = 20)),
         #legend.spacing.x = ggplot2::unit(2.0, 'cm'),
         # legend.box = "horizontal",
         # legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
         # legend.title = ggplot2::element_text(size=30), #change legend title font size
         # legend.text = ggplot2::element_text(size=20),
-        # panel.spacing = ggplot2::unit(1, "lines"),
+        panel.spacing = ggplot2::unit(2, "lines"),
         # strip.background = ggplot2::element_blank(), 
-        strip.text = ggplot2::element_text(face="bold", size = 14)
+        strip.text = ggplot2::element_text(face="bold", size = 14),
+        strip.background = ggplot2::element_blank(),
+        strip.clip = "off"
       ) + 
       ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
                       color = ggplot2::guide_legend(override.aes = list(size = 6)))
