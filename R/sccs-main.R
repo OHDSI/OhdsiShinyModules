@@ -67,7 +67,7 @@ sccsServer <- function(
                               tablePrefix = resultDatabaseSettings$sccsTablePrefix)
 
   # Migration_2-v5_1_0.sql
-  useNestingIndications <- TRUE # migrations %>% migrationPresent(2)
+  useNestingIndications <- migrations %>% migrationPresent(2)
 
   # create functions to result list
   outcomes <- sccsGetOutcomes(
