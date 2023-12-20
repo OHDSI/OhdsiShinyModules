@@ -42,43 +42,16 @@ sccsView <- function(id = "sccs-module") {
   )
 }
 
-
-#' The module server for exploring SCCS
-#'
-#' @details
-#' The user specifies the id for the module
-#'
-#' @param id  the unique reference id for the module
-#' @param connectionHandler a connection to the database with the results
-#' @param resultDatabaseSettings a list containing the prediction result schema and connection details
-#'
-#' @return
-#' The server for the PatientLevelPrediction module
-#'
-#' @export
-sccsServer <- function(
-  id,
-  connectionHandler,
-  resultDatabaseSettings = list(port = 1)
-) {
-  ns <- shiny::NS(id)
+#' @noRd
+#' Gets input selection box for use with SCCS exposure indication selection
+.getSccsExposureIndicationSelection <- function(connectionHandler,
+                                                resultDatabaseSettings) {
   migrations <- getMigrations(connectionHandler = connectionHandler,
                               resultDatabaseSettings = resultDatabaseSettings,
                               tablePrefix = resultDatabaseSettings$sccsTablePrefix)
 
   # Migration_2-v5_1_0.sql
-  useNestingIndications <- migrations %>% migrationPresent(2)
-
-  # create functions to result list
-  outcomes <- sccsGetOutcomes(
-    connectionHandler = connectionHandler,
-    resultDatabaseSettings = resultDatabaseSettings
-    )
-
-  analyses <- sccsGetAnalyses(
-    connectionHandler = connectionHandler,
-    resultDatabaseSettings = resultDatabaseSettings
-  )
+  useNestingIndications <- TRUE # migrations %>% migrationPresent(2)
 
   if (useNestingIndications) {
     # Requires migration in 5.1.0 of cohort generator
@@ -120,10 +93,8 @@ sccsServer <- function(
       paste(res$exposureName, "\n\t-", res$indicationName)
     }
 
-  shiny::moduleServer(id, function(input, output, session) {
-
-   inputSettings <- list(
-     createInputSetting(
+  return(
+    createInputSetting(
       rowNumber = 1,
       columnWidth = 12,
       varName = 'exposure',
@@ -139,7 +110,47 @@ sccsServer <- function(
         keepAlwaysOpen = FALSE
       ),
       namesCallback = namesCallback
-    ),
+    )
+  )
+}
+
+
+#' The module server for exploring SCCS
+#'
+#' @details
+#' The user specifies the id for the module
+#'
+#' @param id  the unique reference id for the module
+#' @param connectionHandler a connection to the database with the results
+#' @param resultDatabaseSettings a list containing the prediction result schema and connection details
+#'
+#' @return
+#' The server for the PatientLevelPrediction module
+#'
+#' @export
+sccsServer <- function(
+  id,
+  connectionHandler,
+  resultDatabaseSettings = list(port = 1)
+) {
+  ns <- shiny::NS(id)
+
+  # create functions to result list
+  outcomes <- sccsGetOutcomes(
+    connectionHandler = connectionHandler,
+    resultDatabaseSettings = resultDatabaseSettings
+    )
+
+  analyses <- sccsGetAnalyses(
+    connectionHandler = connectionHandler,
+    resultDatabaseSettings = resultDatabaseSettings
+  )
+
+  shiny::moduleServer(id, function(input, output, session) {
+
+   inputSettings <- list(
+     .getSccsExposureIndicationSelection(connectionHandler = connectionHandler,
+                                         resultDatabaseSettings = resultDatabaseSettings),
      createInputSetting(
        rowNumber = 2,
        columnWidth = 6,

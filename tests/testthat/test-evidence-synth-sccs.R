@@ -34,7 +34,7 @@ test_that("Test es ui", {
 })
 
 test_that("getSccsEstimation", {
-  tarIds <- getSccsTargetIds(
+  tarIds <- getSccsTargets(
     connectionHandler = connectionHandlerES,
     resultDatabaseSettings = resultDatabaseSettingsES
   )
@@ -48,7 +48,7 @@ test_that("getSccsEstimation", {
 res <- getSccsEstimation(
   connectionHandlerES,
   resultDatabaseSettings = resultDatabaseSettingsES,
-  targetId = 1,
+  exposure = 1,
   outcomeId = 3
 )
   testthat::expect_equal(nrow(res), 0)

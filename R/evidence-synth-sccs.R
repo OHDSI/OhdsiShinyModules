@@ -40,11 +40,7 @@ evidenceSynthesisSccsServer <- function(
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      targetIds <- getSccsTargetIds(
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
+
       outcomeIds <- getEsOutcomeIds(
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings
@@ -53,42 +49,18 @@ evidenceSynthesisSccsServer <- function(
       inputSelected <- inputSelectionServer(
         id = "input-selection-sccs", 
         inputSettingList = list(
+          .getSccsExposureIndicationSelection(connectionHandler = connectionHandler,
+                                              resultDatabaseSettings = resultDatabaseSettings),
           createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
-            varName = 'targetIds',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Target: ',
-              choices = targetIds,
-              multiple = F,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          ),
-          createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
+            rowNumber = 2,
+            columnWidth = 12,
             varName = 'outcomeIds',
-            uiFunction = 'shinyWidgets::pickerInput',
+            uiFunction = 'shinyWidgets::virtualSelectInput',
             uiInputs = list(
               label = 'Outcome: ',
               choices = outcomeIds,
               multiple = F,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
+              search = TRUE
             )
           )
         )
@@ -98,10 +70,10 @@ evidenceSynthesisSccsServer <- function(
       
       diagSumData <- shiny::reactive({
         getEvidenceSynthSccsDiagnostics(
-          connectionHandler = connectionHandler, 
+          connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
           inputSelected = inputSelected,
-          targetIds = inputSelected()$targetIds,
+          exposure =  inputSelected()$exposure,
           outcomeIds = inputSelected()$outcomeIds
         )
       })
@@ -122,7 +94,7 @@ evidenceSynthesisSccsServer <- function(
           getSccsEstimation(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetId = inputSelected()$targetIds,
+            exposure = inputSelected()$exposure,
             outcomeId = inputSelected()$outcomeIds
           )
         )
@@ -206,15 +178,12 @@ evidenceSynthesisSccsServer <- function(
   
 }
 
-
-# TODO update this for SCCS
-#getSccsDiagTargets
-getSccsTargetIds <- function(
+getSccsTargets <- function(
     connectionHandler,
     resultDatabaseSettings
 ){
   
-  output <- getSccsDiagTargets(
+  output <- sccsGetExposureIndications(
     connectionHandler,
     resultDatabaseSettings
   )
@@ -223,13 +192,22 @@ getSccsTargetIds <- function(
 }
 
 getSccsEstimation <- function(
-    connectionHandler,
-    resultDatabaseSettings,
-    targetId,
-    outcomeId
+  connectionHandler,
+  resultDatabaseSettings,
+  exposure,
+  outcomeId
 ){
-  if(is.null(targetId)){
-    return(NULL)
+  if (is.character(exposure)) {
+    exposureGroup <- strsplit(exposure, " ")[[1]]
+    targetId <- exposureGroup[[1]]
+    indicationIds <- exposureGroup[[2]]
+  } else {
+    targetId <- -1
+    indicationIds <- -1
+  }
+
+  if (any(indicationIds == -1)) {
+    indicationIds <- NULL
   }
   
   sql <- "select 
@@ -299,6 +277,7 @@ getSccsEstimation <- function(
    unblind.unblind = 1 and
    cov.era_id = @target_id and
    eos.outcome_id = @outcome_id
+   {@use_indications} ? {and eos.nesting_cohort_id IN (@indication_ids)} : {and eos.nesting_cohort_id IS NULL}
   ;"
   
   result <- connectionHandler$queryDb(
@@ -308,7 +287,9 @@ getSccsEstimation <- function(
     sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
     cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
     outcome_id = outcomeId,
-    target_id = targetId
+    target_id = targetId,
+    indication_ids = indicationIds,
+    use_indications = !is.null(indicationIds)
   )
   
   sql <- "select distinct
@@ -377,6 +358,7 @@ getSccsEstimation <- function(
    unblind.unblind = 1 and
    cov.era_id = @target_id and
    eos.outcome_id = @outcome_id
+   {@use_indications} ? {and eos.nesting_cohort_id IN (@indication_ids)} : {and eos.nesting_cohort_id IS NULL}
   ;"
   
   result2 <- connectionHandler$queryDb(
@@ -386,7 +368,9 @@ getSccsEstimation <- function(
     sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
     cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
     outcome_id = outcomeId,
-    target_id = targetId
+    target_id = targetId,
+    indication_ids = indicationIds,
+    use_indications = !is.null(indicationIds)
   )
   
   return(rbind(result,result2))
@@ -498,21 +482,35 @@ createPlotForSccsAnalysis <- function(
 }
 
 getEvidenceSynthSccsDiagnostics <- function(
-    connectionHandler, 
-    resultDatabaseSettings,
-    inputSelected,
-    targetIds,
-    outcomeIds
+  connectionHandler,
+  resultDatabaseSettings,
+  inputSelected,
+  exposure,
+  outcomeIds
 ){
   
-  if(is.null(targetIds)){
+  if(is.null(exposure)){
     return(NULL)
+  }
+
+  if (is.character(exposure)) {
+    exposureGroup <- strsplit(exposure, " ")[[1]]
+    targetId <- exposureGroup[[1]]
+    indicationIds <- exposureGroup[[2]]
+  } else {
+    targetId <- -1
+    indicationIds <- -1
+  }
+
+  if (any(indicationIds == -1)) {
+    indicationIds <- NULL
   }
   
   sccsDiagTemp <- getSccsAllDiagnosticsSummary(
     connectionHandler = connectionHandler,
     resultDatabaseSettings = resultDatabaseSettings,
-    targetIds = targetIds,
+    targetIds = targetId,
+    indicationIds = indicationIds,
     outcomeIds = outcomeIds
   ) 
   
