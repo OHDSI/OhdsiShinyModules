@@ -49,7 +49,6 @@ sccsResultsServer <- function(
     data <- shiny::reactive({
 
       exposure <- inputSelected()$exposure
-
       if (is.character(exposure)) {
         exposureGroup <- strsplit(exposure, " ")[[1]]
         targetId <- exposureGroup[[1]]
@@ -59,7 +58,7 @@ sccsResultsServer <- function(
         indidcationId <- -1
       }
 
-      results <- getSccsResults(
+      getSccsResults(
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings,
         exposureIds = targetId,
