@@ -45,12 +45,14 @@ evidenceSynthesisSccsServer <- function(
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings
       )
-      
+
+      exposureIndicationInput <- .getSccsExposureIndicationSelection(connectionHandler = connectionHandler,
+                                                                     resultDatabaseSettings = resultDatabaseSettings)
+
       inputSelected <- inputSelectionServer(
         id = "input-selection-sccs", 
         inputSettingList = list(
-          .getSccsExposureIndicationSelection(connectionHandler = connectionHandler,
-                                              resultDatabaseSettings = resultDatabaseSettings),
+          exposureIndicationInput,
           createInputSetting(
             rowNumber = 2,
             columnWidth = 12,
@@ -79,7 +81,6 @@ evidenceSynthesisSccsServer <- function(
       })
       
       # SCCS plots and tables
-      
       resultTableServer(
         id = "diagnosticsSccsSummaryTable",
         df = diagSumData,
@@ -197,6 +198,11 @@ getSccsEstimation <- function(
   exposure,
   outcomeId
 ){
+
+  if (is.null(outcomeId)) {
+    return(NULL)
+  }
+
   if (is.character(exposure)) {
     exposureGroup <- strsplit(exposure, " ")[[1]]
     targetId <- exposureGroup[[1]]

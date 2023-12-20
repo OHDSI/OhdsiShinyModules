@@ -6,13 +6,12 @@ shiny::testServer(evidenceSynthesisSccsServer, args = list(
   resultDatabaseSettings = resultDatabaseSettingsES
 ), {
   
-  expect_true(length(targetIds) > 0)
+  expect_true(length(exposureIndicationInput) > 0)
   expect_true(length(outcomeIds) > 0)
   
   inputSelected(
     list(
-      targetId = targetIds[1], 
-      targetIds = targetIds[1],
+      exposure = 1,
       target = 'test target',
       outcome = 'test outcome',
       outcomeId = 3,
