@@ -51,7 +51,7 @@ sccsView <- function(id = "sccs-module") {
                               tablePrefix = resultDatabaseSettings$sccsTablePrefix)
 
   # Migration_2-v5_1_0.sql
-  useNestingIndications <- TRUE # migrations %>% migrationPresent(2)
+  useNestingIndications <- migrations %>% migrationPresent(2)
 
   if (useNestingIndications) {
     # Requires migration in 5.1.0 of cohort generator
