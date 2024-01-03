@@ -78,7 +78,7 @@ getOrphanConceptResult <- function(dataSource,
                                    databaseIds,
                                    cohortId,
                                    conceptSetId = NULL) {
-  sql <- "SELECT oc.*,
+  sql <- "SELECT DISTINCT oc.*,
               cs.concept_set_name,
               c.concept_name,
               c.vocabulary_id,
