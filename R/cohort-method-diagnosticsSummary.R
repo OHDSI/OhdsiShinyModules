@@ -150,13 +150,6 @@ cohortMethodDiagnosticsSummaryServer <- function(
           ),
           format = reactable::colFormat(digits = 4)
         ),
-        attritionFraction = reactable::colDef(
-          header = withTooltip(
-            "Attrition fraction",
-            "The ..."
-          ),
-          format = reactable::colFormat(digits = 4)
-        ),
         balanceDiagnostic = reactable::colDef(
           header = withTooltip(
             "balanceDiagnostic",
@@ -178,12 +171,6 @@ cohortMethodDiagnosticsSummaryServer <- function(
         easeDiagnostic = reactable::colDef(
           header = withTooltip(
             "easeDiagnostic",
-            "The ..."
-          )
-        ),
-        attritionDiagnostic = reactable::colDef(
-          header = withTooltip(
-            "attritionDiagnostic",
             "The ..."
           )
         ),
@@ -342,13 +329,11 @@ getCmDiagnosticsData <- function(
       cmds.shared_max_sdm,
       cmds.equipoise,
       cmds.mdrr,
-      cmds.attrition_fraction,
       cmds.ease,
       cmds.balance_diagnostic,
       cmds.shared_balance_diagnostic, -- added back
       cmds.equipoise_diagnostic,
       cmds.mdrr_diagnostic,
-      cmds.attrition_diagnostic,
       cmds.ease_diagnostic,
       cmds.unblind
     FROM
