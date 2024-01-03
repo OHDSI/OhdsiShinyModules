@@ -47,13 +47,25 @@ sccsResultsServer <- function(
       )
     
     data <- shiny::reactive({
-      results <- getSccsResults(
+
+      exposure <- inputSelected()$exposure
+      if (is.character(exposure)) {
+        exposureGroup <- strsplit(exposure, " ")[[1]]
+        targetId <- exposureGroup[[1]]
+        indidcationId <- exposureGroup[[2]]
+      } else {
+        targetId <- -1
+        indidcationId <- -1
+      }
+
+      getSccsResults(
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings,
-        exposureIds = inputSelected()$exposure,
+        exposureIds = targetId,
         outcomeIds = inputSelected()$outcome,
         #databaseIds = inputSelected()$database,
-        analysisIds = inputSelected()$analysis
+        analysisIds = inputSelected()$analysis,
+        indicationIds = indidcationId
       )
     })
     
@@ -209,7 +221,13 @@ getSccsResults <- function(connectionHandler,
                            exposureIds,
                            outcomeIds,
                            #databaseIds,
-                           analysisIds) {
+                           analysisIds,
+                           indicationIds = NULL) {
+
+  if (any(indicationIds == -1)) {
+    indicationIds <- NULL
+  }
+
   sql <- "
   SELECT
   
@@ -292,6 +310,7 @@ getSccsResults <- function(connectionHandler,
   -- AND sr.database_id IN (@database_ids)
   AND eos.outcome_id IN (@outcome_ids)
   AND sc.era_id IN (@exposure_ids)
+  {@use_indications} ? {and eos.nesting_cohort_id IN (@indication_ids)} : {and eos.nesting_cohort_id IS NULL}
   "
   
   results <- connectionHandler$queryDb(
@@ -305,6 +324,8 @@ getSccsResults <- function(connectionHandler,
     analysis_ids = paste(analysisIds, collapse = ','),
     outcome_ids = paste(outcomeIds, collapse = ','),
     exposure_ids = paste(exposureIds, collapse = ','),
+    use_indications = !is.null(indicationIds),
+    indication_ids = indicationIds,
     snakeCaseToCamelCase = TRUE
   )
   

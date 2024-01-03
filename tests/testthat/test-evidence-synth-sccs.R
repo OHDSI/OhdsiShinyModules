@@ -6,13 +6,12 @@ shiny::testServer(evidenceSynthesisSccsServer, args = list(
   resultDatabaseSettings = resultDatabaseSettingsES
 ), {
   
-  expect_true(length(targetIds) > 0)
+  expect_true(length(exposureIndicationInput) > 0)
   expect_true(length(outcomeIds) > 0)
   
   inputSelected(
     list(
-      targetId = targetIds[1], 
-      targetIds = targetIds[1],
+      exposure = 1,
       target = 'test target',
       outcome = 'test outcome',
       outcomeId = 3,
@@ -34,7 +33,7 @@ test_that("Test es ui", {
 })
 
 test_that("getSccsEstimation", {
-  tarIds <- getSccsTargetIds(
+  tarIds <- getSccsTargets(
     connectionHandler = connectionHandlerES,
     resultDatabaseSettings = resultDatabaseSettingsES
   )
@@ -48,7 +47,7 @@ test_that("getSccsEstimation", {
 res <- getSccsEstimation(
   connectionHandlerES,
   resultDatabaseSettings = resultDatabaseSettingsES,
-  targetId = 1,
+  exposure = 1,
   outcomeId = 3
 )
   testthat::expect_equal(nrow(res), 0)
