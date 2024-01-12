@@ -1,8 +1,9 @@
-OhdsiShinyModules v2.0.3
+OhdsiShinyModules v2.1.0
 ========================
 Support for data models from SCCS version 5.2.0
 Support for data models from Cohort Method version 5.2.0
 Fixes for CohortDiagnostics Orpahan concept table by re-writing with DB level pagination
+Automated release of Docker Images upon package release
 
 OhdsiShinyModules v2.0.2
 ========================
