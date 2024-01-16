@@ -1,6 +1,6 @@
 # @file characterization-aggregateFeatures.R
 #
-# Copyright 2023 Observational Health Data Sciences and Informatics
+# Copyright 2024 Observational Health Data Sciences and Informatics
 #
 # This file is part of OhdsiShinyModules
 #
@@ -106,31 +106,6 @@ characterizationAggregateFeaturesServer <- function(
     id,
     function(input, output, session) {
       
-      types <- c(
-        'Target (first exposure)',
-        'Outcome (all exposures)',
-        'Target with outcome (all exposures) during TAR (T index)',
-        'Target with outcome (all exposures) during TAR (O index)',
-        'Target without outcome (all exposures) during TAR',
-        'Target (all exposures)',
-        'Outcome (first exposure)',
-        'Target with outcome (first exposure) during TAR (T index)',
-        'Target without outcome (first exposure) during TAR',
-        'Target with outcome (first exposure) during TAR (O index)'
-      )
-      typesTranslate <- c(
-        'T',
-        'O',
-        'TnO',
-        'OnT',
-        'TnOc',
-        'allT',
-        'firstO',
-        'TnfirstO',
-        'TnfirstOc',
-        'firstOnT'
-      )
-      
       # get the possible options
       options <- getAggregateFeatureOptions(
         connectionHandler = connectionHandler,
@@ -211,11 +186,11 @@ characterizationAggregateFeaturesServer <- function(
           ,
           createInputSetting(
             rowNumber = 2,                           
-            columnWidth = 3,
-            varName = 'database1',
+            columnWidth = 6,
+            varName = 'database',
             uiFunction = 'shinyWidgets::pickerInput',
             uiInputs = list(
-              label = 'Database 1: ',
+              label = 'Database: ',
               choices = databases,
               selected = databases[1],
               multiple = F,
@@ -233,63 +208,26 @@ characterizationAggregateFeaturesServer <- function(
           createInputSetting(
             rowNumber = 2,                           
             columnWidth = 3,
-            varName = 'type1',
+            varName = 'firstO',
             uiFunction = 'shinyWidgets::pickerInput',
             uiInputs = list(
-              label = 'Type 1: ',
-              choices = types,
-              selected = types[1],
-              multiple = F,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
+              label = 'Restrict to first O: ',
+              choices = c(T,F),
+              selected = T,
+              multiple = F
             )
           )
           ,
           createInputSetting(
             rowNumber = 2,                           
             columnWidth = 3,
-            varName = 'database2',
+            varName = 'index',
             uiFunction = 'shinyWidgets::pickerInput',
             uiInputs = list(
-              label = 'Database 2: ',
-              choices = databases,
-              selected = databases[1],
-              multiple = F,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          )
-          ,
-          createInputSetting(
-            rowNumber = 2,                           
-            columnWidth = 3,
-            varName = 'type2',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Type 2: ',
-              choices = types,
-              selected = types[2],
-              multiple = F,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
+              label = 'Index: ',
+              choices = c('T', 'O'),
+              selected = 'T',
+              multiple = F
             )
           )
         )
@@ -305,10 +243,9 @@ characterizationAggregateFeaturesServer <- function(
         riskWindowEnd = options$tarList[[which(options$tars == ifelse(is.null(inputSelected()$tarIds),options$tars[1],inputSelected()$tarIds))]]$riskWindowEnd,
         startAnchor = options$tarList[[which(options$tars == ifelse(is.null(inputSelected()$tarIds),options$tars[1],inputSelected()$tarIds))]]$startAnchor,
         endAnchor = options$tarList[[which(options$tars == ifelse(is.null(inputSelected()$tarIds),options$tars[1],inputSelected()$tarIds))]]$endAnchor,
-        database1 = inputSelected()$database1,
-        database2 = inputSelected()$database2,
-        type1 = typesTranslate[types == inputSelected()$type1],
-        type2 = typesTranslate[types == inputSelected()$type2]
+        database = inputSelected()$database,
+        firstO = inputSelected()$firstO,
+        index = inputSelected()$index
       )
         })
       
@@ -345,20 +282,36 @@ characterizationAggregateFeaturesServer <- function(
             name = "Covariate Name", 
             filterable = T
           ),
-          comp1 = reactable::colDef(
-            name = "Selection 1 mean", 
+          comp1T = reactable::colDef(
+            name = "T without O mean", 
             format = reactable::colFormat(digits = 2, percent = T)
           ), 
-          comp1sd = reactable::colDef(
-            name = "Selection 1 stdev", 
+          comp1sdT = reactable::colDef(
+            name = "T without O stdev", 
             format = reactable::colFormat(digits = 2)
           ),
-          comp2 = reactable::colDef(
-            name = "Selection 2 mean",
+          comp2T = reactable::colDef(
+            name = "T with O mean",
             format = reactable::colFormat(digits = 2, percent = T)
           ), 
-          comp2sd = reactable::colDef(
-            name = "Selection 2 stdev",
+          comp2sdT = reactable::colDef(
+            name = "T with O stdev",
+            format = reactable::colFormat(digits = 2)
+          ), 
+          comp1O = reactable::colDef(
+            name = "O without T mean", 
+            format = reactable::colFormat(digits = 2, percent = T)
+          ), 
+          comp1sdO = reactable::colDef(
+            name = "O without T stdev", 
+            format = reactable::colFormat(digits = 2)
+          ),
+          comp2O = reactable::colDef(
+            name = "O with T mean",
+            format = reactable::colFormat(digits = 2, percent = T)
+          ), 
+          comp2sdO = reactable::colDef(
+            name = "O with T stdev",
             format = reactable::colFormat(digits = 2)
           ), 
           analysisName = reactable::colDef( # not sure this will work now
@@ -389,22 +342,38 @@ characterizationAggregateFeaturesServer <- function(
             name = "Covariate Name", 
             filterable = T
           ),
-          comp1 = reactable::colDef(
-            name = "Selection 1 mean", 
+          comp1T = reactable::colDef(
+            name = "T without O mean", 
+            format = reactable::colFormat(digits = 2)
+          ), 
+          comp1sdT = reactable::colDef(
+            name = "T without O stdev", 
             format = reactable::colFormat(digits = 2)
           ),
-          comp1sd = reactable::colDef(
-            name = "Selection 1 stdev", 
+          comp2T = reactable::colDef(
+            name = "T with O mean",
+            format = reactable::colFormat(digits = 2)
+          ), 
+          comp2sdT = reactable::colDef(
+            name = "T with O stdev",
+            format = reactable::colFormat(digits = 2)
+          ), 
+          comp1O = reactable::colDef(
+            name = "O without T mean", 
+            format = reactable::colFormat(digits = 2)
+          ), 
+          comp1sdO = reactable::colDef(
+            name = "O without T stdev", 
             format = reactable::colFormat(digits = 2)
           ),
-          comp2 = reactable::colDef(
-            name = "Selection 2 mean",
+          comp2O = reactable::colDef(
+            name = "O with T mean",
             format = reactable::colFormat(digits = 2)
-          ),
-          comp2sd = reactable::colDef(
-            name = "Selection 2 stdev",
+          ), 
+          comp2sdO = reactable::colDef(
+            name = "O with T stdev",
             format = reactable::colFormat(digits = 2)
-          ),
+          ), 
           analysisName = reactable::colDef(
             filterInput = function(values, name) {
               shiny::tags$select(
@@ -553,6 +522,7 @@ getAggregateFeatureDatabases <- function(
 }
 
 # pulls all data for a target and outcome
+# edited to only use Ts and TnOs
 characterizationGetAggregateData <- function(
     connectionHandler,
     resultDatabaseSettings,
@@ -562,19 +532,24 @@ characterizationGetAggregateData <- function(
   riskWindowEnd,
   startAnchor,
   endAnchor,
-  database1,
-  database2,
-  type1,
-  type2
+  database,
+  firstO,
+  index
 ){
   
   if(is.null(targetId)){
     return(NULL)
   }
   
-  if( (database1 == database2) & (type1 == type2) ){
-    return(NULL)
-  }
+  #get types based on index and first
+  outcomeType <- ifelse(firstO, 'firstO', 'O')
+  firstPart <- ifelse(index == 'T', 'T', outcomeType)
+  secondPart <- ifelse(index == 'T',outcomeType, 'T')
+  
+  type1 <- firstPart
+  type2 <- paste0(firstPart, 'n', secondPart)
+  
+  # if type is TnOc TnfirstOc the extract T minus TnO / TnOfirst
   
   shiny::withProgress(message = 'Getting Feature Comparison Data', value = 0, {
   sql <- "SELECT s.RUN_ID, cd.COHORT_DEFINITION_ID
@@ -598,7 +573,7 @@ characterizationGetAggregateData <- function(
     start_anchor = startAnchor,
     risk_window_end = riskWindowEnd,
     end_anchor = endAnchor,
-    database_id = database1,
+    database_id = database,
     type = type1
   )
 
@@ -616,7 +591,6 @@ characterizationGetAggregateData <- function(
           and s.RISK_WINDOW_END = @risk_window_end and	s.END_ANCHOR = '@end_anchor'
           and s.DATABASE_ID  = '@database_id' and cd.COHORT_TYPE = '@type';"
   
-
   settingsSecond <- connectionHandler$queryDb(
     sql = sql, 
     schema = resultDatabaseSettings$schema,
@@ -627,7 +601,7 @@ characterizationGetAggregateData <- function(
     start_anchor = startAnchor,
     risk_window_end = riskWindowEnd,
     end_anchor = endAnchor,
-    database_id = database2,
+    database_id = database,
     type = type2
   )
   
@@ -638,25 +612,62 @@ characterizationGetAggregateData <- function(
   
   shiny::incProgress(2/5, detail = paste("Got second runId and CohortId"))
   
-  sql <- "SELECT cov.*, cov_ref.COVARIATE_NAME, an_ref.ANALYSIS_NAME,
-  case when (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1)) then 'comp1' else 'comp2' end as label
-          FROM @schema.@c_table_prefixCOVARIATES cov 
-          INNER JOIN
-          @schema.@c_table_prefixCOVARIATE_REF cov_ref
-          ON cov.covariate_id = cov_ref.covariate_id 
-          and cov.run_id = cov_ref.run_id
-          and cov.database_id = cov_ref.database_id
-          INNER JOIN
-          @schema.@c_table_prefixANALYSIS_REF an_ref
-          ON an_ref.analysis_id = cov_ref.analysis_id 
-          and an_ref.run_id = cov_ref.run_id
-          and an_ref.database_id = cov_ref.database_id
-          WHERE 
-          (
-          (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1))
-          OR
-          (cov.DATABASE_ID  = '@database_id2' and cov.COHORT_DEFINITION_ID = @cohortDef2 and cov.RUN_ID in (@run_id2))
-          );"
+  sql <- "SELECT  
+  case when t.covariate_id is NULL then tno.covariate_id else t.covariate_id end covariate_id,
+  t.sum_value - tno.sum_value as comp1_count,
+  tno.sum_value as comp2_count,
+  case when (t.sum_value - tno.sum_value)*1.0/(cc.row_count - cctno.row_count) is NULL then 0 else (t.sum_value - tno.sum_value)*1.0/(cc.row_count - cctno.row_count) end as comp1_@index,
+  case when tno.average_value is NULL then 0 else tno.average_value end as comp2_@index,
+  sqrt( (t.sum_value - tno.sum_value)*1.0/(cc.row_count - cctno.row_count) * (1-( (t.sum_value - tno.sum_value)*1.0/(cc.row_count - cctno.row_count) )) ) as comp1sd_@index,
+  sqrt( (tno.average_value)*(1-(tno.average_value))) as comp2sd_@index,
+  cov_ref.COVARIATE_NAME, 
+  an_ref.ANALYSIS_NAME
+  
+  FROM
+  
+  (select * FROM @schema.@c_table_prefixCOVARIATES
+  where
+  DATABASE_ID  = '@database_id' and 
+  COHORT_DEFINITION_ID = @cohort_def_1 and 
+  RUN_ID in (@run_id_1) 
+  ) t 
+  full join
+  (select * FROM @schema.@c_table_prefixCOVARIATES
+  where
+  DATABASE_ID  = '@database_id' and 
+  COHORT_DEFINITION_ID = @cohort_def_2 and 
+  RUN_ID in (@run_id_2)
+  ) tno
+  
+  on 
+  t.covariate_id = tno.covariate_id 
+  and t.run_id = tno.run_id
+  
+  INNER JOIN
+  @schema.@c_table_prefixCOHORT_COUNTS cc
+  on cc.cohort_definition_id = t.cohort_definition_id 
+  and cc.run_id = t.run_id 
+  and cc.database_id = t.database_id
+  
+  INNER JOIN
+  @schema.@c_table_prefixCOHORT_COUNTS cctno
+  on cctno.cohort_definition_id = tno.cohort_definition_id 
+  and cctno.run_id = tno.run_id 
+  and cctno.database_id = tno.database_id
+  
+  INNER JOIN
+  @schema.@c_table_prefixCOVARIATE_REF cov_ref
+  ON cov_ref.covariate_id = t.covariate_id 
+  and cov_ref.run_id = case when t.run_id is NULL then tno.run_id else t.run_id end
+  and cov_ref.database_id = t.database_id
+  
+  INNER JOIN
+  @schema.@c_table_prefixANALYSIS_REF an_ref
+  ON an_ref.analysis_id = cov_ref.analysis_id 
+  and an_ref.run_id = cov_ref.run_id
+  and an_ref.database_id = cov_ref.database_id
+  
+  ;"
 
   shiny::incProgress(3/5, detail = paste("Getting binary data"))
   
@@ -664,46 +675,83 @@ characterizationGetAggregateData <- function(
     sql = sql, 
     schema = resultDatabaseSettings$schema,
     c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    cohortDef1 = settingsFirst$cohortDefinitionId[1],
-    cohortDef2 = settingsSecond$cohortDefinitionId[1],
-    database_id1 = database1,
-    database_id2 = database2,
-    run_id1 = paste(settingsFirst$runId, collapse = ','),
-    run_id2 = paste(settingsSecond$runId, collapse = ',')
+    cohort_def_1 = settingsFirst$cohortDefinitionId[1],
+    cohort_def_2 = settingsSecond$cohortDefinitionId[1],
+    database_id = database,
+    run_id_1 = paste(settingsFirst$runId, collapse = ','),
+    run_id_2 = paste(settingsSecond$runId, collapse = ','),
+    index = index
   )
   
   shiny::incProgress(4/5, detail = paste("Getting continuous data"))
   
-  sql <- "SELECT cov.*, cov_ref.COVARIATE_NAME, an_ref.ANALYSIS_NAME,
-  case when (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1)) then 'comp1' else 'comp2' end as label
-          FROM @schema.@c_table_prefixCOVARIATES_CONTINUOUS cov 
-          INNER JOIN
-          @schema.@c_table_prefixCOVARIATE_REF cov_ref
-          ON cov.covariate_id = cov_ref.covariate_id 
-          and cov.run_id = cov_ref.run_id
-          and cov.database_id = cov_ref.database_id
-          INNER JOIN
-          @schema.@c_table_prefixANALYSIS_REF an_ref
-          ON an_ref.analysis_id = cov_ref.analysis_id 
-          and an_ref.run_id = cov_ref.run_id
-          and an_ref.database_id = cov_ref.database_id
-          WHERE 
-          (
-          (cov.DATABASE_ID  = '@database_id1' and cov.COHORT_DEFINITION_ID = @cohortDef1 and cov.RUN_ID in (@run_id1))
-          OR
-          (cov.DATABASE_ID  = '@database_id2' and cov.COHORT_DEFINITION_ID = @cohortDef2 and cov.RUN_ID in (@run_id2))
-          );"
+  sql <- "SELECT  
+  case when t.covariate_id is NULL then tno.covariate_id else t.covariate_id end covariate_id,
+  t.count_value - tno.count_value as comp1_count,
+  tno.count_value as comp2_count,
+  case when (t.count_value*t.average_value - tno.count_value*tno.average_value)*1.0/(cc.row_count-tnocc.row_count) is NULL then 0 else (t.count_value*t.average_value - tno.count_value*tno.average_value)*1.0/(cc.row_count-tnocc.row_count) end as comp1_@index,
+  case when tno.average_value is NULL then 0 else tno.average_value end  as comp2_@index,
+  sqrt( (square(t.standard_deviation)*cc.row_count - square(tno.standard_deviation)*tnocc.row_count)/ (cc.row_count - tnocc.row_count)) as comp1sd_@index,
+  tno.standard_deviation as comp2sd_@index,
+  cov_ref.COVARIATE_NAME, 
+  an_ref.ANALYSIS_NAME
+  
+  FROM
+  
+  (select * FROM @schema.@c_table_prefixCOVARIATES_continuous
+  where
+  DATABASE_ID  = '@database_id' and 
+  COHORT_DEFINITION_ID = @cohort_def_1 and 
+  RUN_ID in (@run_id_1) 
+  ) t 
+  full join
+  (select * FROM @schema.@c_table_prefixCOVARIATES_continuous
+  where
+  DATABASE_ID  = '@database_id' and 
+  COHORT_DEFINITION_ID = @cohort_def_2 and 
+  RUN_ID in (@run_id_2) 
+  ) tno
+  
+  on 
+  t.covariate_id = tno.covariate_id 
+  and t.run_id = tno.run_id
+  
+  INNER JOIN
+  @schema.@c_table_prefixCOHORT_COUNTS cc
+  on cc.cohort_definition_id = t.cohort_definition_id 
+  and cc.run_id =  t.run_id 
+  and cc.database_id = t.database_id
+  
+  INNER JOIN
+  @schema.@c_table_prefixCOHORT_COUNTS tnocc
+  on tnocc.cohort_definition_id = tno.cohort_definition_id 
+  and tnocc.run_id =  tno.run_id 
+  and tnocc.database_id = tno.database_id
+  
+  INNER JOIN
+  @schema.@c_table_prefixCOVARIATE_REF cov_ref
+  ON cov_ref.covariate_id = t.covariate_id 
+  and cov_ref.run_id = case when t.run_id is NULL then tno.run_id else t.run_id end
+  and cov_ref.database_id = t.database_id
+  
+  INNER JOIN
+  @schema.@c_table_prefixANALYSIS_REF an_ref
+  ON an_ref.analysis_id = cov_ref.analysis_id 
+  and an_ref.run_id = cov_ref.run_id
+  and an_ref.database_id = cov_ref.database_id
+  
+  ;"
 
   continuous <- connectionHandler$queryDb(
     sql = sql, 
     schema = resultDatabaseSettings$schema,
     c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    cohortDef1 = settingsFirst$cohortDefinitionId[1],
-    cohortDef2 = settingsSecond$cohortDefinitionId[1],
-    database_id1 = database1,
-    database_id2 = database2,
-    run_id1 = paste(settingsFirst$runId, collapse =  ','),
-    run_id2 = paste(settingsSecond$runId, collapse =  ',')
+    cohort_def_1 = settingsFirst$cohortDefinitionId[1],
+    cohort_def_2 = settingsSecond$cohortDefinitionId[1],
+    database_id = database,
+    run_id_1 = paste(settingsFirst$runId, collapse =  ','),
+    run_id_2 = paste(settingsSecond$runId, collapse =  ','),
+    index = index
   )
 
   shiny::incProgress(5/5, detail = paste("Finished"))
@@ -725,48 +773,26 @@ characterizationFeaturePlot <- function(
     return(NULL)
   }
   
-  valueColumns <- c("covariateName", "covariateId", valueColumn)
+  # selecting the column anmes that has _index appended to it
+  comp1Name <- paste0('comp1', c('O', 'T'))[paste0('comp1', c('O', 'T')) %in% colnames(data)]
+  comp2Name <- paste0('comp2', c('O', 'T'))[paste0('comp2', c('O', 'T')) %in% colnames(data)]
+  data$comp1 <- data[,comp1Name]
+  data$comp2 <- data[,comp2Name]
   
+  maxval <- max(max(data$comp1),max(data$comp2))
   
-  shiny::withProgress(message = 'Generating plots', value = 0, {
-  
-  comp1 <- data %>% 
-    dplyr::filter(.data$label == 'comp1') %>%
-    dplyr::select(dplyr::all_of(valueColumns)) %>%
-    dplyr::rename(comp1 = dplyr::all_of(valueColumn)) #.data[[valueColumn]])  # not sure how to do this ERROR?
-  
-  shiny::incProgress(1/5, detail = paste("Filtered comparision 1"))
-    
-  comp2 <- data %>% 
-    dplyr::filter(.data$label == 'comp2') %>%
-    dplyr::select(dplyr::all_of(valueColumns)) %>%
-    dplyr::rename(comp2 = dplyr::all_of(valueColumn))  # not sure this will work ERROR?
-  
-  shiny::incProgress(2/5, detail = paste("Filtered comparision 2"))
-  
-  analysisIds <- data %>%
-    dplyr::select(c("covariateName", "covariateId", "analysisName")) %>%
-    dplyr::distinct()
-  
-  shiny::incProgress(3/5, detail = paste("Extracting analysisNames"))
-  
-  maxval <- max(max(comp1$comp1, na.rm = T),  max(comp2$comp2, na.rm = T))
-  
-  allData <- merge(comp1, comp2, by = c('covariateName','covariateId'), all = T)
-  allData[is.na(allData)] <- 0
-  allData <- merge(allData, analysisIds,  by = c('covariateName','covariateId') , all.x = T)
-  
-  shiny::incProgress(4/5, detail = paste("Merged data"))
-  
-  plot <- plotly::plot_ly(x = allData$comp1,
-                  showlegend = F) %>%
-    plotly::add_markers(y = allData$comp2,
-                        color=factor(allData$analysisName),
+  plot <- plotly::plot_ly(
+    data = data,
+    x = ~.data$comp1,
+    y = ~.data$comp2,
+    showlegend = F
+    ) %>%
+    plotly::add_markers(color=factor(data$analysisName),
                         hoverinfo = 'text',
                         text = ~paste(
-                          '\n',descGetType(allData$covariateName),
-                          '\n',descGetName(allData$covariateName),
-                          '\n',descGetTime(allData$covariateName)
+                          '\n',descGetType(data$covariateName),
+                          '\n',descGetName(data$covariateName),
+                          '\n',descGetTime(data$covariateName)
                           ),
                         showlegend = T
     ) %>%
@@ -779,9 +805,6 @@ characterizationFeaturePlot <- function(
       #legend = l, showlegend = T,
       legend = list(orientation = 'h', y = -0.3), showlegend = T)
   
-  shiny::incProgress(5/5, detail = paste("Finished"))
-  
-  })
   
     return(plot)
 }
@@ -808,76 +831,40 @@ characterizationFeatureTable <- function(
     return(NULL)
   }
   
-  shiny::withProgress(message = 'Generating Table', value = 0, {
+  # selecting the column that as _index appended to it
+  comp1Name <- paste0('comp1', c('O', 'T'))[paste0('comp1', c('O', 'T')) %in% colnames(data)]
+  comp2Name <- paste0('comp2', c('O', 'T'))[paste0('comp2', c('O', 'T')) %in% colnames(data)]
+  comp1sdName <- paste0('comp1sd', c('O', 'T'))[paste0('comp1sd', c('O', 'T')) %in% colnames(data)]
+  comp2sdName <- paste0('comp2sd', c('O', 'T'))[paste0('comp2sd', c('O', 'T')) %in% colnames(data)]
+  
+  if(sum(is.null(data[comp1sdName]))>0){
+    data[comp1sdName][is.null(data[comp1sdName])] <- 0
+  }
+  if(sum(is.null(data[comp2sdName]))>0){
+    data[comp2sdName][is.null(data[comp2sdName])] <- 0
+  }
+
+    data <- data %>%
+      dplyr::mutate(
+        standardizedMeanDiff = (.data[[comp1Name]] - .data[[comp2Name]])/(sqrt((.data[[comp1sdName]]^2 + .data[[comp2sdName]]^2)))
+        ) %>%
+      dplyr::select(
+        "covariateName",
+        "analysisName",
+        comp1Name,
+        comp1sdName,
+        comp2Name,
+        comp2sdName,
+        "standardizedMeanDiff"
+      )
     
-    if(!'standardDeviation' %in% colnames(data)){
-      # adding standard dev for binary features
-      data <- data %>% 
-        dplyr::mutate(
-          standardDeviation = sqrt(data$averageValue * (1-data$averageValue))
-                        )
+    if(sum(is.null(data$standardizedMeanDiff))>0){
+      data$standardizedMeanDiff[is.null(data$standardizedMeanDiff)] <- 0
     }
     
-    comp1 <- data %>% 
-      dplyr::filter(.data$label == 'comp1') %>%
-      dplyr::select(
-        c(
-        "covariateId",
-        "covariateName", 
-        "averageValue", 
-        "standardDeviation"
-        )
-        ) %>%
-      dplyr::rename(
-        comp1 = "averageValue",
-        comp1sd = "standardDeviation"
-        )
-
+    if(sum(!is.finite(data$standardizedMeanDiff))>0){
+      data$standardizedMeanDiff[!is.finite(data$standardizedMeanDiff)] <- 0
+    }
     
-    shiny::incProgress(1/4, detail = paste("Filtered comparision 1"))
-    
-    comp2 <- data %>% 
-      dplyr::filter(.data$label == 'comp2') %>%
-      dplyr::select(
-        c(
-        "covariateId",
-        "covariateName", 
-        "averageValue", 
-        "standardDeviation"
-        )
-        ) %>%
-      dplyr::rename(
-        comp2 = "averageValue",
-        comp2sd = "standardDeviation"
-        )
-    
-    shiny::incProgress(2/4, detail = paste("Filtered comparision 2"))
-    
-    analysisIds <- data %>%
-      dplyr::select(c("covariateName", "covariateId", "analysisName")) %>%
-      dplyr::distinct()
-    
-    shiny::incProgress(3/4, detail = paste("Extracting analysisIds"))
-    
-    allData <- merge(
-      comp1, 
-      comp2, 
-      by = c('covariateId', 'covariateName'), 
-      all = T
-      )
-    allData[is.na(allData)] <- 0
-    allData <- merge(allData, analysisIds,  by = c('covariateId', 'covariateName'), all.x = T)
-    
-    allData <- allData %>%
-      dplyr::mutate(
-        standardizedMeanDiff = (.data$comp1 - .data$comp2)/(sqrt((.data$comp1sd^2 + .data$comp2sd^2)/2))
-        ) 
-    
-    # multiple binary by 100 and make to 2dp?
-    
-    shiny::incProgress(4/4, detail = paste("Finished"))
-    
-  })
-  
-  return(allData)
+  return(data)
 }

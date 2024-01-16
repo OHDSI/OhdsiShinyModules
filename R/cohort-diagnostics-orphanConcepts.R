@@ -1,4 +1,4 @@
-# Copyright 2023 Observational Health Data Sciences and Informatics
+# Copyright 2024 Observational Health Data Sciences and Informatics
 #
 # This file is part of PatientLevelPrediction
 #
@@ -28,7 +28,7 @@ orpahanConceptsView <- function(id) {
       collapsed = TRUE,
       title = "Orphan Concepts",
       width = "100%",
-      shiny::htmlTemplate(system.file("cohort-diagnostics-www",  "orphanConcepts.html", package = utils::packageName()))
+      shiny::htmlTemplate(system.file("cohort-diagnostics-www", "orphanConcepts.html", package = utils::packageName()))
     ),
     shinydashboard::box(
       status = "warning",
@@ -41,73 +41,47 @@ orpahanConceptsView <- function(id) {
     shinydashboard::box(
       title = NULL,
       width = NULL,
-      htmltools::withTags(
-        table(
-          width = "100%",
-          shiny::tags$tr(
-            shiny::tags$td(
-              shiny::radioButtons(
-                inputId = ns("orphanConceptsType"),
-                label = "Filters",
-                choices = c("All", "Standard Only", "Non Standard Only"),
-                selected = "All",
-                inline = TRUE
-              )
-            ),
-            shiny::tags$td(shiny::HTML("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")),
-            shiny::tags$td(
-              shiny::radioButtons(
-                inputId = ns("orphanConceptsColumFilterType"),
-                label = "Display",
-                choices = c("All", "Persons", "Records"),
-                selected = "All",
-                inline = TRUE
-              )
-            )
-          )
+      shiny::fluidRow(
+        shiny::column(width = 4,
+                      shiny::radioButtons(
+                        inputId = ns("orphanConceptsType"),
+                        label = "Filters",
+                        choices = c("All" = 0, "Standard Only" = 1, "Non Standard Only" = 2),
+                        selected = 0,
+                        inline = TRUE
+                      )
+        ),
+        shiny::column(width = 4,
+                      shiny::radioButtons(
+                        inputId = ns("orphanConceptsColumFilterType"),
+                        label = "Display",
+                        choices = c("All" = 0, "Persons" = 1, "Records" = 2),
+                        selected = 0,
+                        inline = TRUE
+                      )
+        ),
+        shiny::column(width = 4,
+                      shiny::textInput(inputId = ns("generalSearchString"),
+                                       label = "",
+                                       placeholder = "Search concepts")
         )
       ),
-      shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("orphanConceptsTable"))),
-      reactableCsvDownloadButton(ns, "orphanConceptsTable")
+      shiny::fluidRow(
+        shiny::column(width = 6,
+                      shiny::selectInput(inputId = ns("sortBy"),
+                                         label = "Sort By",
+                                         choices = NULL)
+        ),
+        shiny::column(width = 2,
+                      shiny::radioButtons(inputId = ns("shortByAsc"),
+                                          choices = c(ascending = "ASC", descending = "DESC"),
+                                          selected = "DESC",
+                                          label = "order")
+        )
+      ),
+      largeTableView(id = ns("orphanConceptsTable"), selectedPageSize = 50)
     )
   )
-}
-
-
-getOrphanConceptResult <- function(dataSource,
-                                   databaseIds,
-                                   cohortId,
-                                   conceptSetId = NULL) {
-  sql <- "SELECT oc.*,
-              cs.concept_set_name,
-              c.concept_name,
-              c.vocabulary_id,
-              c.concept_code,
-              c.standard_concept
-            FROM  @schema.@orphan_table_name oc
-            INNER JOIN  @schema.@cs_table_name cs
-              ON oc.cohort_id = cs.cohort_id
-                AND oc.concept_set_id = cs.concept_set_id
-            INNER JOIN  @vocabulary_database_schema.@concept_table c
-              ON oc.concept_id = c.concept_id
-            WHERE oc.cohort_id = @cohort_id
-              AND database_id in (@database_ids)
-              {@concept_set_id != \"\"} ? { AND oc.concept_set_id IN (@concept_set_id)};"
-  data <-
-    dataSource$connectionHandler$queryDb(
-      sql = sql,
-      schema = dataSource$schema,
-      vocabulary_database_schema = dataSource$vocabularyDatabaseSchema,
-      cohort_id = cohortId,
-      database_ids = quoteLiterals(databaseIds),
-      orphan_table_name = dataSource$prefixTable("orphan_concept"),
-      cs_table_name = dataSource$prefixTable("concept_sets"),
-      concept_table = dataSource$prefixVocabTable("concept"),
-      concept_set_id = conceptSetId,
-      snakeCaseToCamelCase = TRUE
-    ) %>%
-      tidyr::tibble()
-  return(data)
 }
 
 orphanConceptsModule <- function(id,
@@ -122,140 +96,121 @@ orphanConceptsModule <- function(id,
   shiny::moduleServer(id, function(input, output, session) {
     output$selectedCohorts <- shiny::renderUI({ selectedCohort() })
 
-
     # Orphan concepts table --------------------
-    orphanConceptsDataReactive <- shiny::reactive(x = {
-      shiny::validate(shiny::need(length(targetCohortId()) > 0, "No cohorts chosen"))
-      data <- getOrphanConceptResult(
-        dataSource = dataSource,
-        cohortId = targetCohortId(),
-        databaseIds = selectedDatabaseIds()
+    inputButtonParams <- shiny::reactive({
+      conceptSets <- conceptSetIds()
+      if (length(conceptSets) == 0) {
+        conceptSets <- NULL
+      }
+
+      params <- list(
+        database_ids = quoteLiterals(selectedDatabaseIds()),
+        cohort_id = targetCohortId(),
+        concept_set_id = conceptSets,
+        use_concept_set_id = length(conceptSets) > 0,
+        schema = dataSource$schema,
+        vocabulary_database_schema = dataSource$vocabularyDatabaseSchema,
+        orphan_table_name = dataSource$prefixTable("orphan_concept"),
+        cs_table_name = dataSource$prefixTable("concept_sets"),
+        concept_table = dataSource$prefixVocabTable("concept"),
+        search_str = input$generalSearchString,
+        sort_by = input$sortBy,
+        sort_by_asc = ifelse(input$shortByAsc == "DESC", "DESC", "ASC") # Prevent sql injection
       )
-      
-      if (!hasData(data)) {
-        return(NULL)
-      }
-      data <- data %>%
-        dplyr::arrange(dplyr::desc(.data$conceptCount))
-      return(data)
-    })
-    
-    # Reactive below developed for testing purposes
-    # Focuses on filtering the standard vs. non-standard codes
-    filteringStandardConceptsReactive <- shiny::reactive(x = {
-      data <- orphanConceptsDataReactive()
-      shiny::validate(shiny::need(hasData(data), "There is no data for the selected combination."))
-      
-      
-      if (hasData(selectedConceptSets())) {
-        if (!is.null(selectedConceptSets())) {
-          if (length(conceptSetIds()) > 0) {
-            data <- data %>%
-              dplyr::filter(.data$conceptSetId %in% conceptSetIds())
-          } else {
-            data <- data[0,]
-          }
-        }
-      }
 
-      if (input$orphanConceptsType == "Standard Only") {
-        data <- data %>%
-          dplyr::filter(.data$standardConcept == "S")
-      } else if (input$orphanConceptsType == "Non Standard Only") {
-        data <- data %>%
-          dplyr::filter(is.na(.data$standardConcept) |
-                          (
-                            all(!is.na(.data$standardConcept), .data$standardConcept != "S")
-                          ))
-      }
-      
-      return (data)
-      
+      return(params)
     })
 
-    output$orphanConceptsTable <- reactable::renderReactable(expr = {
-      data <- filteringStandardConceptsReactive()
-      shiny::validate(shiny::need(hasData(data), "There is no data for the selected combination."))
-    
+    databaseSubGrp <- ",
+    MAX(CASE WHEN oc.database_id = '@db_id_i' THEN oc.concept_count END) AS concept_count_@db_id_i,
+    MAX(CASE WHEN oc.database_id = '@db_id_i' THEN oc.concept_subjects END) AS subject_count_@db_id_i"
 
-      data <- data %>%
-        dplyr::select(
-          "databaseId",
-          "cohortId",
-          "conceptId",
-          "conceptSubjects",
-          "conceptCount"
-        ) %>%
-        dplyr::group_by(
-          .data$databaseId,
-          .data$cohortId,
-          .data$conceptId
-        ) %>%
-        dplyr::summarise(
-          conceptSubjects = sum(.data$conceptSubjects),
-          conceptCount = sum(.data$conceptCount),
-          .groups = "keep"
-        ) %>%
-        dplyr::ungroup() %>%
-        dplyr::arrange(
-          .data$databaseId,
-          .data$cohortId
-        ) %>%
-        dplyr::inner_join(
-          data %>%
-            dplyr::select(
-              "conceptId",
-              "databaseId",
-              "cohortId",
-              "conceptName",
-              "vocabularyId",
-              "conceptCode"
-            ),
-          by = c("databaseId", "cohortId", "conceptId")
-        ) %>%
-        dplyr::rename(
-          "persons" = "conceptSubjects",
-          "records" = "conceptCount"
-        ) %>%
-        dplyr::arrange(dplyr::desc(abs(dplyr::across(
-          c("records", "persons")
-        ))))
+    sql <- "
+    SELECT
+      c.concept_id,
+      c.concept_name,
+      c.vocabulary_id,
+      c.concept_code,
+      CASE WHEN c.standard_concept = 'S' THEN 'Standard' ELSE 'Non-standard' END as standard_concept
+      %s
+    FROM  @schema.@orphan_table_name oc
+    INNER JOIN  @schema.@cs_table_name cs
+      ON oc.cohort_id = cs.cohort_id
+        AND oc.concept_set_id = cs.concept_set_id
+    INNER JOIN  @vocabulary_database_schema.@concept_table c
+      ON oc.concept_id = c.concept_id
+    WHERE oc.cohort_id = @cohort_id
+      AND database_id in (@database_ids)
+      {@search_str != ''} ? {AND lower(CONCAT(c.concept_id, c.concept_name, c.vocabulary_id, c.concept_code)) LIKE lower('%%@search_str%%')}
+      {@use_concept_set_id} ? { AND oc.concept_set_id IN (@concept_set_id)}
+    GROUP BY
+      c.concept_id,
+      c.concept_name,
+      c.vocabulary_id,
+      c.concept_code,
+      c.standard_concept
+    {@sort_by != \"\"} ? {ORDER BY @sort_by @sort_by_asc}
+      "
 
-      keyColumnFields <-
-        c("conceptId", "conceptName", "vocabularyId", "conceptCode")
-      if (input$orphanConceptsColumFilterType == "Persons") {
-        dataColumnFields <- c("persons")
-        countLocation <- 1
-      } else if (input$orphanConceptsColumFilterType == "Records") {
-        dataColumnFields <- c("records")
-        countLocation <- 1
-      } else {
-        dataColumnFields <- c("persons", "records")
-        countLocation <- 2
-      }
-      countsForHeader <-
-        getDisplayTableHeaderCount(
-          dataSource = dataSource,
-          databaseIds = data$databaseId %>% unique(),
-          cohortIds = data$cohortId %>% unique(),
-          source = "cohort",
-          fields = input$orphanConceptsColumFilterType
+    shiny::observe({
+      databaseIds <- selectedDatabaseIds()
+      dbSelectCols <- ""
+
+      columnDefinitions <- list(
+        conceptId = reactable::colDef(name = "Concept Id"),
+        conceptName = reactable::colDef(name = "Concept Name", minWidth = 200),
+        vocabularyId = reactable::colDef(name = "Vocabulary Id"),
+        conceptCode = reactable::colDef(name = "Concept Code"),
+        standardConcept = reactable::colDef(name = "Standard Concept")
+      )
+
+      columnGroups <- list()
+      sortByColumns <- c("Concept Id" = "c.concept_id",
+                         "Concept Name" = "c.concept_name",
+                         "Vocabulary Id" = "c.vocabulary_id",
+                         "Concept Code" = "c.concept_code")
+      for (dbid in databaseIds) {
+        dbCols <- SqlRender::render(databaseSubGrp, db_id_i = dbid)
+        dbSelectCols <- paste(dbSelectCols, dbCols)
+
+        columnIdCount <- SqlRender::snakeCaseToCamelCase(paste0("concept_count_", dbid))
+        columnIdSubject <- SqlRender::snakeCaseToCamelCase(paste0("subject_count_", dbid))
+
+        columnDefinitions[[columnIdCount]] <- reactable::colDef(name = "Records",
+                                                                cell = formatDataCellValueInDisplayTable(),
+                                                                show = input$orphanConceptsColumFilterType %in% c(0,2))
+        columnDefinitions[[columnIdSubject]] <- reactable::colDef(name = "Persons",
+                                                                  cell = formatDataCellValueInDisplayTable(),
+                                                                  show = input$orphanConceptsColumFilterType %in% c(0,1))
+
+        databaseName <- databaseTable %>%
+          dplyr::filter(.data$databaseId == dbid) %>%
+          dplyr::select("databaseName") %>%
+          dplyr::pull()
+
+        columnGroups[[length(columnGroups) + 1]] <- reactable::colGroup(
+          name = databaseName,
+          columns = c(columnIdCount, columnIdSubject),
+          align = "center"
         )
 
-      showDataAsPercent <- FALSE
-      ## showDataAsPercent set based on UI selection - proportion
+        cNames <- names(sortByColumns)
+        sortByColumns <- c(sortByColumns, paste0("concept_count_", dbid), paste0("subject_count_", dbid))
+        names(sortByColumns) <- c(cNames, paste(databaseName, "Records"), paste(databaseName, "Subjects"))
+      }
 
-      displayTable <- getDisplayTableGroupedByDatabaseId(
-        data = data,
-        databaseTable = databaseTable,
-        headerCount = countsForHeader,
-        keyColumns = keyColumnFields,
-        countLocation = countLocation,
-        dataColumns = dataColumnFields,
-        showDataAsPercent = showDataAsPercent,
-        sort = TRUE
-      )
-      return(displayTable)
+      shiny::updateSelectInput(inputId = "sortBy", choices = sortByColumns, selected = sortByColumns[[5]])
+
+      baseQuery <- sprintf(sql, dbSelectCols)
+      ldt <- LargeDataTable$new(connectionHandler = dataSource$connectionHandler,
+                                baseQuery = baseQuery)
+
+      largeTableServer(id = "orphanConceptsTable",
+                       ldt,
+                       inputParams = inputButtonParams,
+                       columns = columnDefinitions,
+                       columnGroups = columnGroups)
+
     })
 
   })

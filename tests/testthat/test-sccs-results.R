@@ -13,7 +13,7 @@ shiny::testServer(sccsResultsServer, args = list(
     list(
       analysis = 13,
       outcome = 11123,
-      exposure = 1
+      exposure = "1 1"
     )
   )
   
