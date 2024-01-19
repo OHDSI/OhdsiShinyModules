@@ -1,3 +1,7 @@
+OhdsiShinyModules v2.1.1
+========================
+Fixed bug in cohort diagnostics load up of orphan concepts server causing app to crash on load
+
 OhdsiShinyModules v2.1.0
 ========================
 Support for data models from SCCS version 5.2.0

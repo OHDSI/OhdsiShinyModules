@@ -199,7 +199,7 @@ orphanConceptsModule <- function(id,
         names(sortByColumns) <- c(cNames, paste(databaseName, "Records"), paste(databaseName, "Subjects"))
       }
 
-      shiny::updateSelectInput(inputId = "sortBy", choices = sortByColumns, selected = sortByColumns[[5]])
+      shiny::updateSelectInput(inputId = "sortBy", choices = sortByColumns, selected = sortByColumns[[1]])
 
       baseQuery <- sprintf(sql, dbSelectCols)
       ldt <- LargeDataTable$new(connectionHandler = dataSource$connectionHandler,
