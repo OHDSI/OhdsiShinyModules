@@ -106,6 +106,15 @@ DatabaseConnector::insertTable(
 DatabaseConnector::insertTable(
   connection = connectionPV,
   databaseSchema = 'main',
+  tableName = 'PV_MODEL_COVARIATE_SUMMARY',
+  data = read.csv(file.path(resultsPV, "pv_model_covariate_summary.csv")),
+  createTable = T, dropTableIfExists = T,
+  camelCaseToSnakeCase = F
+)
+
+DatabaseConnector::insertTable(
+  connection = connectionPV,
+  databaseSchema = 'main',
   tableName = 'PV_MODEL_COVARIATES',
   data = read.csv(file.path(resultsPV, "pv_model_covariates.csv")),
   createTable = T, dropTableIfExists = T,
