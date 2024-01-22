@@ -197,7 +197,7 @@ characterizationIncidenceViewer <- function(id) {
               shiny::plotOutput(
                 ns('incidencePlotLegend'),
                 width="100%",
-                height="300px"
+                height="500px"
               )
               
             )
@@ -263,7 +263,7 @@ characterizationIncidenceServer <- function(
               uiInputs = list(
                 label = 'Target: ',
                 choices = options$targetIds,
-                selected = options$targetIds[1],
+                selected = options$targetIds[1], #default should be just one (the first)
                 multiple = T,
                 options = shinyWidgets::pickerOptions(
                   actionsBox = TRUE,
@@ -284,7 +284,7 @@ characterizationIncidenceServer <- function(
               uiInputs = list(
                 label = 'Outcome: ',
                 choices = options$outcomeIds,
-                selected = options$outcomeIds[1],
+                selected = options$outcomeIds[1], #default should be just one (the first)
                 multiple = T,
                 options = shinyWidgets::pickerOptions(
                   actionsBox = TRUE,
@@ -306,8 +306,8 @@ characterizationIncidenceServer <- function(
               updateFunction = 'shinyWidgets::updatePickerInput',
               collapse = T,
               uiInputs = list(
-                label = 'Filter By Age: ',
-                choices = options$ageGroupName,
+                label = 'Filter By Age Group: ',
+                choices = sort(options$ageGroupName, decreasing=T),
                 selected = options$ageGroupName,
                 multiple = T,
                 options = shinyWidgets::pickerOptions(
@@ -332,7 +332,7 @@ characterizationIncidenceServer <- function(
               collapse = T,
               uiInputs = list(
                 label = 'Filter By Sex: ',
-                choices = options$genderName,
+                choices = sort(options$genderName, decreasing = F),
                 selected = options$genderName,
                 multiple = T,
                 options = shinyWidgets::pickerOptions(
@@ -356,7 +356,7 @@ characterizationIncidenceServer <- function(
               collapse = T,
               uiInputs = list(
                 label = 'Filter By Start Year: ',
-                choices = options$startYear,
+                choices = sort(options$startYear, decreasing = T),
                 selected = options$startYear,
                 multiple = T,
                 options = shinyWidgets::pickerOptions(
@@ -591,11 +591,19 @@ characterizationIncidenceServer <- function(
       filteredData <- shiny::reactive(         
         {
           if (is.null(inputSelected()$targetIds) |
-              is.null(inputSelected()$outcomeIds)) {
+              is.null(inputSelected()$outcomeIds)
+              ) {
             return(data.frame())
           }
           
-          getIncidenceData(targetIds = inputSelected()$targetIds,
+          else if(inputSelected()$targetIds==inputSelected()$outcomeIds &&
+                   length(inputSelected()$targetIds)==1 && length(inputSelected()$outcomeIds)==1
+          ){
+            shiny::validate("Target and outcome cohorts must differ from each other. Make a different selection.")
+          }
+          
+          else {
+            getIncidenceData(targetIds = inputSelected()$targetIds,
                            outcomeIds = inputSelected()$outcomeIds,
                            connectionHandler = connectionHandler,
                            resultDatabaseSettings = resultDatabaseSettings
@@ -610,6 +618,7 @@ characterizationIncidenceServer <- function(
                             .data$genderName %in% !!inputSelected()$incidenceRateGenderFilter & 
                             .data$startYear %in% !!inputSelected()$incidenceRateCalendarFilter  
             )
+          }
         }
       )
 
@@ -642,6 +651,8 @@ characterizationIncidenceServer <- function(
         downloadedFileName = "incidenceRateTable-"
       )
       
+      '%!in%' <- function(x,y)!('%in%'(x,y))
+      
       #ir plots - TODO edit to reactive
       renderIrPlot <- shiny::reactive(
         {
@@ -650,9 +661,12 @@ characterizationIncidenceServer <- function(
             return(data.frame())
           }
           
+          ifelse(inputSelected()$incidenceRateTarFilter %in% filteredData()$tar,
           plotData <- filteredData() %>%
-            dplyr::filter(.data$tar %in% inputSelected()$incidenceRateTarFilter)
-          
+            dplyr::filter(.data$tar %in% inputSelected()$incidenceRateTarFilter),
+            shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
+          )
+
           # Take the specific tar value you want to plot
           tar_value <- unique(plotData$tar)[1]
           
@@ -700,23 +714,24 @@ characterizationIncidenceServer <- function(
           
           max_length <- max(nchar(unique(inputSelected()$plotXAxis)))
           
-          if (inputSelected()$plotXTrellis != inputSelected()$plotYTrellis){
+          if (inputSelected()$plotXTrellis != inputSelected()$plotYTrellis | 
+              (inputSelected()$plotXTrellis == "(None)" && inputSelected()$plotYTrellis == "(None)")){
             
             # Create the base plot with conditional aesthetics
             base_plot <- ggplot2::ggplot(
               data = plotData,
               ggplot2::aes(x = .data[[inputSelected()$plotXAxis]],
                            y = .data[[inputSelected()$plotYAxis]],
-                           shape = if(inputSelected()$plotShape != "None" & inputSelected()$plotShape != "Target Cohort" & 
+                           shape = if(inputSelected()$plotShape != "(None)" & inputSelected()$plotShape != "Target Cohort" & 
                                       inputSelected()$plotShape != "Outcome Cohort") .data[[inputSelected()$plotShape]]
                            else shape_aesthetic,
-                           color = if(inputSelected()$plotColor != "None" & inputSelected()$plotColor != "Target Cohort" & 
+                           color = if(inputSelected()$plotColor != "(None)" & inputSelected()$plotColor != "Target Cohort" & 
                                       inputSelected()$plotColor != "Outcome Cohort") .data[[inputSelected()$plotColor]]
                            else color_aesthetic,
                            text = .data$tooltip
               )
             ) + 
-              ggplot2::geom_point(ggplot2::aes(size = if(inputSelected()$plotSize != "None") .data[[inputSelected()$plotSize]] else NULL,
+              ggplot2::geom_point(ggplot2::aes(size = if(inputSelected()$plotSize != "(None)") .data[[inputSelected()$plotSize]] else NULL,
                                                alpha = 0.6)
               ) 
             
@@ -727,8 +742,8 @@ characterizationIncidenceServer <- function(
             }
             
             # Add trellising if it's not NULL
-            if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
+                inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
                 cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
@@ -736,11 +751,10 @@ characterizationIncidenceServer <- function(
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
+                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$targetIdShort),
                 cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
@@ -748,11 +762,10 @@ characterizationIncidenceServer <- function(
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
+                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$outcomeIdShort),
                 cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
@@ -760,11 +773,10 @@ characterizationIncidenceServer <- function(
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
+                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
                 cols = dplyr::vars(.data$targetIdShort),
@@ -772,11 +784,10 @@ characterizationIncidenceServer <- function(
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
+            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
+                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
                 cols = dplyr::vars(.data$outcomeIdShort),
@@ -784,11 +795,10 @@ characterizationIncidenceServer <- function(
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
+                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$targetIdShort),
                 cols = dplyr::vars(.data$targetIdShort),
@@ -796,11 +806,10 @@ characterizationIncidenceServer <- function(
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
+            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
+                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$targetIdShort),
                 cols = dplyr::vars(.data$outcomeIdShort),
@@ -808,11 +817,10 @@ characterizationIncidenceServer <- function(
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
+                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$outcomeIdShort),
                 cols = dplyr::vars(.data$targetIdShort),
@@ -820,11 +828,10 @@ characterizationIncidenceServer <- function(
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
+            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
+                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$outcomeIdShort),
                 cols = dplyr::vars(.data$outcomeIdShort),
@@ -832,11 +839,10 @@ characterizationIncidenceServer <- function(
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis=="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
+            else if (inputSelected()$plotXTrellis=="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
+                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = NULL,
                 cols = dplyr::vars(.data$outcomeIdShort),
@@ -844,11 +850,10 @@ characterizationIncidenceServer <- function(
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis=="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelected()$plotXTrellis=="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
+                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = NULL,
                 cols = dplyr::vars(.data$targetIdShort),
@@ -856,11 +861,10 @@ characterizationIncidenceServer <- function(
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis=="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelected()$plotXTrellis=="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
+                     inputSelected()$plotYTrellis!="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = NULL,
                 cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
@@ -868,11 +872,10 @@ characterizationIncidenceServer <- function(
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis=="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
+                     inputSelected()$plotYTrellis=="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
                 cols = NULL,
@@ -880,11 +883,10 @@ characterizationIncidenceServer <- function(
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis=="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
+                     inputSelected()$plotYTrellis=="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$targetIdShort),
                 cols = NULL,
@@ -892,11 +894,10 @@ characterizationIncidenceServer <- function(
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
-                     inputSelected()$plotYTrellis=="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelected()$plotXTrellis!="(None)" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
+                     inputSelected()$plotYTrellis=="(None)" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$outcomeIdShort),
                 cols = NULL,
@@ -904,8 +905,17 @@ characterizationIncidenceServer <- function(
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
+            }
+            else if (inputSelected()$plotXTrellis=="(None)" & inputSelected()$plotYTrellis=="(None)") {
+              base_plot <- base_plot + ggplot2::facet_grid(
+                rows = NULL,
+                cols = NULL,
+                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+              ) +
+                ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                               strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+                ) 
             }
             
             
@@ -927,13 +937,15 @@ characterizationIncidenceServer <- function(
                 axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 30)),
                 axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 30)),
                 legend.box = "horizontal",
+                legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
+                legend.title = ggplot2::element_text(size=30), #change legend title font size
+                legend.text = ggplot2::element_text(size=20),
                 panel.spacing = ggplot2::unit(1, "lines"),
                 strip.background = ggplot2::element_blank(), 
                 strip.text = ggplot2::element_text(face="bold")
-              ) +
-              force_panelsizes(
-                rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in")
-                )
+              ) + 
+              ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 7)),
+                              color = ggplot2::guide_legend(override.aes = list(size = 7)))
             
             #   
             #   # Create a custom color scale
@@ -979,9 +991,10 @@ characterizationIncidenceServer <- function(
         {
           if (is.null(inputSelected()$targetIds) |
               is.null(inputSelected()$outcomeIds)) {
-            return(data.frame())
+            shiny::validate("Please select at least one target and one outcome.")
           }
           
+          else {
           plotData <- filteredData() %>%
             dplyr::filter(.data$tar %in% inputSelected()$incidenceRateTarFilter)
           
@@ -1021,6 +1034,8 @@ characterizationIncidenceServer <- function(
           ) 
           
           return(p)
+          
+          }
           
         }
       )
@@ -1093,7 +1108,7 @@ getIncidenceData <- function(
     resultTable <- resultTable %>% 
       dplyr::select(-c("tarStartWith","tarStartOffset","tarEndWith","tarEndOffset", "tarId", "subgroupName"))
     
-    resultTable[is.na(resultTable)] <- 'All'
+    resultTable[is.na(resultTable)] <- 'Any'
     resultTable <- unique(resultTable)
     
     return(resultTable)
@@ -1161,7 +1176,7 @@ getIncidenceOptions <- function(
   )
   
   ageGroupName <- result$ageGroupName
-  ageGroupName[is.na(ageGroupName)] <- 'All'
+  ageGroupName[is.na(ageGroupName)] <- 'Any'
   ageGroupName <- sort(ageGroupName)
   
   sql <- 'select distinct gender_name
@@ -1174,7 +1189,7 @@ getIncidenceOptions <- function(
   )
   
   genderName <- result$genderName
-  genderName[is.na(genderName)] <- 'All'
+  genderName[is.na(genderName)] <- 'Any'
   genderName <- sort(genderName)
   
   sql <- 'select distinct start_year
@@ -1187,7 +1202,7 @@ getIncidenceOptions <- function(
   )
   
   startYear <- result$startYear
-  startYear[is.na(startYear)] <- 'All'
+  startYear[is.na(startYear)] <- 'Any'
   startYear <- sort(startYear)
   
   # shiny::incProgress(3/3, detail = paste("Done"))
@@ -1202,7 +1217,7 @@ getIncidenceOptions <- function(
     "outcomeName",
     "tar",
     "cleanWindow",
-    "None"
+    "(None)"
   )
   names(irPlotCategoricalChoices) <- c(
     "Data Source", 
@@ -1213,7 +1228,7 @@ getIncidenceOptions <- function(
     "Outcome Cohort", 
     "TAR", 
     "Clean Window",
-    "None"
+    "(None)"
   )
   
   irPlotNumericChoices <- list(
@@ -1227,7 +1242,7 @@ getIncidenceOptions <- function(
     "personsAtRiskPe",
     "personDays",
     "personDaysPe",
-    "None"
+    "(None)"
   )
   names(irPlotNumericChoices) <- c(
     "Incidence Rate (per 100PY)", 
@@ -1240,7 +1255,7 @@ getIncidenceOptions <- function(
     "Persons At Risk PE", 
     "Person Days", 
     "Person Days PE",
-    "None"
+    "(None)"
   )
   
   return(

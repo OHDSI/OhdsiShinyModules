@@ -92,6 +92,11 @@ phevaluatorViewer <- function(id) {
                             downloadedFileName = "modelCovariatesTable-")
         ),
         shiny::tabPanel(
+          title = "Model Covariate Summary",
+          resultTableViewer(ns("modelCovariateSummaryTable"),
+                            downloadedFileName = "modelCovariateSummaryTable-")
+        ),
+        shiny::tabPanel(
           title = "Model Performance",
           resultTableViewer(ns("modelPerformanceTable"),
                             downloadedFileName = "modelPerformanceTable-")
@@ -233,8 +238,9 @@ phevaluatorServer <- function(
             resultDatabaseSettings = resultDatabaseSettings
           ) %>%
             dplyr::filter(.data$databaseId %in% input$selectedDatabaseIds & 
-                            .data$phenotype %in% input$selectedPhenotypes) %>%
-            dplyr::select("databaseId":"cohortId", "description", "sensitivity95Ci":"analysisId")
+                            .data$phenotype %in% input$selectedPhenotypes)
+          # %>%
+          #   dplyr::select("databaseId":"cohortId", "description", "sensitivity95Ci":"analysisId")
         }
       )
       
@@ -250,8 +256,8 @@ phevaluatorServer <- function(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings
           ) %>%
-            dplyr::mutate(buttonSQL = makeButtonLabel("SQL"),
-                          buttonJSON = makeButtonLabel("JSON")) %>%
+            #dplyr::mutate(buttonSQL = makeButtonLabel("SQL"),
+            #              buttonJSON = makeButtonLabel("JSON")) %>%
             dplyr::filter(.data$phenotype %in% input$selectedPhenotypes)
         }
       )
@@ -291,6 +297,25 @@ phevaluatorServer <- function(
               .data$databaseId %in% input$selectedDatabaseIds & 
               .data$phenotype %in% input$selectedPhenotypes
               )
+        }
+      )
+      
+      dataModelCovarSummary <- shiny::eventReactive(
+        eventExpr = input$generate,                     
+        {
+          if (is.null(input$selectedDatabaseIds) |
+              is.null(input$selectedPhenotypes)) {
+            data.frame()
+          }
+          
+          getPhevalModelCovarSummary(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings
+          ) %>%
+            dplyr::filter(
+              .data$databaseId %in% input$selectedDatabaseIds & 
+                .data$phenotype %in% input$selectedPhenotypes
+            )
         }
       )
       
@@ -449,47 +474,52 @@ phevaluatorServer <- function(
       customColDefs <- utils::modifyList(phevalColList, buttonColDefs)
 
       
-      resultTableServer(id = ns("algorithmPerformanceResultsTable"),
+      resultTableServer(id = "algorithmPerformanceResultsTable",
                         df = dataAlgorithmPerformance,
                         colDefsInput = customColDefs,
                         downloadedFileName = "algorithmPerformanceResultsTable-")
       
-      resultTableServer(id = ns("cohortDefinitionSetTable"),
+      resultTableServer(id = "cohortDefinitionSetTable",
                         df = dataCohortDefinitionSet,
                         colDefsInput = customColDefs,
                         downloadedFileName = "cohortDefinitionSetTable-")
       
-      resultTableServer(id = ns("diagnosticsTable"),
+      resultTableServer(id = "diagnosticsTable",
                         df = dataDiagnostics,
                         colDefsInput = customColDefs,
                         downloadedFileName = "diagnosticsTable-")
       
-      resultTableServer(id = ns("evaluationInputParametersTable"),
+      resultTableServer(id = "evaluationInputParametersTable",
                         df = dataEvalInputParams,
                         colDefsInput = customColDefs,
                         downloadedFileName = "evaluationInputParametersTable-")
       
-      resultTableServer(id = ns("modelCovariatesTable"),
+      resultTableServer(id = "modelCovariateSummaryTable",
+                        df = dataModelCovarSummary,
+                        colDefsInput = customColDefs,
+                        downloadedFileName = "modelCovariateSummaryTable-")
+      
+      resultTableServer(id = "modelCovariatesTable",
                         df = dataModelCovars,
                         colDefsInput = customColDefs,
                         downloadedFileName = "modelCovariatesTable-")
       
-      resultTableServer(id = ns("modelInputParametersTable"),
+      resultTableServer(id = "modelInputParametersTable",
                         df = dataModelInputParams,
                         colDefsInput = customColDefs,
                         downloadedFileName = "modelInputParametersTable-")
       
-      resultTableServer(id = ns("modelPerformanceTable"),
+      resultTableServer(id = "modelPerformanceTable",
                         df = dataModelPerformance,
                         colDefsInput = customColDefs,
                         downloadedFileName = "modelPerformanceTable-")
       
-      resultTableServer(id = ns("testSubjectsTable"),
+      resultTableServer(id = "testSubjectsTable",
                         df = dataTestSubjects,
                         colDefsInput = customColDefs,
                         downloadedFileName = "testSubjectsTable-")
       
-      resultTableServer(id = ns("testSubjectsCovariatesTable"),
+      resultTableServer(id = "testSubjectsCovariatesTable",
                         df = dataTestSubjectsCovars,
                         colDefsInput = customColDefs,
                         downloadedFileName = "testSubjectsCovariatesTable-")
@@ -589,6 +619,30 @@ getPhevalModelCovars <- function(
   
   df <-  connectionHandler$queryDb(
     sql = sql,
+    schema = resultDatabaseSettings$schema,
+    pv_table_prefix = resultDatabaseSettings$pvTablePrefix
+  )
+  
+  df$databaseId = stringi::stri_trans_general(df$databaseId, "latin-ascii")
+  df$phenotype = stringi::stri_trans_general(df$phenotype, "latin-ascii")
+  df$analysisName = stringi::stri_trans_general(df$analysisName, "latin-ascii")
+  df$covariateName = stringi::stri_trans_general(df$covariateName, "latin-ascii")
+  
+  return(
+    df
+  )
+}
+
+getPhevalModelCovarSummary <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT * FROM @schema.@pv_table_prefixMODEL_COVARIATE_SUMMARY
+  ;"
+  
+  df <-  connectionHandler$queryDb(
+    sql = sql, 
     schema = resultDatabaseSettings$schema,
     pv_table_prefix = resultDatabaseSettings$pvTablePrefix
   )
