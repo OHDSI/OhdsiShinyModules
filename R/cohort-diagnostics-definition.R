@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2024 Observational Health Data Sciences and Informatics
 #
 # This file is part of PatientLevelPrediction
 #
@@ -209,12 +209,13 @@ getConceptSetDetailsFromCohortDefinition <-
   }
 
 
-getCohortJsonSql <- function(dataSource, cohortIds) {
-  sql <- "SELECT * FROM @schema.@cohort_table WHERE cohort_id IN (@cohort_ids)"
+getCdCohortRows <- function(dataSource, cohortIds) {
+  sql <- "SELECT * FROM @schema.@cohort_table
+    WHERE cohort_id IN (@cohort_ids)"
   dataSource$connectionHandler$queryDb(
     sql = sql,
     schema = dataSource$schema,
-    cohort_table = paste0(dataSource$cgTablePrefix,dataSource$cgTable),
+    cohort_table = dataSource$cohortTableName,
     cohort_ids = cohortIds
   )
 }
@@ -572,7 +573,7 @@ cohortDefinitionsModule <- function(
           return(NULL)
         }
         row <- subset[idx[1],]
-        return(getCohortJsonSql(dataSource, row$cohortId))
+        return(getCdCohortRows(dataSource, row$cohortId))
       }
     })
 
@@ -1093,7 +1094,7 @@ cohortDefinitionsModule <- function(
         shiny::withProgress(
           message = "Export is in progress",
         {
-          definitions <- getCohortJsonSql(dataSource, cohortTable$cohortId)
+          definitions <- getCdCohortRows(dataSource, cohortTable$cohortId)
           exportCohortDefinitionsZip(definitions, zipFile = file)
         },
           detail = "Please Wait"

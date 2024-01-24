@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2024 Observational Health Data Sciences and Informatics
 #
 # This file is part of CohortDiagnostics
 #
@@ -134,7 +134,7 @@ getDatabaseCounts <- function(dataSource,
       sql = sql,
       schema = dataSource$schema,
       database_ids = quoteLiterals(databaseIds),
-      database_table = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable),
+      database_table = dataSource$databaseTable,
       snakeCaseToCamelCase = TRUE
     ) %>%
       tidyr::tibble()
@@ -248,7 +248,6 @@ getDisplayTableGroupedByDatabaseId <- function(data,
     keyColumns = keyColumns,
     dataColumns = dataColumns
   )
-
   data <- data %>%
     tidyr::pivot_longer(
       cols = dplyr::all_of(dataColumns),
@@ -282,6 +281,7 @@ getDisplayTableGroupedByDatabaseId <- function(data,
   }
 
   data <- data %>%
+    dplyr::distinct() %>%
     tidyr::pivot_wider(
       id_cols = dplyr::all_of(keyColumns),
       names_from = "type",
@@ -455,6 +455,7 @@ getDisplayTableGroupedByDatabaseId <- function(data,
       )
   }
 
+  
   dataTable <-
     reactable::reactable(
       data = data,

@@ -1,6 +1,6 @@
 # @file characterization-main.R
 #
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2024 Observational Health Data Sciences and Informatics
 #
 # This file is part of OhdsiShinyModules
 #
@@ -52,33 +52,8 @@ characterizationViewer <- function(id=1) {
   
   shiny::tabsetPanel(
     type = 'pills',
-    id = ns('mainPanel'),
-    
-    shiny::tabPanel(
-      "Target Viewer",  
-      characterizationTableViewer(ns('descriptiveTableTab'))
-    ),
-    
-    shiny::tabPanel(
-      "Outcome Stratified",  
-      characterizationAggregateFeaturesViewer(ns('aggregateFeaturesTab'))
-    ),
-    
-    shiny::tabPanel(
-      "Incidence Rate",  
-      characterizationIncidenceViewer(ns('incidenceTab'))
-    ),
-    
-    shiny::tabPanel(
-      "Time To Event",  
-      characterizationTimeToEventViewer(ns('timeToEventTab'))
-    ),
-    
-    shiny::tabPanel(
-      "Dechallenge Rechallenge",
-      characterizationDechallengeRechallengeViewer(ns('dechallengeRechallengeTab'))
-      )
-    )
+    id = ns('mainPanel')
+  )
   )
   
 }
@@ -104,71 +79,168 @@ characterizationServer <- function(
   shiny::moduleServer(
     id,
     function(input, output, session) {
+
+      # this function checks tables exist for the tabs
+      # and returns the tabs that should be displayed
+      # as the tables exist
+      charTypes <- getCharacterizationTypes(
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
       
-      mainPanelTab <- shiny::reactiveVal(input$mainPanel)
-      shiny::observeEvent(
-        input$mainPanel,
-        {
-          mainPanelTab(input$mainPanel)
-        })
+      # add the tabs based on results
+      types <- list(
+        c("Target Viewer","characterizationTableViewer", "descriptiveTableTab"),
+        c("Outcome Stratified", "characterizationAggregateFeaturesViewer", "aggregateFeaturesTab"),
+        c("Incidence Rate", "characterizationIncidenceViewer", "incidenceTab"),
+        c("Time To Event", "characterizationTimeToEventViewer", "timeToEventTab"),
+        c("Dechallenge Rechallenge", 'characterizationDechallengeRechallengeViewer', 'dechallengeRechallengeTab')
+        )
+      selectVal <- T
+      for( type in types){
+        if(type[1] %in% charTypes){
+          shiny::insertTab(
+            inputId = "mainPanel",
+            tab = shiny::tabPanel(
+              type[1],  
+              do.call(what = type[2], args = list(id = session$ns(type[3])))
+            ), 
+            select = selectVal
+          )
+        }
+        selectVal = F
+      }
+        
+      previouslyLoaded <- shiny::reactiveVal(c())
       
+      # only render the tab when selected
+      shiny::observeEvent(input$mainPanel,{
       
       # =============================
       #   Table of cohorts
       # =============================
-      characterizationTableServer(
-        id = 'descriptiveTableTab',
-        connectionHandler = connectionHandler, 
-        mainPanelTab = mainPanelTab,
-        resultDatabaseSettings = resultDatabaseSettings
-        )
+        if(input$mainPanel == "Target Viewer"){
+          if(!"Target Viewer" %in% previouslyLoaded()){
+            characterizationTableServer(
+              id = 'descriptiveTableTab',
+              connectionHandler = connectionHandler, 
+              resultDatabaseSettings = resultDatabaseSettings
+            )
+            previouslyLoaded(c(previouslyLoaded(), "Target Viewer"))
+          }
+        }
 
       
       # =============================
       #   Aggregrate Features
       # =============================
-      
-      characterizationAggregateFeaturesServer(
-        id = 'aggregateFeaturesTab',
-        connectionHandler = connectionHandler, 
-        mainPanelTab = mainPanelTab,
-        resultDatabaseSettings = resultDatabaseSettings
-        )
+        if(input$mainPanel == "Outcome Stratified"){
+          if(!"Outcome Stratified" %in% previouslyLoaded()){
+            characterizationAggregateFeaturesServer(
+              id = 'aggregateFeaturesTab',
+              connectionHandler = connectionHandler, 
+              resultDatabaseSettings = resultDatabaseSettings
+            )
+            previouslyLoaded(c(previouslyLoaded(), "Outcome Stratified"))
+          }
+        }
       
       # =============================
       #   Incidence
       # =============================
-      characterizationIncidenceServer(
-        id = 'incidenceTab',
-        connectionHandler = connectionHandler, 
-        mainPanelTab = mainPanelTab,
-        resultDatabaseSettings = resultDatabaseSettings
-        )
+        if(input$mainPanel == "Incidence Rate"){
+          if(!"Incidence Rate" %in% previouslyLoaded()){
+            characterizationIncidenceServer(
+              id = 'incidenceTab',
+              connectionHandler = connectionHandler, 
+              resultDatabaseSettings = resultDatabaseSettings
+            )
+            previouslyLoaded(c(previouslyLoaded(), "Incidence Rate"))
+          }
+        }
 
       
       # =============================
       #   Time To Event
       # =============================
-      
-      characterizationTimeToEventServer(
-          id = 'timeToEventTab', 
-          connectionHandler = connectionHandler, 
-          mainPanelTab = mainPanelTab,
-          resultDatabaseSettings = resultDatabaseSettings
-         )
-
+        if(input$mainPanel == "Time To Event"){
+          if(!"Time To Event" %in% previouslyLoaded()){
+            characterizationTimeToEventServer(
+              id = 'timeToEventTab', 
+              connectionHandler = connectionHandler, 
+              resultDatabaseSettings = resultDatabaseSettings
+            )
+            previouslyLoaded(c(previouslyLoaded(), "Time To Event"))
+          }
+        }
       
       # =============================
       #   Dechallenge Rechallenge
       # =============================
-      
-      characterizationDechallengeRechallengeServer(
-        id = 'dechallengeRechallengeTab', 
-        connectionHandler = connectionHandler, 
-        mainPanelTab = mainPanelTab,
-        resultDatabaseSettings = resultDatabaseSettings
-        )
+        if(input$mainPanel == "Dechallenge Rechallenge"){
+          if(!"Dechallenge Rechallenge" %in% previouslyLoaded()){
+            characterizationDechallengeRechallengeServer(
+              id = 'dechallengeRechallengeTab', 
+              connectionHandler = connectionHandler, 
+              resultDatabaseSettings = resultDatabaseSettings
+            )
+            previouslyLoaded(c(previouslyLoaded(), "Dechallenge Rechallenge"))
+          }
+        }
+        
+      }) # end observed input tab
       
     }
   )
+}
+
+getCharacterizationTypes <- function(
+    connectionHandler,
+    resultDatabaseSettings
+){
+  
+  results <- c()
+  
+  conn <- DatabaseConnector::connect(
+    connectionDetails = connectionHandler$connectionDetails
+    )
+  on.exit(DatabaseConnector::disconnect(conn))
+  tbls <- DatabaseConnector::getTableNames(
+    connection = conn,
+    databaseSchema = resultDatabaseSettings$schema
+  )
+
+  # check Targets
+  if(sum(paste0(
+    resultDatabaseSettings$cTablePrefix,
+    c('covariates', 'covariate_ref', 'cohort_details', 'settings')
+  ) %in% tbls) == 4){
+    results <- c(results, "Target Viewer", "Outcome Stratified" )
+  }
+  
+  # check dechallenge_rechallenge
+  if(paste0(
+    resultDatabaseSettings$cTablePrefix,
+    'dechallenge_rechallenge'
+  ) %in% tbls){
+    results <- c(results, "Dechallenge Rechallenge")
+  }
+  
+  # check time_to_event
+  if(paste0(
+    resultDatabaseSettings$cTablePrefix,
+    'time_to_event'
+  ) %in% tbls){
+    results <- c(results, "Time To Event")
+  }
+  
+  # check incidence
+  if(paste0(
+    resultDatabaseSettings$incidenceTablePrefix,
+    'incidence_summary'
+  ) %in% tbls){
+    results <- c(results, "Incidence Rate")
+  }
+  
+  return(results)
 }

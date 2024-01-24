@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2024 Observational Health Data Sciences and Informatics
 #
 # This file is part of OhdsiShinyModules
 #
@@ -884,7 +884,7 @@ cohortDiagCharacterizationModule <- function(
         sortChoices <- list(
           "Concept Id" = "tcr.concept_id",
           "Analysis Name" = "tar.analysis_name",
-          "Covaraiate Name" = "tcr.covariate_name",
+          "Covariate Name" = "tcr.covariate_name",
           "Temporal Choices" = "ttr.time_id"
         )
 
@@ -1013,7 +1013,7 @@ cohortDiagCharacterizationModule <- function(
         sortChoices <- list(
           "Concept Id" = "tcr.concept_id",
           "Analysis Name" = "tar.analysis_name",
-          "Covaraiate Name" = "tcr.covariate_name",
+          "Covariate Name" = "tcr.covariate_name",
           "Database" = "db.database_name"
         )
 

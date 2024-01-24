@@ -1,6 +1,6 @@
 # @file characterization-DechallengeRechallenge.R
 #
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2024 Observational Health Data Sciences and Informatics
 #
 # This file is part of OhdsiShinyModules
 #
@@ -60,7 +60,6 @@ characterizationDechallengeRechallengeViewer <- function(id) {
 #'
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
-#' @param mainPanelTab the current tab 
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #' 
 #' @return
@@ -70,7 +69,6 @@ characterizationDechallengeRechallengeViewer <- function(id) {
 characterizationDechallengeRechallengeServer <- function(
   id, 
   connectionHandler,
-  mainPanelTab,
   resultDatabaseSettings
 ) {
   shiny::moduleServer(

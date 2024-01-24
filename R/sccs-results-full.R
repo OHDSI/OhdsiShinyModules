@@ -362,7 +362,7 @@ sccsFullResultServer <- function(
         } else {
           controlEstimates <- getSccsControlEstimates(
             connectionHandler = connectionHandler,
-            resultDatabaseSettings,
+            resultDatabaseSettings = resultDatabaseSettings,
             covariateId = row$covariateId,
             databaseId = row$databaseId,
             analysisId = row$analysisId

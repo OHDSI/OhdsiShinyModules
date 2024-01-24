@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2024 Observational Health Data Sciences and Informatics
 #
 # This file is part of PatientLevelPrediction
 #
@@ -40,7 +40,7 @@ cdUiControls <- function(ns) {
       condition = "input.tabs=='incidenceRates' |
       input.tabs == 'timeDistribution' |
       input.tabs == 'cohortCounts' |
-      input.tabs == 'indexEventBreakdown' |
+      input.tabs == 'indexEvents' |
       input.tabs == 'conceptsInDataSource' |
       input.tabs == 'orphanConcepts' |
       input.tabs == 'inclusionRules' |
@@ -67,6 +67,7 @@ cdUiControls <- function(ns) {
       condition = "
       input.tabs == 'conceptsInDataSource' |
       input.tabs == 'orphanConcepts'|
+      input.tabs == 'inclusionRules'|
       input.tabs == 'indexEvents' |
       input.tabs == 'visitContext'",
       ns = ns,
@@ -182,7 +183,7 @@ cohortDiagnosticsView <- function(id = "DiagnosticsExplorer") {
         )
       )
     ),
-    shiny::fluidPage(
+    shiny::tagList(
       shiny::conditionalPanel(
         ns = ns,
         condition = "input.tabs == 'cohortDefinitions'",

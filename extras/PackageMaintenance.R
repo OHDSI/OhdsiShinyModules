@@ -1,6 +1,6 @@
 # @file PackageMaintenance
 #
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2024 Observational Health Data Sciences and Informatics
 #
 # This file is part of OhdsiShinyModules
 # 
@@ -26,7 +26,7 @@ unlink("extras/OhdsiShinyModules.pdf")
 system("R CMD Rd2pdf ./ --output=extras/OhdsiShinyModules.pdf")
 
 rmarkdown::render("vignettes/AddingShinyModules.Rmd",
-                  output_file = "../inst/doc/AddingShinyModules.pdf",
+                  output_file = "inst/doc/AddingShinyModules.pdf",
                   rmarkdown::pdf_document(latex_engine = "pdflatex",
                                           toc = TRUE,
                                           toc_depth = 3,

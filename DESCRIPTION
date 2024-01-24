@@ -1,7 +1,7 @@
 Package: OhdsiShinyModules
 Type: Package
 Title: Repository of Shiny Modules for OHDSI Result Viewers
-Version: 1.2.0
+Version: 2.1.1
 Author: Jenna Reps
 Maintainer: Jenna Reps <reps@ohdsi.org>
 Description: Install this package to access useful shiny modules for building shiny apps to explore results using the OHDSI tools .
@@ -11,6 +11,7 @@ LazyData: true
 Depends:
     R (>= 3.3.0)
 VignetteBuilder: knitr
+Language: EN-US
 Imports:
     checkmate,
     CirceR,
@@ -18,7 +19,6 @@ Imports:
     DatabaseConnector,
     dplyr,
     DT,
-    ggh4x,
     ggplot2,
     gridExtra,
     htmltools,

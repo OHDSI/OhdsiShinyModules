@@ -1,4 +1,4 @@
-# Copyright 2022 Observational Health Data Sciences and Informatics
+# Copyright 2024 Observational Health Data Sciences and Informatics
 #
 # This file is part of OhdsiShinyModules
 #
@@ -211,10 +211,8 @@ cohortOverlapView <- function(id) {
               id = ns("overlapPlotContainer"),
               plotly::plotlyOutput(ns("overlapPlot"), width = "100%", height = "300px")
             )
-          )
-        ),
-
-          # complicated way of setting plot height based on number of rows and selection type
+          ),
+           # complicated way of setting plot height based on number of rows and selection type
           # Note that this code is only used because renderUI/ uiOutput didn't seem to update with plotly
           shiny::tags$script(sprintf("
         Shiny.addCustomMessageHandler('%s', function(height) {
@@ -222,7 +220,8 @@ cohortOverlapView <- function(id) {
           plotSpace.querySelector('.svg-container').style.height = height;
           plotSpace.querySelector('.js-plotly-plot').style.height = height;
         });
-      ", ns("overlapPlotHeight"), ns("overlapPlotContainer"))),
+      ", ns("overlapPlotHeight"), ns("overlapPlotContainer")))
+        ),
         shiny::tabPanel(
           title = "Table",
           shiny::fluidRow(
