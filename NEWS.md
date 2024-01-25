@@ -1,3 +1,7 @@
+OhdsiShinyModules v2.1.2
+========================
+Fixed bug in cohort diagnostics incidence rate plots not showing for different strata
+
 OhdsiShinyModules v2.1.1
 ========================
 Fixed bug in cohort diagnostics load up of orphan concepts server causing app to crash on load
