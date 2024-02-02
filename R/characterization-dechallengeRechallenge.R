@@ -191,9 +191,10 @@ characterizationDechallengeRechallengeServer <- function(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings
             )
-            print(result)
             failData(result)
             # module to show failed plots
+            
+            if(nrow(result) > 0){
             shiny::showModal(
               shiny::modalDialog(
                 title = paste0("Failed Plots: "),
@@ -203,6 +204,9 @@ characterizationDechallengeRechallengeServer <- function(
                 footer = NULL
               )
             )
+            } else{
+              showNotification("No fails to display")
+            }
           }
         }
       })
