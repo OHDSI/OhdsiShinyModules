@@ -32,7 +32,7 @@ Installation
 2. To install the latest stable version:
 
 ```
-install.packages(remotes)
+install.packages('remotes')
 remotes::install_github('ohdsi/OhdsiShinyModules')
 ```
 
