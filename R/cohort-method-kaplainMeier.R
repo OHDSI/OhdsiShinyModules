@@ -200,15 +200,27 @@ plotCohortMethodKaplanMeier <- function(
   yLabel <- "Survival probability"
   xBreaks <- kaplanMeier$time[!is.na(kaplanMeier$targetAtRisk)]
   
+  # add next time
+  data <- data %>% 
+    dplyr::group_by(.data$strata) %>%
+    dplyr::arrange(.data$time,.data$s, .by_group = TRUE) %>%
+    dplyr::mutate(
+      nexttime = dplyr::lead(.data$time)
+    )
+  
   plot <- ggplot2::ggplot(data, ggplot2::aes(
     x = .data$time,
+    xmin = .data$time,
+    xmax = .data$nexttime,
     y = .data$s,
     color = .data$strata,
     fill = .data$strata,
     ymin = .data$lower,
     ymax = .data$upper)
   ) +
-    ggplot2::geom_ribbon(color = grDevices::rgb(0, 0, 0, alpha = 0)) +
+    ggplot2::geom_rect(
+      color = grDevices::rgb(0, 0, 0, alpha = 0)
+      ) +
     ggplot2::geom_step(size = 1) +
     ggplot2::scale_color_manual(
       values = c(grDevices::rgb(0.8, 0, 0, alpha = 0.8),
