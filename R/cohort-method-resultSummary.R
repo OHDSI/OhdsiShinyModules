@@ -173,8 +173,8 @@ getCmResultSummaryTableColDef <- function(){
     
     rr = reactable::colDef(
       header = withTooltip(
-        "rr",
-        "The uncalibrated relative risk"
+        "RR",
+        "The estimated relative risk (e.g. the hazard ratio)"
       ), 
       format = reactable::colFormat(digits = 4),
       na = "-"
@@ -182,7 +182,7 @@ getCmResultSummaryTableColDef <- function(){
     
     ci95Lb = reactable::colDef(
       header = withTooltip(
-        "ci95Lb",
+        "Lower 95% CI",
         "The lower bound of the 95% confidence internval of the uncalibrated relative risk"
       ), 
       format = reactable::colFormat(digits = 4),
@@ -191,7 +191,7 @@ getCmResultSummaryTableColDef <- function(){
     
     ci95Ub = reactable::colDef(
       header = withTooltip(
-        "ci95Ub",
+        "Upper 95% CI",
         "The upper bound of the 95% confidence internval of the uncalibrated relative risk"
       ), 
       format = reactable::colFormat(digits = 4),
@@ -200,8 +200,8 @@ getCmResultSummaryTableColDef <- function(){
     
     p = reactable::colDef(
       header = withTooltip(
-        "p",
-        "The p value of the uncalibrated relative risk"
+        "p-val",
+        "The two-sided p-value of the uncalibrated relative risk"
       ), 
       format = reactable::colFormat(digits = 4),
       na = "-"
@@ -209,7 +209,7 @@ getCmResultSummaryTableColDef <- function(){
     
     calibratedRr = reactable::colDef(
       header = withTooltip(
-        "calibrated rr",
+        "Calibrated RR",
         "The calibrated relative risk"
       ), 
       format = reactable::colFormat(digits = 4),
@@ -218,7 +218,7 @@ getCmResultSummaryTableColDef <- function(){
     
     calibratedCi95Lb = reactable::colDef(
       header = withTooltip(
-        "calibrated ci95Lb",
+        "Calibrated Lower 95% CI",
         "The lower bound of the 95% confidence internval of the calibrated relative risk"
       ), 
       format = reactable::colFormat(digits = 4),
@@ -227,7 +227,7 @@ getCmResultSummaryTableColDef <- function(){
     
     calibratedCi95Ub = reactable::colDef(
       header = withTooltip(
-        "calibrated ci95Ub",
+        "Calibrated Upper 95% CI",
         "The upper bound of the 95% confidence internval of the calibrated relative risk"
       ), 
       format = reactable::colFormat(digits = 4),
@@ -236,8 +236,8 @@ getCmResultSummaryTableColDef <- function(){
     
     calibratedP = reactable::colDef(
       header = withTooltip(
-        "calibrated p",
-        "The p value of the calibrated relative risk"
+        "Calibrated p-val",
+        "The two-sided p-value of the calibrated relative risk"
       ), 
       format = reactable::colFormat(digits = 4),
       na = "-"

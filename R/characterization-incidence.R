@@ -308,6 +308,11 @@ characterizationIncidenceServer <- function(
      
      sortedAges <- custom_age_sort(options$ageGroupName)
      
+     # Extract the integers from each TAR string
+     tarIntegers <- as.integer(gsub("[^0-9]", "", options$tar))
+     # Sort the vector based on the extracted integers
+     sortedTars <- options$tar[order(tarIntegers)]
+     
         # input selection component
         inputSelectedResults <- inputSelectionServer(
           id = "input-selection-results", 
@@ -448,8 +453,8 @@ characterizationIncidenceServer <- function(
               updateFunction = 'shinyWidgets::updatePickerInput',
               uiInputs = list(
                 label = 'Select Time at risk (TAR)',
-                choices = options$tar,
-                selected = options$tar[1],
+                choices = sortedTars,
+                selected = sortedTars[1],
                 multiple = F,
                 options = shinyWidgets::pickerOptions(
                   actionsBox = TRUE,
@@ -1443,7 +1448,7 @@ renderIrPlotStandardAgeSex <- shiny::reactive(
       y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]),
       color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
       #size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "outcomes"]),
-      #shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
+      shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
       caption = caption_text
     ) +
       ggplot2::guides(alpha = "none", size = "none") + # Remove the alpha and size legend
