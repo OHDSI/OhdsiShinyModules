@@ -296,7 +296,7 @@ getDechalRechalInputsData <- function(
   
   shiny::withProgress(message = 'Extracting DECHALLENGE_RECHALLENGE data', value = 0, {
   
-  sql <- "SELECT d.CDM_SOURCE_ABBREVIATION as database_name, dr.*
+  sql <- "SELECT distinct d.CDM_SOURCE_ABBREVIATION as database_name, dr.*
           FROM @schema.@c_table_prefixDECHALLENGE_RECHALLENGE dr 
           inner join @schema.@database_table d
           on dr.database_id = d.database_id
