@@ -206,7 +206,7 @@ sccsFullResultServer <- function(
       )
   
       # move these to a different submodule?
-      output$powerTable <- resultTableServer(
+      resultTableServer(
         id = "powerTable", # how is this working without session$ns
         df = powerTable,
         colDefsInput = colDefsInput
