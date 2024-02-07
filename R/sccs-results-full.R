@@ -16,7 +16,7 @@ sccsFullResultViewer <- function(id) {
         shiny::tabPanel(
           "Power",
           shiny::div(shiny::strong("Table 1."), "For each variable of interest: the number of cases (people with at least one outcome), the number of years those people were observed, the number of outcomes, the number of subjects with at least one exposure, the number of patient-years exposed, the number of outcomes while exposed, and the minimum detectable relative risk (MDRR)."),
-          shiny::tableOutput(ns("powerTable"))
+          resultTableViewer(ns('powerTable'))
         ),
         shiny::tabPanel(
           "Attrition",
@@ -135,8 +135,7 @@ sccsFullResultServer <- function(
         ncol = 2
         )
       
-      # move these to a different submodule?
-      output$powerTable <- shiny::renderTable({
+      powerTable <- shiny::reactive({
         row <- selectedRow()
         if (is.null(row)) {
           return(NULL)
@@ -155,18 +154,64 @@ sccsFullResultServer <- function(
             ) %>%
             dplyr::mutate(observedDays = .data$observedDays / 365.25,
                           covariateDays = .data$covariateDays / 365.25)
-          colnames(resTargetTable) <- c("Variable",
-                                        "Cases",
-                                        "Years observed",
-                                        "Outcomes",
-                                        "Persons exposed",
-                                        "Years exposed",
-                                        "Outcomes while exposed",
-                                        "MDRR")
+          
           return(resTargetTable)
         }
       })
       
+      colDefsInput <- list(
+        covariateName = reactable::colDef( 
+          header = withTooltip(
+            "Variable", 
+            "The covariate"
+          )),
+        outcomeSubjects = reactable::colDef( 
+          header = withTooltip(
+            "Cases", 
+            "The number of cases"
+          )),
+        observedDays = reactable::colDef( 
+          format = reactable::colFormat(digits = 2),
+          header = withTooltip(
+            "Years observed", 
+            "The total years observed"
+          )),
+        outcomeEvents = reactable::colDef( 
+          header = withTooltip(
+            "Outcomes", 
+            "The total number of outcomes"
+          )),
+        covariateSubjects = reactable::colDef( 
+          header = withTooltip(
+            "Persons exposed", 
+            "The total number of people exposed"
+          )),
+        covariateDays = reactable::colDef( 
+          format = reactable::colFormat(digits = 2),
+          header = withTooltip(
+            "Years exposed", 
+            "The total number of years exposed"
+          )),
+        covariateOutcomes = reactable::colDef( 
+          header = withTooltip(
+            "Outcomes while exposed", 
+            "The total number of outcomes while exposed"
+          )),
+        mdrr = reactable::colDef( 
+          format = reactable::colFormat(digits = 4),
+          header = withTooltip(
+            "MDRR", 
+            "The minimal detectable relative risk"
+          ))
+      )
+  
+      # move these to a different submodule?
+      resultTableServer(
+        id = "powerTable", # how is this working without session$ns
+        df = powerTable,
+        colDefsInput = colDefsInput
+      )
+        
       output$attritionPlot <- shiny::renderPlot({
         
         row <- selectedRow()
