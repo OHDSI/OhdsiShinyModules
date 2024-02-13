@@ -122,9 +122,9 @@ getIncidenceRateResult <- function(dataSource,
             )
             WHERE ir.cohort_id in (@cohort_ids)
            	  AND ir.database_id in (@database_ids)
-            {@gender == TRUE} ? {AND ir.gender != ''} : {  AND ir.gender = ''}
-            {@age_group == TRUE} ? {AND ir.age_group != ''} : {  AND ir.age_group = ''}
-            {@calendar_year == TRUE} ? {AND ir.calendar_year != ''} : {  AND ir.calendar_year = ''}
+            {@gender == TRUE} ? {AND ir.gender IS NOT NULL} : {  AND ir.gender IS NULL}
+            {@age_group == TRUE} ? {AND ir.age_group IS NOT NULL} : {  AND ir.age_group IS NULL}
+            {@calendar_year == TRUE} ? {AND ir.calendar_year IS NOT NULL} : {  AND ir.calendar_year IS NULL}
               AND ir.person_years > @personYears;"
   
   data <-

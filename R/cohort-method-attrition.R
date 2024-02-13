@@ -157,18 +157,18 @@ getCohortMethodAttrition <- function(
 drawCohortMethodAttritionDiagram <- function(
     attrition,
     targetLabel = "Target",
-    comparatorLabel = "Comparator"
+    comparatorLabel = "Comp"
 ) {
   addStep <- function(data, attrition, row) {
     label <- paste(strwrap(as.character(attrition$description[row]), width = 30), collapse = "\n")
     data$leftBoxText[length(data$leftBoxText) + 1] <- label
     data$rightBoxText[length(data$rightBoxText) + 1] <- paste(targetLabel,
                                                               ": n = ",
-                                                              data$currentTarget - attrition$targetPersons[row],
+                                                              format(data$currentTarget - attrition$targetPersons[row], scientific = FALSE),
                                                               "\n",
                                                               comparatorLabel,
                                                               ": n = ",
-                                                              data$currentComparator - attrition$comparatorPersons[row],
+                                                              format(data$currentComparator - attrition$comparatorPersons[row], scientific = FALSE),
                                                               sep = "")
     data$currentTarget <- attrition$targetPersons[row]
     data$currentComparator <- attrition$comparatorPersons[row]
@@ -177,25 +177,29 @@ drawCohortMethodAttritionDiagram <- function(
   data <- list(leftBoxText = c(paste("Exposed:\n",
                                      targetLabel,
                                      ": n = ",
-                                     attrition$targetPersons[1],
+                                     format(attrition$targetPersons[1], scientific = FALSE),
                                      "\n",
                                      comparatorLabel,
                                      ": n = ",
-                                     attrition$comparatorPersons[1],
-                                     sep = "")), rightBoxText = c(""), currentTarget = attrition$targetPersons[1], currentComparator = attrition$comparatorPersons[1])
+                                     format(attrition$comparatorPersons[1], scientific = FALSE),
+                                     sep = "")), 
+               rightBoxText = c(""), 
+               currentTarget = attrition$targetPersons[1], 
+               currentComparator = attrition$comparatorPersons[1]
+               )
   for (i in 2:nrow(attrition)) {
     data <- addStep(data, attrition, i)
   }
   
   
-  data$leftBoxText[length(data$leftBoxText) + 1] <- paste("Study population:\n",
+  data$leftBoxText[length(data$leftBoxText) + 1] <- paste("Study Population:\n",
                                                           targetLabel,
                                                           ": n = ",
-                                                          data$currentTarget,
+                                                          format(data$currentTarget, scientific = FALSE),
                                                           "\n",
                                                           comparatorLabel,
                                                           ": n = ",
-                                                          data$currentComparator,
+                                                          format(data$currentComparator, scientific = FALSE),
                                                           sep = "")
   leftBoxText <- data$leftBoxText
   rightBoxText <- data$rightBoxText
@@ -253,7 +257,7 @@ drawCohortMethodAttritionDiagram <- function(
     return(p)
   }
   label <- function(p, x, y, text, hjust = 0) {
-    p <- p + ggplot2::geom_text(ggplot2::aes_string(x = x, y = y, label = paste("\"", substring(text,1,40), "\"",
+    p <- p + ggplot2::geom_text(ggplot2::aes_string(x = x, y = y, label = paste("\"", substring(text,1,100), "\"",
                                                                                 sep = "")),
                                 hjust = hjust,
                                 size = 3.7)

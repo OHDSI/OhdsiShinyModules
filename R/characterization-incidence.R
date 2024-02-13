@@ -38,106 +38,67 @@ as_ggplot <- function(x){
 }
 
 
-is_null_unit <- function (x)
-{
-    if (!grid::is.unit(x)) {
-        return(FALSE)
-    }
-    all(grid::unitType(x) == "null")
+# is_null_unit <- function (x)
+# {
+#     if (!grid::is.unit(x)) {
+#         return(FALSE)
+#     }
+#     all(grid::unitType(x) == "null")
+# }
+# 
+# force_panelsizes <- function(rows = NULL, cols = NULL, respect = NULL, total_width = NULL, total_height = NULL) {
+#   if (!is.null(rows) & !grid::is.unit(rows)) {
+#     rows <- grid::unit(rows, "null")
+#   }
+#   if (!is.null(cols) & !grid::is.unit(cols)) {
+#     cols <- grid::unit(cols, "null")
+#   }
+#   if (!is.null(total_width)) {
+#     if (grid::is.unit(cols) && !is_null_unit(cols)) {
+#       stop("Cannot set {.arg total_width} when {.arg cols} is not relative.")
+#     }
+#     if (!grid::is.unit(total_width)) {
+#       stop("{.arg total_width} must be a {.cls unit} object.")
+#     }
+#     rlang::arg_match0(grid::unitType(total_width), c("cm", "mm", "inches", "points"))
+#   }
+#   if (!is.null(total_height)) {
+#     if (grid::is.unit(rows) && !is_null_unit(rows)) {
+#       stop("Cannot set {.arg total_height} when {.arg rows} is not relative.")
+#     }
+#     if (!grid::is.unit(total_height)) {
+#       stop("{.arg total_height} must be a {.cls unit} object.")
+#     }
+#     rlang::arg_match0(grid::unitType(total_height), c("cm", "mm", "inches", "points"))
+#   }
+#   structure(list(rows = rows, cols = cols, respect = respect, total_width = total_width, total_height = total_height), class = "forcedsize")
+# }
+
+
+# Define the custom age sorting function
+custom_age_sort <- function(age_categories) {
+  # Extract the largest integer from each category
+  largest_integers <- as.integer(sub(".* - (\\d+).*", "\\1", age_categories))
+  
+  # Create a custom order based on the largest integers
+  custom_order <- unique(c("Any", age_categories[order(largest_integers)]))
+  
+  # Return the sorted age categories
+  return(custom_order)
 }
 
-force_panelsizes <- function(rows = NULL, cols = NULL, respect = NULL, total_width = NULL, total_height = NULL) {
-  if (!is.null(rows) & !grid::is.unit(rows)) {
-    rows <- grid::unit(rows, "null")
+base_breaks <- function(n = 10){
+  function(x) {
+    axisTicks(log10(range(x, na.rm = TRUE)), log = TRUE, n = n)
   }
-  if (!is.null(cols) & !grid::is.unit(cols)) {
-    cols <- grid::unit(cols, "null")
-  }
-  if (!is.null(total_width)) {
-    if (grid::is.unit(cols) && !is_null_unit(cols)) {
-      stop("Cannot set {.arg total_width} when {.arg cols} is not relative.")
-    }
-    if (!grid::is.unit(total_width)) {
-      stop("{.arg total_width} must be a {.cls unit} object.")
-    }
-    rlang::arg_match0(grid::unitType(total_width), c("cm", "mm", "inches", "points"))
-  }
-  if (!is.null(total_height)) {
-    if (grid::is.unit(rows) && !is_null_unit(rows)) {
-      stop("Cannot set {.arg total_height} when {.arg rows} is not relative.")
-    }
-    if (!grid::is.unit(total_height)) {
-      stop("{.arg total_height} must be a {.cls unit} object.")
-    }
-    rlang::arg_match0(grid::unitType(total_height), c("cm", "mm", "inches", "points"))
-  }
-  structure(list(rows = rows, cols = cols, respect = respect, total_width = total_width, total_height = total_height), class = "forcedsize")
+}
+
+break_setter = function(n = 5) {
+  function(lims) {pretty(x = as.numeric(lims), n = n)}
 }
 
 
 
-# Custom function that takes a ggplotly figure and its facets as arguments.
-# The upper x-values for each domain is set programmatically, but you can adjust
-# the look of the figure by adjusting the width of the facet domain and the 
-# corresponding annotations labels through the domain_offset variable
-fixfacets <- function(figure, facets, domain_offset){
-  
-  fig <- figure
-  
-  # split x ranges from 0 to 1 into
-  # intervals corresponding to number of facets
-  # xHi = highest x for shape
-  xHi <- seq(0, 1, len = length(facets)+1)
-  xHi <- xHi[2:length(xHi)]
-  
-  xOs <- domain_offset
-  
-  # Shape manipulations, identified by dark grey backround: "rgba(217,217,217,1)"
-  # structure: p$x$layout$shapes[[2]]$
-  shp <- fig$x$layout$shapes
-  j <- 1
-  for (i in seq_along(shp)){
-    if (shp[[i]]$fillcolor=="rgba(217,217,217,1)" & (!is.na(shp[[i]]$fillcolor))){
-      #$x$layout$shapes[[i]]$fillcolor <- 'rgba(0,0,255,0.5)' # optionally change color for each label shape
-      fig$x$layout$shapes[[i]]$x1 <- xHi[j]
-      fig$x$layout$shapes[[i]]$x0 <- (xHi[j] - xOs)
-      #fig$x$layout$shapes[[i]]$y <- -0.05
-      j<-j+1
-    }
-  }
-  
-  # annotation manipulations, identified by label name
-  # structure: p$x$layout$annotations[[2]]
-  ann <- fig$x$layout$annotations
-  annos <- facets
-  j <- 1
-  for (i in seq_along(ann)){
-    if (ann[[i]]$text %in% annos){
-      # but each annotation between high and low x,
-      # and set adjustment to center
-      fig$x$layout$annotations[[i]]$x <- (((xHi[j]-xOs)+xHi[j])/2)
-      fig$x$layout$annotations[[i]]$xanchor <- 'center'
-      #print(fig$x$layout$annotations[[i]]$y)
-      #fig$x$layout$annotations[[i]]$y <- -0.05
-      j<-j+1
-    }
-  }
-  
-  # domain manipulations
-  # set high and low x for each facet domain
-  xax <- names(fig$x$layout)
-  j <- 1
-  for (i in seq_along(xax)){
-    if (!is.na(pmatch('xaxis', xax[i]))){
-      #print(p[['x']][['layout']][[lot[i]]][['domain']][2])
-      fig[['x']][['layout']][[xax[i]]][['domain']][2] <- xHi[j]
-      fig[['x']][['layout']][[xax[i]]][['domain']][1] <- xHi[j] - xOs
-      j<-j+1
-    }
-  }
-  
-  return(fig)
-}
 
 
 
@@ -163,12 +124,12 @@ characterizationIncidenceViewer <- function(id) {
     ),
     
     inputSelectionViewer(
-      id = ns("input-selection")
+      id = ns("input-selection-results")
     ),
     
     shiny::conditionalPanel(
       condition = 'input.generate != 0',
-      ns = shiny::NS(ns("input-selection")),
+      ns = shiny::NS(ns("input-selection-results")),
       
       shiny::tabsetPanel(
         type = 'pills',
@@ -187,20 +148,126 @@ characterizationIncidenceViewer <- function(id) {
             type = 'pills',
             id = ns('incPlotPanel'),
             shiny::tabPanel(
-              title = "Custom Plot",
+              title = "Standard Plot (Age Differences)",
+              shiny::fluidPage(
+                shiny::fluidRow(
+                  shiny::column(width = 9, offset = 0, style='padding:0px;'),
+                  shiny::column(width = 3,
+                                shiny::div(
+                                  style = "display:inline-block; float:right",
+                                  shiny::downloadButton(ns("downloadPlotStandardAge"),
+                                                        "Download Plot",
+                                                        icon = shiny::icon("download")
+                                  )
+                                )
+                  ) 
+                )
+              ),
               shinycssloaders::withSpinner(
-                plotly::plotlyOutput(
-                  ns('incidencePlot'),
-                  height = "1000px"
+                shiny::plotOutput(
+                  ns('incidencePlotStandardAge'),
+                  width="100%",
+                  height="600px"
+                )
+              )
+            ),
+            shiny::tabPanel(
+              title = "Standard Plot (Age & Sex Differences)",
+              shiny::fluidPage(
+                shiny::fluidRow(
+                 shiny::column(width = 9, offset = 0, style='padding:0px;'),
+                 shiny::column(width = 3,
+                   shiny::div(
+                     style = "display:inline-block; float:right",
+                     shiny::downloadButton(ns("downloadPlotStandardAgeSex"),
+                                           "Download Plot",
+                                           icon = shiny::icon("download")
+                     )
+                   )
+                 ) 
+                )
+              ),
+              shinycssloaders::withSpinner(
+                shiny::plotOutput(
+                  ns('incidencePlotStandardAgeSex'),
+                  width="100%",
+                  height="600px"
+                )
+              )
+            ),
+            shiny::tabPanel(
+              title = "Standard Plot (Yearly Differences)",
+              shiny::fluidPage(
+                shiny::fluidRow(
+                  shiny::column(width = 9, offset = 0, style='padding:0px;'),
+                  shiny::column(width = 3,
+                                shiny::div(
+                                  style = "display:inline-block; float:right",
+                                  shiny::downloadButton(ns("downloadPlotStandardYear"),
+                                                        "Download Plot",
+                                                        icon = shiny::icon("download")
+                                  )
+                                )
+                  ) 
+                )
+              ),
+              shinycssloaders::withSpinner(
+                shiny::plotOutput(
+                  ns('incidencePlotStandardYear'),
+                  width="100%",
+                  height="500px"
+                )
+              )
+            ),
+            shiny::tabPanel(
+              title = "Standard Plot (Aggregate)",
+              shiny::fluidPage(
+                shiny::fluidRow(
+                  shiny::column(width = 9, offset = 0, style='padding:0px;'),
+                  shiny::column(width = 3,
+                                shiny::div(
+                                  style = "display:inline-block; float:right",
+                                  shiny::downloadButton(ns("downloadPlotStandardAggregate"),
+                                                        "Download Plot",
+                                                        icon = shiny::icon("download")
+                                  )
+                                )
+                  ) 
+                )
+              ),
+              
+              shinycssloaders::withSpinner(
+                shiny::plotOutput(
+                  ns('incidencePlotStandardAggregate'),
+                  width="100%",
+                  height="600px"
+                )
+              )
+            ),
+            shiny::tabPanel(
+              title = "Custom Plot",
+              shiny::div(
+                inputSelectionViewer(
+                  id = ns("input-selection-custom-plot")
+                )
+              ),
+              shiny::conditionalPanel(
+                condition = 'input.generate != 0',
+                ns = shiny::NS(ns("input-selection-custom-plot")),
+              shinycssloaders::withSpinner(
+                shiny::plotOutput(
+                  ns('incidencePlotCustom'),
+                  height = "500px"
                 )
               ),
               shiny::plotOutput(
-                ns('incidencePlotLegend'),
+                ns('incidencePlotLegendCustom'),
                 width="100%",
-                height="300px"
+                height="600px"
               )
               
             )
+           )
           )
         )
       )
@@ -239,15 +306,22 @@ characterizationIncidenceServer <- function(
        resultDatabaseSettings
      )
      
+     sortedAges <- custom_age_sort(options$ageGroupName)
+     
+     # Extract the integers from each TAR string
+     tarIntegers <- as.integer(gsub("[^0-9]", "", options$tar))
+     # Sort the vector based on the extracted integers
+     sortedTars <- options$tar[order(tarIntegers)]
+     
         # input selection component
-        inputSelected <- inputSelectionServer(
-          id = "input-selection", 
+        inputSelectedResults <- inputSelectionServer(
+          id = "input-selection-results", 
           inputSettingList = list(
             createInputSetting(
               rowNumber = 1,                           
               columnWidth = 12,
               varName = 'firsttext',
-              inputReturn = F,
+              inputReturn = T,
               uiFunction = 'shiny::div',
               uiInputs = list(
                 "Select Your Results",
@@ -263,7 +337,7 @@ characterizationIncidenceServer <- function(
               uiInputs = list(
                 label = 'Target: ',
                 choices = options$targetIds,
-                selected = options$targetIds[1],
+                selected = options$targetIds[1], #default should be just one (the first)
                 multiple = T,
                 options = shinyWidgets::pickerOptions(
                   actionsBox = TRUE,
@@ -284,7 +358,7 @@ characterizationIncidenceServer <- function(
               uiInputs = list(
                 label = 'Outcome: ',
                 choices = options$outcomeIds,
-                selected = options$outcomeIds[1],
+                selected = options$outcomeIds[1], #default should be just one (the first)
                 multiple = T,
                 options = shinyWidgets::pickerOptions(
                   actionsBox = TRUE,
@@ -300,15 +374,15 @@ characterizationIncidenceServer <- function(
             # third row
             createInputSetting(
               rowNumber = 3,                           
-              columnWidth = 4,
+              columnWidth = 3,
               varName = 'incidenceRateAgeFilter',
               uiFunction = 'shinyWidgets::pickerInput',
               updateFunction = 'shinyWidgets::updatePickerInput',
               collapse = T,
               uiInputs = list(
-                label = 'Filter By Age: ',
-                choices = options$ageGroupName,
-                selected = options$ageGroupName,
+                label = 'Filter By Age Group: ',
+                choices = sortedAges,
+                selected = sortedAges,
                 multiple = T,
                 options = shinyWidgets::pickerOptions(
                   actionsBox = TRUE,
@@ -325,14 +399,14 @@ characterizationIncidenceServer <- function(
             
             createInputSetting(
               rowNumber = 3,                           
-              columnWidth = 4,
+              columnWidth = 3,
               varName = 'incidenceRateGenderFilter',
               uiFunction = 'shinyWidgets::pickerInput',
               updateFunction = 'shinyWidgets::updatePickerInput',
               collapse = T,
               uiInputs = list(
                 label = 'Filter By Sex: ',
-                choices = options$genderName,
+                choices = sort(options$genderName, decreasing = F),
                 selected = options$genderName,
                 multiple = T,
                 options = shinyWidgets::pickerOptions(
@@ -349,14 +423,14 @@ characterizationIncidenceServer <- function(
             
             createInputSetting(
               rowNumber = 3,                           
-              columnWidth = 4,
+              columnWidth = 3,
               varName = 'incidenceRateCalendarFilter',
               uiFunction = 'shinyWidgets::pickerInput',
               updateFunction = 'shinyWidgets::updatePickerInput',
               collapse = T,
               uiInputs = list(
                 label = 'Filter By Start Year: ',
-                choices = options$startYear,
+                choices = sort(options$startYear, decreasing = T),
                 selected = options$startYear,
                 multiple = T,
                 options = shinyWidgets::pickerOptions(
@@ -371,12 +445,40 @@ characterizationIncidenceServer <- function(
               )
             ),
             
+            createInputSetting(
+              rowNumber = 3,                           
+              columnWidth = 3,
+              varName = 'incidenceRateTarFilter',
+              uiFunction = 'shinyWidgets::pickerInput',
+              updateFunction = 'shinyWidgets::updatePickerInput',
+              uiInputs = list(
+                label = 'Select Time at risk (TAR)',
+                choices = sortedTars,
+                selected = sortedTars[1],
+                multiple = F,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  dropupAuto = TRUE,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
+            )
+          )
+        )
+            
             # 4th row text
+        inputSelectedCustomPlot <- inputSelectionServer(
+          id = "input-selection-custom-plot", 
+          inputSettingList = list(
             createInputSetting(
               rowNumber = 4,                           
               columnWidth = 12,
               varName = 'secondtext',
-              inputReturn = F,
+              inputReturn = T,
               uiFunction = 'shiny::div',
               uiInputs = list(
                 "Configure Your Plot",
@@ -482,7 +584,7 @@ characterizationIncidenceServer <- function(
             
             createInputSetting(
               rowNumber = 6,                           
-              columnWidth = 4,
+              columnWidth = 3,
               varName = 'plotColor',
               uiFunction = 'shinyWidgets::pickerInput',
               updateFunction = 'shinyWidgets::updatePickerInput',
@@ -504,7 +606,7 @@ characterizationIncidenceServer <- function(
             ),
             createInputSetting(
               rowNumber = 6,                           
-              columnWidth = 4,
+              columnWidth = 3,
               varName = 'plotSize',
               uiFunction = 'shinyWidgets::pickerInput',
               updateFunction = 'shinyWidgets::updatePickerInput',
@@ -526,7 +628,7 @@ characterizationIncidenceServer <- function(
             ),
             createInputSetting(
               rowNumber = 6,                           
-              columnWidth = 4,
+              columnWidth = 3,
               varName = 'plotShape',
               uiFunction = 'shinyWidgets::pickerInput',
               updateFunction = 'shinyWidgets::updatePickerInput',
@@ -546,35 +648,10 @@ characterizationIncidenceServer <- function(
                 )
               )
             ),
-            
-            # row 7
-            
+
             createInputSetting(
-              rowNumber = 7,                           
-              columnWidth = 8,
-              varName = 'incidenceRateTarFilter',
-              uiFunction = 'shinyWidgets::pickerInput',
-              updateFunction = 'shinyWidgets::updatePickerInput',
-              uiInputs = list(
-                label = 'Select Time at risk (TAR)',
-                choices = options$tar,
-                selected = options$tar[1],
-                multiple = F,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  dropupAuto = TRUE,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            
-            createInputSetting(
-              rowNumber = 7,                           
-              columnWidth = 4,
+              rowNumber = 6,                           
+              columnWidth = 3,
               varName = 'irYscaleFixed',
               uiFunction = 'shiny::checkboxInput',
               uiInputs = list(
@@ -590,13 +667,21 @@ characterizationIncidenceServer <- function(
       
       filteredData <- shiny::reactive(         
         {
-          if (is.null(inputSelected()$targetIds) |
-              is.null(inputSelected()$outcomeIds)) {
+          if (is.null(inputSelectedResults()$targetIds) |
+              is.null(inputSelectedResults()$outcomeIds)
+              ) {
             return(data.frame())
           }
           
-          getIncidenceData(targetIds = inputSelected()$targetIds,
-                           outcomeIds = inputSelected()$outcomeIds,
+          else if(inputSelectedResults()$targetIds==inputSelectedResults()$outcomeIds &&
+                   length(inputSelectedResults()$targetIds)==1 && length(inputSelectedResults()$outcomeIds)==1
+          ){
+            shiny::validate("Target and outcome cohorts must differ from each other. Make a different selection.")
+          }
+          
+          else {
+            getIncidenceData(targetIds = inputSelectedResults()$targetIds,
+                           outcomeIds = inputSelectedResults()$outcomeIds,
                            connectionHandler = connectionHandler,
                            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
@@ -604,14 +689,51 @@ characterizationIncidenceServer <- function(
             dplyr::mutate(incidenceProportionP100p = as.numeric(.data$incidenceProportionP100p),
                           incidenceRateP100py = as.numeric(.data$incidenceRateP100py),
                           dplyr::across(dplyr::where(is.numeric), round, 4),
-                          targetIdShort = paste("C", .data$targetCohortDefinitionId, sep = ":"),
-                          outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = ":")) %>%
-            dplyr::filter(.data$ageGroupName %in% !!inputSelected()$incidenceRateAgeFilter & 
-                            .data$genderName %in% !!inputSelected()$incidenceRateGenderFilter & 
-                            .data$startYear %in% !!inputSelected()$incidenceRateCalendarFilter  
-            )
+                          targetIdShort = paste("C", .data$targetCohortDefinitionId, sep = "-"),
+                          outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
+            dplyr::filter(.data$ageGroupName %in% !!inputSelectedResults()$incidenceRateAgeFilter & 
+                            .data$genderName %in% !!inputSelectedResults()$incidenceRateGenderFilter & 
+                            .data$startYear %in% !!inputSelectedResults()$incidenceRateCalendarFilter  
+            ) %>%
+              dplyr::relocate("targetIdShort", .after = "targetName") %>%
+              dplyr::relocate("outcomeIdShort", .after = "outcomeName")
+          }
         }
       )
+      
+      filteredDataAggregateForPlot <- shiny::reactive(         
+        {
+          if (is.null(inputSelectedResults()$targetIds) |
+              is.null(inputSelectedResults()$outcomeIds)
+          ) {
+            return(data.frame())
+          }
+          
+          else if(inputSelectedResults()$targetIds==inputSelectedResults()$outcomeIds &&
+                  length(inputSelectedResults()$targetIds)==1 && length(inputSelectedResults()$outcomeIds)==1
+          ){
+            shiny::validate("Target and outcome cohorts must differ from each other. Make a different selection.")
+          }
+          
+          else {
+            getIncidenceData(targetIds = inputSelectedResults()$targetIds,
+                             outcomeIds = inputSelectedResults()$outcomeIds,
+                             connectionHandler = connectionHandler,
+                             resultDatabaseSettings = resultDatabaseSettings
+            ) %>%
+              dplyr::relocate("tar", .before = "outcomes") %>%
+              dplyr::mutate(incidenceProportionP100p = as.numeric(.data$incidenceProportionP100p),
+                            incidenceRateP100py = as.numeric(.data$incidenceRateP100py),
+                            dplyr::across(dplyr::where(is.numeric), round, 4),
+                            targetIdShort = paste("C", .data$targetCohortDefinitionId, sep = "-"),
+                            outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
+              dplyr::relocate("targetIdShort", .after = "targetName") %>%
+              dplyr::relocate("outcomeIdShort", .after = "outcomeName")
+      
+          }
+        }
+      )
+      
 
 
       incidenceColList <- ParallelLogger::loadSettingsFromJson(
@@ -633,7 +755,7 @@ characterizationIncidenceServer <- function(
       resultTableServer(
         id = "incidenceRateTable",
         df = renderIrTable,
-        selectedCols = c("cdmSourceAbbreviation", "targetName", "outcomeName",
+        selectedCols = c("cdmSourceAbbreviation", "targetName", "targetIdShort", "outcomeName", "outcomeIdShort",
                          "ageGroupName", "genderName", "startYear", "tar", "outcomes",
                          "incidenceProportionP100p", "incidenceRateP100py"),
         sortedCols = c("ageGroupName", "genderName", "startYear", "incidenceRateP100py"),
@@ -642,17 +764,22 @@ characterizationIncidenceServer <- function(
         downloadedFileName = "incidenceRateTable-"
       )
       
-      #ir plots - TODO edit to reactive
-      renderIrPlot <- shiny::reactive(
+      '%!in%' <- function(x,y)!('%in%'(x,y))
+      
+      #ir plots
+      irPlotCustom <- shiny::reactive(
         {
-          if (is.null(inputSelected()$targetIds) |
-              is.null(inputSelected()$outcomeIds)) {
+          if (is.null(inputSelectedResults()$targetIds) |
+              is.null(inputSelectedResults()$outcomeIds)) {
             return(data.frame())
           }
           
+          ifelse(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar,
           plotData <- filteredData() %>%
-            dplyr::filter(.data$tar %in% inputSelected()$incidenceRateTarFilter)
-          
+            dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
+            shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
+          )
+
           # Take the specific tar value you want to plot
           tar_value <- unique(plotData$tar)[1]
           
@@ -682,43 +809,43 @@ characterizationIncidenceServer <- function(
           trellis_aesthetic_x <- NULL
           trellis_aesthetic_y <- NULL
           
-          if (inputSelected()$plotColor == "Target Cohort" | inputSelected()$plotColor == "Outcome Cohort") {
-            color_aesthetic <- if (inputSelected()$plotColor == "Target Cohort") {
+          if (inputSelectedCustomPlot()$plotColor == "Target Cohort" | inputSelectedCustomPlot()$plotColor == "Outcome Cohort") {
+            color_aesthetic <- if (inputSelectedCustomPlot()$plotColor == "Target Cohort") {
               dplyr::vars(.data$targetIdShort)
-            } else if (inputSelected()$plotColor == "Outcome Cohort") {
+            } else if (inputSelectedCustomPlot()$plotColor == "Outcome Cohort") {
               dplyr::vars(.data$outcomeIdShort)
             }
           }
           
-          if (inputSelected()$plotShape == "Target Cohort" | inputSelected()$plotShape == "Outcome Cohort") {
-            shape_aesthetic <- if (inputSelected()$plotShape == "Target Cohort") {
+          if (inputSelectedCustomPlot()$plotShape == "Target Cohort" | inputSelectedCustomPlot()$plotShape == "Outcome Cohort") {
+            shape_aesthetic <- if (inputSelectedCustomPlot()$plotShape == "Target Cohort") {
               dplyr::vars(.data$targetIdShort)
-            } else if (inputSelected()$plotShape == "Outcome Cohort") {
+            } else if (inputSelectedCustomPlot()$plotShape == "Outcome Cohort") {
               dplyr::vars(.data$outcomeIdShort)
             }
           }
           
-          max_length <- max(nchar(unique(inputSelected()$plotXAxis)))
+          max_length <- max(nchar(unique(inputSelectedCustomPlot()$plotXAxis)))
           
-          if (inputSelected()$plotXTrellis != inputSelected()$plotYTrellis){
+          if (inputSelectedCustomPlot()$plotXTrellis != inputSelectedCustomPlot()$plotYTrellis | 
+              (inputSelectedCustomPlot()$plotXTrellis == "(None)" && inputSelectedCustomPlot()$plotYTrellis == "(None)")){
             
             # Create the base plot with conditional aesthetics
             base_plot <- ggplot2::ggplot(
               data = plotData,
-              ggplot2::aes(x = .data[[inputSelected()$plotXAxis]],
-                           y = .data[[inputSelected()$plotYAxis]],
-                           shape = if(inputSelected()$plotShape != "None" & inputSelected()$plotShape != "Target Cohort" & 
-                                      inputSelected()$plotShape != "Outcome Cohort") .data[[inputSelected()$plotShape]]
+              ggplot2::aes(x = .data[[inputSelectedCustomPlot()$plotXAxis]],
+                           y = .data[[inputSelectedCustomPlot()$plotYAxis]],
+                           shape = if(inputSelectedCustomPlot()$plotShape != "(None)" & inputSelectedCustomPlot()$plotShape != "Target Cohort" & 
+                                      inputSelectedCustomPlot()$plotShape != "Outcome Cohort") .data[[inputSelectedCustomPlot()$plotShape]]
                            else shape_aesthetic,
-                           color = if(inputSelected()$plotColor != "None" & inputSelected()$plotColor != "Target Cohort" & 
-                                      inputSelected()$plotColor != "Outcome Cohort") .data[[inputSelected()$plotColor]]
-                           else color_aesthetic,
-                           text = .data$tooltip
+                           color = if(inputSelectedCustomPlot()$plotColor != "(None)" & inputSelectedCustomPlot()$plotColor != "Target Cohort" & 
+                                      inputSelectedCustomPlot()$plotColor != "Outcome Cohort") .data[[inputSelectedCustomPlot()$plotColor]]
+                           else color_aesthetic
               )
             ) + 
-              ggplot2::geom_point(ggplot2::aes(size = if(inputSelected()$plotSize != "None") .data[[inputSelected()$plotSize]] else NULL,
-                                               alpha = 0.6)
-              ) 
+              ggplot2::geom_point(ggplot2::aes(size = if(inputSelectedCustomPlot()$plotSize != "(None)") .data[[inputSelectedCustomPlot()$plotSize]] else NULL)
+              ) + 
+              ggplot2::scale_size_continuous(range = c(3,7))
             
             # Rotate x-axis labels if the maximum length is greater than 10
             if (max_length > 10) {
@@ -727,213 +854,218 @@ characterizationIncidenceServer <- function(
             }
             
             # Add trellising if it's not NULL
-            if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
-                cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                rows = dplyr::vars(.data[[inputSelectedCustomPlot()$plotXTrellis]]),
+                cols = dplyr::vars(.data[[inputSelectedCustomPlot()$plotYTrellis]]),
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis=="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$targetIdShort),
-                cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                cols = dplyr::vars(.data[[inputSelectedCustomPlot()$plotYTrellis]]),
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis=="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$outcomeIdShort),
-                cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                cols = dplyr::vars(.data[[inputSelectedCustomPlot()$plotYTrellis]]),
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis=="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
+                rows = dplyr::vars(.data[[inputSelectedCustomPlot()$plotXTrellis]]),
                 cols = dplyr::vars(.data$targetIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
+                rows = dplyr::vars(.data[[inputSelectedCustomPlot()$plotXTrellis]]),
                 cols = dplyr::vars(.data$outcomeIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis=="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis=="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$targetIdShort),
                 cols = dplyr::vars(.data$targetIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis=="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$targetIdShort),
                 cols = dplyr::vars(.data$outcomeIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis=="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis=="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$outcomeIdShort),
                 cols = dplyr::vars(.data$targetIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis=="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$outcomeIdShort),
                 cols = dplyr::vars(.data$outcomeIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis=="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis=="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis=="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = NULL,
                 cols = dplyr::vars(.data$outcomeIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis=="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis=="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis=="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis=="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = NULL,
                 cols = dplyr::vars(.data$targetIdShort),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis=="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis!="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis=="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = NULL,
-                cols = dplyr::vars(.data[[inputSelected()$plotYTrellis]]),
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                cols = dplyr::vars(.data[[inputSelectedCustomPlot()$plotYTrellis]]),
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis=="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis=="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data[[inputSelected()$plotXTrellis]]),
+                rows = dplyr::vars(.data[[inputSelectedCustomPlot()$plotXTrellis]]),
                 cols = NULL,
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis=="targetName" & inputSelected()$plotXTrellis!="outcomeName" & 
-                     inputSelected()$plotYTrellis=="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis=="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis=="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$targetIdShort),
                 cols = NULL,
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
             }
-            else if (inputSelected()$plotXTrellis!="None" & inputSelected()$plotXTrellis!="targetName" & inputSelected()$plotXTrellis=="outcomeName" & 
-                     inputSelected()$plotYTrellis=="None" & inputSelected()$plotYTrellis!="targetName" & inputSelected()$plotYTrellis!="outcomeName") {
+            else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis=="outcomeName" & 
+                     inputSelectedCustomPlot()$plotYTrellis=="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data$outcomeIdShort),
                 cols = NULL,
-                scales = if (inputSelected()$irYscaleFixed) "fixed" else "free_y"
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
                                strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
-                ) +
-                force_panelsizes(rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in"))
+                ) 
+            }
+            else if (inputSelectedCustomPlot()$plotXTrellis=="(None)" & inputSelectedCustomPlot()$plotYTrellis=="(None)") {
+              base_plot <- base_plot + ggplot2::facet_grid(
+                rows = NULL,
+                cols = NULL,
+                scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
+              ) +
+                ggplot2::theme(strip.background = ggplot2::element_blank(), 
+                               strip.text = ggplot2::element_text(size = NULL, color = NULL, face="bold")
+                ) 
             }
             
             
             # Rest of your ggplot code remains the same
             base_plot <- base_plot + ggplot2::labs(
               title = paste("Incidence Rate for TAR:", tar_value),
-              x = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelected()$plotXAxis]),
-              y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% inputSelected()$plotYAxis]),
-              color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelected()$plotColor]),
-              size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% inputSelected()$plotSize]),
-              shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelected()$plotShape]
+              x = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelectedCustomPlot()$plotXAxis]),
+              y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% inputSelectedCustomPlot()$plotYAxis]),
+              color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelectedCustomPlot()$plotColor]),
+              size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% inputSelectedCustomPlot()$plotSize]),
+              shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelectedCustomPlot()$plotShape]
               )
             ) +
+              ggplot2::scale_y_log10(breaks = scales::breaks_log(n=6)) +
               ggplot2::guides(alpha = "none") + # Remove the alpha legend
               ggplot2::theme_bw() +
               ggplot2::theme(
-                title = ggplot2::element_text(hjust = 0.5),
-                plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10)),
-                axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 30)),
-                axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 30)),
-                legend.box = "horizontal",
-                panel.spacing = ggplot2::unit(1, "lines"),
-                strip.background = ggplot2::element_blank(), 
-                strip.text = ggplot2::element_text(face="bold")
-              ) +
-              force_panelsizes(
-                rows = ggplot2::unit(4, "in"), cols = ggplot2::unit(3, "in")
-                )
+                plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
+                axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 30), size = 20),
+                axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 30), size = 20),
+                axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
+                axis.text.y = ggplot2::element_text(size = 14),
+                legend.position = "right",
+                legend.box.spacing = ggplot2::unit(3, "pt"),
+                legend.text = ggplot2::element_text(size=10),
+                legend.title = ggplot2::element_text(size=16, face = "bold"),
+                #plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12),
+                #legend.spacing.x = ggplot2::unit(2.0, 'cm'),
+                # legend.box = "horizontal",
+                # legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
+                # legend.title = ggplot2::element_text(size=30), #change legend title font size
+                # legend.text = ggplot2::element_text(size=20),
+                panel.spacing = ggplot2::unit(2, "lines"),
+                # strip.background = ggplot2::element_blank(), 
+                strip.text = ggplot2::element_text(face="bold", size = 14)
+              ) + 
+              ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
+                              color = ggplot2::guide_legend(override.aes = list(size = 6)))
             
             #   
             #   # Create a custom color scale
@@ -975,23 +1107,24 @@ characterizationIncidenceServer <- function(
       )
       
       #render the event reactive incidence plot without legend
-      renderIrPlotNoLegend <- shiny::reactive(
+      renderIrPlotCustomNoLegend <- shiny::reactive(
         {
-          if (is.null(inputSelected()$targetIds) |
-              is.null(inputSelected()$outcomeIds)) {
-            return(data.frame())
+          if (is.null(inputSelectedResults()$targetIds) |
+              is.null(inputSelectedResults()$outcomeIds)) {
+            shiny::validate("Please select at least one target and one outcome.")
           }
           
+          else {
           plotData <- filteredData() %>%
-            dplyr::filter(.data$tar %in% inputSelected()$incidenceRateTarFilter)
+            dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter)
           
           # Get the number of facets in both rows and columns
-          num_rows <- length(unique(plotData[[inputSelected()$plotXTrellis]]))
-          num_cols <- length(unique(plotData[[inputSelected()$plotYTrellis]]))
+          num_rows <- length(unique(plotData[[inputSelectedCustomPlot()$plotXTrellis]]))
+          num_cols <- length(unique(plotData[[inputSelectedCustomPlot()$plotYTrellis]]))
           
-          max_length <- max(nchar(unique(inputSelected()$plotXAxis)))
+          max_length <- max(nchar(unique(inputSelectedCustomPlot()$plotXAxis)))
           
-          base_plot <- renderIrPlot()
+          base_plot <- irPlotCustom()
           
           p <- base_plot +
             ggplot2::guides(shape = FALSE, color = FALSE, size = FALSE)
@@ -1022,13 +1155,44 @@ characterizationIncidenceServer <- function(
           
           return(p)
           
+          }
+          
+        }
+      )
+      
+      #render the event reactive incidence plot without legend
+      renderIrPlotCustom <- shiny::reactive(
+        {
+          if (is.null(inputSelectedResults()$targetIds) |
+              is.null(inputSelectedResults()$outcomeIds)) {
+            shiny::validate("Please select at least one target and one outcome.")
+          }
+          
+          else {
+            plotData <- filteredData() %>%
+              dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter)
+            
+            # Get the number of facets in both rows and columns
+            num_rows <- length(unique(plotData[[inputSelectedCustomPlot()$plotXTrellis]]))
+            num_cols <- length(unique(plotData[[inputSelectedCustomPlot()$plotYTrellis]]))
+            
+            max_length <- max(nchar(unique(inputSelectedCustomPlot()$plotXAxis)))
+            
+            base_plot <- irPlotCustom()
+            
+            p <- base_plot
+            
+            return(p)
+            
+          }
+          
         }
       )
       
       #render the event reactive incidence plot legend only
-      renderIrPlotLegend <- shiny::reactive(
+      renderIrPlotCustomLegend <- shiny::reactive(
         {
-          base_plot <- renderIrPlot()
+          base_plot <- irPlotCustom()
           
           p <- as_ggplot(cowplot::get_legend(base_plot))
           
@@ -1037,22 +1201,626 @@ characterizationIncidenceServer <- function(
       )
       
       
-      output$incidencePlot <-  
-        plotly::renderPlotly({
-          renderIrPlotNoLegend()
-        })
-      
-      output$incidencePlotLegend <-  
+      output$incidencePlotCustom <-  
         shiny::renderPlot({
-          renderIrPlotLegend()
+          renderIrPlotCustom()
         })
       
+      output$incidencePlotCustomLegend <-  
+        shiny::renderPlot({
+          renderIrPlotCustomLegend()
+        })
+      
+      
+      
+      
+      targetLabeller <- function(string, prefix = "Target: ") paste0(prefix, string)
+      outcomeLabeller <- function(string, prefix = "Outcome: ") paste0(prefix, string)
+      ageLabeller <- function(string, prefix = "Age: ") paste0(prefix, string)
+      
+      
+      
+      
+      
+      #by age
+      
+      renderIrPlotStandardAge <- shiny::reactive(
+        {
+          
+          if (is.null(inputSelectedResults()$targetIds) |
+              is.null(inputSelectedResults()$outcomeIds)) {
+            return(data.frame())
+          }
+          
+          ifelse(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar,
+                 plotData <- filteredData() %>%
+                   dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
+                 shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
+          )
+          
+          #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
+          ifelse(length(inputSelectedResults()$targetId) * length(inputSelectedResults()$outcomeId) <= 10,
+                 plotData <- filteredData(),
+                 shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
+          )
+          
+          plotData <- plotData %>%
+            dplyr::filter(ageGroupName != "Any" & 
+                            genderName == "Any" & 
+                            startYear == "Any") %>%
+            dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
+                          outcomeLabel = paste(outcomeIdShort, " = ", outcomeName),
+                          ageGroupName = factor(ageGroupName, levels = custom_age_sort(ageGroupName), ordered = TRUE)
+            ) %>%
+            dplyr::rename("Target" = targetIdShort,
+                          "Outcome" = outcomeIdShort,
+                          "Age" = ageGroupName)
+          
+          # plotHeightStandardAgeSex <- shiny::reactive({
+          #   paste(sum(length(unique(plotData$targetLabel)), length(unique(plotData$Age)), -3)*100, "px", sep="")
+          # })
+          
+          # Get unique target and outcome labels
+          unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
+          unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
+          
+          # Combine all unique values into a final vector
+          final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
+          
+          # Create the caption text with line breaks
+          caption_text <- paste(final_unique_values, collapse = "\n")
+          
+          
+          # Take the specific tar value you want to plot
+          tar_value <- unique(plotData$tar)[1]
+          
+          
+          base_plot <- ggplot2::ggplot(
+            data = plotData,
+            ggplot2::aes(x = Age,
+                         y = incidenceRateP100py,
+                         color = cdmSourceAbbreviation
+            )
+          ) + 
+            ggplot2::geom_point(
+              ggplot2::aes(size = 3)
+            ) + 
+            #geom_jitter() +
+            #scale_size_continuous(range = c(5,15)) +
+            ggplot2::scale_colour_brewer(palette = "Dark2") +
+            ggplot2::facet_wrap(
+              Target~Outcome,
+              labeller = "label_both",
+              scales = "free_x",
+              nrow = 2,
+              ncol = 5
+              #,
+              #strip.position = "right"
+            ) + 
+            ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                                        n.breaks = 4)
+          
+          base_plot <- base_plot + ggplot2::labs(
+            title = paste("Incidence Rate for Time at Risk:", tar_value),
+            x = paste(names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "ageGroupName"]), "\n"),
+            y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]),
+            color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
+            #size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "outcomes"]),
+            #shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
+            caption = caption_text
+          ) +
+            ggplot2::guides(alpha = "none", size = "none") + # Remove the alpha and size legend
+            ggplot2::theme_bw() +
+            ggplot2::theme(
+              plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
+              plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
+              axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
+              axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
+              axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
+              axis.text.y = ggplot2::element_text(size = 14),
+              legend.position = "bottom",
+              legend.box.spacing = ggplot2::unit(3, "pt"),
+              legend.text = ggplot2::element_text(size=10),
+              legend.title = ggplot2::element_text(size=16, face = "bold"),
+              legend.title.align = 0.5,
+              plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
+                                                   margin = ggplot2::margin(t = 20)),
+              #legend.spacing.x = ggplot2::unit(2.0, 'cm'),
+              # legend.box = "horizontal",
+              # legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
+              # legend.title = ggplot2::element_text(size=30), #change legend title font size
+              # legend.text = ggplot2::element_text(size=20),
+              panel.spacing = ggplot2::unit(2, "lines"),
+              # strip.background = ggplot2::element_blank(), 
+              strip.text = ggplot2::element_text(face="bold", size = 14),
+              strip.background = ggplot2::element_blank(),
+              strip.clip = "off"
+            ) + 
+            ggplot2::guides(#shape = ggplot2::guide_legend(override.aes = list(size = 6)),
+                            color = ggplot2::guide_legend(override.aes = list(size = 6))
+            )
+          
+          return(base_plot)
+          
+        }
+      )
+      
+      output$incidencePlotStandardAge<-  
+        shiny::renderPlot({
+          renderIrPlotStandardAge()
+        })
+      
+      
+      # Define a function to save the plot as an image
+      output$downloadPlotStandardAge <- shiny::downloadHandler(
+        filename = function() {
+          paste("standard-age-ir-plot-", Sys.Date(), ".png", sep = "")
+        },
+        content = function(file) {
+          cowplot::save_plot(file, plot = renderIrPlotStandardAge(), base_height = 12)
+        }
+      )
+      
+      
+    
+      
+      #by age and sex 
 
-      return(invisible(NULL))
+renderIrPlotStandardAgeSex <- shiny::reactive(
+  {
+    
+    if (is.null(inputSelectedResults()$targetIds) |
+        is.null(inputSelectedResults()$outcomeIds)) {
+      return(data.frame())
+    }
+    
+    ifelse(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar,
+           plotData <- filteredData() %>%
+             dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
+           shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
+    )
+    
+    #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
+    ifelse(length(inputSelectedResults()$targetId) * length(inputSelectedResults()$outcomeId) <= 10,
+           plotData <- filteredData(),
+           shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
+    )
+    
+    plotData <- plotData %>%
+      dplyr::filter(ageGroupName != "Any" & 
+                      genderName != "Any" & 
+                      startYear == "Any") %>%
+      dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
+                    outcomeLabel = paste(outcomeIdShort, " = ", outcomeName),
+                    ageGroupName = factor(ageGroupName, levels = custom_age_sort(ageGroupName), ordered = TRUE)
+                    ) %>%
+      dplyr::rename("Target" = targetIdShort,
+             "Outcome" = outcomeIdShort,
+             "Age" = ageGroupName)
+    
+    # plotHeightStandardAgeSex <- shiny::reactive({
+    #   paste(sum(length(unique(plotData$targetLabel)), length(unique(plotData$Age)), -3)*100, "px", sep="")
+    # })
+    
+    # Get unique target and outcome labels
+    unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
+    unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
+    
+    # Combine all unique values into a final vector
+    final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
+    
+    # Create the caption text with line breaks
+    caption_text <- paste(final_unique_values, collapse = "\n")
+    
+    
+    # Take the specific tar value you want to plot
+    tar_value <- unique(plotData$tar)[1]
+    
+    base_plot <- ggplot2::ggplot(
+      data = plotData,
+      ggplot2::aes(x = Age,
+                   y = incidenceRateP100py,
+                   shape = genderName,
+                   color = cdmSourceAbbreviation
+      )
+    ) + 
+      ggplot2::geom_point(
+        ggplot2::aes(size = 3)
+      ) + 
+      #geom_jitter() +
+      #scale_size_continuous(range = c(5,15)) +
+      ggplot2::scale_colour_brewer(palette = "Dark2") +
+      ggplot2::facet_wrap(
+        Target~Outcome,
+        labeller = "label_both",
+        scales = "free_x",
+        nrow = 2,
+        ncol = 5
+        #,
+        #strip.position = "right"
+      ) + 
+      ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                                  n.breaks = 4)
+    
+    base_plot <- base_plot + ggplot2::labs(
+      title = paste("Incidence Rate for Time at Risk:", tar_value),
+      x = paste(names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "ageGroupName"]), "\n"),
+      y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]),
+      color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
+      #size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "outcomes"]),
+      shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
+      caption = caption_text
+    ) +
+      ggplot2::guides(alpha = "none", size = "none") + # Remove the alpha and size legend
+      ggplot2::theme_bw() +
+      ggplot2::theme(
+        plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
+        plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
+        axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
+        axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
+        axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
+        axis.text.y = ggplot2::element_text(size = 14),
+        legend.position = "bottom",
+        legend.box.spacing = ggplot2::unit(3, "pt"),
+        legend.text = ggplot2::element_text(size=10),
+        legend.title = ggplot2::element_text(size=16, face = "bold"),
+        legend.title.align = 0.5,
+        plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
+                                             margin = ggplot2::margin(t = 20)),
+        #legend.spacing.x = ggplot2::unit(2.0, 'cm'),
+        # legend.box = "horizontal",
+        # legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
+        # legend.title = ggplot2::element_text(size=30), #change legend title font size
+        # legend.text = ggplot2::element_text(size=20),
+        panel.spacing = ggplot2::unit(2, "lines"),
+        # strip.background = ggplot2::element_blank(), 
+        strip.text = ggplot2::element_text(face="bold", size = 14),
+        strip.background = ggplot2::element_blank(),
+        strip.clip = "off"
+      ) + 
+      ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
+                      color = ggplot2::guide_legend(override.aes = list(size = 6))
+                      )
+    
+    return(base_plot)
+
+  }
+)
+      
+output$incidencePlotStandardAgeSex<-  
+  shiny::renderPlot({
+    renderIrPlotStandardAgeSex()
+  })
+
+
+# Define a function to save the plot as an image
+output$downloadPlotStandardAgeSex <- shiny::downloadHandler(
+  filename = function() {
+    paste("standard-age-sex-ir-plot-", Sys.Date(), ".png", sep = "")
+  },
+  content = function(file) {
+    cowplot::save_plot(file, plot = renderIrPlotStandardAgeSex(), base_height = 12)
+  }
+)
+
+
+
+# by calendar year
+renderIrPlotStandardYear <- shiny::reactive(
+  {
+    
+    if (is.null(inputSelectedResults()$targetIds) |
+        is.null(inputSelectedResults()$outcomeIds)) {
+      return(data.frame())
+    }
+    
+    ifelse(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar,
+           plotData <- filteredData() %>%
+             dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
+           shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
+    )
+    
+    ifelse(length(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar) == 1,
+           plotData <- filteredData() %>%
+             dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
+           shiny::validate("Please select only one TAR at a time to view yearly plots.")
+    )
+    
+    ifelse((length(inputSelectedResults()$targetIds) == 1) & 
+             (length(inputSelectedResults()$outcomeIds) == 1), 
+           plotData <- plotData,
+           shiny::validate("Please select only one Target and Outcome at a time to view yearly plots.")
+    )
+    
+    
+    
+    plotData <- plotData %>%
+      dplyr::filter(genderName != "Any" & 
+                      startYear != "Any") %>%
+      dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
+                    outcomeLabel = paste(outcomeIdShort, " = ", outcomeName),
+                    ageGroupName = factor(ageGroupName, levels = custom_age_sort(ageGroupName), ordered = TRUE)
+      ) %>%
+      dplyr::rename("Target" = targetIdShort,
+                    "Outcome" = outcomeIdShort,
+                    "Age" = ageGroupName)
+    
+    #get unique shorthand cohort name
+    unique_target <- unique(plotData$Target)
+    unique_outcome <- unique(plotData$Outcome)
+    
+    
+    # Get unique target and outcome labels
+    unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
+    unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
+    
+    # Combine all unique values into a final vector
+    final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
+    
+    # Create the caption text with line breaks
+    caption_text <- paste(final_unique_values, collapse = "\n")
+    
+    
+    # Take the specific tar value you want to plot
+    tar_value <- unique(plotData$tar)[1]
+    
+    base_plot <- ggplot2::ggplot(
+      data = plotData,
+      ggplot2::aes(x = startYear,
+                   y = incidenceRateP100py,
+                   shape = genderName,
+                   color = cdmSourceAbbreviation,
+                   group = interaction(cdmSourceAbbreviation, genderName)
+      )
+    ) + 
+      ggplot2::geom_point(
+        ggplot2::aes(size = 2.5)
+      ) + 
+      ggplot2::geom_line(ggplot2::aes(linetype = genderName)) +
+      ggplot2::scale_colour_brewer(palette = "Dark2") +
+      #geom_jitter() +
+      #scale_size_continuous(range = c(5,15)) +
+      # ggplot2::scale_colour_brewer(palette = "Dark2") +
+      # ggplot2::facet_grid(
+      #   rows = dplyr::vars(Outcome),
+      #   cols = dplyr::vars(Age),
+      #   labeller = ggplot2::labeller(.rows = outcomeLabeller,
+      #                                .cols = ageLabeller),
+      #   scales = "free_y"
+      # ) + 
+      ggplot2::facet_wrap(
+        ~Age,
+        labeller = "label_both",
+        scales = "free_x",
+        nrow = 2
+      ) +
+      # scale_y_continuous(#breaks = base_breaks(),
+      #                    trans = 'log10')
+      ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                                  n.breaks = 3)
+    
+    base_plot <- base_plot + ggplot2::labs(
+      title = paste("Incidence Rate for Time at Risk:", tar_value),
+      subtitle = paste("Target = ", unique_target, "; Outcome = ", unique_outcome, sep = ""),
+      x = paste(names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "startYear"]), "\n"),
+      y = paste(names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]), " (log10 scale)"),
+      color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
+      #size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "outcomes"]),
+      shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
+      #linetype = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
+      caption = caption_text
+    ) +
+      ggplot2::guides(alpha = "none", size = "none", linetype = "none") + # Remove the alpha and size legend
+      ggplot2::theme_bw() +
+      ggplot2::theme(
+        plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
+        plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
+        axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
+        axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
+        axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
+        axis.text.y = ggplot2::element_text(size = 14),
+        legend.position = "bottom",
+        legend.box.spacing = ggplot2::unit(3, "pt"),
+        legend.text = ggplot2::element_text(size=10),
+        legend.title = ggplot2::element_text(size=16, face = "bold"),
+        legend.title.align = 0.5,
+        plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
+                                             margin = ggplot2::margin(t = 20)),
+        #legend.spacing.x = ggplot2::unit(2.0, 'cm'),
+        # legend.box = "horizontal",
+        # legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
+        # legend.title = ggplot2::element_text(size=30), #change legend title font size
+        # legend.text = ggplot2::element_text(size=20),
+         panel.spacing = ggplot2::unit(2, "lines"),
+        # strip.background = ggplot2::element_blank(), 
+        strip.text = ggplot2::element_text(face="bold", size = 14),
+        strip.background = ggplot2::element_blank(),
+        strip.clip = "off"
+      ) + 
+      ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
+                      color = ggplot2::guide_legend(override.aes = list(size = 6))
+      )
+    
+    return(base_plot)
+    
+  }
+)
+
+output$incidencePlotStandardYear<-  
+  shiny::renderPlot({
+    renderIrPlotStandardYear()
+  })
+
+
+# Define a function to save the plot as an image
+output$downloadPlotStandardYear <- shiny::downloadHandler(
+  filename = function() {
+    paste("standard-yearly-ir-plot-", Sys.Date(), ".png", sep = "")
+  },
+  content = function(file) {
+    cowplot::save_plot(file, plot = renderIrPlotStandardYear(), base_height = 24)
+  }
+)
+
+
+
+
+
+
+
+
+#aggregate (unstratified)
+
+renderIrPlotStandardAggregate <- shiny::reactive(
+  {
+    
+    if (is.null(inputSelectedResults()$targetIds) |
+        is.null(inputSelectedResults()$outcomeIds)) {
+      return(data.frame())
+    }
+    
+    ifelse(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar,
+           plotData <- filteredDataAggregateForPlot() %>%
+             dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
+           shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
+    )
+    
+    #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
+    ifelse(length(inputSelectedResults()$targetId) * length(inputSelectedResults()$outcomeId) <= 10,
+           plotData <- filteredData(),
+           shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
+    )
+    
+    plotData <- plotData %>%
+      dplyr::filter(ageGroupName == "Any" & 
+                      genderName == "Any") %>%
+      dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
+                    outcomeLabel = paste(outcomeIdShort, " = ", outcomeName)
+      ) %>%
+      dplyr::rename("Target" = targetIdShort,
+                    "Outcome" = outcomeIdShort,
+                    "Age" = ageGroupName)
+    
+    # Get unique target and outcome labels
+    unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
+    unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
+    
+    # Combine all unique values into a final vector
+    final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
+    
+    # Create the caption text with line breaks
+    caption_text <- paste(final_unique_values, collapse = "\n")
+    
+    
+    # Take the specific tar value you want to plot
+    tar_value <- unique(plotData$tar)[1]
+    
+    base_plot <- ggplot2::ggplot(
+      data = plotData,
+      ggplot2::aes(x = startYear,
+                   y = incidenceRateP100py,
+                   #shape = genderName,
+                   color = cdmSourceAbbreviation
+      )
+    ) + 
+      ggplot2::geom_point(
+        ggplot2::aes(size = 3)
+      ) + 
+      #ggplot2::geom_jitter() +
+      #scale_size_continuous(range = c(5,15)) +
+      ggplot2::scale_colour_brewer(palette = "Dark2") +
+      ggplot2::facet_wrap(
+        Target~Outcome,
+        labeller = "label_both",
+        scales = "free_x",
+        nrow = 2,
+        ncol = 5
+        #,
+        #strip.position = "right"
+      ) + 
+      ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                                  n.breaks = 4)
+    
+    base_plot <- base_plot + ggplot2::labs(
+      title = paste("Incidence Rate for Time at Risk:", tar_value),
+      x = paste(names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "ageGroupName"]), "\n"),
+      y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]),
+      color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
+      #size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "outcomes"]),
+      #shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
+      caption = caption_text
+    ) +
+      ggplot2::guides(alpha = "none", size = "none") + # Remove the alpha and size legend
+      ggplot2::theme_bw() +
+      ggplot2::theme(
+        plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
+        plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
+        axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
+        axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
+        axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
+        axis.text.y = ggplot2::element_text(size = 14),
+        legend.position = "bottom",
+        legend.box.spacing = ggplot2::unit(3, "pt"),
+        legend.text = ggplot2::element_text(size=10),
+        legend.title = ggplot2::element_text(size=16, face = "bold"),
+        legend.title.align = 0.5,
+        plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
+                                             margin = ggplot2::margin(t = 20)),
+        #legend.spacing.x = ggplot2::unit(2.0, 'cm'),
+        # legend.box = "horizontal",
+        # legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
+        # legend.title = ggplot2::element_text(size=30), #change legend title font size
+        # legend.text = ggplot2::element_text(size=20),
+        panel.spacing = ggplot2::unit(2, "lines"),
+        # strip.background = ggplot2::element_blank(), 
+        strip.text = ggplot2::element_text(face="bold", size = 14),
+        strip.background = ggplot2::element_blank(),
+        strip.clip = "off"
+      ) + 
+      ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
+                      color = ggplot2::guide_legend(override.aes = list(size = 6)))
+    
+    return(base_plot)
+    
+  }
+)
+
+output$incidencePlotStandardAggregate <-  
+  shiny::renderPlot({
+    renderIrPlotStandardAggregate()
+  })
+
+
+# Define a function to save the plot as an image
+output$downloadPlotStandardAggregate <- shiny::downloadHandler(
+  filename = function() {
+    paste("standard-aggregate-ir-plot-", Sys.Date(), ".png", sep = "")
+  },
+  content = function(file) {
+    cowplot::save_plot(file, plot = renderIrPlotStandardAggregate(), base_height = 12)
+  }
+)
+
+
+
+      return(invisible(NULL)) ############# end of server
       
     })
 }
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+#------------ Fetching data functions  
   
 getIncidenceData <- function(
     targetIds,
@@ -1093,7 +1861,7 @@ getIncidenceData <- function(
     resultTable <- resultTable %>% 
       dplyr::select(-c("tarStartWith","tarStartOffset","tarEndWith","tarEndOffset", "tarId", "subgroupName"))
     
-    resultTable[is.na(resultTable)] <- 'All'
+    resultTable[is.na(resultTable)] <- 'Any'
     resultTable <- unique(resultTable)
     
     return(resultTable)
@@ -1161,7 +1929,7 @@ getIncidenceOptions <- function(
   )
   
   ageGroupName <- result$ageGroupName
-  ageGroupName[is.na(ageGroupName)] <- 'All'
+  ageGroupName[is.na(ageGroupName)] <- 'Any'
   ageGroupName <- sort(ageGroupName)
   
   sql <- 'select distinct gender_name
@@ -1174,7 +1942,7 @@ getIncidenceOptions <- function(
   )
   
   genderName <- result$genderName
-  genderName[is.na(genderName)] <- 'All'
+  genderName[is.na(genderName)] <- 'Any'
   genderName <- sort(genderName)
   
   sql <- 'select distinct start_year
@@ -1187,7 +1955,7 @@ getIncidenceOptions <- function(
   )
   
   startYear <- result$startYear
-  startYear[is.na(startYear)] <- 'All'
+  startYear[is.na(startYear)] <- 'Any'
   startYear <- sort(startYear)
   
   # shiny::incProgress(3/3, detail = paste("Done"))
@@ -1202,7 +1970,7 @@ getIncidenceOptions <- function(
     "outcomeName",
     "tar",
     "cleanWindow",
-    "None"
+    "(None)"
   )
   names(irPlotCategoricalChoices) <- c(
     "Data Source", 
@@ -1213,7 +1981,7 @@ getIncidenceOptions <- function(
     "Outcome Cohort", 
     "TAR", 
     "Clean Window",
-    "None"
+    "(None)"
   )
   
   irPlotNumericChoices <- list(
@@ -1227,7 +1995,7 @@ getIncidenceOptions <- function(
     "personsAtRiskPe",
     "personDays",
     "personDaysPe",
-    "None"
+    "(None)"
   )
   names(irPlotNumericChoices) <- c(
     "Incidence Rate (per 100PY)", 
@@ -1240,7 +2008,7 @@ getIncidenceOptions <- function(
     "Persons At Risk PE", 
     "Person Days", 
     "Person Days PE",
-    "None"
+    "(None)"
   )
   
   return(

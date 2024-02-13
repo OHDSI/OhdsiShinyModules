@@ -42,8 +42,8 @@ sccsView <- function(id = "sccs-module") {
   )
 }
 
-#' @noRd
 #' Gets input selection box for use with SCCS exposure indication selection
+#' @noRd
 .getSccsExposureIndicationSelection <- function(connectionHandler,
                                                 resultDatabaseSettings) {
   migrations <- getMigrations(connectionHandler = connectionHandler,
