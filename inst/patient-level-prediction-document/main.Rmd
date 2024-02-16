@@ -30,7 +30,7 @@ Created by: shinyApp
 
 # Abbreviations
 
-```{r echo=FALSE}
+```{r abbreviations, echo=FALSE}
 
 abb <- data.frame(rbind(
   c("AUROC", "Area Under the Receiver Operating Characteristic Curve"),
@@ -55,17 +55,17 @@ In this study the model development follows the framework presented in ``r  para
 
 # Evaluation Metrics and Plots
 
-```{r, child = "plp-metrics.Rmd"}
+```{r metrics, child = "plp-metrics.Rmd"}
 ```
 
-```{r, child = "plp-output.Rmd"}
+```{r output, child = "plp-output.Rmd"}
 ```
 
-```{r, child = "plp-plots.Rmd"}
+```{r plots, child = "plp-plots.Rmd"}
 ```
 
 
-```{r results='asis', echo=FALSE}
+```{r design diag results, results='asis', echo=FALSE}
     for (i in 1:length(params$modelDesignIds)) {
       modelDesignId <- params$modelDesignIds[i]
       modelDesign <- knitr::knit_child("model-design.Rmd", quiet = TRUE, envir = environment())
