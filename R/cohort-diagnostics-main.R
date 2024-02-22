@@ -433,7 +433,7 @@ cohortDiagnosticsServer <- function(id,
       if ("includedSourceConcept" %in% dataSource$enabledReports)
         selection["Concepts In Data Source"] <- "conceptsInDataSource"
 
-      if ("orphanConcepts" %in% dataSource$enabledReports)
+      if ("orphanConcept" %in% dataSource$enabledReports)
         selection["Orphan Concepts"] <- "orphanConcepts"
 
       if ("indexEventBreakdown" %in% dataSource$enabledReports)

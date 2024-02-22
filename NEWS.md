@@ -1,3 +1,8 @@
+OhdsiShinyModules v2.1.3
+========================
+Fixed bug of orphan concepts report not displaying
+Fixed bug in orphan concepts where negative database ids were causing dynamic sql queries to crash
+
 OhdsiShinyModules v2.1.2
 ========================
 Fixed bug in cohort diagnostics incidence rate plots not showing for different strata
