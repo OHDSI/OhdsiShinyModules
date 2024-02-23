@@ -86,7 +86,8 @@ evidenceSynthesisSccsServer <- function(
         df = diagSumData,
         colDefsInput = getColDefsESDiag(
           connectionHandler = connectionHandler,
-          resultDatabaseSettings = resultDatabaseSettings
+          resultDatabaseSettings = resultDatabaseSettings,
+          method = 'sccs'
         )
       )
       
