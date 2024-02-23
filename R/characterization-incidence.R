@@ -1287,7 +1287,7 @@ characterizationIncidenceServer <- function(
             ) + 
             #geom_jitter() +
             #scale_size_continuous(range = c(5,15)) +
-            ggplot2::scale_colour_brewer(palette = "Dark2") +
+            ggplot2::scale_colour_brewer(palette = "Paired") +
             ggplot2::facet_wrap(
               Target~Outcome,
               labeller = "label_both",
@@ -1429,7 +1429,7 @@ renderIrPlotStandardAgeSex <- shiny::reactive(
       ) + 
       #geom_jitter() +
       #scale_size_continuous(range = c(5,15)) +
-      ggplot2::scale_colour_brewer(palette = "Dark2") +
+      ggplot2::scale_colour_brewer(palette = "Paired") +
       ggplot2::facet_wrap(
         Target~Outcome,
         labeller = "label_both",
@@ -1577,10 +1577,10 @@ renderIrPlotStandardYear <- shiny::reactive(
         ggplot2::aes(size = 2.5)
       ) + 
       ggplot2::geom_line(ggplot2::aes(linetype = genderName)) +
-      ggplot2::scale_colour_brewer(palette = "Dark2") +
+      ggplot2::scale_colour_brewer(palette = "Paired") +
       #geom_jitter() +
       #scale_size_continuous(range = c(5,15)) +
-      # ggplot2::scale_colour_brewer(palette = "Dark2") +
+      # ggplot2::scale_colour_brewer(palette = "Paired") +
       # ggplot2::facet_grid(
       #   rows = dplyr::vars(Outcome),
       #   cols = dplyr::vars(Age),
@@ -1728,7 +1728,7 @@ renderIrPlotStandardAggregate <- shiny::reactive(
       ) + 
       #ggplot2::geom_jitter() +
       #scale_size_continuous(range = c(5,15)) +
-      ggplot2::scale_colour_brewer(palette = "Dark2") +
+      ggplot2::scale_colour_brewer(palette = "Paired") +
       ggplot2::facet_wrap(
         Target~Outcome,
         labeller = "label_both",
