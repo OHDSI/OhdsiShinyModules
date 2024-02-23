@@ -49,7 +49,7 @@ evidenceSynthesisViewer <- function(id=1) {
 
 checkSccsTablesPresent <- function(connectionHandler, resultDatabaseSettings) {
   sql <- "
-  SELECT 1 as present FROM TABLE @schema.@sccs_table_prefixdiagnostics_summary;
+  SELECT 1 as present FROM @schema.@sccs_table_prefixdiagnostics_summary;
   "
   present <- TRUE
   tryCatch({
@@ -65,13 +65,13 @@ checkSccsTablesPresent <- function(connectionHandler, resultDatabaseSettings) {
 
 checkCmTablesPresent <- function(connectionHandler, resultDatabaseSettings) {
   sql <- "
-  SELECT 1 as present FROM TABLE @schema.@cm_table_prefixdiagnostics_summary;
+  SELECT 1 as present FROM @schema.@cm_table_prefixdiagnostics_summary;
   "
   present <- TRUE
   tryCatch({
     connectionHandler$queryDb(sql = sql,
                               schema = resultDatabaseSettings$schema,
-                              cm_table_prefix = resultDatabaseSettings$sccsTablePrefix)
+                              cm_table_prefix = resultDatabaseSettings$cmTablePrefix)
   }, error = function(...) {
     present <<- FALSE
   })
@@ -114,14 +114,14 @@ evidenceSynthesisServer <- function(
             shiny::tabPanel(
               title = 'Cohort Method',
               evidenceSynthesisCmViewer(id = session$ns('cohortMethodTab')),
-              select = TRUE
-            )
+            ),
+          select = TRUE
         )
 
         evidenceSynthesisCmServer(
           id = 'cohortMethodTab',
           connectionHandler = connectionHandler,
-          resultDatabaseSettings = resultDatabaseSettings,
+          resultDatabaseSettings = resultDatabaseSettings
         )
 
       }
@@ -132,8 +132,8 @@ evidenceSynthesisServer <- function(
           tab = shiny::tabPanel(
             title = "Self Controlled Case Series",
             evidenceSynthesisSccsViewer(id = session$ns('sccsTab')),
-            select = !showCmResults
-          )
+          ),
+          select = !showCmResults
         )
 
         evidenceSynthesisSccsServer(
