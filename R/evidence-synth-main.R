@@ -39,22 +39,44 @@ evidenceSynthesisViewer <- function(id=1) {
     
     # add two buttons - CM or SCCs
     shiny::tabsetPanel(
-      id = ns('typeTab'), 
-      type = 'pills',
-      
-      shiny::tabPanel(
-        title = 'Cohort Method',
-        evidenceSynthesisCmViewer(ns('cohortMethodTab'))
-      ),
-      shiny::tabPanel(
-        title = 'Self Controlled Case Series',
-        evidenceSynthesisSccsViewer(ns('sccsTab'))
-      )
-      
+      id = ns('typeTab'),
+      type = 'pills'
     )
-    
+
   )
-  
+
+}
+
+checkSccsTablesPresent <- function(connectionHandler, resultDatabaseSettings) {
+  sql <- "
+  SELECT 1 as present FROM TABLE @schema.@sccs_table_prefixdiagnostics_summary;
+  "
+  present <- TRUE
+  tryCatch({
+    connectionHandler$queryDb(sql = sql,
+                              schema = resultDatabaseSettings$schema,
+                              sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix)
+  }, error = function(...) {
+    present <<- FALSE
+  })
+
+  return(present)
+}
+
+checkCmTablesPresent <- function(connectionHandler, resultDatabaseSettings) {
+  sql <- "
+  SELECT 1 as present FROM TABLE @schema.@cm_table_prefixdiagnostics_summary;
+  "
+  present <- TRUE
+  tryCatch({
+    connectionHandler$queryDb(sql = sql,
+                              schema = resultDatabaseSettings$schema,
+                              cm_table_prefix = resultDatabaseSettings$sccsTablePrefix)
+  }, error = function(...) {
+    present <<- FALSE
+  })
+
+  return(present)
 }
 
 #' The module server for exploring PatientLevelPrediction
@@ -65,32 +87,61 @@ evidenceSynthesisViewer <- function(id=1) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler a connection to the database with the results
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
-#' 
+#'
 #' @return
 #' The server for the PatientLevelPrediction module
 #'
 #' @export
 evidenceSynthesisServer <- function(
-    id, 
-    connectionHandler,
-    resultDatabaseSettings = list(port = 1)
+  id,
+  connectionHandler,
+  resultDatabaseSettings = list(port = 1)
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      evidenceSynthesisCmServer(
-        id = 'cohortMethodTab',
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-        )
-      
-      evidenceSynthesisSccsServer(
-        id = 'sccsTab',
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
+
+      showSccsResults <- checkSccsTablesPresent(connectionHandler = connectionHandler,
+                                                resultDatabaseSettings = resultDatabaseSettings)
+
+      showCmResults <- checkCmTablesPresent(connectionHandler = connectionHandler,
+                                            resultDatabaseSettings = resultDatabaseSettings)
+
+      if (showCmResults) {
+        shiny::insertTab(
+          inputId = "typeTab",
+          tab =
+            shiny::tabPanel(
+              title = 'Cohort Method',
+              evidenceSynthesisCmViewer(id = session$ns('cohortMethodTab')),
+              select = TRUE
+            )
         )
 
+        evidenceSynthesisCmServer(
+          id = 'cohortMethodTab',
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+        )
+
+      }
+
+      if (showSccsResults) {
+        shiny::insertTab(
+          inputId = "typeTab",
+          tab = shiny::tabPanel(
+            title = "Self Controlled Case Series",
+            evidenceSynthesisSccsViewer(id = session$ns('sccsTab')),
+            select = !showCmResults
+          )
+        )
+
+        evidenceSynthesisSccsServer(
+          id = 'sccsTab',
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings
+        )
+      }
     }
   )
 }
