@@ -242,7 +242,7 @@ getOACcombinations <- function(
   }
   
   if(method == 'sccs'){
-    sql <- "SELECT 
+    sql <- "SELECT distinct 
   CONCAT(a.description, '_', cov.covariate_name) as col_names
 
   FROM @schema.@sccs_table_prefixdiagnostics_summary ds
