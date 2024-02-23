@@ -218,10 +218,12 @@ computeTraditionalP <- function(
 # used by both cm and sccs
 getOACcombinations <- function(
     connectionHandler, 
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    method
 ){
   
-  sql <- "SELECT DISTINCT
+  if(method == 'cm'){
+    sql <- "SELECT DISTINCT
       CONCAT(cma.description, '_', cgcd2.cohort_name) as col_names
     FROM
       @schema.@cm_table_prefixdiagnostics_summary cmds
@@ -229,10 +231,18 @@ getOACcombinations <- function(
       ON cmds.analysis_id = cma.analysis_id
       INNER JOIN @schema.@cg_table_prefixcohort_definition cgcd2 
       ON cmds.comparator_id = cgcd2.cohort_definition_id
-      
-      union
-      
-      SELECT 
+      ;"
+    
+    result <- connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix
+    )
+  }
+  
+  if(method == 'sccs'){
+    sql <- "SELECT 
   CONCAT(a.description, '_', cov.covariate_name) as col_names
 
   FROM @schema.@sccs_table_prefixdiagnostics_summary ds
@@ -247,15 +257,13 @@ getOACcombinations <- function(
   cov.exposures_outcome_set_id = ds.exposures_outcome_set_id and
   cov.analysis_id = ds.analysis_id
       ;"
-  
-  result <- connectionHandler$queryDb(
-    sql = sql,
-    schema = resultDatabaseSettings$schema,
-    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-    database_table = resultDatabaseSettings$databaseTable
-  )
+    
+    result <- connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix
+    )
+  }
   
   res <- result$colNames
   names(res) <- result$colNames
@@ -265,7 +273,8 @@ getOACcombinations <- function(
 
 getColDefsESDiag <- function(
     connectionHandler,
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    method = 'cm' # 'cm' or 'sccs'
 ){      
   
   fixedColumns =  list(
@@ -292,7 +301,8 @@ getColDefsESDiag <- function(
   
   analyses <- getOACcombinations(
     connectionHandler = connectionHandler,
-    resultDatabaseSettings = resultDatabaseSettings
+    resultDatabaseSettings = resultDatabaseSettings,
+    method = method
   )
   colnameFormat <- merge(unique(names(analyses)), unique(names(outcomes)))
   colnameFormat <- apply(colnameFormat, 1, function(x){paste(x, collapse = '_', sep = '_')})
