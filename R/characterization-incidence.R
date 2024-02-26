@@ -1244,8 +1244,14 @@ characterizationIncidenceServer <- function(
                  shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
           )
           
+          #add check to make sure "> 1 distinct age is selected for by age plot"any" is in selection for year and sex
+          ifelse("Any" %in% inputSelectedResults()$incidenceRateCalendarFilter & "Any" %in% inputSelectedResults()$incidenceRateGenderFilter,
+                 plotData <- filteredData(),
+                 shiny::validate("This standard plot is designed to show results aggregated over all (`Any`) year and sex categories. Please make sure you have selected `Any` in the `Select your results` section above for these variables.")
+          )
+          
           plotData <- plotData %>%
-            dplyr::filter(ageGroupName != "Any" & 
+            dplyr::filter(#ageGroupName != "Any" & 
                             genderName == "Any" & 
                             startYear == "Any") %>%
             dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
@@ -1287,7 +1293,7 @@ characterizationIncidenceServer <- function(
             ) + 
             #geom_jitter() +
             #scale_size_continuous(range = c(5,15)) +
-            ggplot2::scale_colour_brewer(palette = "Dark2") +
+            ggplot2::scale_colour_brewer(palette = "Paired") +
             ggplot2::facet_wrap(
               Target~Outcome,
               labeller = "label_both",
@@ -1386,6 +1392,12 @@ renderIrPlotStandardAgeSex <- shiny::reactive(
            shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
     )
     
+    #add check to make sure "Any" is in the year filter
+    ifelse("Any" %in% inputSelectedResults()$incidenceRateCalendarFilter,
+           plotData <- filteredData(),
+           shiny::validate("This standard plot is designed to show results aggregated over all (`Any`) year categories. Please make sure you have selected `Any` in the `Select your results` section above for this variable.")
+    )
+    
     plotData <- plotData %>%
       dplyr::filter(ageGroupName != "Any" & 
                       genderName != "Any" & 
@@ -1429,7 +1441,7 @@ renderIrPlotStandardAgeSex <- shiny::reactive(
       ) + 
       #geom_jitter() +
       #scale_size_continuous(range = c(5,15)) +
-      ggplot2::scale_colour_brewer(palette = "Dark2") +
+      ggplot2::scale_colour_brewer(palette = "Paired") +
       ggplot2::facet_wrap(
         Target~Outcome,
         labeller = "label_both",
@@ -1577,10 +1589,10 @@ renderIrPlotStandardYear <- shiny::reactive(
         ggplot2::aes(size = 2.5)
       ) + 
       ggplot2::geom_line(ggplot2::aes(linetype = genderName)) +
-      ggplot2::scale_colour_brewer(palette = "Dark2") +
+      ggplot2::scale_colour_brewer(palette = "Paired") +
       #geom_jitter() +
       #scale_size_continuous(range = c(5,15)) +
-      # ggplot2::scale_colour_brewer(palette = "Dark2") +
+      # ggplot2::scale_colour_brewer(palette = "Paired") +
       # ggplot2::facet_grid(
       #   rows = dplyr::vars(Outcome),
       #   cols = dplyr::vars(Age),
@@ -1728,7 +1740,7 @@ renderIrPlotStandardAggregate <- shiny::reactive(
       ) + 
       #ggplot2::geom_jitter() +
       #scale_size_continuous(range = c(5,15)) +
-      ggplot2::scale_colour_brewer(palette = "Dark2") +
+      ggplot2::scale_colour_brewer(palette = "Paired") +
       ggplot2::facet_wrap(
         Target~Outcome,
         labeller = "label_both",
@@ -1743,7 +1755,7 @@ renderIrPlotStandardAggregate <- shiny::reactive(
     
     base_plot <- base_plot + ggplot2::labs(
       title = paste("Incidence Rate for Time at Risk:", tar_value),
-      x = paste(names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "ageGroupName"]), "\n"),
+      x = paste(names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "startYear"]), "\n"),
       y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]),
       color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
       #size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "outcomes"]),
