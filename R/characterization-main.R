@@ -87,7 +87,7 @@ characterizationServer <- function(
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings
       )
-      
+
       # add the tabs based on results
       types <- list(
         c("Target Viewer","characterizationTableViewer", "descriptiveTableTab"),
@@ -107,8 +107,9 @@ characterizationServer <- function(
             ), 
             select = selectVal
           )
+          selectVal = F
         }
-        selectVal = F
+
       }
         
       previouslyLoaded <- shiny::reactiveVal(c())
