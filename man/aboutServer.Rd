@@ -7,7 +7,8 @@
 aboutServer(
   id = "homepage",
   connectionHandler = NULL,
-  resultDatabaseSettings = NULL
+  resultDatabaseSettings = NULL,
+  config
 )
 }
 \arguments{
