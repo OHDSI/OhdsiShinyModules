@@ -49,7 +49,7 @@ aboutViewer <- function(
   
   #shinydashboard::dashboardBody(
     shiny::div(
-    fluidRow(
+      shiny::fluidRow(
       tags$head(tags$style(HTML(".small-box {height: 200px; width: 100%;}"))),
       shinydashboard::box(
         width = "100%",
@@ -57,17 +57,17 @@ aboutViewer <- function(
       )
    # )
   ),
-  fluidRow(
-    valueBoxOutput("newOrdersBox", width = 3),
-    valueBoxOutput("progressBox", width = 3),
-    valueBoxOutput("approvalBox", width = 3),
-    valueBoxOutput("valueBox1", width = 3)
+  shiny::fluidRow(
+    shinydashboard::valueBoxOutput("newOrdersBox", width = 3),
+    shinydashboard::valueBoxOutput("progressBox", width = 3),
+    shinydashboard::valueBoxOutput("approvalBox", width = 3),
+    shinydashboard::valueBoxOutput("valueBox1", width = 3)
   ),
-  fluidRow(
-    valueBoxOutput("valueBox2", width = 3),
-    valueBoxOutput("valueBox3", width = 3),
-    valueBoxOutput("valueBox4", width = 3),
-    valueBoxOutput("valueBox5", width = 3)
+  shiny::fluidRow(
+    shinydashboard::valueBoxOutput("valueBox2", width = 3),
+    shinydashboard::valueBoxOutput("valueBox3", width = 3),
+    shinydashboard::valueBoxOutput("valueBox4", width = 3),
+    shinydashboard::valueBoxOutput("valueBox5", width = 3)
   ),
   tags$script('
       $(document).ready(function(){
