@@ -17,6 +17,8 @@ aboutServer(
 \item{connectionHandler}{a connection to the database with the results}
 
 \item{resultDatabaseSettings}{a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix}
+
+\item{config}{the config from the app.R file that contains a list of which modules to include}
 }
 \value{
 The server for the shiny app home

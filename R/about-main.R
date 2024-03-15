@@ -69,41 +69,26 @@ aboutViewer <- function(
     shinydashboard::valueBoxOutput(ns("valueBox4"), width = 3),
     shinydashboard::valueBoxOutput(ns("valueBox5"), width = 3)
   ),
-  tags$script('
-      $(document).ready(function(){
-        $("#newOrdersBox").click(function(){
-          $("#newOrdersModal").modal("show");
-        });
+  tags$script(HTML('
+  $(document).ready(function(){
+    $("#newOrdersBox").click(function(){
+      $("#newOrdersModal").modal("show");
+    });
 
-        $("#progressBox").click(function(){
-          $("#progressModal").modal("show");
-        });
+    $("#progressBox").click(function(){
+      $("#progressModal").modal("show");
+    });
 
-        $("#approvalBox").click(function(){
-          $("#approvalModal").modal("show");
-        });
+    $("#approvalBox").click(function(){
+      $("#approvalModal").modal("show");
+    });
 
-        $("#valueBox1").click(function(){
-          $("#modal1").modal("show");
-        });
-
-        $("#valueBox2").click(function(){
-          $("#modal2").modal("show");
-        });
-
-        $("#valueBox3").click(function(){
-          $("#modal3").modal("show");
-        });
-
-        $("#valueBox4").click(function(){
-          $("#modal4").modal("show");
-        });
-
-        $("#valueBox5").click(function(){
-          $("#modal5").modal("show");
-        });
-      });
-    '),
+    $(".value-box").click(function() {
+      var modalId = $(this).attr("data-modal-id");
+      $("#" + modalId).modal("show");
+    });
+  });
+')),
   tags$div(
     id = "newOrdersModal",
     class = "modal fade",

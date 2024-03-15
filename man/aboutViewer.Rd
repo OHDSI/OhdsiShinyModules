@@ -6,9 +6,6 @@
 \usage{
 aboutViewer(id = "homepage")
 }
-\arguments{
-\item{id}{the unique reference id for the module}
-}
 \value{
 The user interface to the home page module
 }
