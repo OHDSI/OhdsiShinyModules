@@ -58,16 +58,16 @@ aboutViewer <- function(
    # )
   ),
   shiny::fluidRow(
-    shinydashboard::valueBoxOutput("newOrdersBox", width = 3),
-    shinydashboard::valueBoxOutput("progressBox", width = 3),
-    shinydashboard::valueBoxOutput("approvalBox", width = 3),
-    shinydashboard::valueBoxOutput("valueBox1", width = 3)
+    shinydashboard::valueBoxOutput(ns("newOrdersBox"), width = 3),
+    shinydashboard::valueBoxOutput(ns("progressBox"), width = 3),
+    shinydashboard::valueBoxOutput(ns("approvalBox"), width = 3),
+    shinydashboard::valueBoxOutput(ns("valueBox1"), width = 3)
   ),
   shiny::fluidRow(
-    shinydashboard::valueBoxOutput("valueBox2", width = 3),
-    shinydashboard::valueBoxOutput("valueBox3", width = 3),
-    shinydashboard::valueBoxOutput("valueBox4", width = 3),
-    shinydashboard::valueBoxOutput("valueBox5", width = 3)
+    shinydashboard::valueBoxOutput(ns("valueBox2"), width = 3),
+    shinydashboard::valueBoxOutput(ns("valueBox3"), width = 3),
+    shinydashboard::valueBoxOutput(ns("valueBox4"), width = 3),
+    shinydashboard::valueBoxOutput(ns("valueBox5"), width = 3)
   ),
   tags$script('
       $(document).ready(function(){
@@ -368,7 +368,7 @@ aboutServer <- function(
       if ("DataSources" %in% tab_names) {
         shinydashboard::valueBox(
           "Data Sources", "Databases used in this analysis", icon = shiny::icon("database"),
-          color = "purple",
+          color = "aqua",
           href = "#newOrdersModal"
         )
       } else {
@@ -383,7 +383,7 @@ aboutServer <- function(
       output$progressBox <- shinydashboard::renderValueBox({
         shinydashboard::valueBox(
           "100%", "Progress", icon = shiny::icon("list"),
-          color = "black",
+          color = "purple",
           href = "#progressModal"
         )
       })
@@ -391,7 +391,7 @@ aboutServer <- function(
       output$approvalBox <- shinydashboard::renderValueBox({
         shinydashboard::valueBox(
           "80%", "Approval", icon = shiny::icon("thumbs-up", lib = "glyphicon"),
-          color = "yellow",
+          color = "teal",
           href = "#approvalModal"
         )
       })
@@ -399,7 +399,7 @@ aboutServer <- function(
       output$valueBox1 <- shinydashboard::renderValueBox({
         shinydashboard::valueBox(
           "Text 1", "Value Box 1", icon = shiny::icon("star"),
-          color = "blue",
+          color = "yellow",
           href = "#modal1"
         )
       })
@@ -415,7 +415,7 @@ aboutServer <- function(
       output$valueBox3 <- shinydashboard::renderValueBox({
         shinydashboard::valueBox(
           "Text 3", "Value Box 3", icon = shiny::icon("globe"),
-          color = "green",
+          color = "blue",
           href = "#modal3"
         )
       })
@@ -423,7 +423,7 @@ aboutServer <- function(
       output$valueBox4 <- shinydashboard::renderValueBox({
         shinydashboard::valueBox(
           "Text 4", "Value Box 4", icon = shiny::icon("car"),
-          color = "orange",
+          color = "red",
           href = "#modal4"
         )
       })
@@ -431,7 +431,7 @@ aboutServer <- function(
       output$valueBox5 <- shinydashboard::renderValueBox({
         shinydashboard::valueBox(
           "Text 5", "Value Box 5", icon = shiny::icon("car"),
-          color = "aqua",
+          color = "olive",
           href = "#modal4"
         )
       })
