@@ -21,13 +21,14 @@
 #'
 #' @details
 #' Returns the location of the about helper file
-#' 
+#'
 #' @return
 #' string location of the about helper file
 #'
 #' @export
-aboutHelperFile <- function(){
-  fileLoc <- system.file('about-www', "about.html", package = "OhdsiShinyModules")
+aboutHelperFile <- function() {
+  fileLoc <-
+    system.file('about-www', "about.html", package = "OhdsiShinyModules")
   return(fileLoc)
 }
 
@@ -37,50 +38,52 @@ aboutHelperFile <- function(){
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' 
+#'
 #' @return
 #' The user interface to the home page module
 #'
 #' @export
-aboutViewer <- function(
-    id = 'homepage'
-    ) {
+aboutViewer <- function(id = 'homepage') {
   ns <- shiny::NS(id)
   
   #shinydashboard::dashboardBody(
-    shiny::div(
-      shiny::fluidRow(
-      tags$head(tags$style(HTML(".small-box {height: 200px; width: 100%;}"))),
-      shinydashboard::box(
-        width = "100%",
-        shiny::htmlTemplate(system.file("about-www", "about.html", package = utils::packageName()))
-      )
-   # )
-  ),
-  shiny::fluidRow(
-    shinydashboard::valueBoxOutput(ns("newOrdersBox"), width = 3),
-    shinydashboard::valueBoxOutput(ns("progressBox"), width = 3),
-    shinydashboard::valueBoxOutput(ns("approvalBox"), width = 3),
-    shinydashboard::valueBoxOutput(ns("valueBox1"), width = 3)
-  ),
-  shiny::fluidRow(
-    shinydashboard::valueBoxOutput(ns("valueBox2"), width = 3),
-    shinydashboard::valueBoxOutput(ns("valueBox3"), width = 3),
-    shinydashboard::valueBoxOutput(ns("valueBox4"), width = 3),
-    shinydashboard::valueBoxOutput(ns("valueBox5"), width = 3)
-  ),
-  tags$script(HTML('
+  shiny::div(
+    shiny::fluidRow(
+      tags$head(tags$style(
+        HTML(".small-box {height: 200px; width: 100%;}")
+      )),
+      shinydashboard::box(width = "100%",
+                          shiny::htmlTemplate(
+                            system.file("about-www", "about.html", package = utils::packageName())
+                          ))
+      # )
+    ),
+    shiny::fluidRow(
+      shinydashboard::valueBoxOutput(ns("datasourcesBox"), width = 3),
+      shinydashboard::valueBoxOutput(ns("cohortsBox"), width = 3),
+      shinydashboard::valueBoxOutput(ns("characterizationBox"), width = 3),
+      shinydashboard::valueBoxOutput(ns("cohortDiagnosticsBox"), width = 3)
+    ),
+    shiny::fluidRow(
+      shinydashboard::valueBoxOutput(ns("cohortMethodBox"), width = 3),
+      shinydashboard::valueBoxOutput(ns("predictionBox"), width = 3),
+      shinydashboard::valueBoxOutput(ns("sccsBox"), width = 3),
+      shinydashboard::valueBoxOutput(ns("evidenceSynthesisBox"), width = 3)
+    ),
+    tags$script(
+      HTML(
+        '
   $(document).ready(function(){
-    $("#newOrdersBox").click(function(){
-      $("#newOrdersModal").modal("show");
+    $("#datasourcesBox").click(function(){
+      $("#datasourcesModal").modal("show");
     });
 
-    $("#progressBox").click(function(){
-      $("#progressModal").modal("show");
+    $("#cohortsBox").click(function(){
+      $("#cohortsModal").modal("show");
     });
 
-    $("#approvalBox").click(function(){
-      $("#approvalModal").modal("show");
+    $("#characterizationBox").click(function(){
+      $("#characterizationModal").modal("show");
     });
 
     $(".value-box").click(function() {
@@ -88,232 +91,202 @@ aboutViewer <- function(
       $("#" + modalId).modal("show");
     });
   });
-')),
-  tags$div(
-    id = "newOrdersModal",
-    class = "modal fade",
+'
+      )
+    ),
     tags$div(
-      class = "modal-dialog modal-dialog-centered",
+      id = "datasourcesModal",
+      class = "modal fade",
       tags$div(
-        class = "modal-content",
+        class = "modal-dialog modal-dialog-centered",
         tags$div(
-          class = "modal-header",
-          tags$h3(
-            class = "modal-title",
-            "New Orders Modal"
+          class = "modal-content",
+          tags$div(
+            class = "modal-header",
+            tags$h3(class = "modal-title",
+                    "Data Sources Modal"),
+            tags$button(
+              type = "button",
+              class = "close",
+              `data-dismiss` = "modal",
+              `aria-label` = "Close",
+              tags$span(`aria-hidden` = "true", "×")
+            )
           ),
-          tags$button(
-            type = "button",
-            class = "close",
-            `data-dismiss` = "modal",
-            `aria-label` = "Close",
-            tags$span(`aria-hidden` = "true", "×")
-          )
-        ),
-        tags$div(
-          class = "modal-body",
-          "This is the New Orders modal."
+          tags$div(class = "modal-body",
+                   "This is the Data Sources modal.")
         )
       )
-    )
-  ),
-  tags$div(
-    id = "progressModal",
-    class = "modal fade",
+    ),
     tags$div(
-      class = "modal-dialog modal-dialog-centered",
+      id = "cohortsModal",
+      class = "modal fade",
       tags$div(
-        class = "modal-content",
+        class = "modal-dialog modal-dialog-centered",
         tags$div(
-          class = "modal-header",
-          tags$h3(
-            class = "modal-title",
-            "Progress Modal"
+          class = "modal-content",
+          tags$div(
+            class = "modal-header",
+            tags$h3(class = "modal-title",
+                    "Cohorts Modal"),
+            tags$button(
+              type = "button",
+              class = "close",
+              `data-dismiss` = "modal",
+              `aria-label` = "Close",
+              tags$span(`aria-hidden` = "true", "×")
+            )
           ),
-          tags$button(
-            type = "button",
-            class = "close",
-            `data-dismiss` = "modal",
-            `aria-label` = "Close",
-            tags$span(`aria-hidden` = "true", "×")
-          )
-        ),
-        tags$div(
-          class = "modal-body",
-          "This is the Progress modal."
+          tags$div(class = "modal-body",
+                   "This is the Cohorts modal.")
         )
       )
-    )
-  ),
-  tags$div(
-    id = "approvalModal",
-    class = "modal fade",
+    ),
     tags$div(
-      class = "modal-dialog modal-dialog-centered",
+      id = "characterizationModal",
+      class = "modal fade",
       tags$div(
-        class = "modal-content",
+        class = "modal-dialog modal-dialog-centered",
         tags$div(
-          class = "modal-header",
-          tags$h3(
-            class = "modal-title",
-            "Approval Modal"
+          class = "modal-content",
+          tags$div(
+            class = "modal-header",
+            tags$h3(class = "modal-title",
+                    "Characterization Modal"),
+            tags$button(
+              type = "button",
+              class = "close",
+              `data-dismiss` = "modal",
+              `aria-label` = "Close",
+              tags$span(`aria-hidden` = "true", "×")
+            )
           ),
-          tags$button(
-            type = "button",
-            class = "close",
-            `data-dismiss` = "modal",
-            `aria-label` = "Close",
-            tags$span(`aria-hidden` = "true", "×")
-          )
-        ),
-        tags$div(
-          class = "modal-body",
-          "This is the Approval modal."
+          tags$div(class = "modal-body",
+                   "This is the Characterization modal.")
         )
       )
-    )
-  ),
-  tags$div(
-    id = "modal1",
-    class = "modal fade",
+    ),
     tags$div(
-      class = "modal-dialog modal-dialog-centered",
+      id = "cohortDiagnosticsModal",
+      class = "modal fade",
       tags$div(
-        class = "modal-content",
+        class = "modal-dialog modal-dialog-centered",
         tags$div(
-          class = "modal-header",
-          tags$h3(
-            class = "modal-title",
-            "Modal 1"
+          class = "modal-content",
+          tags$div(
+            class = "modal-header",
+            tags$h3(class = "modal-title",
+                    "Cohort Diagnostics"),
+            tags$button(
+              type = "button",
+              class = "close",
+              `data-dismiss` = "modal",
+              `aria-label` = "Close",
+              tags$span(`aria-hidden` = "true", "×")
+            )
           ),
-          tags$button(
-            type = "button",
-            class = "close",
-            `data-dismiss` = "modal",
-            `aria-label` = "Close",
-            tags$span(`aria-hidden` = "true", "×")
-          )
-        ),
-        tags$div(
-          class = "modal-body",
-          "This is Modal 1."
+          tags$div(class = "modal-body",
+                   "This is Cohort Diagnostics.")
         )
       )
-    )
-  ),
-  tags$div(
-    id = "modal2",
-    class = "modal fade",
+    ),
     tags$div(
-      class = "modal-dialog modal-dialog-centered",
+      id = "cohortMethodModal",
+      class = "modal fade",
       tags$div(
-        class = "modal-content",
+        class = "modal-dialog modal-dialog-centered",
         tags$div(
-          class = "modal-header",
-          tags$h3(
-            class = "modal-title",
-            "Modal 2"
+          class = "modal-content",
+          tags$div(
+            class = "modal-header",
+            tags$h3(class = "modal-title",
+                    "Cohort Method"),
+            tags$button(
+              type = "button",
+              class = "close",
+              `data-dismiss` = "modal",
+              `aria-label` = "Close",
+              tags$span(`aria-hidden` = "true", "×")
+            )
           ),
-          tags$button(
-            type = "button",
-            class = "close",
-            `data-dismiss` = "modal",
-            `aria-label` = "Close",
-            tags$span(`aria-hidden` = "true", "×")
-          )
-        ),
-        tags$div(
-          class = "modal-body",
-          "This is Modal 2."
+          tags$div(class = "modal-body",
+                   "This is Cohort Method.")
         )
       )
-    )
-  ),
-  tags$div(
-    id = "modal3",
-    class = "modal fade",
+    ),
     tags$div(
-      class = "modal-dialog modal-dialog-centered",
+      id = "predictionModal",
+      class = "modal fade",
       tags$div(
-        class = "modal-content",
+        class = "modal-dialog modal-dialog-centered",
         tags$div(
-          class = "modal-header",
-          tags$h3(
-            class = "modal-title",
-            "Modal 3"
+          class = "modal-content",
+          tags$div(
+            class = "modal-header",
+            tags$h3(class = "modal-title",
+                    "Prediction"),
+            tags$button(
+              type = "button",
+              class = "close",
+              `data-dismiss` = "modal",
+              `aria-label` = "Close",
+              tags$span(`aria-hidden` = "true", "×")
+            )
           ),
-          tags$button(
-            type = "button",
-            class = "close",
-            `data-dismiss` = "modal",
-            `aria-label` = "Close",
-            tags$span(`aria-hidden` = "true", "×")
-          )
-        ),
-        tags$div(
-          class = "modal-body",
-          "This is Modal 3."
+          tags$div(class = "modal-body",
+                   "This is Prediction.")
         )
       )
-    )
-  ),
-  tags$div(
-    id = "modal4",
-    class = "modal fade",
+    ),
     tags$div(
-      class = "modal-dialog modal-dialog-centered",
+      id = "sccsModal",
+      class = "modal fade",
       tags$div(
-        class = "modal-content",
+        class = "modal-dialog modal-dialog-centered",
         tags$div(
-          class = "modal-header",
-          tags$h3(
-            class = "modal-title",
-            "Modal 4"
+          class = "modal-content",
+          tags$div(
+            class = "modal-header",
+            tags$h3(class = "modal-title",
+                    "Self-Controlled Case Series"),
+            tags$button(
+              type = "button",
+              class = "close",
+              `data-dismiss` = "modal",
+              `aria-label` = "Close",
+              tags$span(`aria-hidden` = "true", "×")
+            )
           ),
-          tags$button(
-            type = "button",
-            class = "close",
-            `data-dismiss` = "modal",
-            `aria-label` = "Close",
-            tags$span(`aria-hidden` = "true", "×")
-          )
-        ),
-        tags$div(
-          class = "modal-body",
-          "This is Modal 4."
+          tags$div(class = "modal-body",
+                   "This is Self-Controlled Case Series.")
         )
       )
-    )
-  ),
-  tags$div(
-    id = "modal5",
-    class = "modal fade",
+    ),
     tags$div(
-      class = "modal-dialog modal-dialog-centered",
+      id = "evidenceSynthesisModal",
+      class = "modal fade",
       tags$div(
-        class = "modal-content",
+        class = "modal-dialog modal-dialog-centered",
         tags$div(
-          class = "modal-header",
-          tags$h3(
-            class = "modal-title",
-            "Modal 5"
+          class = "modal-content",
+          tags$div(
+            class = "modal-header",
+            tags$h3(class = "modal-title",
+                    "Evidence Synthesis"),
+            tags$button(
+              type = "button",
+              class = "close",
+              `data-dismiss` = "modal",
+              `aria-label` = "Close",
+              tags$span(`aria-hidden` = "true", "×")
+            )
           ),
-          tags$button(
-            type = "button",
-            class = "close",
-            `data-dismiss` = "modal",
-            `aria-label` = "Close",
-            tags$span(`aria-hidden` = "true", "×")
-          )
-        ),
-        tags$div(
-          class = "modal-body",
-          "This is Modal 5."
+          tags$div(class = "modal-body",
+                   "This is Evidence Synthesis.")
         )
       )
     )
   )
-    )
 }
 
 #' The module server for the shiny app home
@@ -325,103 +298,189 @@ aboutViewer <- function(
 #' @param connectionHandler a connection to the database with the results
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #' @param config the config from the app.R file that contains a list of which modules to include
-#' 
+#'
 #' @return
 #' The server for the shiny app home
 #'
 #' @export
-aboutServer <- function(
-    id = 'homepage',
-    connectionHandler = NULL,
-    resultDatabaseSettings = NULL,
-    config
-    ) {
-  shiny::moduleServer(
-    id,
-    function(input, output, session) {
-      
-      tab_names <- character()
-      # Loop through shinyModules and extract tabName values
-      for (i in seq_along(config[["shinyModules"]])) {
-        tab_name <- config[["shinyModules"]][[i]][["tabName"]]
-        tab_names <- c(tab_names, tab_name)
-      }
-      # View the extracted tabName values
-      # print(tab_names)
-
-      output$newOrdersBox <- shinydashboard::renderValueBox({
-      if ("DataSources" %in% tab_names) {
-        shinydashboard::valueBox(
-          "Data Sources", "Databases used in this analysis", icon = shiny::icon("database"),
-          color = "aqua",
-          href = "#newOrdersModal"
-        )
-      } else {
-        shinydashboard::valueBox(
-          "Data Sources", "This module was not included in this analysis.", icon = shiny::icon("database"),
-          color = "black",
-          href = "#newOrdersModal"
-        )
-      }
-      })
-      
-      output$progressBox <- shinydashboard::renderValueBox({
-        shinydashboard::valueBox(
-          "100%", "Progress", icon = shiny::icon("list"),
-          color = "purple",
-          href = "#progressModal"
-        )
-      })
-      
-      output$approvalBox <- shinydashboard::renderValueBox({
-        shinydashboard::valueBox(
-          "80%", "Approval", icon = shiny::icon("thumbs-up", lib = "glyphicon"),
-          color = "teal",
-          href = "#approvalModal"
-        )
-      })
-      
-      output$valueBox1 <- shinydashboard::renderValueBox({
-        shinydashboard::valueBox(
-          "Text 1", "Value Box 1", icon = shiny::icon("star"),
-          color = "yellow",
-          href = "#modal1"
-        )
-      })
-      
-      output$valueBox2 <- shinydashboard::renderValueBox({
-        shinydashboard::valueBox(
-          "Text 2", "Value Box 2", icon = shiny::icon("heart"),
-          color = "maroon",
-          href = "#modal2"
-        )
-      })
-      
-      output$valueBox3 <- shinydashboard::renderValueBox({
-        shinydashboard::valueBox(
-          "Text 3", "Value Box 3", icon = shiny::icon("globe"),
-          color = "blue",
-          href = "#modal3"
-        )
-      })
-      
-      output$valueBox4 <- shinydashboard::renderValueBox({
-        shinydashboard::valueBox(
-          "Text 4", "Value Box 4", icon = shiny::icon("car"),
-          color = "red",
-          href = "#modal4"
-        )
-      })
-      
-      output$valueBox5 <- shinydashboard::renderValueBox({
-        shinydashboard::valueBox(
-          "Text 5", "Value Box 5", icon = shiny::icon("car"),
-          color = "olive",
-          href = "#modal4"
-        )
-      })
-      
-      
-    }
-  )
+aboutServer <- function(id = 'homepage',
+                        connectionHandler = NULL,
+                        resultDatabaseSettings = NULL,
+                        config) {
+  shiny::moduleServer(id,
+                      function(input, output, session) {
+                        tab_names <- character()
+                        # Loop through shinyModules and extract tabName values
+                        for (i in seq_along(config[["shinyModules"]])) {
+                          tab_name <- config[["shinyModules"]][[i]][["tabName"]]
+                          tab_names <- c(tab_names, tab_name)
+                        }
+                        # View the extracted tabName values
+                        # print(tab_names)
+                        
+                        output$datasourcesBox <- shinydashboard::renderValueBox({
+                          if ("DataSources" %in% tab_names) {
+                            shinydashboard::valueBox(
+                              value = "Data Sources",
+                              subtitle = "Databases used in this analysis",
+                              icon = shiny::icon("database"),
+                              color = "aqua",
+                              href = "#datasourcesModal"
+                            )
+                          } else {
+                            shinydashboard::valueBox(
+                              value = "Data Sources",
+                              subtitle = "This module was not included in this analysis",
+                              icon = shiny::icon("database"),
+                              color = "black",
+                              href = "#datasourcesModal"
+                            )
+                          }
+                        })
+                        
+                        output$cohortsBox <- shinydashboard::renderValueBox({
+                          if ("Cohorts" %in% tab_names) {
+                            shinydashboard::valueBox(
+                              value = "Cohorts",
+                              subtitle = "Cohorts included in this analysis",
+                              icon = shiny::icon("user-gear"),
+                              color = "purple",
+                              href = "#cohortsModal"
+                            )
+                          } else {
+                            shinydashboard::valueBox(
+                              value = "Cohorts",
+                              subtitle = "This module was not included in this analysis",
+                              icon = shiny::icon("user-gear"),
+                              color = "black",
+                              href = "#cohortsModal"
+                            )
+                          }
+                        })
+                        
+                        output$characterizationBox <- shinydashboard::renderValueBox({
+                          if ("Characterization" %in% tab_names) {
+                            shinydashboard::valueBox(
+                              value = "Characterization",
+                              subtitle = "Characterization results for this analysis",
+                              icon = shiny::icon("table"),
+                              color = "teal",
+                              href = "#characterizationModal"
+                            )
+                          } else {
+                            shinydashboard::valueBox(
+                              value = "Characterization",
+                              subtitle = "This module was not included in this analysis",
+                              icon = shiny::icon("table"),
+                              color = "black",
+                              href = "#characterizationModal"
+                            )
+                          }
+                        })
+                        
+                        output$cohortDiagnosticsBox <-
+                          shinydashboard::renderValueBox({
+                            if ("CohortDiagnostics" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "Cohort Diagnostics",
+                                subtitle = "Cohort Diagnostics results for the cohorts included in this analysis",
+                                icon = shiny::icon("users"),
+                                color = "yellow",
+                                href = "#cohortDiagnosticsModal"
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "Cohort Diagnostics",
+                                subtitle = "This module was not included in this analysis",
+                                icon = shiny::icon("users"),
+                                color = "black",
+                                href = "#cohortDiagnosticsModal"
+                              )
+                            }
+                          })
+                        
+                        
+                        output$cohortMethodBox <- shinydashboard::renderValueBox({
+                          if ("CohortMethod" %in% tab_names) {
+                            shinydashboard::valueBox(
+                              value = "Cohort Method",
+                              subtitle = "Cohort Method results for this analysis",
+                              icon = shiny::icon("chart-column"),
+                              color = "maroon",
+                              href = "#cohortMethodModal"
+                            )
+                          } else {
+                            shinydashboard::valueBox(
+                              value = "Cohort Method",
+                              subtitle = "This module was not included in this analysis",
+                              icon = shiny::icon("chart-column"),
+                              color = "black",
+                              href = "#cohortMethodModal"
+                            )
+                          }
+                        })
+                        
+                        output$predictionBox <- shinydashboard::renderValueBox({
+                          if ("Prediction" %in% tab_names) {
+                            shinydashboard::valueBox(
+                              value = "Prediction",
+                              subtitle = "Patient-level Prediction results for this analysis",
+                              icon = shiny::icon("chart-line"),
+                              color = "blue",
+                              href = "#predictionModal"
+                            )
+                          } else {
+                            shinydashboard::valueBox(
+                              value = "Prediction",
+                              subtitle = "This module was not included in this analysis",
+                              icon = shiny::icon("chart-line"),
+                              color = "black",
+                              href = "#predictionModal"
+                            )
+                          }
+                        })
+                        
+                        output$sccsBox <- shinydashboard::renderValueBox({
+                          if ("SCCS" %in% tab_names) {
+                            shinydashboard::valueBox(
+                              value = "SCCS",
+                              subtitle = "Self-Controlled Case Series results for this analysis",
+                              icon = shiny::icon("people-arrows"),
+                              color = "red",
+                              href = "#sccsModal"
+                            )
+                          } else {
+                            shinydashboard::valueBox(
+                              value = "SCCS",
+                              subtitle = "This module was not included in this analysis",
+                              icon = shiny::icon("people-arrows"),
+                              color = "black",
+                              href = "#sccsModal"
+                            )
+                          }
+                        })
+                        
+                        output$evidenceSynthesisBox <-
+                          shinydashboard::renderValueBox({
+                            if ("Meta" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "Meta",
+                                subtitle = "Meta Analysis results for this analysis",
+                                icon = shiny::icon("sliders"),
+                                color = "olive",
+                                href = "#evidenceSynthesisModal"
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "Meta",
+                                subtitle =
+                                  "This module was not included in this analysis",
+                                icon = shiny::icon("sliders"),
+                                color = "black",
+                                href = "#evidenceSynthesisModal"
+                              )
+                            }
+                          })
+                        
+                      })
 }
