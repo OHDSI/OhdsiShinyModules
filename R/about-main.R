@@ -69,222 +69,6 @@ aboutViewer <- function(id = 'homepage') {
       shinydashboard::valueBoxOutput(ns("predictionBox"), width = 3),
       shinydashboard::valueBoxOutput(ns("sccsBox"), width = 3),
       shinydashboard::valueBoxOutput(ns("evidenceSynthesisBox"), width = 3)
-    ),
-    tags$script(
-      HTML(
-        '
-  $(document).ready(function(){
-    $("#datasourcesBox").click(function(){
-      $("#datasourcesModal").modal("show");
-    });
-
-    $("#cohortsBox").click(function(){
-      $("#cohortsModal").modal("show");
-    });
-
-    $("#characterizationBox").click(function(){
-      $("#characterizationModal").modal("show");
-    });
-
-    $(".value-box").click(function() {
-      var modalId = $(this).attr("data-modal-id");
-      $("#" + modalId).modal("show");
-    });
-  });
-'
-      )
-    ),
-    tags$div(
-      id = "datasourcesModal",
-      class = "modal fade",
-      tags$div(
-        class = "modal-dialog modal-dialog-centered",
-        tags$div(
-          class = "modal-content",
-          tags$div(
-            class = "modal-header",
-            tags$h3(class = "modal-title",
-                    "Data Sources Modal"),
-            tags$button(
-              type = "button",
-              class = "close",
-              `data-dismiss` = "modal",
-              `aria-label` = "Close",
-              tags$span(`aria-hidden` = "true", "×")
-            )
-          ),
-          tags$div(class = "modal-body",
-                   "This is the Data Sources modal.")
-        )
-      )
-    ),
-    tags$div(
-      id = "cohortsModal",
-      class = "modal fade",
-      tags$div(
-        class = "modal-dialog modal-dialog-centered",
-        tags$div(
-          class = "modal-content",
-          tags$div(
-            class = "modal-header",
-            tags$h3(class = "modal-title",
-                    "Cohorts Modal"),
-            tags$button(
-              type = "button",
-              class = "close",
-              `data-dismiss` = "modal",
-              `aria-label` = "Close",
-              tags$span(`aria-hidden` = "true", "×")
-            )
-          ),
-          tags$div(class = "modal-body",
-                   "This is the Cohorts modal.")
-        )
-      )
-    ),
-    tags$div(
-      id = "characterizationModal",
-      class = "modal fade",
-      tags$div(
-        class = "modal-dialog modal-dialog-centered",
-        tags$div(
-          class = "modal-content",
-          tags$div(
-            class = "modal-header",
-            tags$h3(class = "modal-title",
-                    "Characterization Modal"),
-            tags$button(
-              type = "button",
-              class = "close",
-              `data-dismiss` = "modal",
-              `aria-label` = "Close",
-              tags$span(`aria-hidden` = "true", "×")
-            )
-          ),
-          tags$div(class = "modal-body",
-                   "This is the Characterization modal.")
-        )
-      )
-    ),
-    tags$div(
-      id = "cohortDiagnosticsModal",
-      class = "modal fade",
-      tags$div(
-        class = "modal-dialog modal-dialog-centered",
-        tags$div(
-          class = "modal-content",
-          tags$div(
-            class = "modal-header",
-            tags$h3(class = "modal-title",
-                    "Cohort Diagnostics"),
-            tags$button(
-              type = "button",
-              class = "close",
-              `data-dismiss` = "modal",
-              `aria-label` = "Close",
-              tags$span(`aria-hidden` = "true", "×")
-            )
-          ),
-          tags$div(class = "modal-body",
-                   "This is Cohort Diagnostics.")
-        )
-      )
-    ),
-    tags$div(
-      id = "cohortMethodModal",
-      class = "modal fade",
-      tags$div(
-        class = "modal-dialog modal-dialog-centered",
-        tags$div(
-          class = "modal-content",
-          tags$div(
-            class = "modal-header",
-            tags$h3(class = "modal-title",
-                    "Cohort Method"),
-            tags$button(
-              type = "button",
-              class = "close",
-              `data-dismiss` = "modal",
-              `aria-label` = "Close",
-              tags$span(`aria-hidden` = "true", "×")
-            )
-          ),
-          tags$div(class = "modal-body",
-                   "This is Cohort Method.")
-        )
-      )
-    ),
-    tags$div(
-      id = "predictionModal",
-      class = "modal fade",
-      tags$div(
-        class = "modal-dialog modal-dialog-centered",
-        tags$div(
-          class = "modal-content",
-          tags$div(
-            class = "modal-header",
-            tags$h3(class = "modal-title",
-                    "Prediction"),
-            tags$button(
-              type = "button",
-              class = "close",
-              `data-dismiss` = "modal",
-              `aria-label` = "Close",
-              tags$span(`aria-hidden` = "true", "×")
-            )
-          ),
-          tags$div(class = "modal-body",
-                   "This is Prediction.")
-        )
-      )
-    ),
-    tags$div(
-      id = "sccsModal",
-      class = "modal fade",
-      tags$div(
-        class = "modal-dialog modal-dialog-centered",
-        tags$div(
-          class = "modal-content",
-          tags$div(
-            class = "modal-header",
-            tags$h3(class = "modal-title",
-                    "Self-Controlled Case Series"),
-            tags$button(
-              type = "button",
-              class = "close",
-              `data-dismiss` = "modal",
-              `aria-label` = "Close",
-              tags$span(`aria-hidden` = "true", "×")
-            )
-          ),
-          tags$div(class = "modal-body",
-                   "This is Self-Controlled Case Series.")
-        )
-      )
-    ),
-    tags$div(
-      id = "evidenceSynthesisModal",
-      class = "modal fade",
-      tags$div(
-        class = "modal-dialog modal-dialog-centered",
-        tags$div(
-          class = "modal-content",
-          tags$div(
-            class = "modal-header",
-            tags$h3(class = "modal-title",
-                    "Evidence Synthesis"),
-            tags$button(
-              type = "button",
-              class = "close",
-              `data-dismiss` = "modal",
-              `aria-label` = "Close",
-              tags$span(`aria-hidden` = "true", "×")
-            )
-          ),
-          tags$div(class = "modal-body",
-                   "This is Evidence Synthesis.")
-        )
-      )
     )
   )
 }
@@ -318,65 +102,68 @@ aboutServer <- function(id = 'homepage',
                         # View the extracted tabName values
                         # print(tab_names)
                         
-                        output$datasourcesBox <- shinydashboard::renderValueBox({
-                          if ("DataSources" %in% tab_names) {
-                            shinydashboard::valueBox(
-                              value = "Data Sources",
-                              subtitle = "Databases used in this analysis",
-                              icon = shiny::icon("database"),
-                              color = "aqua",
-                              href = "#datasourcesModal"
-                            )
-                          } else {
-                            shinydashboard::valueBox(
-                              value = "Data Sources",
-                              subtitle = "This module was not included in this analysis",
-                              icon = shiny::icon("database"),
-                              color = "black",
-                              href = "#datasourcesModal"
-                            )
-                          }
-                        })
+                        output$datasourcesBox <-
+                          shinydashboard::renderValueBox({
+                            if ("DataSources" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "Data Sources",
+                                subtitle = "Data sources used in this analysis",
+                                icon = shiny::icon("database"),
+                                color = "aqua",
+                                href = NULL
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "Data Sources",
+                                subtitle = "This module was not included in this analysis",
+                                icon = shiny::icon("database"),
+                                color = "black",
+                                href = NULL
+                              )
+                            }
+                          })
                         
-                        output$cohortsBox <- shinydashboard::renderValueBox({
-                          if ("Cohorts" %in% tab_names) {
-                            shinydashboard::valueBox(
-                              value = "Cohorts",
-                              subtitle = "Cohorts included in this analysis",
-                              icon = shiny::icon("user-gear"),
-                              color = "purple",
-                              href = "#cohortsModal"
-                            )
-                          } else {
-                            shinydashboard::valueBox(
-                              value = "Cohorts",
-                              subtitle = "This module was not included in this analysis",
-                              icon = shiny::icon("user-gear"),
-                              color = "black",
-                              href = "#cohortsModal"
-                            )
-                          }
-                        })
+                        output$cohortsBox <-
+                          shinydashboard::renderValueBox({
+                            if ("Cohorts" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "Cohorts",
+                                subtitle = "Cohorts included in this analysis",
+                                icon = shiny::icon("user-gear"),
+                                color = "purple",
+                                href = NULL
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "Cohorts",
+                                subtitle = "This module was not included in this analysis",
+                                icon = shiny::icon("user-gear"),
+                                color = "black",
+                                href = NULL
+                              )
+                            }
+                          })
                         
-                        output$characterizationBox <- shinydashboard::renderValueBox({
-                          if ("Characterization" %in% tab_names) {
-                            shinydashboard::valueBox(
-                              value = "Characterization",
-                              subtitle = "Characterization results for this analysis",
-                              icon = shiny::icon("table"),
-                              color = "teal",
-                              href = "#characterizationModal"
-                            )
-                          } else {
-                            shinydashboard::valueBox(
-                              value = "Characterization",
-                              subtitle = "This module was not included in this analysis",
-                              icon = shiny::icon("table"),
-                              color = "black",
-                              href = "#characterizationModal"
-                            )
-                          }
-                        })
+                        output$characterizationBox <-
+                          shinydashboard::renderValueBox({
+                            if ("Characterization" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "Characterization",
+                                subtitle = "Characterization results for this analysis",
+                                icon = shiny::icon("table"),
+                                color = "teal",
+                                href = NULL
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "Characterization",
+                                subtitle = "This module was not included in this analysis",
+                                icon = shiny::icon("table"),
+                                color = "black",
+                                href = NULL
+                              )
+                            }
+                          })
                         
                         output$cohortDiagnosticsBox <-
                           shinydashboard::renderValueBox({
@@ -386,7 +173,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "Cohort Diagnostics results for the cohorts included in this analysis",
                                 icon = shiny::icon("users"),
                                 color = "yellow",
-                                href = "#cohortDiagnosticsModal"
+                                href = NULL
                               )
                             } else {
                               shinydashboard::valueBox(
@@ -394,71 +181,74 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "This module was not included in this analysis",
                                 icon = shiny::icon("users"),
                                 color = "black",
-                                href = "#cohortDiagnosticsModal"
+                                href = NULL
                               )
                             }
                           })
                         
                         
-                        output$cohortMethodBox <- shinydashboard::renderValueBox({
-                          if ("CohortMethod" %in% tab_names) {
-                            shinydashboard::valueBox(
-                              value = "Cohort Method",
-                              subtitle = "Cohort Method results for this analysis",
-                              icon = shiny::icon("chart-column"),
-                              color = "maroon",
-                              href = "#cohortMethodModal"
-                            )
-                          } else {
-                            shinydashboard::valueBox(
-                              value = "Cohort Method",
-                              subtitle = "This module was not included in this analysis",
-                              icon = shiny::icon("chart-column"),
-                              color = "black",
-                              href = "#cohortMethodModal"
-                            )
-                          }
-                        })
+                        output$cohortMethodBox <-
+                          shinydashboard::renderValueBox({
+                            if ("CohortMethod" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "Cohort Method",
+                                subtitle = "Cohort Method results for this analysis",
+                                icon = shiny::icon("chart-column"),
+                                color = "maroon",
+                                href = NULL
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "Cohort Method",
+                                subtitle = "This module was not included in this analysis",
+                                icon = shiny::icon("chart-column"),
+                                color = "black",
+                                href = NULL
+                              )
+                            }
+                          })
                         
-                        output$predictionBox <- shinydashboard::renderValueBox({
-                          if ("Prediction" %in% tab_names) {
-                            shinydashboard::valueBox(
-                              value = "Prediction",
-                              subtitle = "Patient-level Prediction results for this analysis",
-                              icon = shiny::icon("chart-line"),
-                              color = "blue",
-                              href = "#predictionModal"
-                            )
-                          } else {
-                            shinydashboard::valueBox(
-                              value = "Prediction",
-                              subtitle = "This module was not included in this analysis",
-                              icon = shiny::icon("chart-line"),
-                              color = "black",
-                              href = "#predictionModal"
-                            )
-                          }
-                        })
+                        output$predictionBox <-
+                          shinydashboard::renderValueBox({
+                            if ("Prediction" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "Prediction",
+                                subtitle = "Patient-level Prediction results for this analysis",
+                                icon = shiny::icon("chart-line"),
+                                color = "blue",
+                                href = NULL
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "Prediction",
+                                subtitle = "This module was not included in this analysis",
+                                icon = shiny::icon("chart-line"),
+                                color = "black",
+                                href = NULL
+                              )
+                            }
+                          })
                         
-                        output$sccsBox <- shinydashboard::renderValueBox({
-                          if ("SCCS" %in% tab_names) {
-                            shinydashboard::valueBox(
-                              value = "SCCS",
-                              subtitle = "Self-Controlled Case Series results for this analysis",
-                              icon = shiny::icon("people-arrows"),
-                              color = "red",
-                              href = "#sccsModal"
-                            )
-                          } else {
-                            shinydashboard::valueBox(
-                              value = "SCCS",
-                              subtitle = "This module was not included in this analysis",
-                              icon = shiny::icon("people-arrows"),
-                              color = "black",
-                              href = "#sccsModal"
-                            )
-                          }
-                        })
+                        output$sccsBox <-
+                          shinydashboard::renderValueBox({
+                            if ("SCCS" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "SCCS",
+                                subtitle = "Self-Controlled Case Series results for this analysis",
+                                icon = shiny::icon("people-arrows"),
+                                color = "red",
+                                href = NULL
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "SCCS",
+                                subtitle = "This module was not included in this analysis",
+                                icon = shiny::icon("people-arrows"),
+                                color = "black",
+                                href = NULL
+                              )
+                            }
+                          })
                         
                         output$evidenceSynthesisBox <-
                           shinydashboard::renderValueBox({
@@ -468,7 +258,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "Meta Analysis results for this analysis",
                                 icon = shiny::icon("sliders"),
                                 color = "olive",
-                                href = "#evidenceSynthesisModal"
+                                href = NULL
                               )
                             } else {
                               shinydashboard::valueBox(
@@ -477,7 +267,7 @@ aboutServer <- function(id = 'homepage',
                                   "This module was not included in this analysis",
                                 icon = shiny::icon("sliders"),
                                 color = "black",
-                                href = "#evidenceSynthesisModal"
+                                href = NULL
                               )
                             }
                           })
