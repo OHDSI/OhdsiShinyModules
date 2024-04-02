@@ -49,8 +49,8 @@ aboutViewer <- function(id = 'homepage') {
   #shinydashboard::dashboardBody(
   shiny::div(
     shiny::fluidRow(
-      tags$head(tags$style(
-        HTML(".small-box {height: 200px; width: 100%;}")
+      shiny::tags$head(shiny::tags$style(
+        shiny::HTML(".small-box {height: 200px; width: 100%;}")
       )),
       shinydashboard::box(width = "100%",
                           shiny::htmlTemplate(
