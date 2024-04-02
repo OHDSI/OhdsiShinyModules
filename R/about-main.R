@@ -21,13 +21,14 @@
 #'
 #' @details
 #' Returns the location of the about helper file
-#' 
+#'
 #' @return
 #' string location of the about helper file
 #'
 #' @export
-aboutHelperFile <- function(){
-  fileLoc <- system.file('about-www', "about.html", package = "OhdsiShinyModules")
+aboutHelperFile <- function() {
+  fileLoc <-
+    system.file('about-www', "about.html", package = "OhdsiShinyModules")
   return(fileLoc)
 }
 
@@ -37,33 +38,38 @@ aboutHelperFile <- function(){
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' 
+#'
 #' @return
 #' The user interface to the home page module
 #'
 #' @export
-aboutViewer <- function(
-    id = 'homepage'
-    ) {
+aboutViewer <- function(id = 'homepage') {
   ns <- shiny::NS(id)
   
-  shinydashboard::box(
-    status = 'info', width = 12,
-    title =  shiny::span( shiny::icon("info"), "About OHDSI Viewer"),
-    solidHeader = TRUE,
-
-    shiny::fluidPage(
-      shiny::fluidRow(
-        shiny::includeMarkdown(
-          path = system.file(
-            'about-document', 
-            "introduction.md", 
-            package = "OhdsiShinyModules"
-          )
-        )
-      )
+  #shinydashboard::dashboardBody(
+  shiny::div(
+    shiny::fluidRow(
+      shiny::tags$head(shiny::tags$style(
+        shiny::HTML(".small-box {height: 200px; width: 100%;}")
+      )),
+      shinydashboard::box(width = "100%",
+                          shiny::htmlTemplate(
+                            system.file("about-www", "about.html", package = utils::packageName())
+                          ))
+      # )
+    ),
+    shiny::fluidRow(
+      shinydashboard::valueBoxOutput(ns("datasourcesBox"), width = 3),
+      shinydashboard::valueBoxOutput(ns("cohortsBox"), width = 3),
+      shinydashboard::valueBoxOutput(ns("characterizationBox"), width = 3),
+      shinydashboard::valueBoxOutput(ns("cohortDiagnosticsBox"), width = 3)
+    ),
+    shiny::fluidRow(
+      shinydashboard::valueBoxOutput(ns("cohortMethodBox"), width = 3),
+      shinydashboard::valueBoxOutput(ns("predictionBox"), width = 3),
+      shinydashboard::valueBoxOutput(ns("sccsBox"), width = 3),
+      shinydashboard::valueBoxOutput(ns("evidenceSynthesisBox"), width = 3)
     )
-    
   )
 }
 
@@ -75,21 +81,196 @@ aboutViewer <- function(
 #' @param id  the unique reference id for the module
 #' @param connectionHandler a connection to the database with the results
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
-#' 
+#' @param config the config from the app.R file that contains a list of which modules to include
+#'
 #' @return
 #' The server for the shiny app home
 #'
 #' @export
-aboutServer <- function(
-    id = 'homepage',
-    connectionHandler = NULL,
-    resultDatabaseSettings = NULL
-    ) {
-  shiny::moduleServer(
-    id,
-    function(input, output, session) {
-      
-      
-    }
-  )
+aboutServer <- function(id = 'homepage',
+                        connectionHandler = NULL,
+                        resultDatabaseSettings = NULL,
+                        config) {
+  shiny::moduleServer(id,
+                      function(input, output, session) {
+                        tab_names <- character()
+                        # Loop through shinyModules and extract tabName values
+                        for (i in seq_along(config[["shinyModules"]])) {
+                          tab_name <- config[["shinyModules"]][[i]][["tabName"]]
+                          tab_names <- c(tab_names, tab_name)
+                        }
+                        # View the extracted tabName values
+                        # print(tab_names)
+                        
+                        output$datasourcesBox <-
+                          shinydashboard::renderValueBox({
+                            if ("DataSources" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "Data Sources",
+                                subtitle = "Data sources used in this analysis",
+                                icon = shiny::icon("database"),
+                                color = "aqua",
+                                href = NULL
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "Data Sources",
+                                subtitle = "This module was not included in this analysis",
+                                icon = shiny::icon("database"),
+                                color = "black",
+                                href = NULL
+                              )
+                            }
+                          })
+                        
+                        output$cohortsBox <-
+                          shinydashboard::renderValueBox({
+                            if ("Cohorts" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "Cohorts",
+                                subtitle = "Cohorts included in this analysis",
+                                icon = shiny::icon("user-gear"),
+                                color = "purple",
+                                href = NULL
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "Cohorts",
+                                subtitle = "This module was not included in this analysis",
+                                icon = shiny::icon("user-gear"),
+                                color = "black",
+                                href = NULL
+                              )
+                            }
+                          })
+                        
+                        output$characterizationBox <-
+                          shinydashboard::renderValueBox({
+                            if ("Characterization" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "Characterization",
+                                subtitle = "Characterization results for this analysis",
+                                icon = shiny::icon("table"),
+                                color = "teal",
+                                href = NULL
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "Characterization",
+                                subtitle = "This module was not included in this analysis",
+                                icon = shiny::icon("table"),
+                                color = "black",
+                                href = NULL
+                              )
+                            }
+                          })
+                        
+                        output$cohortDiagnosticsBox <-
+                          shinydashboard::renderValueBox({
+                            if ("CohortDiagnostics" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "Cohort Diagnostics",
+                                subtitle = "Cohort Diagnostics results for the cohorts included in this analysis",
+                                icon = shiny::icon("users"),
+                                color = "yellow",
+                                href = NULL
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "Cohort Diagnostics",
+                                subtitle = "This module was not included in this analysis",
+                                icon = shiny::icon("users"),
+                                color = "black",
+                                href = NULL
+                              )
+                            }
+                          })
+                        
+                        
+                        output$cohortMethodBox <-
+                          shinydashboard::renderValueBox({
+                            if ("CohortMethod" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "Cohort Method",
+                                subtitle = "Cohort Method results for this analysis",
+                                icon = shiny::icon("chart-column"),
+                                color = "maroon",
+                                href = NULL
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "Cohort Method",
+                                subtitle = "This module was not included in this analysis",
+                                icon = shiny::icon("chart-column"),
+                                color = "black",
+                                href = NULL
+                              )
+                            }
+                          })
+                        
+                        output$predictionBox <-
+                          shinydashboard::renderValueBox({
+                            if ("Prediction" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "Prediction",
+                                subtitle = "Patient-level Prediction results for this analysis",
+                                icon = shiny::icon("chart-line"),
+                                color = "blue",
+                                href = NULL
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "Prediction",
+                                subtitle = "This module was not included in this analysis",
+                                icon = shiny::icon("chart-line"),
+                                color = "black",
+                                href = NULL
+                              )
+                            }
+                          })
+                        
+                        output$sccsBox <-
+                          shinydashboard::renderValueBox({
+                            if ("SCCS" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "SCCS",
+                                subtitle = "Self-Controlled Case Series results for this analysis",
+                                icon = shiny::icon("people-arrows"),
+                                color = "red",
+                                href = NULL
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "SCCS",
+                                subtitle = "This module was not included in this analysis",
+                                icon = shiny::icon("people-arrows"),
+                                color = "black",
+                                href = NULL
+                              )
+                            }
+                          })
+                        
+                        output$evidenceSynthesisBox <-
+                          shinydashboard::renderValueBox({
+                            if ("Meta" %in% tab_names) {
+                              shinydashboard::valueBox(
+                                value = "Meta",
+                                subtitle = "Meta Analysis results for this analysis",
+                                icon = shiny::icon("sliders"),
+                                color = "olive",
+                                href = NULL
+                              )
+                            } else {
+                              shinydashboard::valueBox(
+                                value = "Meta",
+                                subtitle =
+                                  "This module was not included in this analysis",
+                                icon = shiny::icon("sliders"),
+                                color = "black",
+                                href = NULL
+                              )
+                            }
+                          })
+                        
+                      })
 }
