@@ -1,6 +1,6 @@
 ---
 title: "Data Sources"
-author: "Jenna Reps, Jamie Gilbert, Nathan Hall"
+author: "Nathan Hall"
 date: '`r Sys.Date()`'
 header-includes:
   - \usepackage{fancyhdr}

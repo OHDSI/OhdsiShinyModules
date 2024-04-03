@@ -1,0 +1,76 @@
+---
+title: "Prediction"
+author: "Nathan Hall"
+date: '`r Sys.Date()`'
+header-includes:
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyhead{}
+  - \fancyfoot[LE,RO]{\thepage}
+  - \renewcommand{\headrulewidth}{0.4pt}
+  - \renewcommand{\footrulewidth}{0.4pt}
+  - \fancyfoot[CO,CE]{OhdsiShinyModules Package Version `r  utils::packageVersion("OhdsiShinyModules")`}
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+  word_document:
+    toc: yes
+  pdf_document:
+    includes:
+      in_header: preamble.tex
+    number_sections: yes
+    toc: yes
+---
+
+```{=html}
+<!--
+%\VignetteEngine{knitr}
+%\VignetteIndexEntry{Adding Shiny Modules}
+-->
+```
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+Patient-level prediction stands as a pivotal component in clinical decision-making, providing clinicians with tools to anticipate diagnostic or prognostic outcomes based on individual patient characteristics. In the complex landscape of modern medicine, where patients generate extensive digital footprints through Electronic Health Records (EHRs), the ability to harness this wealth of data for predictive modeling holds immense potential. However, despite the growing interest in predictive modeling, challenges such as model reproducibility, validation, and transparency persist. The Observational Health Data Science and Informatics (OHDSI) framework, with its Common Data Model (CDM) and standardized methodologies, addresses these challenges by enabling the development and validation of predictive models at scale, facilitating external validation across diverse healthcare settings globally. The OHDSI [PatientLevelPrediction](https://ohdsi.github.io/PatientLevelPrediction/ "Patient-level Prediction") R package encapsulates established best practices for model development and validation.
+
+# Features and Functionalities
+
+The Prediction module is dedicated to investigating prediction models tailored to specific prediction problems through a combination of machine learning algorithms and feature engineering techniques. In this module, users are able to explore model design summaries, detailed information about the models fitted, model diagnostics, and a detailed report including performance characteristic results, model discrimination results, and calibration results.
+
+The full list of features which are explorable in the Prediction module are as follows:
+
+-   Takes one or more target cohorts (Ts) and one or more outcome cohorts (Os) and develops and validates models for all T and O combinations.
+
+-   Allows for multiple prediction design options.
+
+-   Extracts the necessary data from a database in OMOP Common Data Model format for multiple covariate settings.
+
+-   Uses a large set of covariates including for example all drugs, diagnoses, procedures, as well as age, comorbidity indexes, and custom covariates.
+
+-   Allows you to add custom covariates or cohort covariates.
+
+-   Includes a large number of state-of-the-art machine learning algorithms that can be used to develop predictive models, including Regularized logistic regression, Random forest, Gradient boosting machines, Decision tree, Naive Bayes, K-nearest neighbours, Neural network, AdaBoost and Support vector machines.
+
+-   Allows you to add custom algorithms.
+
+-   Allows you to add custom feature engineering
+
+-   Allows you to add custom under/over sampling (or any other sampling) [note: based on existing research this is not recommended]
+
+-   Contains functionality to externally validate models.
+
+-   Includes functions to plot and explore model performance (ROC + Calibration).
+
+-   Build ensemble models using EnsemblePatientLevelPrediction.
+
+-   Build Deep Learning models using DeepPatientLevelPrediction.
+
+-   Generates learning curves.
+
+# Utility and Application
+
+Patient-level prediction within the OHDSI framework represents a paradigm shift in clinical decision support, offering the potential to transform patient care through personalized medicine. By leveraging standardized data structures, rigorous methodologies, and transparent reporting practices, patient-level prediction endeavors in OHDSI strive to bridge the gap between predictive modeling research and clinical practice, ultimately enhancing patient outcomes and advancing evidence-based healthcare.
