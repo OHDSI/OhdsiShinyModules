@@ -43,6 +43,27 @@ reference:
     contents:
       - OhdsiShinyModules
       - getLogoImage
+  - title: "About module"
+    desc: >
+      Modules for the information page.
+    contents:
+      - aboutHelperFile
+      - aboutViewer
+      - aboutServer
+  - title: "Report module"
+    desc: >
+      Modules for creating summary html report.
+    contents:
+      - reportHelperFile
+      - reportViewer
+      - reportServer    
+  - title: "SCCS module"
+    desc: >
+      Modules for viewing self controlled case series results.
+    contents:
+      - sccsHelperFile
+      - sccsViewer
+      - sccsServer         
   - title: "Prediction module"
     desc: >
       Modules for prediction results.
@@ -87,13 +108,6 @@ reference:
       - characterizationTableServer
       - characterizationTimeToEventViewer
       - characterizationTimeToEventServer
-  - title: "About module"
-    desc: >
-      Modules for the information page.
-    contents:
-      - aboutHelperFile
-      - aboutViewer
-      - aboutServer
   - title: "Cohort Generator module"
     desc: >
       Modules for the cohort generator package.
