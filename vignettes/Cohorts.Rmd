@@ -26,7 +26,7 @@ output:
 ```{=html}
 <!--
 %\VignetteEngine{knitr}
-%\VignetteIndexEntry{Adding Shiny Modules}
+%\VignetteIndexEntry{Cohorts}
 -->
 ```
 ```{r include=FALSE}

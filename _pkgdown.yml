@@ -140,14 +140,10 @@ reference:
       - cohortMethodPropensityModelServer
       - cohortMethodPropensityScoreDistViewer
       - cohortMethodPropensityScoreDistServer
-      - cohortMethodResultsTableViewer
-      - cohortMethodResultsTableServer
-      - cohortMethodSubgroupsViewer
-      - cohortMethodSubgroupsServer
+      - cohortMethodResultSummaryTableViewer
+      - cohortMethodResultSummaryTableServer
       - cohortMethodSystematicErrorViewer
       - cohortMethodSystematicErrorServer
-      - cohortMethodTitlePanelViewer
-      - cohortMethodTitlePanelServer
   - title: "Data diagnostics module"
     desc: >
       Modules for the DataDiagnostics package.
@@ -159,7 +155,8 @@ reference:
       - dataDiagnosticSummaryServer
       - dataDiagnosticSummaryViewer
       - dataDiagnosticViewer
-  - title: "Cohort Diagnostic module"
+      - dataDiagnosticHelperFile
+  - title: "Cohort Diagnostics module"
     desc: >
       Modules for the CohortDiagnostics package.
     contents:
@@ -184,4 +181,41 @@ reference:
       - timeDistributionsView
       - visitContextView
       - inclusionRulesView
-      
+  - title: "Components module"
+    desc: >
+      Modules for the component functions shared across modules.
+    contents:
+      - createCustomColDefList
+      - createLargeSqlQuery
+      - LargeDataTable
+      - largeTableView
+      - largeTableServer
+      - makeButtonLabel
+  - title: "Data sources module"
+    desc: >
+      Modules for the data sources results.
+    contents:
+      - datasourcesHelperFile
+      - datasourcesServer
+      - datasourcesViewer
+  - title: "Evidence synthesis module"
+    desc: >
+      Modules for the evidence synthesis (Meta) analysis results.
+    contents:
+      - evidenceSynthesisHelperFile
+      - evidenceSynthesisServer
+      - evidenceSynthesisViewer
+  - title: "Home module"
+    desc: >
+      Modules for the home page.
+    contents:
+      - homeHelperFile
+      - homeServer
+      - homeViewer
+  - title: "PheValuator module"
+    desc: >
+      Modules for the PheValuator results.
+    contents:
+      - phevaluatorHelperFile
+      - phevaluatorServer
+      - phevaluatorViewer
