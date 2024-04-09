@@ -62,7 +62,7 @@ reference:
       Modules for viewing self controlled case series results.
     contents:
       - sccsHelperFile
-      - sccsViewer
+      - sccsView
       - sccsServer         
   - title: "Prediction module"
     desc: >
@@ -71,24 +71,24 @@ reference:
       - patientLevelPredictionHelperFile
       - patientLevelPredictionViewer
       - patientLevelPredictionServer
-      - patientLevelPredictionDiagnosticsServer
-      - patientLevelPredictionDiagnosticsViewer
-      - patientLevelPredictionDesignSummaryViewer
-      - patientLevelPredictionDesignSummaryServer
-      - patientLevelPredictionModelSummaryViewer
-      - patientLevelPredictionModelSummaryServer
-      - patientLevelPredictionSettingsViewer
-      - patientLevelPredictionSettingsServer
+      - patientLevelPredictionCalibrationViewer
+      - patientLevelPredictionCalibrationServer
       - patientLevelPredictionCovariateSummaryViewer
       - patientLevelPredictionCovariateSummaryServer
       - patientLevelPredictionCutoffViewer
       - patientLevelPredictionCutoffServer
+      - patientLevelPredictionDesignSummaryViewer
+      - patientLevelPredictionDesignSummaryServer
+      - patientLevelPredictionDiagnosticsServer
+      - patientLevelPredictionDiagnosticsViewer
       - patientLevelPredictionDiscriminationViewer
       - patientLevelPredictionDiscriminationServer
-      - patientLevelPredictionCalibrationViewer
-      - patientLevelPredictionCalibrationServer
+      - patientLevelPredictionModelSummaryViewer
+      - patientLevelPredictionModelSummaryServer
       - patientLevelPredictionNbViewer
       - patientLevelPredictionNbServer
+      - patientLevelPredictionSettingsViewer
+      - patientLevelPredictionSettingsServer
       - patientLevelPredictionValidationViewer
       - patientLevelPredictionValidationServer
   - title: "Decription module"
@@ -128,8 +128,6 @@ reference:
       - cohortMethodCovariateBalanceServer
       - cohortMethodDiagnosticsSummaryViewer
       - cohortMethodDiagnosticsSummaryServer
-      - cohortMethodForestPlotViewer
-      - cohortMethodForestPlotServer
       - cohortMethodKaplanMeierViewer
       - cohortMethodKaplanMeierServer
       - cohortMethodPopulationCharacteristicsViewer
@@ -140,8 +138,8 @@ reference:
       - cohortMethodPropensityModelServer
       - cohortMethodPropensityScoreDistViewer
       - cohortMethodPropensityScoreDistServer
-      - cohortMethodResultSummaryTableViewer
-      - cohortMethodResultSummaryTableServer
+      - cohortMethodResultSummaryViewer
+      - cohortMethodResultSummaryServer
       - cohortMethodSystematicErrorViewer
       - cohortMethodSystematicErrorServer
   - title: "Data diagnostics module"
@@ -186,7 +184,7 @@ reference:
       Modules for the component functions shared across modules.
     contents:
       - createCustomColDefList
-      - createLargeSqlQuery
+      - createLargeSqlQueryDt
       - LargeDataTable
       - largeTableView
       - largeTableServer
