@@ -1,0 +1,60 @@
+---
+title: "Cohort Method (Estimation)"
+author: "Nathan Hall"
+date: '`r Sys.Date()`'
+header-includes:
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyhead{}
+  - \fancyfoot[LE,RO]{\thepage}
+  - \renewcommand{\headrulewidth}{0.4pt}
+  - \renewcommand{\footrulewidth}{0.4pt}
+  - \fancyfoot[CO,CE]{OhdsiShinyModules Package Version `r  utils::packageVersion("OhdsiShinyModules")`}
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+  word_document:
+    toc: yes
+  pdf_document:
+    includes:
+      in_header: preamble.tex
+    number_sections: yes
+    toc: yes
+---
+
+```{=html}
+<!--
+%\VignetteEngine{knitr}
+%\VignetteIndexEntry{Adding Shiny Modules}
+-->
+```
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+Observational healthcare data, comprising administrative claims and electronic health records, present a rich source for generating real-world evidence pertinent to treatment effects that directly impact patient well-being. Within this realm, population-level effect estimation assumes a pivotal role, focusing on elucidating the average causal effects of exposures—such as medical interventions like drug exposures or procedures—on specific health outcomes of interest. Population-level effect estimation delves into two primary realms: direct effect estimation and comparative effect estimation. In direct effect estimation, the focus lies on discerning the effect of an exposure on the risk of an outcome compared to no exposure, while comparative effect estimation aims to delineate the effect of a target exposure against a comparator exposure. By contrasting factual outcomes with counterfactual scenarios—what happened versus what would have occurred under different circumstances—these estimation tasks offer critical insights into treatment selection, safety surveillance, and comparative effectiveness. Whether probing individual hypotheses or exploring multiple hypotheses concurrently, the overarching goal remains consistent: to derive high-quality estimates of causal effects from the intricate fabric of observational healthcare data.
+
+# Features and Functionalities
+
+The [CohortMethod](https://ohdsi.github.io/CohortMethod/ "CohortMethod") R package, a cornerstone of population-level estimation within the OHDSI framework, offers a robust methodology for conducting comparative effectiveness research and pharmacoepidemiology studies. Some of the features offered by conducting population-level effect estimation using the CohortMethod module are:
+
+1.  **Data Extraction**: Extracts necessary data from databases structured in the OMOP Common Data Model (CDM) format, ensuring uniformity and compatibility across diverse healthcare settings.
+2.  **Covariate Selection**: Utilizing a comprehensive set of covariates, including drugs, diagnoses, procedures, age, and comorbidity indexes, CohortMethod constructs propensity and outcome models tailored to specific research questions.
+3.  **Large-Scale Regularized Regression**: Employing large-scale regularized regression techniques, CohortMethod fits propensity and outcome models with precision and efficiency, accommodating the complexities of real-world healthcare data.
+4.  **Propensity Score Adjustment**: Facilitates propensity score adjustment through trimming, stratification, matching, and weighting, enabling researchers to address confounding and balance covariate distributions across treatment groups. Results are viewable both graphically and in tabular form to assess the model.
+5.  **Diagnostic Functions**: Diagnostic functions within CohortMethod offer insights into propensity score distributions and covariate balance before and after matching or trimming, enhancing transparency and robustness in estimation procedures.
+6.  **Supported Outcome Models**: Supported outcome models include (conditional) logistic regression, (conditional) Poisson regression, and (conditional) Cox regression, providing flexibility in modeling various types of outcomes in observational health data research.
+7.  **Power**: Incorporates power analysis techniques to estimate the statistical power of the study design, aiding in sample size determination and study planning, and provides a minimum-detectable relative risk (MDRR) statistic.
+8.  **Attrition**:  Assesses attrition rates within cohorts, providing insights into potential biases introduced by data loss during the study period, and provides a visualization of attrition across various cohort criteria.
+9.  **Population Characteristics**:  Analyzes population characteristics to understand the demographic and clinical makeup of the study cohorts, informing interpretation of estimation results both before and after propensity score matching.
+10. **Covariate Balance**: Visually monitors covariate balance before and after matching or trimming, ensuring that confounding variables are adequately controlled for in the analysis.
+11. **Systematic Error**: Assesses effect size estimates for negative controls (true hazard ratio = 1) and positive controls (true hazard ratio > 1) both before and after calibration. Estimates below the diagonal dashed lines are statistically significant (alpha = 0.05) different from the true effect size. A well-calibrated estimator should have the true effect size within the 95 percent confidence interval 95 percent of times, providing researchers with confidence in the reliability of the estimation process and the accuracy of the obtained results.
+
+# Utility and Application
+
+**Comparative Effectiveness Research**: CohortMethod empowers researchers to conduct comparative effectiveness studies by estimating treatment effects while accounting for potential confounding factors and bias inherent in observational data.
+
+**Pharmacoepidemiology and Drug Safety Studies**: In pharmacoepidemiology research, CohortMethod facilitates the evaluation of drug safety and effectiveness by quantifying the association between drug exposures and clinical outcomes in real-world populations.
