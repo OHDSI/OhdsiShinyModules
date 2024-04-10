@@ -7,7 +7,31 @@
     <loc>/articles/AddingShinyModules.html</loc>
   </url>
   <url>
+    <loc>/articles/Characterization.html</loc>
+  </url>
+  <url>
+    <loc>/articles/CohortDiagnostics.html</loc>
+  </url>
+  <url>
+    <loc>/articles/CohortMethod.html</loc>
+  </url>
+  <url>
+    <loc>/articles/Cohorts.html</loc>
+  </url>
+  <url>
+    <loc>/articles/DataSources.html</loc>
+  </url>
+  <url>
+    <loc>/articles/EvidenceSynthesis.html</loc>
+  </url>
+  <url>
     <loc>/articles/index.html</loc>
+  </url>
+  <url>
+    <loc>/articles/Prediction.html</loc>
+  </url>
+  <url>
+    <loc>/articles/SelfControlledCaseSeries.html</loc>
   </url>
   <url>
     <loc>/authors.html</loc>
@@ -19,9 +43,6 @@
     <loc>/news/index.html</loc>
   </url>
   <url>
-    <loc>/reference/OhdsiShinyModules.html</loc>
-  </url>
-  <url>
     <loc>/reference/aboutHelperFile.html</loc>
   </url>
   <url>
@@ -31,7 +52,46 @@
     <loc>/reference/aboutViewer.html</loc>
   </url>
   <url>
+    <loc>/reference/characterizationAggregateFeaturesServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/characterizationAggregateFeaturesViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/characterizationDechallengeRechallengeServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/characterizationDechallengeRechallengeViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/characterizationHelperFile.html</loc>
+  </url>
+  <url>
+    <loc>/reference/characterizationIncidenceServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/characterizationIncidenceViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/characterizationServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/characterizationTableServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/characterizationTableViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/characterizationTimeToEventServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/characterizationTimeToEventViewer.html</loc>
+  </url>
+  <url>
     <loc>/reference/characterizationView.html</loc>
+  </url>
+  <url>
+    <loc>/reference/characterizationViewer.html</loc>
   </url>
   <url>
     <loc>/reference/cohortCountsModule.html</loc>
@@ -46,7 +106,13 @@
     <loc>/reference/cohortDefinitionsView.html</loc>
   </url>
   <url>
+    <loc>/reference/cohortDiagCharacterizationView.html</loc>
+  </url>
+  <url>
     <loc>/reference/cohortDiagnosticsHelperFile.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortDiagnosticsServer.html</loc>
   </url>
   <url>
     <loc>/reference/cohortDiagnosticsSever.html</loc>
@@ -64,6 +130,75 @@
     <loc>/reference/cohortGeneratorViewer.html</loc>
   </url>
   <url>
+    <loc>/reference/cohortMethodAttritionServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodAttritionViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodCovariateBalanceServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodCovariateBalanceViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodDiagnosticsSummaryServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodDiagnosticsSummaryViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodHelperFile.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodKaplanMeierServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodKaplanMeierViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodPopulationCharacteristicsServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodPopulationCharacteristicsViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodPowerServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodPowerViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodPropensityModelServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodPropensityModelViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodPropensityScoreDistServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodPropensityScoreDistViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodResultSummaryServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodResultSummaryViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodSystematicErrorServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodSystematicErrorViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/cohortMethodViewer.html</loc>
+  </url>
+  <url>
     <loc>/reference/cohortOverlapView.html</loc>
   </url>
   <url>
@@ -74,6 +209,15 @@
   </url>
   <url>
     <loc>/reference/createCdDatabaseDataSource.html</loc>
+  </url>
+  <url>
+    <loc>/reference/createCustomColDefList.html</loc>
+  </url>
+  <url>
+    <loc>/reference/createLargeSqlQueryDt.html</loc>
+  </url>
+  <url>
+    <loc>/reference/databaseInformationView.html</loc>
   </url>
   <url>
     <loc>/reference/dataDiagnosticDrillServer.html</loc>
@@ -97,7 +241,13 @@
     <loc>/reference/dataDiagnosticViewer.html</loc>
   </url>
   <url>
-    <loc>/reference/databaseInformationView.html</loc>
+    <loc>/reference/datasourcesHelperFile.html</loc>
+  </url>
+  <url>
+    <loc>/reference/datasourcesServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/datasourcesViewer.html</loc>
   </url>
   <url>
     <loc>/reference/descriptionAggregateFeaturesServer.html</loc>
@@ -226,6 +376,15 @@
     <loc>/reference/estimationViewer.html</loc>
   </url>
   <url>
+    <loc>/reference/evidenceSynthesisHelperFile.html</loc>
+  </url>
+  <url>
+    <loc>/reference/evidenceSynthesisServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/evidenceSynthesisViewer.html</loc>
+  </url>
+  <url>
     <loc>/reference/getCirceRenderedExpression.html</loc>
   </url>
   <url>
@@ -233,6 +392,15 @@
   </url>
   <url>
     <loc>/reference/getLogoImage.html</loc>
+  </url>
+  <url>
+    <loc>/reference/homeHelperFile.html</loc>
+  </url>
+  <url>
+    <loc>/reference/homeServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/homeViewer.html</loc>
   </url>
   <url>
     <loc>/reference/incidenceRatesView.html</loc>
@@ -247,7 +415,100 @@
     <loc>/reference/indexEventBreakdownView.html</loc>
   </url>
   <url>
+    <loc>/reference/LargeDataTable.html</loc>
+  </url>
+  <url>
+    <loc>/reference/largeTableServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/largeTableView.html</loc>
+  </url>
+  <url>
+    <loc>/reference/makeButtonLabel.html</loc>
+  </url>
+  <url>
+    <loc>/reference/OhdsiShinyModules.html</loc>
+  </url>
+  <url>
     <loc>/reference/orpahanConceptsView.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionCalibrationServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionCalibrationViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionCovariateSummaryServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionCovariateSummaryViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionCutoffServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionCutoffViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionDesignSummaryServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionDesignSummaryViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionDiagnosticsServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionDiagnosticsViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionDiscriminationServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionDiscriminationViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionHelperFile.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionModelSummaryServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionModelSummaryViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionNbServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionNbViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionSettingsServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionSettingsViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionValidationServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionValidationViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/patientLevelPredictionViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/phevaluatorHelperFile.html</loc>
+  </url>
+  <url>
+    <loc>/reference/phevaluatorServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/phevaluatorViewer.html</loc>
   </url>
   <url>
     <loc>/reference/predictionCalibrationServer.html</loc>
@@ -320,6 +581,30 @@
   </url>
   <url>
     <loc>/reference/predictionViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/reportHelperFile.html</loc>
+  </url>
+  <url>
+    <loc>/reference/reportServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/reportViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/resultTableServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/resultTableViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/sccsHelperFile.html</loc>
+  </url>
+  <url>
+    <loc>/reference/sccsServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/sccsView.html</loc>
   </url>
   <url>
     <loc>/reference/timeDistributionsView.html</loc>

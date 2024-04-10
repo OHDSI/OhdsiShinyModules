@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">OhdsiShinyModules</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.0.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">2.1.3.9000</span>
       </span>
     </div>
 
@@ -43,12 +43,36 @@
   <ul class="dropdown-menu" role="menu"><li>
       <a href="../articles/AddingShinyModules.html">Adding Shiny Modules</a>
     </li>
+    <li>
+      <a href="../articles/Characterization.html">Characterization</a>
+    </li>
+    <li>
+      <a href="../articles/CohortDiagnostics.html">Cohort Diagnostics</a>
+    </li>
+    <li>
+      <a href="../articles/CohortMethod.html">Cohort Method (Estimation)</a>
+    </li>
+    <li>
+      <a href="../articles/Cohorts.html">Cohorts</a>
+    </li>
+    <li>
+      <a href="../articles/DataSources.html">Data Sources</a>
+    </li>
+    <li>
+      <a href="../articles/EvidenceSynthesis.html">Evidence Synthesis (Meta, Meta Analysis)</a>
+    </li>
+    <li>
+      <a href="../articles/Prediction.html">Prediction</a>
+    </li>
+    <li>
+      <a href="../articles/SelfControlledCaseSeries.html">Self-Controlled Case Series</a>
+    </li>
   </ul></li>
 <li>
   <a href="../news/index.html">Changelog</a>
 </li>
       </ul><ul class="nav navbar-nav navbar-right"><li>
-  <a href="https://ohdsi.github.io/Hades" class="external-link"><img src='https://ohdsi.github.io/Hades/images/hadesMini.png' width=80 height=17 style='vertical-align: top;'></a>
+  <a href="https://ohdsi.github.io/Hades" class="external-link">hadesLogo</a>
 </li>
 <li>
   <a href="https://github.com/OHDSI/PatientLevelPrediction" class="external-link">
@@ -81,158 +105,6 @@
         </td>
         <td><p>The location of the OHDSI logo</p></td>
       </tr></tbody><tbody><tr><th colspan="2">
-          <h2 id="prediction-module">Prediction module <a href="#prediction-module" class="anchor" aria-hidden="true"></a></h2>
-          <p class="section-desc"></p><p>Modules for prediction results.</p>
-        </th>
-      </tr></tbody><tbody><tr><td>
-          <p><code><a href="predictionHelperFile.html">predictionHelperFile()</a></code> </p>
-        </td>
-        <td><p>The location of the prediction module helper file</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionViewer.html">predictionViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring PatientLevelPrediction</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionServer.html">predictionServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring PatientLevelPrediction</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionDiagnosticsServer.html">predictionDiagnosticsServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring prediction diagnostic results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionDiagnosticsViewer.html">predictionDiagnosticsViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring prediction diagnostic results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionDesignSummaryViewer.html">predictionDesignSummaryViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring prediction designs that have been run</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionDesignSummaryServer.html">predictionDesignSummaryServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring prediction designs in the results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionModelSummaryViewer.html">predictionModelSummaryViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring prediction summary results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionModelSummaryServer.html">predictionModelSummaryServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring prediction summary results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionSettingsViewer.html">predictionSettingsViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring prediction settings</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionSettingsServer.html">predictionSettingsServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring prediction settings</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionCovariateSummaryViewer.html">predictionCovariateSummaryViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring prediction covariate summary results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionCovariateSummaryServer.html">predictionCovariateSummaryServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring prediction covariate summary results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionCutoffViewer.html">predictionCutoffViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring prediction cut-off results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionCutoffServer.html">predictionCutoffServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring prediction cut-off results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionDiscriminationViewer.html">predictionDiscriminationViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring prediction model discrimination results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionDiscriminationServer.html">predictionDiscriminationServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring prediction model discrimination results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionCalibrationViewer.html">predictionCalibrationViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring prediction model calibration results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionCalibrationServer.html">predictionCalibrationServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring prediction validation results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionNbViewer.html">predictionNbViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring prediction net-benefit results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionNbServer.html">predictionNbServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring prediction net-benefit results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionValidationViewer.html">predictionValidationViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring prediction validation results</p></td>
-      </tr><tr><td>
-          <p><code><a href="predictionValidationServer.html">predictionValidationServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring prediction validation results</p></td>
-      </tr></tbody><tbody><tr><th colspan="2">
-          <h2 id="decription-module">Decription module <a href="#decription-module" class="anchor" aria-hidden="true"></a></h2>
-          <p class="section-desc"></p><p>Modules for the description analyses.</p>
-        </th>
-      </tr></tbody><tbody><tr><td>
-          <p><code><a href="descriptionHelperFile.html">descriptionHelperFile()</a></code> </p>
-        </td>
-        <td><p>The location of the description module helper file</p></td>
-      </tr><tr><td>
-          <p><code><a href="descriptionViewer.html">descriptionViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring description studies</p></td>
-      </tr><tr><td>
-          <p><code><a href="descriptionServer.html">descriptionServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring description studies</p></td>
-      </tr><tr><td>
-          <p><code><a href="descriptionAggregateFeaturesViewer.html">descriptionAggregateFeaturesViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring aggregate feature results</p></td>
-      </tr><tr><td>
-          <p><code><a href="descriptionAggregateFeaturesServer.html">descriptionAggregateFeaturesServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring aggregate features results</p></td>
-      </tr><tr><td>
-          <p><code><a href="descriptionDechallengeRechallengeViewer.html">descriptionDechallengeRechallengeViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring Dechallenge Rechallenge results</p></td>
-      </tr><tr><td>
-          <p><code><a href="descriptionDechallengeRechallengeServer.html">descriptionDechallengeRechallengeServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring Dechallenge Rechallenge results</p></td>
-      </tr><tr><td>
-          <p><code><a href="descriptionIncidenceViewer.html">descriptionIncidenceViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring incidence results</p></td>
-      </tr><tr><td>
-          <p><code><a href="descriptionIncidenceServer.html">descriptionIncidenceServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring incidence results</p></td>
-      </tr><tr><td>
-          <p><code><a href="descriptionTableViewer.html">descriptionTableViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring 1 or more cohorts features</p></td>
-      </tr><tr><td>
-          <p><code><a href="descriptionTableServer.html">descriptionTableServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring 1 or more cohorts features</p></td>
-      </tr><tr><td>
-          <p><code><a href="descriptionTimeToEventViewer.html">descriptionTimeToEventViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for exploring time to event results</p></td>
-      </tr><tr><td>
-          <p><code><a href="descriptionTimeToEventServer.html">descriptionTimeToEventServer()</a></code> </p>
-        </td>
-        <td><p>The module server for exploring time to event results</p></td>
-      </tr></tbody><tbody><tr><th colspan="2">
           <h2 id="about-module">About module <a href="#about-module" class="anchor" aria-hidden="true"></a></h2>
           <p class="section-desc"></p><p>Modules for the information page.</p>
         </th>
@@ -241,13 +113,197 @@
         </td>
         <td><p>The location of the about module helper file</p></td>
       </tr><tr><td>
-          <p><code><a href="aboutViewer.html">aboutViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for the shiny app home</p></td>
-      </tr><tr><td>
           <p><code><a href="aboutServer.html">aboutServer()</a></code> </p>
         </td>
         <td><p>The module server for the shiny app home</p></td>
+      </tr><tr><td>
+          <p><code><a href="aboutViewer.html">aboutViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for the shiny app home</p></td>
+      </tr></tbody><tbody><tr><th colspan="2">
+          <h2 id="report-module">Report module <a href="#report-module" class="anchor" aria-hidden="true"></a></h2>
+          <p class="section-desc"></p><p>Modules for creating summary html report.</p>
+        </th>
+      </tr></tbody><tbody><tr><td>
+          <p><code><a href="reportHelperFile.html">reportHelperFile()</a></code> </p>
+        </td>
+        <td><p>The location of the report module helper file</p></td>
+      </tr><tr><td>
+          <p><code><a href="reportServer.html">reportServer()</a></code> </p>
+        </td>
+        <td><p>The module server for the shiny app report module</p></td>
+      </tr><tr><td>
+          <p><code><a href="reportViewer.html">reportViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for the shiny app report module</p></td>
+      </tr></tbody><tbody><tr><th colspan="2">
+          <h2 id="sccs-module">SCCS module <a href="#sccs-module" class="anchor" aria-hidden="true"></a></h2>
+          <p class="section-desc"></p><p>Modules for viewing self controlled case series results.</p>
+        </th>
+      </tr></tbody><tbody><tr><td>
+          <p><code><a href="sccsHelperFile.html">sccsHelperFile()</a></code> </p>
+        </td>
+        <td><p>The location of the description module helper file</p></td>
+      </tr><tr><td>
+          <p><code><a href="sccsServer.html">sccsServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring SCCS</p></td>
+      </tr><tr><td>
+          <p><code><a href="sccsView.html">sccsView()</a></code> </p>
+        </td>
+        <td><p>SCCS shiny module UI code</p></td>
+      </tr></tbody><tbody><tr><th colspan="2">
+          <h2 id="prediction-module">Prediction module <a href="#prediction-module" class="anchor" aria-hidden="true"></a></h2>
+          <p class="section-desc"></p><p>Modules for prediction results.</p>
+        </th>
+      </tr></tbody><tbody><tr><td>
+          <p><code><a href="patientLevelPredictionCalibrationServer.html">patientLevelPredictionCalibrationServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring prediction validation results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionCalibrationViewer.html">patientLevelPredictionCalibrationViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring prediction model calibration results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionCovariateSummaryServer.html">patientLevelPredictionCovariateSummaryServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring prediction covariate summary results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionCovariateSummaryViewer.html">patientLevelPredictionCovariateSummaryViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring prediction covariate summary results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionCutoffServer.html">patientLevelPredictionCutoffServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring prediction cut-off results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionCutoffViewer.html">patientLevelPredictionCutoffViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring prediction cut-off results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionDesignSummaryServer.html">patientLevelPredictionDesignSummaryServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring prediction designs in the results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionDesignSummaryViewer.html">patientLevelPredictionDesignSummaryViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring prediction designs that have been run</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionDiagnosticsServer.html">patientLevelPredictionDiagnosticsServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring prediction diagnostic results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionDiagnosticsViewer.html">patientLevelPredictionDiagnosticsViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring prediction diagnostic results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionDiscriminationServer.html">patientLevelPredictionDiscriminationServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring prediction model discrimination results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionDiscriminationViewer.html">patientLevelPredictionDiscriminationViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring prediction model discrimination results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionHelperFile.html">patientLevelPredictionHelperFile()</a></code> </p>
+        </td>
+        <td><p>The location of the prediction module helper file</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionModelSummaryServer.html">patientLevelPredictionModelSummaryServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring prediction summary results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionModelSummaryViewer.html">patientLevelPredictionModelSummaryViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring prediction summary results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionNbServer.html">patientLevelPredictionNbServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring prediction net-benefit results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionNbViewer.html">patientLevelPredictionNbViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring prediction net-benefit results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionServer.html">patientLevelPredictionServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring PatientLevelPrediction</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionSettingsServer.html">patientLevelPredictionSettingsServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring prediction settings</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionSettingsViewer.html">patientLevelPredictionSettingsViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring prediction settings</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionValidationServer.html">patientLevelPredictionValidationServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring prediction validation results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionValidationViewer.html">patientLevelPredictionValidationViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring prediction validation results</p></td>
+      </tr><tr><td>
+          <p><code><a href="patientLevelPredictionViewer.html">patientLevelPredictionViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring PatientLevelPrediction</p></td>
+      </tr></tbody><tbody><tr><th colspan="2">
+          <h2 id="decription-module">Decription module <a href="#decription-module" class="anchor" aria-hidden="true"></a></h2>
+          <p class="section-desc"></p><p>Modules for the description analyses.</p>
+        </th>
+      </tr></tbody><tbody><tr><td>
+          <p><code><a href="characterizationAggregateFeaturesServer.html">characterizationAggregateFeaturesServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring aggregate features results</p></td>
+      </tr><tr><td>
+          <p><code><a href="characterizationAggregateFeaturesViewer.html">characterizationAggregateFeaturesViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring aggregate feature results</p></td>
+      </tr><tr><td>
+          <p><code><a href="characterizationDechallengeRechallengeServer.html">characterizationDechallengeRechallengeServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring Dechallenge Rechallenge results</p></td>
+      </tr><tr><td>
+          <p><code><a href="characterizationDechallengeRechallengeViewer.html">characterizationDechallengeRechallengeViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring Dechallenge Rechallenge results</p></td>
+      </tr><tr><td>
+          <p><code><a href="characterizationHelperFile.html">characterizationHelperFile()</a></code> </p>
+        </td>
+        <td><p>The location of the characterization module helper file</p></td>
+      </tr><tr><td>
+          <p><code><a href="characterizationIncidenceServer.html">characterizationIncidenceServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring incidence results</p></td>
+      </tr><tr><td>
+          <p><code><a href="characterizationIncidenceViewer.html">characterizationIncidenceViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring incidence results</p></td>
+      </tr><tr><td>
+          <p><code><a href="characterizationServer.html">characterizationServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring characterization studies</p></td>
+      </tr><tr><td>
+          <p><code><a href="characterizationTableServer.html">characterizationTableServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring 1 or more cohorts features</p></td>
+      </tr><tr><td>
+          <p><code><a href="characterizationTableViewer.html">characterizationTableViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring 1 or more cohorts features</p></td>
+      </tr><tr><td>
+          <p><code><a href="characterizationTimeToEventServer.html">characterizationTimeToEventServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring time to event results</p></td>
+      </tr><tr><td>
+          <p><code><a href="characterizationTimeToEventViewer.html">characterizationTimeToEventViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring time to event results</p></td>
+      </tr><tr><td>
+          <p><code><a href="characterizationViewer.html">characterizationViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring characterization studies</p></td>
       </tr></tbody><tbody><tr><th colspan="2">
           <h2 id="cohort-generator-module">Cohort Generator module <a href="#cohort-generator-module" class="anchor" aria-hidden="true"></a></h2>
           <p class="section-desc"></p><p>Modules for the cohort generator package.</p>
@@ -257,133 +313,109 @@
         </td>
         <td><p>The location of the cohort-generator module helper file</p></td>
       </tr><tr><td>
-          <p><code><a href="cohortGeneratorViewer.html">cohortGeneratorViewer()</a></code> </p>
-        </td>
-        <td><p>The viewer of the main cohort generator module</p></td>
-      </tr><tr><td>
           <p><code><a href="cohortGeneratorServer.html">cohortGeneratorServer()</a></code> </p>
         </td>
         <td><p>The module server for the main cohort generator module</p></td>
+      </tr><tr><td>
+          <p><code><a href="cohortGeneratorViewer.html">cohortGeneratorViewer()</a></code> </p>
+        </td>
+        <td><p>The viewer of the main cohort generator module</p></td>
       </tr></tbody><tbody><tr><th colspan="2">
           <h2 id="estimator-module">Estimator module <a href="#estimator-module" class="anchor" aria-hidden="true"></a></h2>
           <p class="section-desc"></p><p>Modules for the CohortMethod package.</p>
         </th>
       </tr></tbody><tbody><tr><td>
-          <p><code><a href="estimationHelperFile.html">estimationHelperFile()</a></code> </p>
-        </td>
-        <td><p>The location of the estimation module helper file</p></td>
-      </tr><tr><td>
-          <p><code><a href="estimationViewer.html">estimationViewer()</a></code> </p>
-        </td>
-        <td><p>The viewer of the main estimation module</p></td>
-      </tr><tr><td>
-          <p><code><a href="estimationServer.html">estimationServer()</a></code> </p>
-        </td>
-        <td><p>The module server for the main estimation module</p></td>
-      </tr><tr><td>
-          <p><code><a href="estimationAttritionViewer.html">estimationAttritionViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for rendering the PLE attrition results</p></td>
-      </tr><tr><td>
-          <p><code><a href="estimationAttritionServer.html">estimationAttritionServer()</a></code> </p>
+          <p><code><a href="cohortMethodAttritionServer.html">cohortMethodAttritionServer()</a></code> </p>
         </td>
         <td><p>The module server for rendering the PLE attrition results</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationCovariateBalanceViewer.html">estimationCovariateBalanceViewer()</a></code> </p>
+          <p><code><a href="cohortMethodAttritionViewer.html">cohortMethodAttritionViewer()</a></code> </p>
         </td>
-        <td><p>The module viewer for rendering the PLE covariate balance analysis</p></td>
+        <td><p>The module viewer for rendering the PLE attrition results</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationCovariateBalanceServer.html">estimationCovariateBalanceServer()</a></code> </p>
+          <p><code><a href="cohortMethodCovariateBalanceServer.html">cohortMethodCovariateBalanceServer()</a></code> </p>
         </td>
         <td><p>The module server for rendering the covariate balance plot</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationDiagnosticsSummaryViewer.html">estimationDiagnosticsSummaryViewer()</a></code> </p>
+          <p><code><a href="cohortMethodCovariateBalanceViewer.html">cohortMethodCovariateBalanceViewer()</a></code> </p>
         </td>
-        <td><p>The module viewer for rendering the PLE diagnostics results</p></td>
+        <td><p>The module viewer for rendering the PLE covariate balance analysis</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationDiagnosticsSummaryServer.html">estimationDiagnosticsSummaryServer()</a></code> </p>
+          <p><code><a href="cohortMethodDiagnosticsSummaryServer.html">cohortMethodDiagnosticsSummaryServer()</a></code> </p>
         </td>
         <td><p>The module server for rendering the PLE diagnostics summary</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationForestPlotViewer.html">estimationForestPlotViewer()</a></code> </p>
+          <p><code><a href="cohortMethodDiagnosticsSummaryViewer.html">cohortMethodDiagnosticsSummaryViewer()</a></code> </p>
         </td>
-        <td><p>The module viewer for rendering the PLE results forest plot</p></td>
+        <td><p>The module viewer for rendering the PLE diagnostics results</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationForestPlotServer.html">estimationForestPlotServer()</a></code> </p>
+          <p><code><a href="cohortMethodHelperFile.html">cohortMethodHelperFile()</a></code> </p>
         </td>
-        <td><p>The module server for rendering the PLE multiple results forest plot</p></td>
+        <td><p>The location of the cohort method module helper file</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationKaplanMeierViewer.html">estimationKaplanMeierViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for rendering the PLE Kaplan Meier curve</p></td>
-      </tr><tr><td>
-          <p><code><a href="estimationKaplanMeierServer.html">estimationKaplanMeierServer()</a></code> </p>
+          <p><code><a href="cohortMethodKaplanMeierServer.html">cohortMethodKaplanMeierServer()</a></code> </p>
         </td>
         <td><p>The module server for rendering the Kaplan Meier curve</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationPopulationCharacteristicsViewer.html">estimationPopulationCharacteristicsViewer()</a></code> </p>
+          <p><code><a href="cohortMethodKaplanMeierViewer.html">cohortMethodKaplanMeierViewer()</a></code> </p>
         </td>
-        <td><p>The module viewer for rendering the PLE population characteristics</p></td>
+        <td><p>The module viewer for rendering the PLE Kaplan Meier curve</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationPopulationCharacteristicsServer.html">estimationPopulationCharacteristicsServer()</a></code> </p>
+          <p><code><a href="cohortMethodPopulationCharacteristicsServer.html">cohortMethodPopulationCharacteristicsServer()</a></code> </p>
         </td>
         <td><p>The module server for rendering the population characteristics</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationPowerViewer.html">estimationPowerViewer()</a></code> </p>
+          <p><code><a href="cohortMethodPopulationCharacteristicsViewer.html">cohortMethodPopulationCharacteristicsViewer()</a></code> </p>
         </td>
-        <td><p>The module viewer for rendering the PLE power analysis</p></td>
+        <td><p>The module viewer for rendering the PLE population characteristics</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationPowerServer.html">estimationPowerServer()</a></code> </p>
+          <p><code><a href="cohortMethodPowerServer.html">cohortMethodPowerServer()</a></code> </p>
         </td>
         <td><p>The module server for rendering the PLE power analysis results</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationPropensityModelViewer.html">estimationPropensityModelViewer()</a></code> </p>
+          <p><code><a href="cohortMethodPowerViewer.html">cohortMethodPowerViewer()</a></code> </p>
         </td>
-        <td><p>The module viewer for rendering the PLE propensity score model covariates/coefficients</p></td>
+        <td><p>The module viewer for rendering the PLE power analysis</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationPropensityModelServer.html">estimationPropensityModelServer()</a></code> </p>
+          <p><code><a href="cohortMethodPropensityModelServer.html">cohortMethodPropensityModelServer()</a></code> </p>
         </td>
         <td><p>The module server for rendering the propensity score model</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationPropensityScoreDistViewer.html">estimationPropensityScoreDistViewer()</a></code> </p>
+          <p><code><a href="cohortMethodPropensityModelViewer.html">cohortMethodPropensityModelViewer()</a></code> </p>
         </td>
-        <td><p>The module viewer for rendering the propensity score distribution</p></td>
+        <td><p>The module viewer for rendering the PLE propensity score model covariates/coefficients</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationPropensityScoreDistServer.html">estimationPropensityScoreDistServer()</a></code> </p>
+          <p><code><a href="cohortMethodPropensityScoreDistServer.html">cohortMethodPropensityScoreDistServer()</a></code> </p>
         </td>
         <td><p>The module server for rendering a PLE propensity score distribution</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationResultsTableViewer.html">estimationResultsTableViewer()</a></code> </p>
+          <p><code><a href="cohortMethodPropensityScoreDistViewer.html">cohortMethodPropensityScoreDistViewer()</a></code> </p>
         </td>
-        <td><p>The module viewer for rendering the PLE main results</p></td>
+        <td><p>The module viewer for rendering the propensity score distribution</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationResultsTableServer.html">estimationResultsTableServer()</a></code> </p>
+          <p><code><a href="cohortMethodResultSummaryServer.html">cohortMethodResultSummaryServer()</a></code> </p>
         </td>
-        <td><p>The module server for rendering the PLE results per current selections</p></td>
+        <td><p>The module server for rendering the PLE diagnostics summary</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationSubgroupsViewer.html">estimationSubgroupsViewer()</a></code> </p>
+          <p><code><a href="cohortMethodResultSummaryViewer.html">cohortMethodResultSummaryViewer()</a></code> </p>
         </td>
-        <td><p>The module viewer for rendering the PLE subgroup results</p></td>
+        <td><p>The module viewer for rendering the cohort method results</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationSubgroupsServer.html">estimationSubgroupsServer()</a></code> </p>
+          <p><code><a href="cohortMethodServer.html">cohortMethodServer()</a></code> </p>
         </td>
-        <td><p>The module server for rendering the subgroup results</p></td>
+        <td><p>The module server for the main cohort method module</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationSystematicErrorViewer.html">estimationSystematicErrorViewer()</a></code> </p>
-        </td>
-        <td><p>The module viewer for rendering the PLE systematic error objects</p></td>
-      </tr><tr><td>
-          <p><code><a href="estimationSystematicErrorServer.html">estimationSystematicErrorServer()</a></code> </p>
+          <p><code><a href="cohortMethodSystematicErrorServer.html">cohortMethodSystematicErrorServer()</a></code> </p>
         </td>
         <td><p>The module server for rendering the systematic error objects</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationTitlePanelViewer.html">estimationTitlePanelViewer()</a></code> </p>
+          <p><code><a href="cohortMethodSystematicErrorViewer.html">cohortMethodSystematicErrorViewer()</a></code> </p>
         </td>
-        <td><p>The module viewer for rendering the estimation title</p></td>
+        <td><p>The module viewer for rendering the PLE systematic error objects</p></td>
       </tr><tr><td>
-          <p><code><a href="estimationTitlePanelServer.html">estimationTitlePanelServer()</a></code> </p>
+          <p><code><a href="cohortMethodViewer.html">cohortMethodViewer()</a></code> </p>
         </td>
-        <td><p>The module server for rendering the estimation title</p></td>
+        <td><p>The viewer of the main cohort method module</p></td>
       </tr></tbody><tbody><tr><th colspan="2">
           <h2 id="data-diagnostics-module">Data diagnostics module <a href="#data-diagnostics-module" class="anchor" aria-hidden="true"></a></h2>
           <p class="section-desc"></p><p>Modules for the DataDiagnostics package.</p>
@@ -417,25 +449,25 @@
         </td>
         <td><p>The module viewer for exploring data-diagnostic</p></td>
       </tr></tbody><tbody><tr><th colspan="2">
-          <h2 id="cohort-diagnostic-module">Cohort Diagnostic module <a href="#cohort-diagnostic-module" class="anchor" aria-hidden="true"></a></h2>
+          <h2 id="cohort-diagnostics-module">Cohort Diagnostics module <a href="#cohort-diagnostics-module" class="anchor" aria-hidden="true"></a></h2>
           <p class="section-desc"></p><p>Modules for the CohortDiagnostics package.</p>
         </th>
       </tr></tbody><tbody><tr><td>
-          <p><code><a href="cohortDiagnosticsSever.html">cohortDiagnosticsSever()</a></code> </p>
+          <p><code><a href="cohortDiagCharacterizationView.html">cohortDiagCharacterizationView()</a></code> </p>
+        </td>
+        <td><p>characterization</p></td>
+      </tr><tr><td>
+          <p><code><a href="cohortDiagnosticsHelperFile.html">cohortDiagnosticsHelperFile()</a></code> </p>
+        </td>
+        <td><p>The location of the description module helper file</p></td>
+      </tr><tr><td>
+          <p><code><a href="cohortDiagnosticsServer.html">cohortDiagnosticsServer()</a></code> </p>
         </td>
         <td><p>Cohort Diagnostics Explorer main module</p></td>
       </tr><tr><td>
           <p><code><a href="cohortDiagnosticsView.html">cohortDiagnosticsView()</a></code> </p>
         </td>
         <td><p>View for cohort diagnostics module</p></td>
-      </tr><tr><td>
-          <p><code><a href="cohortDiagnosticsHelperFile.html">cohortDiagnosticsHelperFile()</a></code> </p>
-        </td>
-        <td><p>The location of the description module helper file</p></td>
-      </tr><tr><td>
-          <p><code><a href="characterizationView.html">characterizationView()</a></code> </p>
-        </td>
-        <td><p>characterization</p></td>
       </tr><tr><td>
           <p><code><a href="cohortCountsModule.html">cohortCountsModule()</a></code> </p>
         </td>
@@ -504,6 +536,106 @@
           <p><code><a href="inclusionRulesView.html">inclusionRulesView()</a></code> </p>
         </td>
         <td><p>inclusion Rules View</p></td>
+      </tr></tbody><tbody><tr><th colspan="2">
+          <h2 id="components-module">Components module <a href="#components-module" class="anchor" aria-hidden="true"></a></h2>
+          <p class="section-desc"></p><p>Modules for the component functions shared across modules.</p>
+        </th>
+      </tr></tbody><tbody><tr><td>
+          <p><code><a href="createCustomColDefList.html">createCustomColDefList()</a></code> </p>
+        </td>
+        <td><p>Creating a list of custom column definitions for use in reactables</p></td>
+      </tr><tr><td>
+          <p><code><a href="createLargeSqlQueryDt.html">createLargeSqlQueryDt()</a></code> </p>
+        </td>
+        <td><p>Create Large Sql Query Data Table</p></td>
+      </tr><tr><td>
+          <p><code><a href="LargeDataTable.html">LargeDataTable</a></code> </p>
+        </td>
+        <td><p>Large Data Table</p></td>
+      </tr><tr><td>
+          <p><code><a href="largeTableView.html">largeTableView()</a></code> </p>
+        </td>
+        <td><p>Large Table Component Viewer</p></td>
+      </tr><tr><td>
+          <p><code><a href="largeTableServer.html">largeTableServer()</a></code> </p>
+        </td>
+        <td><p>Large Table Component Server</p></td>
+      </tr><tr><td>
+          <p><code><a href="makeButtonLabel.html">makeButtonLabel()</a></code> </p>
+        </td>
+        <td><p>Make a label for an html button</p></td>
+      </tr><tr><td>
+          <p><code><a href="resultTableServer.html">resultTableServer()</a></code> </p>
+        </td>
+        <td><p>Result Table Server</p></td>
+      </tr><tr><td>
+          <p><code><a href="resultTableViewer.html">resultTableViewer()</a></code> </p>
+        </td>
+        <td><p>Result Table Viewer</p></td>
+      </tr></tbody><tbody><tr><th colspan="2">
+          <h2 id="data-sources-module">Data sources module <a href="#data-sources-module" class="anchor" aria-hidden="true"></a></h2>
+          <p class="section-desc"></p><p>Modules for the data sources results.</p>
+        </th>
+      </tr></tbody><tbody><tr><td>
+          <p><code><a href="datasourcesHelperFile.html">datasourcesHelperFile()</a></code> </p>
+        </td>
+        <td><p>Define the helper file for the module</p></td>
+      </tr><tr><td>
+          <p><code><a href="datasourcesServer.html">datasourcesServer()</a></code> </p>
+        </td>
+        <td><p>The server function for the datasources module</p></td>
+      </tr><tr><td>
+          <p><code><a href="datasourcesViewer.html">datasourcesViewer()</a></code> </p>
+        </td>
+        <td><p>The viewer function for hte datasources module</p></td>
+      </tr></tbody><tbody><tr><th colspan="2">
+          <h2 id="evidence-synthesis-module">Evidence synthesis module <a href="#evidence-synthesis-module" class="anchor" aria-hidden="true"></a></h2>
+          <p class="section-desc"></p><p>Modules for the evidence synthesis (Meta) analysis results.</p>
+        </th>
+      </tr></tbody><tbody><tr><td>
+          <p><code><a href="evidenceSynthesisHelperFile.html">evidenceSynthesisHelperFile()</a></code> </p>
+        </td>
+        <td><p>The location of the evidence synthesis module helper file</p></td>
+      </tr><tr><td>
+          <p><code><a href="evidenceSynthesisServer.html">evidenceSynthesisServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring PatientLevelPrediction</p></td>
+      </tr><tr><td>
+          <p><code><a href="evidenceSynthesisViewer.html">evidenceSynthesisViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring evidence-synthesis</p></td>
+      </tr></tbody><tbody><tr><th colspan="2">
+          <h2 id="home-module">Home module <a href="#home-module" class="anchor" aria-hidden="true"></a></h2>
+          <p class="section-desc"></p><p>Modules for the home page.</p>
+        </th>
+      </tr></tbody><tbody><tr><td>
+          <p><code><a href="homeHelperFile.html">homeHelperFile()</a></code> </p>
+        </td>
+        <td><p>The location of the home module helper file</p></td>
+      </tr><tr><td>
+          <p><code><a href="homeServer.html">homeServer()</a></code> </p>
+        </td>
+        <td><p>The module server for exploring home</p></td>
+      </tr><tr><td>
+          <p><code><a href="homeViewer.html">homeViewer()</a></code> </p>
+        </td>
+        <td><p>The module viewer for exploring home</p></td>
+      </tr></tbody><tbody><tr><th colspan="2">
+          <h2 id="phevaluator-module">PheValuator module <a href="#phevaluator-module" class="anchor" aria-hidden="true"></a></h2>
+          <p class="section-desc"></p><p>Modules for the PheValuator results.</p>
+        </th>
+      </tr></tbody><tbody><tr><td>
+          <p><code><a href="phevaluatorHelperFile.html">phevaluatorHelperFile()</a></code> </p>
+        </td>
+        <td><p>The location of the phevaluator module helper file</p></td>
+      </tr><tr><td>
+          <p><code><a href="phevaluatorServer.html">phevaluatorServer()</a></code> </p>
+        </td>
+        <td><p>The module server for the main phevaluator module</p></td>
+      </tr><tr><td>
+          <p><code><a href="phevaluatorViewer.html">phevaluatorViewer()</a></code> </p>
+        </td>
+        <td><p>The viewer of the phevaluator module</p></td>
       </tr></tbody></table></div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

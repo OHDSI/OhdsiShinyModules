@@ -47,101 +47,37 @@ reference:
     desc: >
       Modules for the information page.
     contents:
-      - aboutHelperFile
-      - aboutViewer
-      - aboutServer
+      - starts_with("about")
   - title: "Report module"
     desc: >
       Modules for creating summary html report.
     contents:
-      - reportHelperFile
-      - reportViewer
-      - reportServer    
+      - starts_with("report")   
   - title: "SCCS module"
     desc: >
       Modules for viewing self controlled case series results.
     contents:
-      - sccsHelperFile
-      - sccsView
-      - sccsServer         
+      - starts_with("sccs")         
   - title: "Prediction module"
     desc: >
       Modules for prediction results.
     contents:
-      - patientLevelPredictionHelperFile
-      - patientLevelPredictionViewer
-      - patientLevelPredictionServer
-      - patientLevelPredictionCalibrationViewer
-      - patientLevelPredictionCalibrationServer
-      - patientLevelPredictionCovariateSummaryViewer
-      - patientLevelPredictionCovariateSummaryServer
-      - patientLevelPredictionCutoffViewer
-      - patientLevelPredictionCutoffServer
-      - patientLevelPredictionDesignSummaryViewer
-      - patientLevelPredictionDesignSummaryServer
-      - patientLevelPredictionDiagnosticsServer
-      - patientLevelPredictionDiagnosticsViewer
-      - patientLevelPredictionDiscriminationViewer
-      - patientLevelPredictionDiscriminationServer
-      - patientLevelPredictionModelSummaryViewer
-      - patientLevelPredictionModelSummaryServer
-      - patientLevelPredictionNbViewer
-      - patientLevelPredictionNbServer
-      - patientLevelPredictionSettingsViewer
-      - patientLevelPredictionSettingsServer
-      - patientLevelPredictionValidationViewer
-      - patientLevelPredictionValidationServer
+      - starts_with("patientLevelPrediction")
   - title: "Decription module"
     desc: >
       Modules for the description analyses.
     contents:
-      - characterizationHelperFile
-      - characterizationViewer
-      - characterizationServer
-      - characterizationAggregateFeaturesViewer
-      - characterizationAggregateFeaturesServer
-      - characterizationDechallengeRechallengeViewer
-      - characterizationDechallengeRechallengeServer
-      - characterizationIncidenceViewer
-      - characterizationIncidenceServer
-      - characterizationTableViewer
-      - characterizationTableServer
-      - characterizationTimeToEventViewer
-      - characterizationTimeToEventServer
+      - starts_with("characterization")
   - title: "Cohort Generator module"
     desc: >
       Modules for the cohort generator package.
     contents:
-      - cohortGeneratorHelperFile
-      - cohortGeneratorViewer
-      - cohortGeneratorServer
+      - starts_with("cohortGenerator")
   - title: "Estimator module"
     desc: >
       Modules for the CohortMethod package.
     contents:
-      - cohortMethodHelperFile
-      - cohortMethodViewer
-      - cohortMethodServer
-      - cohortMethodAttritionViewer
-      - cohortMethodAttritionServer
-      - cohortMethodCovariateBalanceViewer
-      - cohortMethodCovariateBalanceServer
-      - cohortMethodDiagnosticsSummaryViewer
-      - cohortMethodDiagnosticsSummaryServer
-      - cohortMethodKaplanMeierViewer
-      - cohortMethodKaplanMeierServer
-      - cohortMethodPopulationCharacteristicsViewer
-      - cohortMethodPopulationCharacteristicsServer
-      - cohortMethodPowerViewer
-      - cohortMethodPowerServer
-      - cohortMethodPropensityModelViewer
-      - cohortMethodPropensityModelServer
-      - cohortMethodPropensityScoreDistViewer
-      - cohortMethodPropensityScoreDistServer
-      - cohortMethodResultSummaryViewer
-      - cohortMethodResultSummaryServer
-      - cohortMethodSystematicErrorViewer
-      - cohortMethodSystematicErrorServer
+      - starts_with("cohortMethod")
   - title: "Data diagnostics module"
     desc: >
       Modules for the DataDiagnostics package.
@@ -158,10 +94,7 @@ reference:
     desc: >
       Modules for the CohortDiagnostics package.
     contents:
-      - cohortDiagnosticsSever 
-      - cohortDiagnosticsView
-      - cohortDiagnosticsHelperFile      
-      - cohortDiagCharacterizationView
+      - starts_with("cohortDiag")
       - cohortCountsModule
       - cohortCountsView
       - cohortDefinitionsModule
@@ -189,31 +122,25 @@ reference:
       - largeTableView
       - largeTableServer
       - makeButtonLabel
+      - resultTableServer
+      - resultTableViewer
   - title: "Data sources module"
     desc: >
       Modules for the data sources results.
     contents:
-      - datasourcesHelperFile
-      - datasourcesServer
-      - datasourcesViewer
+      - starts_with("datasources")
   - title: "Evidence synthesis module"
     desc: >
       Modules for the evidence synthesis (Meta) analysis results.
     contents:
-      - evidenceSynthesisHelperFile
-      - evidenceSynthesisServer
-      - evidenceSynthesisViewer
+      - starts_with("evidenceSynthesis")
   - title: "Home module"
     desc: >
       Modules for the home page.
     contents:
-      - homeHelperFile
-      - homeServer
-      - homeViewer
+      - starts_with("home")
   - title: "PheValuator module"
     desc: >
       Modules for the PheValuator results.
     contents:
-      - phevaluatorHelperFile
-      - phevaluatorServer
-      - phevaluatorViewer
+      - starts_with("phevaluator")
