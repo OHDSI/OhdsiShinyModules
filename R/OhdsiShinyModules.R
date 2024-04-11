@@ -20,8 +20,8 @@
 #' 
 #' @description A selection of shiny modules for exploring standardized OHDSI results 
 #'
-#' @docType _PACKAGE
+#' @docType package
 #' @name OhdsiShinyModules
 #' @importFrom dplyr %>%
 #' @importFrom rlang .data
-NULL
+
