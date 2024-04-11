@@ -3,5 +3,13 @@ pkgdown: 2.0.7
 pkgdown_sha: ~
 articles:
   AddingShinyModules: AddingShinyModules.html
-last_built: 2024-01-25T16:37Z
+  Characterization: Characterization.html
+  CohortDiagnostics: CohortDiagnostics.html
+  CohortMethod: CohortMethod.html
+  Cohorts: Cohorts.html
+  DataSources: DataSources.html
+  EvidenceSynthesis: EvidenceSynthesis.html
+  Prediction: Prediction.html
+  SelfControlledCaseSeries: SelfControlledCaseSeries.html
+last_built: 2024-04-10T14:05Z
 

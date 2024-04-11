@@ -19,7 +19,7 @@ a shiny app. E.g. if you wanted to make a custom R markdown template"><!-- mathj
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">OhdsiShinyModules</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.0.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">2.1.3.9000</span>
       </span>
     </div>
 
@@ -45,12 +45,36 @@ a shiny app. E.g. if you wanted to make a custom R markdown template"><!-- mathj
   <ul class="dropdown-menu" role="menu"><li>
       <a href="../articles/AddingShinyModules.html">Adding Shiny Modules</a>
     </li>
+    <li>
+      <a href="../articles/Characterization.html">Characterization</a>
+    </li>
+    <li>
+      <a href="../articles/CohortDiagnostics.html">Cohort Diagnostics</a>
+    </li>
+    <li>
+      <a href="../articles/CohortMethod.html">Cohort Method (Estimation)</a>
+    </li>
+    <li>
+      <a href="../articles/Cohorts.html">Cohorts</a>
+    </li>
+    <li>
+      <a href="../articles/DataSources.html">Data Sources</a>
+    </li>
+    <li>
+      <a href="../articles/EvidenceSynthesis.html">Evidence Synthesis (Meta, Meta Analysis)</a>
+    </li>
+    <li>
+      <a href="../articles/Prediction.html">Prediction</a>
+    </li>
+    <li>
+      <a href="../articles/SelfControlledCaseSeries.html">Self-Controlled Case Series</a>
+    </li>
   </ul></li>
 <li>
   <a href="../news/index.html">Changelog</a>
 </li>
       </ul><ul class="nav navbar-nav navbar-right"><li>
-  <a href="https://ohdsi.github.io/Hades" class="external-link"><img src='https://ohdsi.github.io/Hades/images/hadesMini.png' width=80 height=17 style='vertical-align: top;'></a>
+  <a href="https://ohdsi.github.io/Hades" class="external-link">hadesLogo</a>
 </li>
 <li>
   <a href="https://github.com/OHDSI/PatientLevelPrediction" class="external-link">
@@ -81,13 +105,11 @@ a shiny app. E.g. if you wanted to make a custom R markdown template</p>
     <div id="ref-usage">
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">createCdDatabaseDataSource</span><span class="op">(</span></span>
 <span>  <span class="va">connectionHandler</span>,</span>
-<span>  <span class="va">schema</span>,</span>
-<span>  vocabularyDatabaseSchema <span class="op">=</span> <span class="va">schema</span>,</span>
-<span>  tablePrefix <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  cohortTableName <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">tablePrefix</span>, <span class="st">"cohort"</span><span class="op">)</span>,</span>
-<span>  databaseTableName <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">tablePrefix</span>, <span class="st">"database"</span><span class="op">)</span>,</span>
+<span>  <span class="va">resultDatabaseSettings</span>,</span>
 <span>  dataModelSpecificationsPath <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"cohort-diagnostics-ref"</span>,</span>
 <span>    <span class="st">"resultsDataModelSpecification.csv"</span>, package <span class="op">=</span> <span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/packageName.html" class="external-link">packageName</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  dataMigrationsRef <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"cohort-diagnostics-ref"</span>, <span class="st">"migrations.csv"</span>, package <span class="op">=</span></span>
+<span>    <span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/packageName.html" class="external-link">packageName</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  displayProgress <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -98,28 +120,16 @@ a shiny app. E.g. if you wanted to make a custom R markdown template</p>
 <dd><p>An instance of a ResultModelManager::connectionHander - manages a connection to a database.</p></dd>
 
 
-<dt>schema</dt>
-<dd><p>The schema containing the results tables in the database.</p></dd>
-
-
-<dt>vocabularyDatabaseSchema</dt>
-<dd><p>The schema containing the vocabulary tables in the database. If not provided, defaults to `resultsDatabaseSchema`.</p></dd>
-
-
-<dt>tablePrefix</dt>
-<dd><p>An optional prefix to add to the table names.</p></dd>
-
-
-<dt>cohortTableName</dt>
-<dd><p>The name of the cohort table in the database.</p></dd>
-
-
-<dt>databaseTableName</dt>
-<dd><p>The name of the database table in the database.</p></dd>
+<dt>resultDatabaseSettings</dt>
+<dd><p>a list containing the result schema and prefixes</p></dd>
 
 
 <dt>dataModelSpecificationsPath</dt>
 <dd><p>The path to a file containing specifications for the data model used by the database.</p></dd>
+
+
+<dt>dataMigrationsRef</dt>
+<dd><p>The path to a file listing all migrations for the data model that should have been applied</p></dd>
 
 
 <dt>displayProgress</dt>

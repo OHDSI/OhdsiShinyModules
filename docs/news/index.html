@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">OhdsiShinyModules</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.0.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">2.1.3.9000</span>
       </span>
     </div>
 
@@ -43,12 +43,36 @@
   <ul class="dropdown-menu" role="menu"><li>
       <a href="../articles/AddingShinyModules.html">Adding Shiny Modules</a>
     </li>
+    <li>
+      <a href="../articles/Characterization.html">Characterization</a>
+    </li>
+    <li>
+      <a href="../articles/CohortDiagnostics.html">Cohort Diagnostics</a>
+    </li>
+    <li>
+      <a href="../articles/CohortMethod.html">Cohort Method (Estimation)</a>
+    </li>
+    <li>
+      <a href="../articles/Cohorts.html">Cohorts</a>
+    </li>
+    <li>
+      <a href="../articles/DataSources.html">Data Sources</a>
+    </li>
+    <li>
+      <a href="../articles/EvidenceSynthesis.html">Evidence Synthesis (Meta, Meta Analysis)</a>
+    </li>
+    <li>
+      <a href="../articles/Prediction.html">Prediction</a>
+    </li>
+    <li>
+      <a href="../articles/SelfControlledCaseSeries.html">Self-Controlled Case Series</a>
+    </li>
   </ul></li>
 <li>
   <a href="../news/index.html">Changelog</a>
 </li>
       </ul><ul class="nav navbar-nav navbar-right"><li>
-  <a href="https://ohdsi.github.io/Hades" class="external-link"><img src='https://ohdsi.github.io/Hades/images/hadesMini.png' width=80 height=17 style='vertical-align: top;'></a>
+  <a href="https://ohdsi.github.io/Hades" class="external-link">hadesLogo</a>
 </li>
 <li>
   <a href="https://github.com/OHDSI/PatientLevelPrediction" class="external-link">
@@ -69,6 +93,56 @@
       
     </div>
 
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="2.1.3" id="ohdsishinymodules-v213">OhdsiShinyModules v2.1.3<a class="anchor" aria-label="anchor" href="#ohdsishinymodules-v213"></a></h2>
+<p>Fixed bug of orphan concepts report not displaying Fixed bug in orphan concepts where negative database ids were causing dynamic sql queries to crash</p>
+</div>
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="2.1.2" id="ohdsishinymodules-v212">OhdsiShinyModules v2.1.2<a class="anchor" aria-label="anchor" href="#ohdsishinymodules-v212"></a></h2>
+<p>Fixed bug in cohort diagnostics incidence rate plots not showing for different strata</p>
+</div>
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="2.1.1" id="ohdsishinymodules-v211">OhdsiShinyModules v2.1.1<a class="anchor" aria-label="anchor" href="#ohdsishinymodules-v211"></a></h2>
+<p>Fixed bug in cohort diagnostics load up of orphan concepts server causing app to crash on load</p>
+</div>
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="2.1.0" id="ohdsishinymodules-v210">OhdsiShinyModules v2.1.0<a class="anchor" aria-label="anchor" href="#ohdsishinymodules-v210"></a></h2>
+<p>Support for data models from SCCS version 5.2.0 Support for data models from Cohort Method version 5.2.0 Fixes for CohortDiagnostics Orpahan concept table by re-writing with DB level pagination Automated release of Docker Images upon package release</p>
+</div>
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="2.0.2" id="ohdsishinymodules-v202">OhdsiShinyModules v2.0.2<a class="anchor" aria-label="anchor" href="#ohdsishinymodules-v202"></a></h2>
+<p>edited characterization server to work with new aggregate features method in characterization package edited characterization server to work when one or more characterization result is missing edited evidence synth module to highlight the bayesian and fix issue with comparison names not showing</p>
+</div>
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="2.0.1" id="ohdsishinymodules-v201">OhdsiShinyModules v2.0.1<a class="anchor" aria-label="anchor" href="#ohdsishinymodules-v201"></a></h2>
+<p>Bug Fixes: - Fix for CohortDiagnostic app not loading when characterization was set to FALSE</p>
+</div>
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="2.0.0" id="ohdsishinymodules-v200">OhdsiShinyModules v2.0.0<a class="anchor" aria-label="anchor" href="#ohdsishinymodules-v200"></a></h2>
+<ul><li>updated all models to use the same resultDatabaseSettings</li>
+<li>made module function naming consistent (modules named after analysis packages)</li>
+<li>made table prefix inputs consistent across modules</li>
+<li>updated patientlevelprediction, cohortmethod and sccs to look similar.</li>
+<li>Updated Cohort Diagnostics characterization to improve overall performance</li>
+<li>Added plots for incidence in characterization module</li>
+<li>Added PheValuator package</li>
+<li>Numerous bug fixes (see github issues)</li>
+</ul></div>
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="1.1.0" id="ohdsishinymodules-v110">OhdsiShinyModules v1.1.0<a class="anchor" aria-label="anchor" href="#ohdsishinymodules-v110"></a></h2>
+<ul><li>Udated the style for Characterization</li>
+<li>added SCCS module (jpg)</li>
+<li>added meta (evidence synthesis) module</li>
+<li>removal of ggiraph package and replacement with plotly plots for CohortDiagnostics plots: Time Distributions, Overlap, Incidence and Compare Cohort Characterization (jpg)</li>
+</ul></div>
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="1.0.4" id="ohdsishinymodules-v104">OhdsiShinyModules v1.0.4<a class="anchor" aria-label="anchor" href="#ohdsishinymodules-v104"></a></h2>
+<ul><li>Fixed an issue with hide/show tabs and reactives in the plp viewer</li>
+</ul></div>
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="1.0.3" id="ohdsishinymodules-v103">OhdsiShinyModules v1.0.3<a class="anchor" aria-label="anchor" href="#ohdsishinymodules-v103"></a></h2>
+<ul><li>Fixed a glitchy prediction viewer</li>
+</ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="1.0.2" id="ohdsishinymodules-v102">OhdsiShinyModules v1.0.2<a class="anchor" aria-label="anchor" href="#ohdsishinymodules-v102"></a></h2>
 <ul><li>Added Cohort Diagnostics module</li>
