@@ -152,7 +152,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "Characterization results for this analysis",
                                 icon = shiny::icon("table"),
                                 color = "teal",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Characterization.html"
                               )
                             } else {
                               shinydashboard::valueBox(
