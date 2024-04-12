@@ -110,7 +110,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "Data sources used in this analysis",
                                 icon = shiny::icon("database"),
                                 color = "aqua",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/DataSources.html"
                               )
                             } else {
                               shinydashboard::valueBox(
@@ -131,7 +131,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "Cohorts included in this analysis",
                                 icon = shiny::icon("user-gear"),
                                 color = "purple",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Cohorts.html"
                               )
                             } else {
                               shinydashboard::valueBox(
@@ -173,7 +173,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "Cohort Diagnostics results for the cohorts included in this analysis",
                                 icon = shiny::icon("users"),
                                 color = "yellow",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/CohortDiagnostics.html"
                               )
                             } else {
                               shinydashboard::valueBox(
@@ -195,7 +195,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "Cohort Method results for this analysis",
                                 icon = shiny::icon("chart-column"),
                                 color = "maroon",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/CohortMethod.html"
                               )
                             } else {
                               shinydashboard::valueBox(
@@ -216,7 +216,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "Patient-level Prediction results for this analysis",
                                 icon = shiny::icon("chart-line"),
                                 color = "blue",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Prediction.html"
                               )
                             } else {
                               shinydashboard::valueBox(
@@ -237,7 +237,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "Self-Controlled Case Series results for this analysis",
                                 icon = shiny::icon("people-arrows"),
                                 color = "red",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/SelfControlledCaseSeries.html"
                               )
                             } else {
                               shinydashboard::valueBox(
@@ -258,7 +258,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "Meta Analysis results for this analysis",
                                 icon = shiny::icon("sliders"),
                                 color = "olive",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/EvidenceSynthesis.html"
                               )
                             } else {
                               shinydashboard::valueBox(
