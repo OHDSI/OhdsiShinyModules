@@ -94,7 +94,7 @@ postgresEnabledReports <- function(connectionHandler, schema, tbls) {
         and n.nspname = '@schema'
         "
 
-  connectionHandler$queryDb(sql, schema = schema)
+  return(connectionHandler$queryDb(sql, schema = schema) %>% pull("tableName"))
 }
 
 #' Get enable cd reports from available data
@@ -106,13 +106,14 @@ getEnabledCdReports <- function(dataSource) {
     tbls <- dataSource$dataModelSpecifications$tableName %>% unique()
     possible <- paste0(dataSource$cdTablePrefix, tbls)
     available <- postgresEnabledReports(dataSource$connectionHandler, dataSource$schema)
-    enabledReports <- c(tbls[possible %in% available], "cohort", "database") %>% unique()
+    enabledReports <- c(tbls[possible %in% available], "cohort", "database") %>%
+      unique() %>%
+      SqlRender::snakeCaseToCamelCase()
     return(enabledReports)
   }
 
   enabledReports <- c()
-  resultsTables <- tolower(DatabaseConnector::dbListTables(dataSource$connectionHandler$getConnection(),
-                                                           schema = dataSource$schema))
+  resultsTables <- .availableTables(dataSource$connectionHandler, schema = dataSource$schema)
 
   for (table in dataSource$dataModelSpecifications$tableName %>% unique()) {
     if (dataSource$prefixTable(table) %in% resultsTables) {
