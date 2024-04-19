@@ -22,8 +22,9 @@
       tolower()
     return(tables)
   }
+
   return(
-    DatabaseConnector::getTableNames(dataSource$connectionHandler$getConnection(),
+    DatabaseConnector::getTableNames(connectionHandler$getConnection(),
                                      databaseSchema = schema) |>
       tolower()
   )
