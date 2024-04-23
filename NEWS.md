@@ -1,7 +1,12 @@
-OhdsiShinyModules v2.1.3
+OhdsiShinyModules v2.1.4
 ========================
 Fixed bug of orphan concepts report not displaying
 Fixed bug in orphan concepts where negative database ids were causing dynamic sql queries to crash
+
+OhdsiShinyModules v2.1.3
+========================
+Hotfix release to fix issue with cohort diagnostics reports hanging on load when using `DatabaseConnector::dbListTables`
+on postgres backends
 
 OhdsiShinyModules v2.1.2
 ========================
