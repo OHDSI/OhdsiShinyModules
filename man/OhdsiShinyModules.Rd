@@ -2,6 +2,7 @@
 % Please edit documentation in R/OhdsiShinyModules.R
 \docType{package}
 \name{OhdsiShinyModules}
+\alias{OhdsiShinyModules-package}
 \alias{OhdsiShinyModules}
 \title{OhdsiShinyModules}
 \description{

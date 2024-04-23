@@ -7,7 +7,7 @@
 getEnabledCdReports(dataSource)
 }
 \arguments{
-\item{dataSource}{C}
+\item{dataSource}{Cohort diagnostics data source}
 }
 \description{
 Get enable cd reports from available data
