@@ -14,14 +14,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+.availableTables <- function(connectionHandler, schema) {
+  if (connectionHandler$dbms() == "postgresql") {
+    sql <- "SELECT table_name FROM information_schema.tables where table_schema = '@schema'"
+    tables <- connectionHandler$queryDb(sql, schema = schema) |>
+      dplyr::pull("tableName") |>
+      tolower()
+    return(tables)
+  }
+
+  return(
+    DatabaseConnector::getTableNames(connectionHandler$getConnection(),
+                                     databaseSchema = schema) |>
+      tolower()
+  )
+}
+
 
 # NOTE: here it would be nice to use dbplyr tables - this would allow lazy loading of resources
 # however, renaming the columns causes an error and its not obvious how it could be resolved
 loadResultsTable <- function(dataSource, tableName, required = FALSE, cdTablePrefix = "") {
   selectTableName <- paste0(cdTablePrefix, tableName)
   resultsTablesOnServer <-
-    tolower(DatabaseConnector::dbListTables(dataSource$connectionHandler$getConnection(),
-                                            schema = dataSource$schema))
+    tolower(.availableTables(dataSource$connectionHandler, dataSource$schema))
 
   if (required || selectTableName %in% resultsTablesOnServer) {
     if (tableIsEmpty(dataSource, selectTableName)) {
@@ -30,10 +45,9 @@ loadResultsTable <- function(dataSource, tableName, required = FALSE, cdTablePre
 
     tryCatch(
     {
-      table <- DatabaseConnector::dbReadTable(
-        dataSource$connectionHandler$getConnection(),
-        paste(dataSource$schema, selectTableName, sep = ".")
-      )
+      table <- dataSource$connectionHandler$queryDb("SELECT * FROM @schema.@table",
+                                                    schema = dataSource$schema,
+                                                    table = selectTableName)
     },
       error = function(err) {
         stop(
@@ -44,8 +58,7 @@ loadResultsTable <- function(dataSource, tableName, required = FALSE, cdTablePre
         )
       }
     )
-    colnames(table) <-
-      SqlRender::snakeCaseToCamelCase(colnames(table))
+
     return(table)
   }
 
@@ -70,13 +83,38 @@ tableIsEmpty <- function(dataSource, tableName) {
   return(nrow(row) == 0)
 }
 
+postgresEnabledReports <- function(connectionHandler, schema, tbls) {
+
+  sql <- "
+    select c.relname as table_name
+  from pg_class c
+  inner join pg_namespace n on n.oid = c.relnamespace
+  where c.relkind = 'r'
+        and n.nspname not in ('information_schema','pg_catalog')
+        and c.reltuples != 0
+        and n.nspname = '@schema'
+        "
+
+  return(connectionHandler$queryDb(sql, schema = schema) %>% pull("tableName"))
+}
+
 #' Get enable cd reports from available data
-#' @param dataSource           C
+#' @param dataSource     Cohort diagnostics data source
 #' @export
 getEnabledCdReports <- function(dataSource) {
+
+  if (dataSource$connectionHandler$dbms() == "postgresql") {
+    tbls <- dataSource$dataModelSpecifications$tableName %>% unique()
+    possible <- paste0(dataSource$cdTablePrefix, tbls)
+    available <- postgresEnabledReports(dataSource$connectionHandler, dataSource$schema)
+    enabledReports <- c(tbls[possible %in% available], "cohort", "database") %>%
+      unique() %>%
+      SqlRender::snakeCaseToCamelCase()
+    return(enabledReports)
+  }
+
   enabledReports <- c()
-  resultsTables <- tolower(DatabaseConnector::dbListTables(dataSource$connectionHandler$getConnection(),
-                                                           schema = dataSource$schema))
+  resultsTables <- .availableTables(dataSource$connectionHandler, schema = dataSource$schema)
 
   for (table in dataSource$dataModelSpecifications$tableName %>% unique()) {
     if (dataSource$prefixTable(table) %in% resultsTables) {
@@ -87,7 +125,7 @@ getEnabledCdReports <- function(dataSource) {
   }
   enabledReports <- c(enabledReports, "cohort", "database")
 
-  enabledReports
+  return(enabledReports)
 }
 
 #' Create a CD data source from a database
@@ -181,8 +219,7 @@ createCdDatabaseDataSource <- function(
     schema = resultDatabaseSettings$schema,
     vocabularyDatabaseSchema = resultDatabaseSettings$vocabularyDatabaseSchema,
     dbms = connectionHandler$dbms(),
-    resultsTablesOnServer = tolower(DatabaseConnector::dbListTables(connectionHandler$getConnection(),
-                                                                    schema = resultDatabaseSettings$schema)),
+    resultsTablesOnServer = .availableTables(connectionHandler, resultDatabaseSettings$schema),
     cdTablePrefix = resultDatabaseSettings$cdTablePrefix,
     prefixTable = function(tableName) { paste0(resultDatabaseSettings$cdTablePrefix, tableName) },
     prefixVocabTable = function(tableName) {
@@ -375,9 +412,9 @@ getResultsTemporalTimeRef <- function(dataSource) {
 #' @param dataSource                    dataSource optionally created with createCdDatabaseDataSource
 #' @export
 cohortDiagnosticsServer <- function(id,
-                                   connectionHandler,
-                                   resultDatabaseSettings,
-                                   dataSource = NULL) {
+                                    connectionHandler,
+                                    resultDatabaseSettings,
+                                    dataSource = NULL) {
   ns <- shiny::NS(id)
 
   checkmate::assertClass(dataSource, "CdDataSource", null.ok = TRUE)
@@ -668,7 +705,7 @@ cohortDiagnosticsServer <- function(id,
                               selectedDatabaseIds = selectedDatabaseIds)
 
       cohortDiagCharacterizationModule(id = "characterization",
-                             dataSource = dataSource)
+                                       dataSource = dataSource)
 
       compareCohortCharacterizationModule(id = "compareCohortCharacterization",
                                           dataSource = dataSource)
