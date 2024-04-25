@@ -95,7 +95,7 @@ postgresEnabledReports <- function(connectionHandler, schema, tbls) {
         and n.nspname = '@schema'
         "
 
-  return(connectionHandler$queryDb(sql, schema = schema) %>% pull("tableName"))
+  return(connectionHandler$queryDb(sql, schema = schema) %>% dplyr::pull("tableName"))
 }
 
 #' Get enable cd reports from available data
