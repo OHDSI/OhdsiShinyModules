@@ -1,3 +1,7 @@
+OhdsiShinyModules v2.1.4
+========================
+Fixed missing call to dplyr in CohortDiagnostics load up
+
 OhdsiShinyModules v2.1.3
 ========================
 Hotfix release to fix issue with cohort diagnostics reports hanging on load when using `DatabaseConnector::dbListTables`
