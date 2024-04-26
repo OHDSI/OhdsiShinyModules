@@ -1890,9 +1890,8 @@ getIncidenceOptions <- function(
   
   # shiny::withProgress(message = 'Getting incidence inputs', value = 0, {
   
-  sql <- 'select distinct target_cohort_definition_id, target_name 
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  
+  sql <- ifelse(connectionHandler$connectionDetails$dialect == 'postgresql', .targetOptionsSqlRecursive, .targetOptionsSqlSimple )
+
   #shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
   
   targets <- connectionHandler$queryDb(
@@ -1903,8 +1902,7 @@ getIncidenceOptions <- function(
   targetIds <- targets$targetCohortDefinitionId
   names(targetIds) <- targets$targetName
   
-  sql <- 'select distinct outcome_cohort_definition_id, outcome_name 
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
+  sql <- ifelse(connectionHandler$connectionDetails$dialect == 'postgresql', .outcomeOptionsSqlRecursive, .outcomeOptionsSqlSimple )
   
   #shiny::incProgress(2/3, detail = paste("Created SQL - Extracting outcomes"))
   
@@ -2038,3 +2036,70 @@ getIncidenceOptions <- function(
   
 }
 
+#### Query Templates
+
+# this query is optimized for PG, and depends on an index on target_cohort_id, target_name on {prefix}_incidence_summary.
+.targetOptionsSqlRecursive <- "
+with recursive target_cohort_prev as (
+  (
+    select 
+    i.target_cohort_definition_id,
+    i.target_name
+    FROM @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
+    ORDER BY 
+    i.target_cohort_definition_id, 
+    i.target_name 
+    LIMIT 1
+  )
+  UNION ALL
+  select 
+  target_cohort_next.target_cohort_definition_id,
+  target_cohort_next.target_name
+  from target_cohort_prev, lateral 
+  (
+    select target_cohort_definition_id, target_name
+    FROM @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY
+    where target_cohort_definition_id > target_cohort_prev.target_cohort_definition_id
+    ORDER BY target_cohort_definition_id, target_name LIMIT 1
+  ) as target_cohort_next
+)
+select target_cohort_definition_id, target_name from target_cohort_prev;
+"
+
+# this query is optimized for PG, and depends on an index on target_cohort_id, target_name on {prefix}_incidence_summary.
+.targetOptionsSqlSimple <- "
+  select distinct target_cohort_definition_id, target_name 
+  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;
+"
+
+.outcomeOptionsSqlSimple <- "
+select distinct outcome_cohort_definition_id, outcome_name 
+from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;
+"
+
+.outcomeOptionsSqlRecursive <- "
+with recursive outcome_cohort_prev as (
+  (
+    select 
+    i.outcome_cohort_definition_id,
+    i.outcome_name
+    FROM @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
+    ORDER BY 
+    i.outcome_cohort_definition_id,
+    i.outcome_name
+    LIMIT 1
+  )
+  UNION ALL
+  select 
+  outcome_cohort_next.outcome_cohort_definition_id,
+  outcome_cohort_next.outcome_name
+  from outcome_cohort_prev, lateral 
+  (
+    select outcome_cohort_definition_id, outcome_name
+    FROM @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY
+    where outcome_cohort_definition_id > outcome_cohort_prev.outcome_cohort_definition_id
+    ORDER BY outcome_cohort_definition_id, outcome_name LIMIT 1
+  ) as outcome_cohort_next
+)
+select outcome_cohort_definition_id, outcome_name from outcome_cohort_prev;
+"
