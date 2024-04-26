@@ -1,7 +1,11 @@
-OhdsiShinyModules v2.1.4
+OhdsiShinyModules v2.1.5
 ========================
 Fixed bug of orphan concepts report not displaying
 Fixed bug in orphan concepts where negative database ids were causing dynamic sql queries to crash
+
+OhdsiShinyModules v2.1.4
+========================
+Fixed missing call to dplyr in CohortDiagnostics load up
 
 OhdsiShinyModules v2.1.3
 ========================
