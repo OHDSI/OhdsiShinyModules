@@ -311,7 +311,8 @@ reportServer <- function(
           
           if(!is.null(input$cmSubsetId) & !is.null(input$targetId)){
             if(input$cmSubsetId != ''){
-              temp <- tnos$cs[[which(names(tnos$cs) == as.double(input$targetId)*1000 + as.double(input$cmSubsetId))]]
+              multipler <- ifelse(input$cmSubsetId == 0, 1, 1000)
+              temp <- tnos$cs[[which(names(tnos$cs) == as.double(input$targetId)*multipler + as.double(input$cmSubsetId))]]
               comps <- temp$comparatorId
               names(comps) <- temp$comparatorName
               comparators(comps)
@@ -785,26 +786,26 @@ getTandOs <- function(
     select distinct TARGET_COHORT_ID as tid, OUTCOME_COHORT_ID as oid 
     from @schema.@c_table_prefixcohort_details where 
     TARGET_COHORT_ID != 0 and OUTCOME_COHORT_ID != 0
-  
-    union
+
   }
   
   {@cohort_incidence} ? {
+      union
     select distinct TARGET_COHORT_DEFINITION_ID as tid, OUTCOME_COHORT_DEFINITION_ID as oid 
     from @schema.@ci_table_prefixincidence_summary
-  
-    union
+
   }
   
   {@cohort_method} ? {
+      union
     select distinct TARGET_ID as tid, OUTCOME_ID as oid 
     from @schema.@cm_table_prefixtarget_comparator_outcome 
     where OUTCOME_OF_INTEREST = 1
   
-    union
   }
   
   {@prediction} ? {
+      union
     select distinct c1.cohort_definition_id as tid, c2.cohort_definition_id as oid 
     from @schema.@plp_table_prefixmodel_designs md 
     inner join @schema.@plp_table_prefixcohorts c1 
@@ -852,25 +853,46 @@ getTandOs <- function(
   names(tos) <- unique(res$tid)
   
   # get target heirarchy 
-  parents <- cg[cg$isSubset == 0,]
-  groupedCohorts <- lapply(1:nrow(parents), function(i){
-    x <- parents$cohortDefinitionId[i];
-    
-    if(x %in% unique(res$tid)){
-      list(
-        cohortId = x,
-        cohortName = cg$cohortName[cg$cohortDefinitionId == x],
-        subsets = data.frame(
-          targetId = cg$cohortDefinitionId[cg$subsetParent == x],
-          targetName = cg$cohortName[cg$subsetParent == x],
-          subsetId = cg$subsetDefinitionId[cg$subsetParent == x]
-        )
+  groupedCohorts <- lapply(unique(res$tid), function(tid){
+    data.frame(
+      cohortId = tid,
+      cohortName = unique(res$targetName[res$tid == tid]),
+      subsets = data.frame(
+        targetId = tid,
+        targetName = unique(res$targetName[res$tid == tid]),
+        subsetId = 0
       )
-    }else{
-      return(NULL)
-    };
+    )
   })
-  names(groupedCohorts) <- parents$cohortName
+  names(groupedCohorts) <- unique(res$targetName)
+  
+  # if using subsets then do this using the isSubset
+  if('isSubset' %in% colnames(cg)){
+    cg$isSubset[is.na(cg$isSubset)] <- 0
+    cg$subsetParent[is.na(cg$subsetParent)] <- cg$cohortDefinitionId
+    cg$subsetDefinitionId[is.na(cg$subsetDefinitionId)] <- 0
+    
+    if(sum(cg$isSubset == 0) > 0 ){
+      parents <- cg[cg$isSubset == 0,]
+      groupedCohorts <- lapply(1:nrow(parents), function(i){
+        x <- parents$cohortDefinitionId[i];
+        
+        if(x %in% unique(res$tid)){
+          list(
+            cohortId = x,
+            cohortName = cg$cohortName[cg$cohortDefinitionId == x],
+            subsets = data.frame(
+              targetId = cg$cohortDefinitionId[cg$subsetParent == x],
+              targetName = cg$cohortName[cg$subsetParent == x],
+              subsetId = cg$subsetDefinitionId[cg$subsetParent == x]
+            )
+          )
+        }else{
+          return(NULL)
+        };
+      })
+      names(groupedCohorts) <- parents$cohortName
+    }}
   
   # get comparators
   if(cohortMethod){
