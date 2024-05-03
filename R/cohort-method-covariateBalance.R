@@ -61,7 +61,9 @@ cohortMethodCovariateBalanceViewer <- function(id) {
       )
     )
     
-  )
+   )
+  
+  #)
   
 }
 
@@ -89,6 +91,39 @@ cohortMethodCovariateBalanceServer <- function(
     id,
     function(input, output, session) {
       
+      options <- getCmOptions(
+        connectionHandler,
+        resultDatabaseSettings
+      )
+      
+      # input selection component -- could be added later if desired
+      # inputSelectedResults <- inputSelectionServer(
+      #   id = "input-selection-results", 
+      #   inputSettingList = list(
+      #     createInputSetting(
+      #       rowNumber = 1,                           
+      #       columnWidth = 12,
+      #       varName = 'covariateAnalysisId',
+      #       uiFunction = 'shinyWidgets::pickerInput',
+      #       updateFunction = 'shinyWidgets::updatePickerInput',
+      #       uiInputs = list(
+      #         label = 'Covariate Analysis Name: ',
+      #         choices = options$covariateAnalysisId,
+      #         selected = options$covariateAnalysisId, #
+      #         multiple = T,
+      #         options = shinyWidgets::pickerOptions(
+      #           actionsBox = TRUE,
+      #           liveSearch = TRUE,
+      #           size = 10,
+      #           liveSearchStyle = "contains",
+      #           liveSearchPlaceholder = "Type here to search",
+      #           virtualScroll = 50
+      #         )
+      #       )
+      #     )
+      #   )
+      # )
+      
       
       balance <- shiny::reactive({
         row <- selectedRow()
@@ -102,8 +137,11 @@ cohortMethodCovariateBalanceServer <- function(
           targetId = row$targetId,
           comparatorId = row$comparatorId,
           databaseId = row$databaseId,
+          # covariateAnalysisId = ifelse(is.null(inputSelectedResults()$covariateAnalysisId),
+          #                              -1,
+          #                              inputSelectedResults()$covariateAnalysisId),
           analysisId = row$analysisId)},
-          error = function(e){return(NULL)}
+          error = function(e){return(data.frame())}
         )
         return(balance)
       })
@@ -262,7 +300,7 @@ cohortMethodCovariateBalanceServer <- function(
                                      resultDatabaseSettings = resultDatabaseSettings)
           comb <- dplyr::inner_join(balance, dbNames) %>%
             dplyr::relocate(cdmSourceAbbreviation, .after = databaseId) %>% 
-            dplyr::select(-c(databaseId, covariateId))
+            dplyr::select(-c(databaseId))
         }
       )
       
@@ -329,6 +367,7 @@ getCohortMethodCovariateBalanceShared <- function(
     targetId,
     comparatorId,
     analysisId,
+    #covariateAnalysisId,
     databaseId = NULL
 ) {
   
@@ -338,9 +377,8 @@ getCohortMethodCovariateBalanceShared <- function(
       sql <- "
       SELECT
         cmscb.database_id,
-        cmscb.covariate_id,
         cmc.covariate_name,
-        -- cmc.covariate_analysis_id analysis_id, #TODO: once @table_prefixanalysis_id bug fixed
+        --cmc.analysis_id analysis_id,
         cmscb.target_mean_before before_matching_mean_treated,
         cmscb.comparator_mean_before before_matching_mean_comparator,
         abs(cmscb.std_diff_before) abs_before_matching_std_diff, --absBeforeMatchingStdDiff 
@@ -355,6 +393,7 @@ getCohortMethodCovariateBalanceShared <- function(
         cmscb.target_id = @target_id
         AND cmscb.comparator_id = @comparator_id
         AND cmscb.analysis_id = @analysis_id
+        --AND cmc.covariate_analysis_id = @covariate_analysis_id
         AND cmscb.database_id = '@database_id'
     "
     
@@ -366,6 +405,7 @@ getCohortMethodCovariateBalanceShared <- function(
       target_id = targetId,
       comparator_id = comparatorId,
       analysis_id = analysisId,
+      #covariate_analysis_id = covariateAnalysisId,
       database_id = databaseId
     )
     
@@ -550,3 +590,34 @@ plotCohortMethodCovariateBalanceSummary <- function(balanceSummary,
   plot <- gridExtra::grid.arrange(data_table, plot, ncol = 2)
   return(plot)
 }
+
+getCmOptions <- function(connectionHandler,
+                         resultDatabaseSettings){
+  
+  sql <- 'select distinct covariate_analysis_id, covariate_analysis_name 
+  from @result_schema.@cm_table_prefixCOVARIATE_ANALYSIS;'
+  
+  #shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
+  
+  covariateAnalyses <- connectionHandler$queryDb(
+    sql = sql, 
+    result_schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix
+  )
+  covariateAnalysisIds <- covariateAnalyses$covariateAnalysisId
+  names(covariateAnalysisIds) <- covariateAnalyses$covariateAnalysisName
+  
+  return(
+    list(
+      covariateAnalysisIds = covariateAnalysisIds
+    )
+  )
+  
+}
+
+
+
+
+
+
+
