@@ -330,7 +330,7 @@ characterizationIncidenceServer <- function(
             ),
             createInputSetting(
               rowNumber = 2,                           
-              columnWidth = 6,
+              columnWidth = 4,
               varName = 'targetIds',
               uiFunction = 'shinyWidgets::pickerInput',
               updateFunction = 'shinyWidgets::updatePickerInput',
@@ -351,7 +351,7 @@ characterizationIncidenceServer <- function(
             ),
             createInputSetting(
               rowNumber = 2,                           
-              columnWidth = 6,
+              columnWidth = 4,
               varName = 'outcomeIds',
               uiFunction = 'shinyWidgets::pickerInput',
               updateFunction = 'shinyWidgets::updatePickerInput',
@@ -364,6 +364,29 @@ characterizationIncidenceServer <- function(
                   actionsBox = TRUE,
                   liveSearch = TRUE,
                   size = 10,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
+            ),
+            
+            createInputSetting(
+              rowNumber = 2,                           
+              columnWidth = 4,
+              varName = 'incidenceRateDbFilter',
+              uiFunction = 'shinyWidgets::pickerInput',
+              updateFunction = 'shinyWidgets::updatePickerInput',
+              uiInputs = list(
+                label = 'Database:',
+                choices = options$cdmSourceAbbreviations,
+                selected = options$cdmSourceAbbreviations,
+                multiple = T,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  dropupAuto = TRUE,
                   liveSearchStyle = "contains",
                   liveSearchPlaceholder = "Type here to search",
                   virtualScroll = 50
@@ -668,7 +691,8 @@ characterizationIncidenceServer <- function(
       filteredData <- shiny::reactive(         
         {
           if (is.null(inputSelectedResults()$targetIds) |
-              is.null(inputSelectedResults()$outcomeIds)
+              is.null(inputSelectedResults()$outcomeIds) | 
+              is.null(inputSelectedResults()$incidenceRateDbFilter)
               ) {
             return(data.frame())
           }
@@ -693,7 +717,8 @@ characterizationIncidenceServer <- function(
                           outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
             dplyr::filter(.data$ageGroupName %in% !!inputSelectedResults()$incidenceRateAgeFilter & 
                             .data$genderName %in% !!inputSelectedResults()$incidenceRateGenderFilter & 
-                            .data$startYear %in% !!inputSelectedResults()$incidenceRateCalendarFilter  
+                            .data$startYear %in% !!inputSelectedResults()$incidenceRateCalendarFilter  &
+                            .data$cdmSourceAbbreviation %in% !!inputSelectedResults()$incidenceRateDbFilter
             ) %>%
               dplyr::relocate("targetIdShort", .after = "targetName") %>%
               dplyr::relocate("outcomeIdShort", .after = "outcomeName")
@@ -704,7 +729,8 @@ characterizationIncidenceServer <- function(
       filteredDataAggregateForPlot <- shiny::reactive(         
         {
           if (is.null(inputSelectedResults()$targetIds) |
-              is.null(inputSelectedResults()$outcomeIds)
+              is.null(inputSelectedResults()$outcomeIds) | 
+              is.null(inputSelectedResults()$incidenceRateDbFilter)
           ) {
             return(data.frame())
           }
@@ -727,6 +753,7 @@ characterizationIncidenceServer <- function(
                             dplyr::across(dplyr::where(is.numeric), round, 4),
                             targetIdShort = paste("C", .data$targetCohortDefinitionId, sep = "-"),
                             outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
+              dplyr::filter(.data$cdmSourceAbbreviation %in% !!inputSelectedResults()$incidenceRateDbFilter) %>%
               dplyr::relocate("targetIdShort", .after = "targetName") %>%
               dplyr::relocate("outcomeIdShort", .after = "outcomeName")
       
@@ -770,7 +797,9 @@ characterizationIncidenceServer <- function(
       irPlotCustom <- shiny::reactive(
         {
           if (is.null(inputSelectedResults()$targetIds) |
-              is.null(inputSelectedResults()$outcomeIds)) {
+              is.null(inputSelectedResults()$outcomeIds) | 
+              is.null(inputSelectedResults()$incidenceRateDbFilter)
+              ){
             return(data.frame())
           }
           
@@ -1110,8 +1139,10 @@ characterizationIncidenceServer <- function(
       renderIrPlotCustomNoLegend <- shiny::reactive(
         {
           if (is.null(inputSelectedResults()$targetIds) |
-              is.null(inputSelectedResults()$outcomeIds)) {
-            shiny::validate("Please select at least one target and one outcome.")
+              is.null(inputSelectedResults()$outcomeIds) | 
+              is.null(inputSelectedResults()$incidenceRateDbFilter)
+              ){
+            shiny::validate("Please select at least one target, one outcome, and one database.")
           }
           
           else {
@@ -1164,8 +1195,10 @@ characterizationIncidenceServer <- function(
       renderIrPlotCustom <- shiny::reactive(
         {
           if (is.null(inputSelectedResults()$targetIds) |
-              is.null(inputSelectedResults()$outcomeIds)) {
-            shiny::validate("Please select at least one target and one outcome.")
+              is.null(inputSelectedResults()$outcomeIds) | 
+              is.null(inputSelectedResults()$incidenceRateDbFilter)
+          ){
+            shiny::validate("Please select at least one target, one outcome, and one database.")
           }
           
           else {
@@ -1228,7 +1261,9 @@ characterizationIncidenceServer <- function(
         {
           
           if (is.null(inputSelectedResults()$targetIds) |
-              is.null(inputSelectedResults()$outcomeIds)) {
+              is.null(inputSelectedResults()$outcomeIds) | 
+              is.null(inputSelectedResults()$incidenceRateDbFilter)
+              ) {
             return(data.frame())
           }
           
@@ -1376,7 +1411,9 @@ renderIrPlotStandardAgeSex <- shiny::reactive(
   {
     
     if (is.null(inputSelectedResults()$targetIds) |
-        is.null(inputSelectedResults()$outcomeIds)) {
+        is.null(inputSelectedResults()$outcomeIds) | 
+        is.null(inputSelectedResults()$incidenceRateDbFilter)
+        ) {
       return(data.frame())
     }
     
@@ -1522,7 +1559,9 @@ renderIrPlotStandardYear <- shiny::reactive(
   {
     
     if (is.null(inputSelectedResults()$targetIds) |
-        is.null(inputSelectedResults()$outcomeIds)) {
+        is.null(inputSelectedResults()$outcomeIds) | 
+        is.null(inputSelectedResults()$incidenceRateDbFilter)
+        ) {
       return(data.frame())
     }
     
@@ -1687,7 +1726,9 @@ renderIrPlotStandardAggregate <- shiny::reactive(
   {
     
     if (is.null(inputSelectedResults()$targetIds) |
-        is.null(inputSelectedResults()$outcomeIds)) {
+        is.null(inputSelectedResults()$outcomeIds) | 
+        is.null(inputSelectedResults()$incidenceRateDbFilter)
+        ) {
       return(data.frame())
     }
     
@@ -1917,6 +1958,24 @@ getIncidenceOptions <- function(
   outcomeIds <- outcomes$outcomeCohortDefinitionId
   names(outcomeIds) <- outcomes$outcomeName
   
+  sql <- 'select distinct d.cdm_source_abbreviation 
+    from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
+    inner join @result_schema.@database_table_name d
+    on d.database_id = i.database_id
+    ;'
+  
+  #shiny::incProgress(2/3, detail = paste("Created SQL - Extracting outcomes"))
+  
+  cdmSourceAbbreviations <- connectionHandler$queryDb(
+    sql = sql, 
+    result_schema = resultDatabaseSettings$schema,
+    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix,
+    database_table_name = resultDatabaseSettings$databaseTable
+  )
+  
+  cdmSourceAbbreviations <- cdmSourceAbbreviations$cdmSourceAbbreviation
+  #names(cdmSourceAbbreviations) <- cdmSourceAbbreviations$cdmSourceAbbreviation
+  
   sql <- 'select distinct tar_id, tar_start_with, tar_start_offset, tar_end_with, tar_end_offset
   from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
   
@@ -2027,6 +2086,7 @@ getIncidenceOptions <- function(
     list(
       targetIds = targetIds,
       outcomeIds = outcomeIds,
+      cdmSourceAbbreviations = cdmSourceAbbreviations,
       tar = tar,
       irPlotNumericChoices = irPlotNumericChoices,
       irPlotCategoricalChoices = irPlotCategoricalChoices,
