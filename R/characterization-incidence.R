@@ -77,6 +77,9 @@ as_ggplot <- function(x){
 
 # Define the custom age sorting function
 custom_age_sort <- function(age_categories) {
+  
+  #note: the below doesn't match on the age groups that are <N or >=N
+  
   # Extract the largest integer from each category
   largest_integers <- as.integer(sub(".* - (\\d+).*", "\\1", age_categories))
   
@@ -1928,44 +1931,108 @@ getIncidenceOptions <- function(
     connectionHandler,
     resultDatabaseSettings
 ){
-  
+  analysisSpec <- getOption("shinyApp.designSpec");
+    
   # shiny::withProgress(message = 'Getting incidence inputs', value = 0, {
+
+  if (!is.null(analysisSpec)) {
+   irDesign <- Filter(function (m) { m$module == 'CohortIncidenceModule'}, analysisSpec$moduleSpecifications)[[1]]$settings$irDesign
+   targetIds <- sapply(irDesign$targetDefs, function(t) { t$id })
+   names(targetIds) <- sapply(irDesign$targetDefs, function(t) { t$name })
+   
+   # this is not the correct way to identify an outcome, an outcome consits of id, cohortId, cleanWindow
+   outcomeIds <- sapply(irDesign$outcomeDefs, function(o) { o$cohortId })
+   names(outcomeIds) <- sapply(irDesign$outcomeDefs, function(o) { o$name })
+
+   tar <- sapply(irDesign$timeAtRiskDefs, function(tar) { tar$id })
+   names(tar) <-  sapply(irDesign$timeAtRiskDefs, 
+                         function(tar) { 
+                           paste0('(',tar$start$dateField, " + ", tar$start$offset, ') - (', tar$end$dateField, " + ", tar$end$offset, ')') 
+                         })
+   ageGroupName <- .getAgeGroupsFromDesign(irDesign)
+   
+   # We will hard code genders and year choices that would be expensive queries against the result DB which might not have all options.
+   genderName <- sort(c('Any', 'MALE', 'FEMALE'))
+   startYear <- sort(c('Any', 2010:2024))
+
+  } else {
+    sql <- 'select distinct target_cohort_definition_id, target_name from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
+    
+    #shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
+    
+    targets <- connectionHandler$queryDb(
+      sql = sql, 
+      result_schema = resultDatabaseSettings$schema,
+      incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+    )
+    targetIds <- targets$targetCohortDefinitionId
+    names(targetIds) <- targets$targetName
+    
+    sql <- 'select distinct outcome_cohort_definition_id, outcome_name from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
+    
+    #shiny::incProgress(2/3, detail = paste("Created SQL - Extracting outcomes"))
+    
+    outcomes <- connectionHandler$queryDb(
+      sql = sql, 
+      result_schema = resultDatabaseSettings$schema,
+      incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+    )
+    
+    outcomeIds <- outcomes$outcomeCohortDefinitionId
+    names(outcomeIds) <- outcomes$outcomeName
+    
+    sql <- 'select distinct tar_id, tar_start_with, tar_start_offset, tar_end_with, tar_end_offset from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
+    
+    tars <- connectionHandler$queryDb(
+      sql = sql, 
+      result_schema = resultDatabaseSettings$schema,
+      incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+    )
+    tar <- tars$tarId
+    names(tar) <- paste0('(',tars$tarStartWith, " + ", tars$tarStartOffset, ') - (', tars$tarEndWith, " + ", tars$tarEndOffset, ')')
+
+    # age groups have an ID, we should use
+    sql <- 'select distinct age_group_name from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
+    
+    result <- connectionHandler$queryDb(
+      sql = sql, 
+      result_schema = resultDatabaseSettings$schema,
+      incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+    )
+    
+    ageGroupName <- result$ageGroupName
+    ageGroupName[is.na(ageGroupName)] <- 'Any'
+    ageGroupName <- sort(ageGroupName)
+    
+    sql <- 'select distinct gender_name from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
+    
+    result <- connectionHandler$queryDb(
+      sql = sql, 
+      result_schema = resultDatabaseSettings$schema,
+      incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+    )
+    
+    genderName <- result$genderName
+    genderName[is.na(genderName)] <- 'Any'
+    genderName <- sort(genderName)
+    
+    sql <- 'select distinct start_year from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
+    
+    result <- connectionHandler$queryDb(
+      sql = sql, 
+      result_schema = resultDatabaseSettings$schema,
+      incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+    )
+    
+    startYear <- result$startYear
+    startYear[is.na(startYear)] <- 'Any'
+    startYear <- sort(startYear)
+    
+    # shiny::incProgress(3/3, detail = paste("Done"))
+  }
   
-  sql <- 'select distinct target_cohort_definition_id, target_name 
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  
-  #shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
-  
-  targets <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-  )
-  targetIds <- targets$targetCohortDefinitionId
-  names(targetIds) <- targets$targetName
-  
-  sql <- 'select distinct outcome_cohort_definition_id, outcome_name 
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  
-  #shiny::incProgress(2/3, detail = paste("Created SQL - Extracting outcomes"))
-  
-  outcomes <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-  )
-  
-  outcomeIds <- outcomes$outcomeCohortDefinitionId
-  names(outcomeIds) <- outcomes$outcomeName
-  
-  sql <- 'select distinct d.cdm_source_abbreviation 
-    from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
-    inner join @result_schema.@database_table_name d
-    on d.database_id = i.database_id
-    ;'
-  
-  #shiny::incProgress(2/3, detail = paste("Created SQL - Extracting outcomes"))
-  
+  sql <- 'select distinct d.cdm_source_abbreviation from @result_schema.@database_table_name d;'
+
   cdmSourceAbbreviations <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = resultDatabaseSettings$schema,
@@ -1974,64 +2041,7 @@ getIncidenceOptions <- function(
   )
   
   cdmSourceAbbreviations <- cdmSourceAbbreviations$cdmSourceAbbreviation
-  #names(cdmSourceAbbreviations) <- cdmSourceAbbreviations$cdmSourceAbbreviation
-  
-  sql <- 'select distinct tar_id, tar_start_with, tar_start_offset, tar_end_with, tar_end_offset
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  
-  #shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
-  
-  tars <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-  )
-  tar <- paste0('(',tars$tarStartWith, " + ", tars$tarStartOffset, ') - (', tars$tarEndWith, " + ", tars$tarEndOffset, ')')
-  #tar <- tars$tarId
-  names(tar) <- paste0('(',tars$tarStartWith, " + ", tars$tarStartOffset, ') - (', tars$tarEndWith, " + ", tars$tarEndOffset, ')')
-  
-  sql <- 'select distinct age_group_name
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  
-  result <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-  )
-  
-  ageGroupName <- result$ageGroupName
-  ageGroupName[is.na(ageGroupName)] <- 'Any'
-  ageGroupName <- sort(ageGroupName)
-  
-  sql <- 'select distinct gender_name
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  
-  result <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-  )
-  
-  genderName <- result$genderName
-  genderName[is.na(genderName)] <- 'Any'
-  genderName <- sort(genderName)
-  
-  sql <- 'select distinct start_year
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  
-  result <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-  )
-  
-  startYear <- result$startYear
-  startYear[is.na(startYear)] <- 'Any'
-  startYear <- sort(startYear)
-  
-  # shiny::incProgress(3/3, detail = paste("Done"))
-  # })
-  
+
   irPlotCategoricalChoices <- list(
     "cdmSourceAbbreviation",
     "ageGroupName",
@@ -2098,3 +2108,22 @@ getIncidenceOptions <- function(
   
 }
 
+.getWithDefault <- function(list, attribute, default = NULL) {
+  tryCatch(list[[attribute]], error = default)
+}
+
+.getAgeGroupsFromDesign <- function(irDesign) {
+  ageGroups <- c('Any');
+  
+  if (irDesign$strataSettings$byAge) {
+    ageBreaks <- irDesign$strataSettings$ageBreaks
+    ageGroups <- c(ageGroups, paste0('<', ageBreaks[[1]]))
+    if (length(ageBreaks) > 1) {
+      for (i in 1:(length(ageBreaks)-1)) {
+        ageGroups <- c(ageGroups, paste0(ageBreaks[[i]], ' - ', ageBreaks[[i+1]]))
+      }
+    }
+    ageGroups <- c(ageGroups, paste0('>=', ageBreaks[[length(ageBreaks)]]))
+  }
+  return(sort(ageGroups))
+}

@@ -19,38 +19,40 @@ if(!dir.exists('./drivers')){
 # connection details to an example sqlite database in the package
 connectionDetails <- OhdsiShinyModules::getExampleConnectionDetails()
 schema <- "main"
+analysisSpec <- OhdsiShinyModules::getExampleAnalysisSpec();
+options("shinyApp.designSpec" = analysisSpec)
 
 # Specify the config - create a new one and then add 
 # each shiny module you want to include
-config <- initializeModuleConfig() %>%
-  addModuleConfig(
-    createDefaultAboutConfig()
+config <- ShinyAppBuilder::initializeModuleConfig() %>%
+  ShinyAppBuilder::addModuleConfig(
+    ShinyAppBuilder::createDefaultAboutConfig()
   )  %>%
-  addModuleConfig(
-    createDefaultDatasourcesConfig()
+  ShinyAppBuilder::addModuleConfig(
+    ShinyAppBuilder::createDefaultDatasourcesConfig()
   )  %>%
-  addModuleConfig(
-    createDefaultCohortGeneratorConfig()
+  ShinyAppBuilder:: addModuleConfig(
+    ShinyAppBuilder::createDefaultCohortGeneratorConfig()
   ) %>%
-  addModuleConfig(
-    createDefaultCohortDiagnosticsConfig()
+  ShinyAppBuilder::addModuleConfig(
+    ShinyAppBuilder::createDefaultCohortDiagnosticsConfig()
   ) %>%
-  addModuleConfig(
-    createDefaultCharacterizationConfig()
+  ShinyAppBuilder::addModuleConfig(
+    ShinyAppBuilder::createDefaultCharacterizationConfig()
   ) %>%
-  addModuleConfig(
-    createDefaultPredictionConfig()
+  ShinyAppBuilder::addModuleConfig(
+    ShinyAppBuilder::createDefaultPredictionConfig()
   ) %>%
-  addModuleConfig(
-    createDefaultCohortMethodConfig()
+  ShinyAppBuilder::addModuleConfig(
+    ShinyAppBuilder::createDefaultCohortMethodConfig()
   ) %>%
-  addModuleConfig(
-    createDefaultSccsConfig()
+  ShinyAppBuilder::addModuleConfig(
+    ShinyAppBuilder::createDefaultSccsConfig()
   ) %>%
   #addModuleConfig(
   #  createDefaultEvidenceSynthesisConfig()
   #) %>%
-  addModuleConfig(
+  ShinyAppBuilder::addModuleConfig(
     ShinyAppBuilder::createDefaultReportConfig()
     )
 
