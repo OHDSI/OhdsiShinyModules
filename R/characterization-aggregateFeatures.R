@@ -33,10 +33,7 @@ characterizationAggregateFeaturesViewer <- function(id) {
   
   shiny::div(
     
-    infoHelperViewer(
-      id = "helper",
-      helpLocation= system.file("characterization-www", "help-OutcomeStratified.html", package = utils::packageName())
-    ),
+
     
     
     # module that does input selection for a single row DF

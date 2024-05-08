@@ -13,10 +13,6 @@ sccsView <- function(id = "sccs-module") {
     title = shiny::span( shiny::icon("people-arrows"), 'Self Controlled Case Series'),
     solidHeader = TRUE,
 
-    infoHelperViewer(
-      id = "helper",
-      helpLocation= system.file("sccs-www", "sccs.html", package = utils::packageName())
-    ),
 
     inputSelectionViewer(ns("input-selection-sccs")),
 
