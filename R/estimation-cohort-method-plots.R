@@ -36,12 +36,10 @@ estimationCmPlotsServer <- function(
 }
 
 estimationCreateCmPlot <- function(data) {
-  print('PLOT')
   data <- data()
   data <- data[!is.na(data$calibratedRr),]
   data$database <- data$cdmSourceAbbreviation
-  
-  print(data)
+
   if(is.null(data$comparator)){
     return(NULL)
   }

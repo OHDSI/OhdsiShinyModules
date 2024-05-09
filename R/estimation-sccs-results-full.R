@@ -730,27 +730,16 @@ estimationGetSccsControlEstimates <- function(
   
   sql <- "
   SELECT ci_95_lb, ci_95_ub, log_rr, se_log_rr, calibrated_ci_95_lb, calibrated_ci_95_ub, calibrated_log_rr,
-  calibrated_se_log_rr, se.true_effect_size
+  calibrated_se_log_rr, exposures_outcome_set_id
   FROM 
   (select * from @schema.@sccs_table_prefixresult 
   WHERE database_id = '@database_id'
   AND analysis_id = @analysis_id
   AND covariate_id = @covariate_id
   ) sr
-  INNER JOIN @schema.@sccs_table_prefixcovariate sc ON (
-    sc.exposures_outcome_set_id = sr.exposures_outcome_set_id AND
-    sc.database_id = sr.database_id AND
-    sc.analysis_id = sr.analysis_id AND
-    sc.covariate_id = sr.covariate_id
-  )
-  INNER JOIN @schema.@sccs_table_prefixexposure se ON (
-    se.exposures_outcome_set_id = sr.exposures_outcome_set_id AND
-    se.era_id = sc.era_id
-  )
-  WHERE sc.era_id = @era_id
   ;
   "
-  connectionHandler$queryDb(
+  res <- connectionHandler$queryDb(
     sql,
     schema = resultDatabaseSettings$schema,
     sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
@@ -760,4 +749,35 @@ estimationGetSccsControlEstimates <- function(
     era_id = eraId,
     snakeCaseToCamelCase = TRUE
   )
+  
+  sql <- "
+  select e.true_effect_size, c.exposures_outcome_set_id 
+   from 
+   @schema.@sccs_table_prefixexposure e
+   INNER JOIN 
+   @schema.@sccs_table_prefixcovariate c
+   on e.era_id = c.era_id 
+   and e.exposures_outcome_set_id = c.exposures_outcome_set_id
+   WHERE e.era_id = @era_id
+   and c.database_id = '@database_id'
+   AND c.analysis_id = @analysis_id
+   AND c.covariate_id = @covariate_id
+  ;
+  "
+  res2 <- connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    database_id = databaseId,
+    covariate_id = covariateId,
+    analysis_id = analysisId,
+    era_id = eraId,
+    snakeCaseToCamelCase = TRUE
+  )
+  # only keep the positive or negative controls (trueEffectSize 1 or >1)
+  res2 <- res2[!is.na(res2$trueEffectSize),]
+  
+  allres <- merge(res, res2, by = 'exposuresOutcomeSetId')
+  
+  return(allres)
 }

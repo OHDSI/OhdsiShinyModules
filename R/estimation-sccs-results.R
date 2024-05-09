@@ -355,7 +355,6 @@ estimationGetSccsResults <- function(connectionHandler,
     snakeCaseToCamelCase = TRUE
   )
   
-  print(results[1,])
   return(results)
 }
 
