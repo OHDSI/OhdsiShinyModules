@@ -20,11 +20,24 @@ if(!dir.exists('./drivers')){
 connectionDetails <- OhdsiShinyModules::getExampleConnectionDetails()
 schema <- "main"
 
+est <- ShinyAppBuilder::createModuleConfig(
+  moduleId = 'estimation', 
+  tabName = 'Estimation', 
+  shinyModulePackage = 'OhdsiShinyModules', 
+  moduleUiFunction = 'estimationViewer', 
+  moduleServerFunction = 'estimationServer', 
+  moduleInfoBoxFile = 'esimationHelperFile()', 
+  moduleIcon = 'list'
+    )
+
 # Specify the config - create a new one and then add 
 # each shiny module you want to include
 config <- initializeModuleConfig() %>%
   addModuleConfig(
     createDefaultAboutConfig()
+  )  %>%
+  addModuleConfig(
+    est 
   )  %>%
   addModuleConfig(
     createDefaultDatasourcesConfig()

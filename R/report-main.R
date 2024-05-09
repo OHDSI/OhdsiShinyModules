@@ -733,7 +733,12 @@ reportServer <- function(
 
 getTandOs <- function(
     connectionHandler,
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    includeCharacterization = T,
+    includeCohortIncidence = T,
+    includeCohortMethod = T,
+    includePrediction = T,
+    includeSccs = T
 ){
   
   # get cohorts
@@ -744,38 +749,68 @@ getTandOs <- function(
     cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
   
-  characterization <- tryCatch(
-    {nrow(connectionHandler$queryDb(
-      'select * from @schema.@c_table_prefixcohort_details limit 1;', 
-      schema = resultDatabaseSettings$schema,
-      c_table_prefix = resultDatabaseSettings$cTablePrefix
-    ))>=0},
-    error = function(e){return(F)}
-  )
-  cohortIncidence <- tryCatch(
-    {nrow(connectionHandler$queryDb(
-      'select * from @schema.@ci_table_prefixincidence_summary limit 1;',
-      schema = resultDatabaseSettings$schema,
-      ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-    ))>=0},
-    error = function(e){return(F)}
-  )
-  cohortMethod <- tryCatch(
-    {nrow(connectionHandler$queryDb(
-      'select * from @schema.@cm_table_prefixtarget_comparator_outcome limit 1;',
-      schema = resultDatabaseSettings$schema,
-      cm_table_prefix = resultDatabaseSettings$cmTablePrefix
-    ))>=0},
-    error = function(e){return(F)}
-  )
-  prediction <- tryCatch(
-    {nrow(connectionHandler$queryDb(
-      'select * from @schema.@plp_table_prefixmodel_designs limit 1;',
-      schema = resultDatabaseSettings$schema,
-      plp_table_prefix = resultDatabaseSettings$plpTablePrefix
-    ))>=0},
-    error = function(e){return(F)}
-  )
+  if(includeCharacterization){
+    characterization <- tryCatch(
+      {nrow(connectionHandler$queryDb(
+        'select * from @schema.@c_table_prefixcohort_details limit 1;', 
+        schema = resultDatabaseSettings$schema,
+        c_table_prefix = resultDatabaseSettings$cTablePrefix
+      ))>=0},
+      error = function(e){return(F)}
+    )
+  } else{
+    characterization <- F
+  }
+    
+  if(includeCohortIncidence){
+    cohortIncidence <- tryCatch(
+      {nrow(connectionHandler$queryDb(
+        'select * from @schema.@ci_table_prefixincidence_summary limit 1;',
+        schema = resultDatabaseSettings$schema,
+        ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+      ))>=0},
+      error = function(e){return(F)}
+    )
+  } else{
+    cohortIncidence <- F
+  }
+  
+  if(includeCohortMethod){
+    cohortMethod <- tryCatch(
+      {nrow(connectionHandler$queryDb(
+        'select * from @schema.@cm_table_prefixtarget_comparator_outcome limit 1;',
+        schema = resultDatabaseSettings$schema,
+        cm_table_prefix = resultDatabaseSettings$cmTablePrefix
+      ))>=0},
+      error = function(e){return(F)}
+    )
+  } else{
+    cohortMethod <- F
+  }
+  
+  if(includePrediction){
+    prediction <- tryCatch(
+      {nrow(connectionHandler$queryDb(
+        'select * from @schema.@plp_table_prefixmodel_designs limit 1;',
+        schema = resultDatabaseSettings$schema,
+        plp_table_prefix = resultDatabaseSettings$plpTablePrefix
+      ))>=0},
+      error = function(e){return(F)}
+    )} else{
+      prediction <- F
+    }
+  
+  if(includeSccs){
+    sccs <- tryCatch(
+      {nrow(connectionHandler$queryDb(
+        'select * from @schema.@sccs_table_prefixexposures_outcome_set limit 1;',
+        schema = resultDatabaseSettings$schema,
+        sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix
+      ))>=0},
+      error = function(e){return(F)}
+    )} else{
+      sccs <- F
+    }
   
   # get T and O pairs
   sql <- "select distinct tid, oid from
@@ -790,14 +825,14 @@ getTandOs <- function(
   }
   
   {@cohort_incidence} ? {
-      union
+  {@characterization}?{union}
     select distinct TARGET_COHORT_DEFINITION_ID as tid, OUTCOME_COHORT_DEFINITION_ID as oid 
     from @schema.@ci_table_prefixincidence_summary
 
   }
   
   {@cohort_method} ? {
-      union
+   {@cohort_incidence | @characterization}?{union}
     select distinct TARGET_ID as tid, OUTCOME_ID as oid 
     from @schema.@cm_table_prefixtarget_comparator_outcome 
     where OUTCOME_OF_INTEREST = 1
@@ -805,13 +840,36 @@ getTandOs <- function(
   }
   
   {@prediction} ? {
-      union
+   {@cohort_method | @cohort_incidence | @characterization}?{union}
+    
     select distinct c1.cohort_definition_id as tid, c2.cohort_definition_id as oid 
     from @schema.@plp_table_prefixmodel_designs md 
     inner join @schema.@plp_table_prefixcohorts c1 
     on c1.cohort_id = md.target_id
     inner join @schema.@plp_table_prefixcohorts c2
     on c2.cohort_id = md.outcome_id
+  }
+  
+  {@sccs} ? {
+   {@cohort_method | @cohort_incidence | @characterization | @prediction}?{union}
+    
+  SELECT distinct 
+  cov.era_id as tid,
+  eos.outcome_id as oid
+  
+  FROM @schema.@sccs_table_prefixdiagnostics_summary ds
+  
+  inner join
+  @schema.@sccs_table_prefixexposures_outcome_set eos
+  on ds.exposures_outcome_set_id = eos.exposures_outcome_set_id
+  
+  INNER JOIN
+  @schema.@sccs_table_prefixcovariate cov
+  on cov.covariate_id = ds.covariate_id and 
+  cov.exposures_outcome_set_id = ds.exposures_outcome_set_id and
+  cov.analysis_id = ds.analysis_id and
+  cov.database_id = ds.database_id
+   
   }
   
   ) temp_t_o
@@ -824,10 +882,12 @@ getTandOs <- function(
     ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix,
     cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
     plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
     characterization = characterization,
     cohort_incidence = cohortIncidence,
     cohort_method = cohortMethod,
-    prediction = prediction
+    prediction = prediction,
+    sccs = sccs
   )
   
   # add cohort names
@@ -873,11 +933,18 @@ getTandOs <- function(
     cg$subsetDefinitionId[is.na(cg$subsetDefinitionId)] <- 0
     
     if(sum(cg$isSubset == 0) > 0 ){
-      parents <- cg[cg$isSubset == 0,]
-      groupedCohorts <- lapply(1:nrow(parents), function(i){
-        x <- parents$cohortDefinitionId[i];
-        
-        if(x %in% unique(res$tid)){
+      # 
+      parentChild <- unique(
+        merge(
+          x = cg[, c('cohortDefinitionId','subsetParent')], 
+          y = res, 
+          by.x = 'cohortDefinitionId',
+          by.y = 'tid'
+        )
+      )
+      parents <- unique(parentChild$subsetParent)
+      groupedCohorts <- lapply(1:length(parents), function(i){
+        x <- parents[i];
           list(
             cohortId = x,
             cohortName = cg$cohortName[cg$cohortDefinitionId == x],
@@ -886,15 +953,13 @@ getTandOs <- function(
               targetName = cg$cohortName[cg$subsetParent == x],
               subsetId = cg$subsetDefinitionId[cg$subsetParent == x]
             )
-          )
-        }else{
-          return(NULL)
-        };
+          );
       })
-      names(groupedCohorts) <- parents$cohortName
+      names(groupedCohorts) <- unlist(lapply(groupedCohorts, function(x){x$cohortName}))
     }}
   
   # get comparators
+  cs <- NULL
   if(cohortMethod){
     comps <- connectionHandler$queryDb(
       'select distinct target_id, comparator_id from 
