@@ -46,7 +46,7 @@ estimationSccsResultsServer <- function(
       }
       )
     
-    data <- shiny::reactive({
+    sccsData <- shiny::reactive({
       estimationGetSccsResults(
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings,
@@ -55,7 +55,23 @@ estimationSccsResultsServer <- function(
       )
     })
     
-    # add evidence synth if exists
+    # add evidence synth if existsesData <- shiny::reactive({
+    esData <- shiny::reactive({
+      tryCatch(
+        {
+          estimationGetSccsEsResults(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            exposureIds = targetIds,
+            outcomeIds = outcomeId
+          )
+        }, error = function(e){print('SCCS ES error');return(NULL)}
+      )
+    })
+  
+  data <- shiny::reactive({
+    rbind(sccsData(), esData())
+  })
     
     resultTableOutputs <- resultTableServer(
       id = "resultSummaryTable",
@@ -66,7 +82,7 @@ estimationSccsResultsServer <- function(
     
     selectedRow <- shiny::reactiveVal(value = NULL)
     shiny::observeEvent(resultTableOutputs$actionCount(), {
-      if(resultTableOutputs$actionType() == 'results'){
+      if(resultTableOutputs$actionType() == 'results'){ # TODO only work if non meta
         selectedRow(data()[resultTableOutputs$actionIndex()$index,])
         shiny::updateTabsetPanel(session, "resultPanel", selected = "Results")
       }
@@ -81,7 +97,7 @@ estimationSccsResultsServer <- function(
     )
     
     # return data for plot server
-    
+    return(data)
   }
   )
 }
@@ -97,6 +113,7 @@ estimationGetSccsResultSummaryTableColDef <- function(){
     covariateAnalysisId = reactable::colDef(show = F),
     analysisId = reactable::colDef(show = F),
     outcomeId = reactable::colDef(show = F),
+    indicationId = reactable::colDef(show = F),
     outcomeSubjects = reactable::colDef(show = F),
     outcomeEvents = reactable::colDef(show = F),
     outcomeObservationPeriods = reactable::colDef(show = F),
@@ -107,6 +124,7 @@ estimationGetSccsResultSummaryTableColDef <- function(){
     observedDays = reactable::colDef(show = F),
     mdrr = reactable::colDef(show = F),
     unblind = reactable::colDef(show = F),
+    exposuresOutcomeSetId = reactable::colDef(show = F),
     
     logRr = reactable::colDef(show = F),
     seLogRr = reactable::colDef(show = F),
@@ -128,6 +146,22 @@ estimationGetSccsResultSummaryTableColDef <- function(){
         "Data source", 
         "Data source"
       )),
+    target = reactable::colDef( 
+      filterable = TRUE,
+      header = withTooltip(
+        "Target", 
+        "Target Cohort"
+      ),
+      minWidth = 300
+    ),
+    indication = reactable::colDef( 
+      filterable = TRUE,
+      header = withTooltip(
+        "Indication", 
+        "Target cohort is nested in this indication"
+      ),
+      minWidth = 300
+    ),
     outcome = reactable::colDef( 
       filterable = TRUE,
       header = withTooltip(
@@ -212,9 +246,6 @@ estimationGetSccsResults <- function(connectionHandler,
                            ) {
   exposureIds <- exposureIds()
   outcomeIds <- outcomeIds()
-  print('SCCS main')
-  print(exposureIds)
-  print(outcomeIds )
   
   sql <- "
   SELECT
@@ -229,7 +260,11 @@ estimationGetSccsResults <- function(connectionHandler,
     a.description,
     eos.outcome_id,
     cg1.cohort_name as outcome,
-    
+    cg2.cohort_name as target,
+    cg3.cohort_name as indication,
+    eos.nesting_cohort_id as indication_id,
+    eos.exposures_outcome_set_id,
+      
   sr.outcome_subjects,
   sr.outcome_events,
   sr.outcome_observation_periods,
@@ -293,6 +328,14 @@ estimationGetSccsResults <- function(connectionHandler,
   inner join 
   @schema.@cg_table_prefixcohort_definition cg1
 	on cg1.cohort_definition_id = eos.outcome_id
+	
+	inner join
+  @schema.@cg_table_prefixcohort_definition as cg2
+  on cg2.cohort_definition_id = sc.era_id
+  
+   left join
+   @schema.@cg_table_prefixcohort_definition as cg3
+   on eos.nesting_cohort_id = cg3.cohort_definition_id
   
   WHERE 
   eos.outcome_id IN (@outcome_ids)
@@ -312,7 +355,119 @@ estimationGetSccsResults <- function(connectionHandler,
     snakeCaseToCamelCase = TRUE
   )
   
+  print(results[1,])
   return(results)
 }
 
  
+estimationGetSccsEsResults <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    exposureIds,
+    outcomeIds
+) {
+  
+  exposureIds <- exposureIds()
+  outcomeIds <- outcomeIds()
+  
+sql <- "select distinct
+  ev.evidence_synthesis_description as database_name,
+  0 as database_id,
+  cov.covariate_id, -- exists?
+  cov.covariate_name,
+  cov.era_id, 
+  0 as covariate_analysis_id,
+  esr.analysis_id, 
+  a.description,
+  eos.outcome_id, 
+  c3.cohort_name as outcome,
+  c1.cohort_name as target,
+  c4.cohort_name as indication,
+  eos.nesting_cohort_id as indication_id,
+  eos.exposures_outcome_set_id,
+  esr.outcome_subjects,
+  esr.outcome_events,
+  esr.outcome_observation_periods,
+  esr.covariate_subjects, 
+  esr.covariate_days,
+  esr.covariate_eras,
+  esr.covariate_outcomes,
+  esr.observed_days,
+  esr.rr,
+  esr.ci_95_lb,
+  esr.ci_95_ub,
+  esr.p,
+  esr.log_rr,
+  esr.se_log_rr,
+  esr.calibrated_rr, 
+  esr.calibrated_ci_95_lb, 
+  esr.calibrated_ci_95_ub,  
+  esr.calibrated_p,
+  esr.calibrated_log_rr, 
+  esr.calibrated_se_log_rr,
+  NULL as llr,
+  esd.mdrr,
+  esd.unblind as unblind
+  
+  from 
+   @schema.@es_table_prefixsccs_result as esr
+   inner join 
+   @schema.@sccs_table_prefixexposures_outcome_set as eos
+   on 
+   esr.exposures_outcome_set_id = eos.exposures_outcome_set_id
+   
+   inner join
+   @schema.@sccs_table_prefixcovariate as cov
+   on 
+   esr.covariate_id = cov.covariate_id and
+   esr.analysis_id = cov.analysis_id and
+   esr.exposures_outcome_set_id = cov.exposures_outcome_set_id
+   
+   inner join
+   
+   @schema.@es_table_prefixsccs_diagnostics_summary as esd
+   on
+   esr.analysis_id = esd.analysis_id and 
+   esr.exposures_outcome_set_id = esd.exposures_outcome_set_id and 
+   esr.covariate_id = esd.covariate_id and
+   esr.evidence_synthesis_analysis_id = esd.evidence_synthesis_analysis_id
+   
+   inner join
+   @schema.@cg_table_prefixcohort_definition as c1
+   on c1.cohort_definition_id = cov.era_id
+
+   inner join
+   @schema.@cg_table_prefixcohort_definition as c3
+   on c3.cohort_definition_id = eos.outcome_id
+   
+   inner join
+   @schema.@sccs_table_prefixanalysis as a
+   on a.analysis_id = esr.analysis_id
+   
+   inner join
+   @schema.@es_table_prefixanalysis as ev
+   on ev.evidence_synthesis_analysis_id = esr.evidence_synthesis_analysis_id
+   
+  left join
+   @schema.@cg_table_prefixcohort_definition as c4
+   on eos.nesting_cohort_id = c4.cohort_definition_id
+   
+   where 
+   esr.calibrated_rr != 0 and
+   esd.unblind = 1 and
+   cov.era_id in (@target_ids) and
+   eos.outcome_id in (@outcome_id)
+  ;"
+
+result <- connectionHandler$queryDb(
+  sql = sql,
+  schema = resultDatabaseSettings$schema,
+  es_table_prefix = resultDatabaseSettings$esTablePrefix,
+  sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+  cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+  outcome_id = paste0(outcomeIds, collapse = ','),
+  target_ids = paste0(exposureIds, collapse = ',')
+)
+
+return(result)
+}

@@ -1,33 +1,33 @@
-estimationCmPlotsViewer <- function(id=1) {
+estimationSccsPlotsViewer <- function(id=1) {
   ns <- shiny::NS(id)
   shinyWidgets::addSpinner(
-    shiny::plotOutput(ns('esCohortMethodPlot')),
+    output = shiny::plotOutput(ns('esSccsPlot')), 
     spin = 'rotating-plane'
   )
 }
 
 
-estimationCmPlotsServer <- function(
+estimationSccsPlotsServer <- function(
     id, 
     connectionHandler,
     resultDatabaseSettings = list(port = 1),
-    cmData
+    sccsData
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
       height <- shiny::reactive({
-        if(is.null(cmData()$target)){
+        if(is.null(sccsData()$indication)){
           return(100)
         }
-        length(unique(cmData()$target))*250 + 250
+        length(unique(sccsData()$indication))*200 + 200
       })
       
-      output$esCohortMethodPlot <- shiny::renderPlot(
-        estimationCreateCmPlot(
-          data = cmData
-        ), 
+      output$esSccsPlot <- shiny::renderPlot(
+        estimationCreateSccsPlot(
+          data = sccsData
+        ),
         height = height
       )
       
@@ -35,33 +35,33 @@ estimationCmPlotsServer <- function(
   )
 }
 
-estimationCreateCmPlot <- function(data) {
-  print('PLOT')
+estimationCreateSccsPlot <- function(data) {
   data <- data()
   data <- data[!is.na(data$calibratedRr),]
-  data$database <- data$cdmSourceAbbreviation
+  data$database <- data$databaseName
+  data$type <- data$covariateName
+  data$indication[is.null(data$indication)] <- 'no indication'
+  data$indication[is.na(data$indication)] <- 'no indication'
   
-  print(data)
-  if(is.null(data$comparator)){
+  if(is.null(data)){
     return(NULL)
   }
   
-  
+  # change the description to add at bottom
   renameDf <- data.frame(
     shortName = paste0(
-      1:length(unique(data$comparator)),
+      1:length(unique(data$description)),
       ') ', 
-      substring(sort(unique(data$comparator)), 1,50),
+      substring(sort(unique(data$description)), 1, 15),
       '...'
     ),
-    comparator = sort(unique(data$comparator))
+    description = sort(unique(data$description))
   )
   
-  
   data <- merge(
-    data, 
-    renameDf,
-    by = "comparator"
+    x = data,
+    y = renameDf, 
+    by = 'description'
   )
   
   # make sure bayesian is at top
@@ -77,9 +77,11 @@ estimationCreateCmPlot <- function(data) {
   
   breaks <- c(0.1, 0.25, 0.5, 1, 2, 4, 6, 8)
   
+  # TODO loop over target-indications pairs
+  
   ### Add table above the graph
-  renameDf$comparator <- sapply(
-    strwrap(renameDf$comparator, width = 150, simplify = FALSE), 
+  renameDf$description <- sapply(
+    strwrap(renameDf$description, width = 50, simplify = FALSE), 
     paste, 
     collapse = "\n"
   )
@@ -95,12 +97,11 @@ estimationCreateCmPlot <- function(data) {
   )
   plotList <- list(tbl) # adding table first
   
-  for(target in unique(data$target)){ # per targets
-    
-  title <- sprintf("%s", target)
-  plotList[[length(plotList) + 1]] <- ggplot2::ggplot(
-    data = data %>% dplyr::filter(.data$target == !!target),
-    ggplot2::aes(x = .data$calibratedRr, y = .data$shortName)) +
+  for(indication in unique(data$indication)){ # TODO do indication + target combo?
+  plotList[[length(plotList)+1]] <- ggplot2::ggplot(
+    data = data %>% dplyr::filter(.data$indication == !!indication),  #restrict to indication
+    ggplot2::aes(x = .data$calibratedRr, y = .data$type)
+  ) +
     ggplot2::geom_vline(xintercept = 1, size = 0.5) +
     ggplot2::geom_point(color = "#000088", alpha = 0.8) +
     ggplot2::geom_errorbarh(
@@ -113,14 +114,14 @@ estimationCreateCmPlot <- function(data) {
       alpha = 0.8
     ) +
     ggplot2::scale_x_log10(
-      "Effect size (Hazard Ratio)", 
+      "Effect size (Incidence Rate Ratio)", 
       breaks = breaks, 
       labels = breaks
     ) +
     
     # shade the bayesian 
     ggplot2::geom_rect(
-      data =  metadata %>% dplyr::filter(.data$target == !!target),
+      data =  metadata  %>% dplyr::filter(.data$indication == !!indication),
       ggplot2::aes(fill = .data$database),
       xmin = -Inf,
       xmax = Inf,
@@ -130,20 +131,20 @@ estimationCreateCmPlot <- function(data) {
     ) +
     
     ggplot2::coord_cartesian(xlim = c(0.1, 10)) + 
-    ggplot2::facet_grid(.data$database ~ .data$description)  +
-    ggplot2::ggtitle(title) +
+    ggplot2::facet_grid(.data$database ~ .data$shortName)  +
+    ggplot2::ggtitle(indication) +
     ggplot2::theme(
       axis.title.y = ggplot2::element_blank(),
       panel.grid.minor = ggplot2::element_blank(),
-      strip.text.y.right = ggplot2::element_text(angle = 0), 
+      strip.text.y.right = ggplot2::element_text(angle = 0),
       legend.position = "none"
-    ) 
-  }
+    )
+}
   
   plot <- do.call(
     gridExtra::grid.arrange, 
     list(grobs = plotList, ncol =1)
-  )
+    )
   
   return(plot)
 }

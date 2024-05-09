@@ -16,11 +16,15 @@ estimationSccsFullResultViewer <- function(id) {
         shiny::tabPanel(
           "Power",
           shiny::div(shiny::strong("Table 1."), "For each variable of interest: the number of cases (people with at least one outcome), the number of years those people were observed, the number of outcomes, the number of subjects with at least one exposure, the number of patient-years exposed, the number of outcomes while exposed, and the minimum detectable relative risk (MDRR)."),
-          resultTableViewer(ns('powerTable'))
+          shinyWidgets::addSpinner(
+            resultTableViewer(ns('powerTable'))
+          )
         ),
         shiny::tabPanel(
           "Attrition",
-          shiny::plotOutput(ns("attritionPlot"), width = 600, height = 500),
+          shinyWidgets::addSpinner(
+            shiny::plotOutput(ns("attritionPlot"), width = 600, height = 500)
+            ),
           shiny::div(
             shiny::strong("Figure 1."),
             "Attrition, showing the number of cases (number of subjects with at least one outcome), and number of outcomes (number of ocurrences of the outcome) after each step in the study.")
@@ -39,17 +43,23 @@ estimationSccsFullResultViewer <- function(id) {
             ),
             shiny::tabPanel(
               "Age spline",
-              shiny::plotOutput(ns("ageSplinePlot")),
+              shinyWidgets::addSpinner(
+                shiny::plotOutput(ns("ageSplinePlot"))
+                ),
               shiny::div(shiny::strong("Figure 2a."), "Spline fitted for age.")
             ),
             shiny::tabPanel(
               "Season spline",
-              shiny::plotOutput(ns("seasonSplinePlot")),
+              shinyWidgets::addSpinner(
+                shiny::plotOutput(ns("seasonSplinePlot"))
+                ),
               shiny::div(shiny::strong("Figure 2b."), "Spline fitted for season")
             ),
             shiny::tabPanel(
               "Calendar time spline",
-              shiny::plotOutput(ns("calendarTimeSplinePlot")),
+              shinyWidgets::addSpinner(
+                shiny::plotOutput(ns("calendarTimeSplinePlot"))
+                ),
               shiny::div(shiny::strong("Figure 2c."), "Spline fitted for calendar time")
             )
           )
@@ -57,12 +67,16 @@ estimationSccsFullResultViewer <- function(id) {
         shiny::tabPanel(
           "Spanning",
           shiny::radioButtons(ns("spanningType"), label = "Type:", choices = c("Age", "Calendar time")),
-          shiny::plotOutput(ns("spanningPlot")),
+          shinyWidgets::addSpinner(
+            shiny::plotOutput(ns("spanningPlot"))
+            ),
           shiny::div(shiny::strong("Figure 3."), "Number of subjects observed for 3 consecutive months, centered on the indicated month.")
         ),
         shiny::tabPanel(
           "Time trend",
-          shiny::plotOutput(ns("timeTrendPlot"), height = 600),
+          shinyWidgets::addSpinner(
+            shiny::plotOutput(ns("timeTrendPlot"), height = 600)
+            ),
           shiny::div(
             shiny::strong("Figure 4."),
             "The ratio of observed to expected outcomes per month. The expected count is computing either assuming a constant rate (bottom plot) or adjusting for calendar time, seasonality, and / or age, as specified in the model (top plot)."
@@ -70,7 +84,9 @@ estimationSccsFullResultViewer <- function(id) {
         ),
         shiny::tabPanel(
           "Time to event",
-          shiny::plotOutput(ns("timeToEventPlot")),
+          shinyWidgets::addSpinner(
+            shiny::plotOutput(ns("timeToEventPlot"))
+            ),
           shiny::div(
             shiny::strong("Figure 5."),
             "The number of events and subjects observed per week relative to the start of the first exposure (indicated by the thick vertical line)."
@@ -78,13 +94,17 @@ estimationSccsFullResultViewer <- function(id) {
         ),
         shiny::tabPanel(
           "Event dep. observation",
-          shiny::plotOutput(ns("eventDepObservationPlot")),
+          shinyWidgets::addSpinner(
+            shiny::plotOutput(ns("eventDepObservationPlot"))
+            ),
           shiny::div(shiny::strong("Figure 6."), "Histograms for the number of months between the first occurrence of the outcome and the end of observation, stratified by whether the end of observation was censored (inferred as not being equal to the end of database time), or uncensored (inferred as having the subject still be observed at the end of database time)."
           )
         ),
         shiny::tabPanel(
           "Systematic error",
-          shiny::plotOutput(ns("controlEstimatesPlot")),
+          shinyWidgets::addSpinner(
+            shiny::plotOutput(ns("controlEstimatesPlot"))
+            ),
           shiny::div(shiny::strong("Figure 7."), "Systematic error. Effect size estimates for the negative controls (true incidence rate ratio = 1)
                                                                                     and positive controls (true incidence rate ratio > 1), before and after calibration. Estimates below the diagonal dashed
                                                                                     lines are statistically significant (alpha = 0.05) different from the true effect size. A well-calibrated
@@ -114,15 +134,18 @@ estimationSccsFullResultServer <- function(
       shiny::updateTabsetPanel(session, "fullTabsetPanel", selected = "Power")
     })
       
+      # show what was selected
       modifiedRow <- shiny::reactive({
         selectedRow() %>%
           dplyr::select(
             "covariateName",
+            'indication',
             "outcome",
             "description",
             "databaseName"
           ) %>%
           dplyr::rename(
+            'Indication' = .data$indication,
             'Outcome' = .data$outcome,
             'Analysis' = .data$description,
             'Database' = .data$databaseName
@@ -218,13 +241,13 @@ estimationSccsFullResultServer <- function(
         if (is.null(row)) {
           return(NULL)
         } else {
-          attrition <- getSccsAttrition(
+          attrition <- estimationGetSccsAttrition(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            outcomeId = row$outcomeId,
             databaseId = row$databaseId,
             analysisId = row$analysisId,
-            covariateId = row$covariateId
+            covariateId = row$covariateId,
+            exposuresOutcomeSetId = row$exposuresOutcomeSetId
           )
           drawAttritionDiagram(attrition)
         }
@@ -235,11 +258,11 @@ estimationSccsFullResultServer <- function(
         if (is.null(row)) {
           return(NULL)
         } else {
-          resTargetTable <- getSccsModel(
+          resTargetTable <- estimationGetSccsModel(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
             exposureId = row$eraId,
-            outcomeId = row$outcomeId,
+            exposuresOutcomeSetId = row$exposuresOutcomeSetId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
           )
@@ -261,11 +284,11 @@ estimationSccsFullResultServer <- function(
         if (is.null(row)) {
           return(NULL)
         } else {
-          timeTrend <- getSccsTimeTrend(
+          timeTrend <- estimationGetSccsTimeTrend(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
             exposureId = row$eraId,
-            outcomeId = row$outcomeId,
+            exposuresOutcomeSetId = row$exposuresOutcomeSetId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
           )
@@ -283,10 +306,10 @@ estimationSccsFullResultServer <- function(
         if (is.null(row)) {
           return(NULL)
         } else {
-          timeToEvent <- getSccsTimeToEvent(
+          timeToEvent <- estimationGetSccsTimeToEvent(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            outcomeId = row$outcomeId,
+            exposuresOutcomeSetId = row$exposuresOutcomeSetId,
             exposureId = row$eraId,
             covariateId = row$covariateId,
             databaseId = row$databaseId,
@@ -301,10 +324,10 @@ estimationSccsFullResultServer <- function(
         if (is.null(row)) {
           return(NULL)
         } else {
-          eventDepObservation <- getSccsEventDepObservation(
+          eventDepObservation <- estimationGetSccsEventDepObservation(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            outcomeId = row$outcomeId,
+            exposuresOutcomeSetId = row$exposuresOutcomeSetId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
           )
@@ -318,19 +341,19 @@ estimationSccsFullResultServer <- function(
           return(NULL)
         } else {
           if (input$spanningType == "Age") {
-            ageSpanning <- getSccsAgeSpanning(
+            ageSpanning <- estimationGetSccsAgeSpanning(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
-              outcomeId = row$outcomeId,
+              exposuresOutcomeSetId = row$exposuresOutcomeSetId,
               databaseId = row$databaseId,
               analysisId = row$analysisId
             )
             plotSpanning(ageSpanning, type = "age")
           } else {
-            calendarTimeSpanning <- getSccsCalendarTimeSpanning(
+            calendarTimeSpanning <- estimationGetSccsCalendarTimeSpanning(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
-              outcomeId = row$outcomeId,
+              exposuresOutcomeSetId = row$exposuresOutcomeSetId,
               databaseId = row$databaseId,
               analysisId = row$analysisId
             )
@@ -345,10 +368,10 @@ estimationSccsFullResultServer <- function(
         if (is.null(row)) {
           return(NULL)
         } else {
-          ageSpline <- getSccsSpline(
+          ageSpline <- estimationGetSccsSpline(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            outcomeId = row$outcomeId,
+            exposuresOutcomeSetId = row$exposuresOutcomeSetId,
             databaseId = row$databaseId,
             analysisId = row$analysisId,
             splineType = "age"
@@ -365,10 +388,10 @@ estimationSccsFullResultServer <- function(
         if (is.null(row)) {
           return(NULL)
         } else {
-          seasonSpline <- getSccsSpline(
+          seasonSpline <- estimationGetSccsSpline(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            outcomeId = row$outcomeId,
+            exposuresOutcomeSetId = row$exposuresOutcomeSetId,
             databaseId = row$databaseId,
             analysisId = row$analysisId,
             splineType = "season"
@@ -385,10 +408,10 @@ estimationSccsFullResultServer <- function(
         if (is.null(row)) {
           return(NULL)
         } else {
-          calendarTimeSpline <- getSccsSpline(
+          calendarTimeSpline <- estimationGetSccsSpline(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            outcomeId = row$outcomeId,
+            exposuresOutcomeSetId = row$exposuresOutcomeSetId,
             databaseId = row$databaseId,
             analysisId = row$analysisId,
             splineType = "calendar time"
@@ -405,12 +428,13 @@ estimationSccsFullResultServer <- function(
         if (is.null(row)) {
           return(NULL)
         } else {
-          controlEstimates <- getSccsControlEstimates(
+          controlEstimates <- estimationGetSccsControlEstimates(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
             covariateId = row$covariateId,
             databaseId = row$databaseId,
-            analysisId = row$analysisId
+            analysisId = row$analysisId,
+            eraId = row$eraId
           )
           plotControlEstimates(controlEstimates)
         }
@@ -421,7 +445,319 @@ estimationSccsFullResultServer <- function(
 }
 
 
+estimationGetSccsAttrition <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    databaseId,
+    analysisId,
+    covariateId,
+    exposuresOutcomeSetId
+) {
+  sql <- "
+  SELECT *
+  FROM @schema.@sccs_table_prefixattrition
+
+  WHERE database_id = '@database_id'
+  AND analysis_id = @analysis_id
+  AND exposures_outcome_set_id = @exposures_outcome_set_id
+  AND covariate_id = @covariate_id
+  "
+  connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    database_id = databaseId,
+    analysis_id = analysisId,
+    covariate_id = covariateId,
+    exposures_outcome_set_id = exposuresOutcomeSetId,
+    snakeCaseToCamelCase = TRUE
+  )
+}
+
+
+estimationGetSccsModel <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    exposuresOutcomeSetId,
+    databaseId,
+    analysisId,
+    exposureId
+) {
+  sql <- "
+  SELECT
+    CASE
+       WHEN era.era_name IS NULL THEN sc.covariate_name
+       ELSE CONCAT(sc.covariate_name, ' : ', era.era_name)
+    END as covariate_name,
+    scr.covariate_id, scr.rr, scr.ci_95_lb, scr.ci_95_ub
+  FROM @schema.@sccs_table_prefixcovariate_result scr
+  INNER JOIN @schema.@sccs_table_prefixcovariate sc ON (
+    sc.exposures_outcome_set_id = scr.exposures_outcome_set_id AND
+    sc.database_id = scr.database_id AND
+    sc.analysis_id = scr.analysis_id AND
+    sc.covariate_id = scr.covariate_id
+  )
+  LEFT JOIN @schema.@cg_table_prefixcohort_definition cd 
+  ON cd.cohort_definition_id = sc.era_id
+  LEFT JOIN @schema.@sccs_table_prefixera era ON (
+    era.exposures_outcome_set_id = scr.exposures_outcome_set_id AND
+    era.database_id = scr.database_id AND
+    era.analysis_id = scr.analysis_id AND
+    era.era_id = sc.era_id
+  )
+
+  WHERE scr.database_id = '@database_id'
+  AND scr.analysis_id = @analysis_id
+  AND  sc.era_id = @exposure_id
+  AND scr.rr IS NOT NULL
+  AND scr.exposures_outcome_set_id = @exposures_outcome_set_id
+  "
+  
+  connectionHandler$queryDb(sql,
+                            schema = resultDatabaseSettings$schema,
+                            sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+                            cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+                            database_id = databaseId,
+                            analysis_id = analysisId,
+                            exposure_id = exposureId,
+                            exposures_outcome_set_id = exposuresOutcomeSetId,
+                            snakeCaseToCamelCase = TRUE)
+}
+
+
+estimationGetSccsTimeTrend <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    exposureId,
+    exposuresOutcomeSetId,
+    databaseId,
+    analysisId
+) {
+  sql <- "
+  SELECT *
+  FROM @schema.@sccs_table_prefixtime_trend
+  WHERE database_id = '@database_id'
+  AND analysis_id = @analysis_id
+  AND exposures_outcome_set_id = @exposures_outcome_set_id
+  "
+  connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    database_id = databaseId,
+    analysis_id = analysisId,
+    exposures_outcome_set_id = exposuresOutcomeSetId,
+    snakeCaseToCamelCase = TRUE
+  )
+}
+
+estimationGetSccsTimeToEvent <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    exposureId,
+    exposuresOutcomeSetId,
+    covariateId,
+    databaseId,
+    analysisId
+) {
+  
+  sql <- "
+  SELECT pre_exposure_p
+  FROM @schema.@sccs_table_prefixdiagnostics_summary
+  
+  WHERE database_id = '@database_id'
+  AND covariate_id  = @covariate_id 
+  AND analysis_id = @analysis_id
+  AND exposures_outcome_set_id = @exposures_outcome_set_id
+  "
+  
+  p <- connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    database_id = databaseId,
+    analysis_id = analysisId,
+    exposures_outcome_set_id = exposuresOutcomeSetId,
+    covariate_id = covariateId,
+    snakeCaseToCamelCase = TRUE
+  )
+  
+  sql <- "
+  SELECT *, @p as p
+  FROM @schema.@sccs_table_prefixtime_to_event
+
+  WHERE database_id = '@database_id'
+  AND era_id  = @exposure_id 
+  AND analysis_id = @analysis_id
+  AND exposures_outcome_set_id = @exposures_outcome_set_id;
+  "
+  
+  timeToEvent <- connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    database_id = databaseId,
+    analysis_id = analysisId,
+    exposures_outcome_set_id = exposuresOutcomeSetId,
+    exposure_id = exposureId,
+    p = ifelse(is.null(p$preExposureP), -1, p$preExposureP),
+    snakeCaseToCamelCase = TRUE
+  )
+  
+  return(timeToEvent)
+}
+
+
+estimationGetSccsEventDepObservation <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    exposuresOutcomeSetId,
+    databaseId,
+    analysisId
+) {
+  sql <- "
+  SELECT *
+  FROM @schema.@sccs_table_prefixevent_dep_observation
+  
+  WHERE database_id = '@database_id'
+  AND analysis_id = @analysis_id
+  AND exposures_outcome_set_id = @exposures_outcome_set_id;
+  "
+  connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    database_id = databaseId,
+    analysis_id = analysisId,
+    exposures_outcome_set_id = exposuresOutcomeSetId,
+    snakeCaseToCamelCase = TRUE
+  )
+}
+
+
+estimationGetSccsAgeSpanning <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    exposuresOutcomeSetId,
+    databaseId,
+    analysisId
+) {
+  sql <- "
+  SELECT *
+  FROM @schema.@sccs_table_prefixage_spanning
+  
+  WHERE database_id = '@database_id'
+  AND analysis_id = @analysis_id
+  AND exposures_outcome_set_id = @exposures_outcome_set_id
+  "
+  connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    database_id = databaseId,
+    analysis_id = analysisId,
+    exposures_outcome_set_id = exposuresOutcomeSetId,
+    snakeCaseToCamelCase = TRUE
+  )
+}
+
+estimationGetSccsCalendarTimeSpanning <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    exposuresOutcomeSetId,
+    databaseId,
+    analysisId
+) {
+  sql <- "
+  SELECT *
+  FROM @schema.@sccs_table_prefixcalendar_time_spanning
+  
+  WHERE database_id = '@database_id'
+  AND analysis_id = @analysis_id
+  AND exposures_outcome_set_id = @exposures_outcome_set_id
+  "
+  connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    database_id = databaseId,
+    analysis_id = analysisId,
+    exposures_outcome_set_id = exposuresOutcomeSetId,
+    snakeCaseToCamelCase = TRUE
+  )
+}
+
+estimationGetSccsSpline <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    exposuresOutcomeSetId,
+    databaseId,
+    analysisId,
+    splineType = "age"
+) {
+  
+  sql <- "
+  SELECT *
+  FROM @schema.@sccs_table_prefixspline 
+
+  WHERE database_id = '@database_id'
+  AND analysis_id = @analysis_id
+  AND exposures_outcome_set_id = @exposures_outcome_set_id
+  AND spline_type = '@spline_type';
+  "
+  connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    database_id = databaseId,
+    spline_type = splineType,
+    analysis_id = analysisId,
+    exposures_outcome_set_id = exposuresOutcomeSetId,
+    snakeCaseToCamelCase = TRUE
+  )
+}
 
 
 
-
+estimationGetSccsControlEstimates <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    databaseId,
+    analysisId,
+    covariateId,
+    eraId
+) {
+  
+  sql <- "
+  SELECT ci_95_lb, ci_95_ub, log_rr, se_log_rr, calibrated_ci_95_lb, calibrated_ci_95_ub, calibrated_log_rr,
+  calibrated_se_log_rr, se.true_effect_size
+  FROM 
+  (select * from @schema.@sccs_table_prefixresult 
+  WHERE database_id = '@database_id'
+  AND analysis_id = @analysis_id
+  AND covariate_id = @covariate_id
+  ) sr
+  INNER JOIN @schema.@sccs_table_prefixcovariate sc ON (
+    sc.exposures_outcome_set_id = sr.exposures_outcome_set_id AND
+    sc.database_id = sr.database_id AND
+    sc.analysis_id = sr.analysis_id AND
+    sc.covariate_id = sr.covariate_id
+  )
+  INNER JOIN @schema.@sccs_table_prefixexposure se ON (
+    se.exposures_outcome_set_id = sr.exposures_outcome_set_id AND
+    se.era_id = sc.era_id
+  )
+  WHERE sc.era_id = @era_id
+  ;
+  "
+  connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    database_id = databaseId,
+    covariate_id = covariateId,
+    analysis_id = analysisId,
+    era_id = eraId,
+    snakeCaseToCamelCase = TRUE
+  )
+}

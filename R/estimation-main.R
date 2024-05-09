@@ -128,7 +128,8 @@ estimationServer <- function(
         c("SCCS", "estimationSccsDiagnosticViewer", "estimationSccsDiagnostic", "diagnosticsPanel", "SCCS"),
         c("Cohort Method", "estimationCmResultsViewer", "estimationCmResults", "resultsPanel", "Cohort Method Table"),
         c("Cohort Method", "estimationCmPlotsViewer", "estimationCmPlots", "resultsPanel", "Cohort Method Plot"),
-        c("SCCS", "estimationSccsResultsViewer", "estimationSccsResults", "resultsPanel", "SCCS Table")
+        c("SCCS", "estimationSccsResultsViewer", "estimationSccsResults", "resultsPanel", "SCCS Table"),
+        c("SCCS", "estimationSccsPlotsViewer", "estimationSccsPlots", "resultsPanel", "SCCS Plot")
       )
       selectValD <- T
       selectValR <- T
@@ -324,12 +325,19 @@ estimationServer <- function(
         outcomeId = outcomeId
       )
       
-      estimationSccsResultsServer(
+      sccsData <- estimationSccsResultsServer(
         id = 'estimationSccsResults', 
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings,
         targetIds = targetIds,
         outcomeId = outcomeId
+      )
+      
+      estimationSccsPlotsServer(
+        id = 'estimationSccsPlots', 
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings,
+        sccsData = sccsData
       )
       
     }
