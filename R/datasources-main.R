@@ -118,7 +118,13 @@ datasourcesServer <- function(
           Visits = dplyr::case_when(
             Visits == "" | Visits == " " ~ "Not Available",
             .default = Visits
-          )
+          ),
+          Visits = gsub("<br>", ",", Visits),
+          Visits = sapply(strsplit(Visits, ",", fixed = TRUE), function(x) 
+            paste(unique(x), collapse = ", ")),
+          Source.Vocabularies = gsub("<br>", ",", Source.Vocabularies),
+          Source.Vocabularies = sapply(strsplit(Source.Vocabularies, ",", fixed = TRUE), function(x) 
+            paste(unique(x), collapse = ", "))
         ) %>%
         dplyr::rename(datasource = Data.Source,
                       #cdmSourceName = cdmSourceAbbreviation,
@@ -128,7 +134,7 @@ datasourcesServer <- function(
                       sourceVocabularies = Source.Vocabularies) %>%
         dplyr::add_row(datasource = "IQVIA Ambulatory EMR",
                        cdmSourceAbbreviation = "AMBULATORY EMR",
-                       sourceCountry = "NotAv",
+                       sourceCountry = "US",
                        dataProvenance = "NotAv",
                        visits = "NotAv",
                        sourceVocabularies = "NotAv"
@@ -208,6 +214,16 @@ datasourcesServer <- function(
       
       
       
+      
+      
+      
+      
+      
+      
+      
+      
+      
+
     })
 }
 
