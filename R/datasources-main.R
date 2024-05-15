@@ -103,78 +103,104 @@ datasourcesServer <- function(
       )
       })
       
-  # # defining column definitions
-  #     datasourcesColDefs <- createCustomColDefList(
-  #       rawColNames = colnames(datasourcesData),
-  #       niceColNames = c("DB Name",
-  #                        "DB Abbreviation",
-  #                        "DB Holder",
-  #                        "DB Description",
-  #                        "DB Description Link",
-  #                        "DB ETL Link",
-  #                        "Source Data Release Date",
-  #                        "CDM DB Release Date",
-  #                        "CDM Version",
-  #                        "Vocabulary Version",
-  #                        "DB ID",
-  #                        "Max Obs. Period End Date"),
-  #       tooltipText = c("Name of the database (DB)",
-  #                       "Abbreviation for the database (DB)",
-  #                       "Holder of the database (DB)",
-  #                       "Description of the database (DB)",
-  #                       "HTML link to the database (DB) description",
-  #                       "HTML link to the ETL for the database (DB)",
-  #                       "Date the source data was released",
-  #                       "Date the CDM database (DB) was accessible",
-  #                       "Version of the common data model (CDM)",
-  #                       "Version of the vocabulary used in the database (DB)",
-  #                       "Unique identifier (ID) of the database (DB)",
-  #                       "Maximum/Latest observation period date in the database (DB)"),
-  #       customColDefOptions = list(
-  #         list(NULL),
-  #         list(NULL),
-  #         list(NULL),
-  #         list(show = F),
-  #         list(html = TRUE, cell = htmlwidgets::JS('
-  #   function(cellInfo) {
-  #     // Render as a link
-  #     const url = cellInfo.value;
-  #     return `<a href="${url}" target="_blank">RHEALTH Description</a>`;
-  #   }
-  # ')),
-  #         list(html = TRUE, cell = htmlwidgets::JS('
-  #   function(cellInfo) {
-  #     // Render as a link
-  #     const url = cellInfo.value;
-  #     return `<a href="${url}" target="_blank">ETL</a>`;
-  #   }
-  # ')),
-  #         list(format = reactable::colFormat(date = T)),
-  #         list(format = reactable::colFormat(date = T)),
-  #         list(NULL),
-  #         list(NULL),
-  #         list(NULL),
-  #         list(NULL),
-  #         list(format = reactable::colFormat(date = T))
-  #       )
-  #     )
-  # 
-  #     #save the colDefs as json
-  #     ParallelLogger::saveSettingsToJson(datasourcesColDefs, "./inst/components-columnInformation/datasources-colDefs.json")
+      # not used for now
+      #dbSummaryTable <- getDbSummaryTable()
+      
+      dbSummaryTable <- read.csv(system.file("extras", "dbSummaryTable.csv", package = "OhdsiShinyModules")) %>%
+        dplyr::select(Data.Source, cdmSourceAbbreviation, Source.Country, Data.Provenance, Visits, Source.Vocabularies) %>%
+        dplyr::mutate(
+          cdmSourceAbbreviation = dplyr::case_when(
+            Data.Source == "Clinical Practice Research Datalink (CPRD)" ~ "CPRD",
+            Data.Source == "Health Verity Comprehensive Claims and EHR Closed Claims Enrollment (Health Verity CC EHR CCE)" ~ "Health Verity CC EHR",
+            Data.Source == "Premier Healthcare Database (PHD)" ~ "Premier",
+            .default = cdmSourceAbbreviation
+          ),
+          Visits = dplyr::case_when(
+            Visits == "" | Visits == " " ~ "Not Available",
+            .default = Visits
+          )
+        ) %>%
+        dplyr::rename(datasource = Data.Source,
+                      #cdmSourceName = cdmSourceAbbreviation,
+                      sourceCountry = Source.Country,
+                      dataProvenance = Data.Provenance,
+                      visits = Visits,
+                      sourceVocabularies = Source.Vocabularies) %>%
+        dplyr::add_row(datasource = "IQVIA Ambulatory EMR",
+                       cdmSourceAbbreviation = "AMBULATORY EMR",
+                       sourceCountry = "NotAv",
+                       dataProvenance = "NotAv",
+                       visits = "NotAv",
+                       sourceVocabularies = "NotAv"
+                       )
+      
+      dbCombined <-  dplyr::inner_join(dbSummaryTable, datasourcesData(), by = "cdmSourceAbbreviation") %>%
+        dplyr::select(c(datasource, cdmSourceAbbreviation, sourceCountry, dataProvenance,
+                        visits, sourceVocabularies, maxObsPeriodEndDate, cdmReleaseDate,
+                        vocabularyVersion, sourceDescription))
+      
+  # defining column definitions
+      # datasourcesColDefs <- createCustomColDefList(
+      #   rawColNames = colnames(dbCombined),
+      #   niceColNames = c("DB Name",
+      #                    "DB Abbreviation",
+      #                    "Country",
+      #                    "Data Provenance",
+      #                    "Visits Available",
+      #                    "Source Vocabularies",
+      #                    "Max Obs. Period End Date",
+      #                    "CDM DB Release Date",
+      #                    "Vocabulary Version",
+      #                    "DB Description"),
+      #   tooltipText = c("Name of the database (DB)",
+      #                   "Abbreviation for the database (DB)",
+      #                   "Country for the data in the database (DB)",
+      #                   "Real-world data type/source",
+      #                   "Types of visits available",
+      #                   "Source vocabularies that are present in the database (DB)",
+      #                   "Maximum/Latest observation period date in the database (DB)",
+      #                   "Date the CDM database (DB) was accessible",
+      #                   "Version of the vocabulary used in the database (DB)",
+      #                   "Description of the database (DB)"),
+      #   customColDefOptions = list(
+      #     list(NULL),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(NULL),
+      #     list(format = reactable::colFormat(date = T)),
+      #     list(format = reactable::colFormat(date = T)),
+      #     list(NULL),
+      #     list(NULL)
+      #     )
+      # )
+      # 
+      # #save the colDefs as json
+      # ParallelLogger::saveSettingsToJson(datasourcesColDefs, "./inst/components-columnInformation/datasources-new-colDefs.json")
 
       datasourcesColList <- ParallelLogger::loadSettingsFromJson(system.file("components-columnInformation",
-                                                                        "datasources-colDefs.json",
+                                                                        "datasources-new-colDefs.json",
                                                                         package = "OhdsiShinyModules")
       )
       
       #need to do for any colDefs that have JS and that are getting loaded in from a JSON
-      class(datasourcesColList[["sourceDocumentationReference"]]$cell) <- "JS_EVAL"
-      class(datasourcesColList[["cdmEtlReference"]]$cell) <- "JS_EVAL"
+      #class(datasourcesColList[["sourceDocumentationReference"]]$cell) <- "JS_EVAL"
+      #class(datasourcesColList[["cdmEtlReference"]]$cell) <- "JS_EVAL"
       
+      
+      renderDatasourcesTable <- shiny::reactive(
+        {
+          dbCombined
+        }
+      )
       
       resultTableServer(id = "datasourcesTable",
-                        df = datasourcesData,
+                        df = dbCombined,
                         colDefsInput = datasourcesColList,
+                        selectedCols = c("cdmSourceAbbreviation", "sourceCountry", "dataProvenance",
+                                         "maxObsPeriodEndDate", "cdmReleaseDate", "vocabularyVersion"),
+                        sortedCols = c("cdmSourceAbbreviation"),
                         downloadedFileName = "datasourcesTable-")
       
       return(invisible(NULL))
