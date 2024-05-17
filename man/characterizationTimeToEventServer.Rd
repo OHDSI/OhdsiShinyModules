@@ -7,7 +7,9 @@
 characterizationTimeToEventServer(
   id,
   connectionHandler,
-  resultDatabaseSettings
+  resultDatabaseSettings,
+  targetId,
+  outcomeId
 )
 }
 \arguments{

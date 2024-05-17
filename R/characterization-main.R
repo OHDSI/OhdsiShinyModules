@@ -46,14 +46,22 @@ characterizationViewer <- function(id=1) {
   ns <- shiny::NS(id)
   
   shinydashboard::box(
-    status = 'info', width = 12,
+    status = 'info', width = '100%',
     title =  shiny::span( shiny::icon("table"), "Characterization Viewer"),
     solidHeader = TRUE,
-  
-  shiny::tabsetPanel(
-    type = 'pills',
-    id = ns('mainPanel')
-  )
+    
+    # pick a targetId of interest 
+    shiny::uiOutput(ns("targetSelection")),
+    
+    shiny::conditionalPanel(
+      condition = 'input.targetSelect', 
+      ns = ns,
+      inputSelectionDfViewer(id = ns('targetSelected'), title = 'Selected'),
+      shiny::tabsetPanel(
+        type = 'pills',
+        id = ns('mainPanel')
+      )
+    )
   )
   
 }
@@ -79,7 +87,139 @@ characterizationServer <- function(
   shiny::moduleServer(
     id,
     function(input, output, session) {
+      
+      #================================================
+      # GETTING OPTIONS FOR INPTUS
+      #================================================
+      options <- characterizationGetOptions(
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
+      
+      #================================================
+      # PARENT TARGET SELECTION UI
+      #================================================
+      parents <- characterizationGetParents(options)
+      # add an input for all char that lets you select cohort of interest
+      output$targetSelection <- shiny::renderUI({
+        shiny::div(
+          shiny::selectInput(
+            inputId = session$ns('targetId'),
+            label = 'Parent Target: ',
+            choices = parents,
+            selected = 1,
+            multiple = FALSE,
+            selectize = TRUE,
+            width = NULL,
+            size = NULL
+          ),
+          shiny::actionButton(
+            inputId = session$ns('targetSelect'), 
+            label = 'Select',
+            icon = shiny::icon('redo') 
+          )
+        )
+      })
+      
 
+      #================================================
+      # PARENT TARGET SELECTION ACTION
+      #================================================
+      # reactives updated when parent target is selected
+      parentIndex <- shiny::reactiveVal(1)
+      outcomes <- shiny::reactiveVal()
+      subTargets <- shiny::reactiveVal()
+      targetSelected <- shiny::reactiveVal()
+      # output the selected target
+      shiny::observeEvent(input$targetSelect, {
+        
+        # First create input dataframe and add to the inputServer to display
+        targetSelected(
+          data.frame( 
+            `Parent Target` = names(parents)[parents == input$targetId]
+          )
+        )
+        inputSelectionDfServer(
+          id = 'targetSelected', 
+          dataFrameRow = targetSelected,
+          ncol = 1
+        )
+        
+        # update the parentIndex of interest
+        parentIndex(which(parents == input$targetId ))
+        # update the outcomes for the selected parent target id
+        outcomes(characterizationGetOutcomes(options, parentIndex()))
+        # update the child targets for the selected parent target id
+        subTargets(characterizationGetChildren(options, parentIndex()))
+        
+        # create the outcome selector for the case exposure tabs
+        output$outcomeSelection <- shiny::renderUI({
+          shinydashboard::box(
+            collapsible = TRUE,
+            title = "Options",
+            width = "100%",
+            shiny::selectInput(
+              inputId = session$ns('subTargetId'),
+              label = 'Target: ',
+              choices = subTargets(),
+              selected = 1,
+              multiple = FALSE,
+              selectize = TRUE,
+              width = NULL,
+              size = NULL
+            ),
+            shiny::selectInput(
+              inputId = session$ns('outcomeId'),
+              label = 'Outcome: ',
+              choices = outcomes(),
+              selected = 1,
+              multiple = FALSE,
+              selectize = TRUE,
+              width = NULL,
+              size = NULL
+            ),
+            shiny::actionButton(
+              inputId = session$ns('outcomeSelect'), 
+              label = 'Select',
+              icon = shiny::icon('redo') 
+            )
+          )
+        })
+        
+      })
+      
+      #================================================
+      # OUTCOME SELECTION ACTION
+      #================================================
+      # used by the case exposure tabs
+      # show the selected outcome
+      outcomeSelected <- shiny::reactiveVal()
+      outcomeId <- shiny::reactiveVal()
+      subTargetId <- shiny::reactiveVal()
+      
+      shiny::observeEvent(input$outcomeSelect, {
+        outcomeSelected(
+          data.frame( 
+            Target = names(subTargets())[subTargets() == input$subTargetId],
+            Outcome = names(outcomes())[outcomes() == input$outcomeId]
+          )
+        )
+        
+        # store the outcome and subTargetIds for the case exposure tabs
+        outcomeId(input$outcomeId)
+        subTargetId(input$subTargetId)
+        
+        inputSelectionDfServer(
+          id = 'outcomeSelected', 
+          dataFrameRow = outcomeSelected,
+          ncol = 1
+        )
+      })
+ 
+      
+      #================================================
+      # CREATE TABS BASED ON RESULTS TABLES
+      #================================================
       # this function checks tables exist for the tabs
       # and returns the tabs that should be displayed
       # as the tables exist
@@ -87,109 +227,264 @@ characterizationServer <- function(
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings
       )
-
-      # add the tabs based on results
-      types <- list(
-        c("Target Viewer","characterizationTableViewer", "descriptiveTableTab"),
-        c("Outcome Stratified", "characterizationAggregateFeaturesViewer", "aggregateFeaturesTab"),
-        c("Incidence Rate", "characterizationIncidenceViewer", "incidenceTab"),
-        c("Time To Event", "characterizationTimeToEventViewer", "timeToEventTab"),
-        c("Dechallenge Rechallenge", 'characterizationDechallengeRechallengeViewer', 'dechallengeRechallengeTab')
+      
+      # MAIN PANELS
+      #first populate the mainPanel
+      typesMainPanel <- list(
+        list(
+          title = 'Cohort Summary', 
+          shiny::tabsetPanel(
+            type = 'pills',
+            id = session$ns('cohortSummaryPanel')
+          )
+        ),
+        list(
+          title = 'Exposed Cases Summary', 
+          shiny::uiOutput(session$ns("outcomeSelection")),
+          shiny::conditionalPanel(
+            condition = 'input.outcomeSelect', 
+            ns = session$ns,
+            inputSelectionDfViewer(id = session$ns('outcomeSelected'), title = 'Selected'),
+            shiny::tabsetPanel(
+              type = 'pills',
+              id = session$ns('exposedCasesPanel')
+            )
+          )
+        ),
+        list(
+          title = 'Cohort Incidence', 
+          shiny::tabsetPanel(
+            type = 'pills',
+            id = session$ns('cohortIncidencePanel')
+          )
         )
+      )
+      
       selectVal <- T
-      for( type in types){
-        if(type[1] %in% charTypes){
+      for( type in typesMainPanel){
+        if(type$title %in% charTypes$mainPanel){
           shiny::insertTab(
-            inputId = "mainPanel",
-            tab = shiny::tabPanel(
-              type[1],  
-              do.call(what = type[2], args = list(id = session$ns(type[3])))
-            ), 
+            inputId = 'mainPanel',
+            tab = do.call(
+              what = shiny::tabPanel, 
+              args = type
+            ),
             select = selectVal
           )
           selectVal = F
         }
-
       }
+      
+      # SUB PANELS
+      # now populate the subpanel
+      # add the tabs based on results
+      types <- rbind(
+        c("Database Comparison","characterizationDatabaseComparisonViewer", "databaseComparisonTab", "cohortSummaryPanel"),
+        c("Cohort Comparison", "characterizationCohortComparisonViewer", "cohortComparisonTab", "cohortSummaryPanel"),
         
+        c("Risk Factor", "characterizationRiskFactorViewer", "riskFactorTab", "exposedCasesPanel"),
+        c("Case Series", "characterizationCaseSeriesViewer", "caseSeriesTab", "exposedCasesPanel"),
+        c("Time-to-event", "characterizationTimeToEventViewer", "timeToEventTab", "exposedCasesPanel"),
+        c("Dechallenge Rechallenge", 'characterizationDechallengeRechallengeViewer', 'dechallengeRechallengeTab', "exposedCasesPanel"),
+        
+        c("Incidence Results", "characterizationIncidenceViewer", "cohortIncidenceTab", "cohortIncidencePanel")
+      )
+      colnames(types) <- c('c1', 'c2', 'c3', 'c4')
+      types <- as.data.frame(types)
+      
+      for(subPanel in c("cohortSummaryPanel", "exposedCasesPanel", "cohortIncidencePanel")){
+        typesOfInterest <- types %>% dplyr::filter(.data$c4 == subPanel)
+        if(nrow(typesOfInterest)>0){
+          selectVal <- T
+          for( i in 1:nrow(typesOfInterest)){
+            if(typesOfInterest[i,1] %in% charTypes$subPanel){
+              shiny::insertTab(
+                inputId = typesOfInterest[i,4],
+                tab = shiny::tabPanel(
+                  typesOfInterest[i,1],  
+                  do.call(what = typesOfInterest[i,2], args = list(id = session$ns(typesOfInterest[i,3])))
+                ), 
+                select = selectVal
+              )
+              selectVal = F
+            }
+          }
+        }
+      }
+      
+      
+      # =============================
+      #  TRACK CURRENT TAB 
+      # =============================
+     # set the current tab
+      mainPanel <- shiny::reactiveVal('None')
+      shiny::observeEvent(input$mainPanel,{
+        mainPanel(input$mainPanel)
+      })
+      cohortSummaryPanel <- shiny::reactiveVal('None')
+      shiny::observeEvent(input$cohortSummaryPanel,{
+        cohortSummaryPanel(input$cohortSummaryPanel)
+      })
+      exposedCasesPanel <- shiny::reactiveVal('None')
+      shiny::observeEvent(input$exposedCasesPanel,{
+        exposedCasesPanel(input$exposedCasesPanel)
+      })
+                          
+     currentTab <- shiny::reactive({
+       if(mainPanel() == "Cohort Summary" & cohortSummaryPanel() == 'Cohort Comparison'){
+         return('Cohort Comparison')
+       }
+       if(mainPanel() == "Cohort Summary" & cohortSummaryPanel() == 'Database Comparison'){
+         return('Database Comparison')
+       }
+       if(mainPanel() == "Exposed Cases Summary" & exposedCasesPanel() ==  'Risk Factor'){
+         return('Risk Factor')
+       }
+       if(mainPanel() == "Exposed Cases Summary" & exposedCasesPanel() ==  'Case Series'){
+         return('Case Series')
+       }
+       if(mainPanel() == "Exposed Cases Summary" & exposedCasesPanel() ==  'Time-to-event'){
+         return('Time-to-event')
+       }
+       if(mainPanel() == "Exposed Cases Summary" & exposedCasesPanel() ==  'Dechallenge Rechallenge'){
+         return('Dechallenge Rechallenge')
+       }
+       if(mainPanel() == "Cohort Incidence"){
+         return("Cohort Incidence")
+       } 
+       
+       return('None')
+     }) 
+      
+      # =============================
+      #  MODULE SERVERS
+      # =============================
+      # store what servers have been loaded and only load them the first time
+      # when the corresponding tab is loaded
       previouslyLoaded <- shiny::reactiveVal(c())
       
       # only render the tab when selected
-      shiny::observeEvent(input$mainPanel,{
-      
+      shiny::observeEvent(currentTab(), {
       # =============================
-      #   Table of cohorts
+      #   Cohort Comparison
       # =============================
-        if(input$mainPanel == "Target Viewer"){
-          if(!"Target Viewer" %in% previouslyLoaded()){
-            characterizationTableServer(
-              id = 'descriptiveTableTab',
+        if(currentTab() == 'Cohort Comparison'){
+          if(!"Cohort Comparison" %in% previouslyLoaded()){
+            characterizationCohortComparisonServer(
+              id = 'cohortComparisonTab',
               connectionHandler = connectionHandler, 
-              resultDatabaseSettings = resultDatabaseSettings
+              resultDatabaseSettings = resultDatabaseSettings,
+              options = options,
+              parents = parents,
+              parentIndex = parentIndex
             )
-            previouslyLoaded(c(previouslyLoaded(), "Target Viewer"))
+            previouslyLoaded(c(previouslyLoaded(), "Cohort Comparison"))
           }
         }
-
-      
-      # =============================
-      #   Aggregrate Features
-      # =============================
-        if(input$mainPanel == "Outcome Stratified"){
-          if(!"Outcome Stratified" %in% previouslyLoaded()){
-            characterizationAggregateFeaturesServer(
-              id = 'aggregateFeaturesTab',
+        
+        # =============================
+        #   Database Comparison
+        # =============================
+        if(currentTab() == "Database Comparison"){
+          if(!"Database Comparison" %in% previouslyLoaded()){
+            characterizationDatabaseComparisonServer(
+              id = 'databaseComparisonTab',
               connectionHandler = connectionHandler, 
-              resultDatabaseSettings = resultDatabaseSettings
+              resultDatabaseSettings = resultDatabaseSettings,
+              options = options,
+              parents = parents,
+              parentIndex = parentIndex
             )
-            previouslyLoaded(c(previouslyLoaded(), "Outcome Stratified"))
+            previouslyLoaded(c(previouslyLoaded(), "Database Comparison"))
           }
         }
-      
+        
       # =============================
-      #   Incidence
+      #   Risk Factor
       # =============================
-        if(input$mainPanel == "Incidence Rate"){
-          if(!"Incidence Rate" %in% previouslyLoaded()){
-            characterizationIncidenceServer(
-              id = 'incidenceTab',
+        if(currentTab() == "Risk Factor"){
+          if(!"Risk Factor" %in% previouslyLoaded()){
+            characterizationRiskFactorServer(
+              id = 'riskFactorTab',
               connectionHandler = connectionHandler, 
-              resultDatabaseSettings = resultDatabaseSettings
+              resultDatabaseSettings = resultDatabaseSettings,
+              targetId = subTargetId,
+              outcomeId = outcomeId
             )
-            previouslyLoaded(c(previouslyLoaded(), "Incidence Rate"))
+            previouslyLoaded(c(previouslyLoaded(), "Risk Factor"))
           }
         }
-
-      
-      # =============================
-      #   Time To Event
-      # =============================
-        if(input$mainPanel == "Time To Event"){
-          if(!"Time To Event" %in% previouslyLoaded()){
+        
+        # =============================
+        #   Case Series
+        # =============================
+        if(currentTab() == 'Case Series'){
+          if(!"Case Series" %in% previouslyLoaded()){
+            characterizationCaseSeriesServer(
+              id = 'caseSeriesTab',
+              connectionHandler = connectionHandler, 
+              resultDatabaseSettings = resultDatabaseSettings,
+              targetId = subTargetId,
+              outcomeId = outcomeId
+            )
+            previouslyLoaded(c(previouslyLoaded(), "Case Series"))
+          }
+        }
+        
+        # =============================
+        #   Time-to-event
+        # =============================
+        if(currentTab() == 'Time-to-event'){
+          if(!"Time-to-event" %in% previouslyLoaded()){
             characterizationTimeToEventServer(
-              id = 'timeToEventTab', 
+              id = 'timeToEventTab',
               connectionHandler = connectionHandler, 
-              resultDatabaseSettings = resultDatabaseSettings
+              resultDatabaseSettings = resultDatabaseSettings,
+              targetId = subTargetId,
+              outcomeId = outcomeId
             )
-            previouslyLoaded(c(previouslyLoaded(), "Time To Event"))
+            previouslyLoaded(c(previouslyLoaded(), "Time-to-event"))
           }
         }
-      
-      # =============================
-      #   Dechallenge Rechallenge
-      # =============================
-        if(input$mainPanel == "Dechallenge Rechallenge"){
+        
+        # =============================
+        #   Dechallenge Rechallenge
+        # =============================
+        if(currentTab() == 'Dechallenge Rechallenge'){
           if(!"Dechallenge Rechallenge" %in% previouslyLoaded()){
             characterizationDechallengeRechallengeServer(
-              id = 'dechallengeRechallengeTab', 
+              id = 'dechallengeRechallengeTab',
               connectionHandler = connectionHandler, 
-              resultDatabaseSettings = resultDatabaseSettings
+              resultDatabaseSettings = resultDatabaseSettings,
+              targetId = subTargetId,
+              outcomeId = outcomeId
             )
             previouslyLoaded(c(previouslyLoaded(), "Dechallenge Rechallenge"))
           }
         }
         
-      }) # end observed input tab
+
+      # =============================
+      #   Incidence
+      # =============================
+        if(currentTab() == "Cohort Incidence"){
+          if(!"Incidence Results" %in% previouslyLoaded()){
+            characterizationIncidenceServer( 
+              id = 'cohortIncidenceTab',
+              connectionHandler = connectionHandler, 
+              resultDatabaseSettings = resultDatabaseSettings,
+              options = options,
+              parents = parents,
+              parentIndex = parentIndex, # reactive
+              outcomes = outcomes, # reactive
+              subTargets = subTargets# reactive
+            )
+            previouslyLoaded(c(previouslyLoaded(), "Incidence Results"))
+          }
+        }
+      })
+
+
       
     }
   )
@@ -210,13 +505,21 @@ getCharacterizationTypes <- function(
     connection = conn,
     databaseSchema = resultDatabaseSettings$schema
   )
-
+  
+  #"Database Comparison" - TODO check multiple databases?
+  
   # check Targets
   if(sum(paste0(
     resultDatabaseSettings$cTablePrefix,
     c('covariates', 'covariate_ref', 'cohort_details', 'settings')
   ) %in% tbls) == 4){
-    results <- c(results, "Target Viewer", "Outcome Stratified" )
+    results <- rbind(
+      results, 
+      c("Database Comparison",'Cohort Summary', 'cohortSummaryPanel'), 
+      c("Cohort Comparison",'Cohort Summary', 'cohortSummaryPanel'), 
+      c("Risk Factor",'Exposed Cases Summary', 'exposedCasesPanel'), 
+      c("Case Series",'Exposed Cases Summary', 'exposedCasesPanel')
+    )
   }
   
   # check dechallenge_rechallenge
@@ -224,7 +527,10 @@ getCharacterizationTypes <- function(
     resultDatabaseSettings$cTablePrefix,
     'dechallenge_rechallenge'
   ) %in% tbls){
-    results <- c(results, "Dechallenge Rechallenge")
+    results <- rbind(
+      results, 
+      c("Dechallenge Rechallenge",'Exposed Cases Summary', 'exposedCasesPanel')
+    )
   }
   
   # check time_to_event
@@ -232,7 +538,10 @@ getCharacterizationTypes <- function(
     resultDatabaseSettings$cTablePrefix,
     'time_to_event'
   ) %in% tbls){
-    results <- c(results, "Time To Event")
+    results <- rbind(
+      results, 
+      c("Time-to-event",'Exposed Cases Summary', 'exposedCasesPanel')
+    )
   }
   
   # check incidence
@@ -240,8 +549,133 @@ getCharacterizationTypes <- function(
     resultDatabaseSettings$incidenceTablePrefix,
     'incidence_summary'
   ) %in% tbls){
-    results <- c(results, "Incidence Rate")
+    results <- rbind(
+      results, 
+      c("Incidence Results",'Cohort Incidence', 'cohortIncidencePanel')
+    )
   }
   
-  return(results)
+  
+  
+  return(list(
+    mainPanel = unique(results[,2]),
+    subPanel = unique(results[,1])
+  ))
 }
+
+
+characterizationGetOptions <- function(
+    connectionHandler,
+    resultDatabaseSettings
+    ){
+  
+  # get cohorts
+  cg <- connectionHandler$queryDb(
+    sql = 'select * from @schema.@cg_table_prefixcohort_definition;',
+    schema = resultDatabaseSettings$schema,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
+  )
+  
+# database_id needed for old results but not for new ones
+cohorts <- connectionHandler$queryDb(
+sql = "
+select database_id, cohort_definition_id as char_cohort_id, outcome_cohort_id as cohort_definition_id, cohort_type 
+from @schema.@c_table_prefixcohort_details
+where cohort_type = 'O'
+
+union
+
+select database_id, cohort_definition_id as char_cohort_id, outcome_cohort_id as cohort_definition_id, cohort_type
+from @schema.@c_table_prefixcohort_details
+where cohort_type = 'Oall'   
+
+union
+
+select database_id, cohort_definition_id as char_cohort_id, target_cohort_id as cohort_definition_id, cohort_type
+from @schema.@c_table_prefixcohort_details
+where cohort_type = 'T'
+
+union
+
+select database_id, cohort_definition_id as char_cohort_id, target_cohort_id as cohort_definition_id, cohort_type
+from @schema.@c_table_prefixcohort_details
+where cohort_type = 'Tall'                                
+;",
+schema = resultDatabaseSettings$schema,
+c_table_prefix = resultDatabaseSettings$cTablePrefix
+)
+
+TnOs <- connectionHandler$queryDb(
+  sql = "
+select distinct  
+cd.target_cohort_id,
+cd.outcome_cohort_id,
+c.cohort_name
+from @schema.@c_table_prefixcohort_details cd
+inner join 
+ @schema.@cg_table_prefixcohort_definition c
+ on cd.outcome_cohort_id = c.cohort_definition_id
+where cd.cohort_type = 'TnO'
+;",
+  schema = resultDatabaseSettings$schema,
+  c_table_prefix = resultDatabaseSettings$cTablePrefix,
+  cg_table_prefix = resultDatabaseSettings$cgTablePrefix
+)
+# fix backwards compatability
+cg$subsetParent[is.na(cg$isSubset)] <- cg$cohortDefinitionId
+cg$subsetDefinitionId[is.na(cg$isSubset)] <- cg$cohortDefinitionId
+cg$isSubset[is.na(cg$isSubset)] <- 0
+
+parents <- unique(cg$cohortDefinitionId[cg$isSubset == 0])
+results <- lapply(parents, function(id){
+  list(
+    cohortName = cg$cohortName[cg$cohortDefinitionId == id],
+    cohortId = id,
+    children = lapply(cg$cohortDefinitionId[cg$subsetParent == id], function(sid){
+      list(
+        subsetName = cg$cohortName[cg$cohortDefinitionId == sid],
+        subsetId = sid,
+        charIds = cohorts[cohorts$cohortDefinitionId == sid,],
+        outcomeIds = unique(TnOs$outcomeCohortId[TnOs$targetCohortId == sid]),
+        outcomeNames = unique(TnOs$cohortName[TnOs$targetCohortId == sid])
+        # add outcomes from case exposures
+      )
+    }
+    )
+  )
+})
+
+return(results)
+
+}
+
+characterizationGetParents <- function(options){
+  parentTs <- unlist(lapply(options, function(x) x$cohortId))
+  names(parentTs) <- unlist(lapply(options, function(x) x$cohortName))
+  
+  return(parentTs)
+}
+
+characterizationGetChildren <- function(options, index){
+  children <- unlist(lapply(options[[index]]$children, function(x) x$subsetId))
+  names(children) <- unlist(lapply(options[[index]]$children, function(x) x$subsetName))
+  
+  return(children)
+}
+
+characterizationGetOutcomes <- function(options, index){
+  result <- unique(
+    do.call(
+      'rbind', 
+      lapply(
+        X = options[[index]]$children, 
+        FUN = function(x) data.frame(ids = x$outcomeIds, names = x$outcomeNames)
+        )
+      )
+    )
+  
+  outcomes <- result$ids
+  names(outcomes) <- result$names
+  return(outcomes)
+}
+

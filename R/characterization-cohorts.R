@@ -17,214 +17,309 @@
 # limitations under the License.
 
 
-#' The module viewer for exploring 1 or more cohorts features
-#'
-#' @details
-#' The user specifies the id for the module
-#'
-#' @param id  the unique reference id for the module
-#'
-#' @return
-#' The user interface to the description cohorts features
-#'
-#' @export
-characterizationTableViewer <- function(id) {
+# view two cohorts and compare
+characterizationCohortComparisonViewer <- function(id) {
   ns <- shiny::NS(id)
-  shiny::div(
-
-    infoHelperViewer(
-      id = "helper",
-      helpLocation= system.file("characterization-www", "help-targetViewer.html", package = utils::packageName())
-    ),
-    
-    
+  
     # module that does input selection for a single row DF
-    inputSelectionViewer(
-      id = ns("input-selection")
-    ),
-    
-    shiny::conditionalPanel(
-      condition = 'input.generate != 0',
-      ns = shiny::NS(ns("input-selection")),
+    shiny::div(
       
-      # add basic table 
-      resultTableViewer(id = ns('mainTable'))
-    
+      # UI for inputs
+      # summary table
+      shinydashboard::box(
+        collapsible = TRUE,
+        title = "Options",
+        width = "100%",
+        shiny::uiOutput(ns("inputs"))
+      ),
+      
+      # displayed inputs
+      shiny::conditionalPanel(
+        condition = "input.generate != 0",
+        ns = ns,
+        
+        inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
+        
+        # add basic table 
+        resultTableViewer(id = ns('countTable'), boxTitle = 'Counts'),
+        resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
+        
+      )
     )
-  )
 }
 
 
-#' The module server for exploring 1 or more cohorts features
-#'
-#' @details
-#' The user specifies the id for the module
-#'
-#' @param id  the unique reference id for the module
-#' @param connectionHandler the connection to the prediction result database
-#' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
-#'
-#' @return
-#' The server to the cohorts features server
-#'
-#' @export
-characterizationTableServer <- function(
+
+characterizationCohortComparisonServer <- function(
     id,
     connectionHandler,
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    options,
+    parents,
+    parentIndex # reactive
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      inputVals <- getDecCohortsInputs(
-        connectionHandler,
-        resultDatabaseSettings
+      inputVals <- characterizationGetCohortsInputs(
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
       )
       
-      # input selection component
-      inputSelected <- inputSelectionServer(
-        id = "input-selection", 
-        inputSettingList = list(
-          createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
-            varName = 'targetIds',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Target: ',
-              choices = inputVals$cohortIds,
-              selected = inputVals$cohortIds,
-              multiple = F,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          ),
-          createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
-            varName = 'databaseIds',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Database: ',
-              choices = inputVals$databaseIds,
-              selected = inputVals$databaseIds[1],
-              multiple = T,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          ),
-          
-          createInputSetting(
-            rowNumber = 2,                           
-            columnWidth = 6,
-            varName = 'analysisIds',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Covariate Type: ',
-              choices = inputVals$analysisIds,
-              selected = inputVals$analysisIds[1],
-              multiple = F,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          )
-          
-      )
-      )
+      children <- shiny::reactive({
+        characterizationGetChildren(options, parentIndex())
+      })
       
-      columns <- shiny::reactive({
+      # update targetId2
+      initialChildren2 <- characterizationGetChildren(options, 1)
+      
+      children2 <- shiny::reactiveVal()
+      shiny::observeEvent(input$parentTargetId2,{
+        newIndex <- which(input$parentTargetId2 == parents)
+        result <- characterizationGetChildren(options, newIndex)
+        children2(result)
+        shinyWidgets::updatePickerInput(
+          session = session, 
+          inputId = 'targetId2', 
+          label = 'Second Target: ',
+          choices = result,
+          selected = result[1]
+            )
         
-        result <- list(
+      })
+      
+      output$inputs <- shiny::renderUI({
+        
+        shiny::div(
+          shinyWidgets::pickerInput(
+            inputId = session$ns('targetId1'), 
+            label = 'First Target: ',
+            choices = children(),
+            selected = 1,
+            multiple = F,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
+          ),
+          shiny::selectInput(
+            inputId = session$ns('parentTargetId2'),
+            label = 'Second Parent Target: ',
+            choices = parents,
+            selected = parents[1],
+            multiple = F
+          ),
+          
+          shinyWidgets::pickerInput(
+            inputId = session$ns('targetId2'),
+            label = 'Second Target: ',
+            choices = initialChildren2,
+            selected = initialChildren2[1],
+            multiple = F,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
+          ),
+        
+        shinyWidgets::pickerInput(
+          inputId = session$ns('databaseId'),
+          label = 'Database: ',
+          choices = inputVals$databaseIds,
+          selected = inputVals$databaseIds[1],
+          multiple = F,
+          options = shinyWidgets::pickerOptions(
+            actionsBox = TRUE,
+            liveSearch = TRUE,
+            size = 10,
+            liveSearchStyle = "contains",
+            liveSearchPlaceholder = "Type here to search",
+            virtualScroll = 50
+          )
+        ),
+        
+        shiny::actionButton(
+          inputId = session$ns('generate'), 
+          label = 'Generate'
+            )
+      )
+      
+      })
+      
+      
+      columns <- list(
+        covariateName = reactable::colDef(
+          header = withTooltip(
+            "Covariate Name",
+            "The name of the covariate"
+          )
+        ),
           covariateId = reactable::colDef(
+            show = F,
             header = withTooltip("Covariate ID",
                                  "Unique identifier of the covariate")
           ),
-          covariateName = reactable::colDef(
-            header = withTooltip(
-              "Covariate Name",
-              "The name of the covariate"
-            )
+        firstVar = reactable::colDef(
+          show = F
+        ),
+        secondVar = reactable::colDef(
+          show = F
+        ),
+          sumValue_1 = reactable::colDef(
+            header = withTooltip("First Sum",
+                                 "The total sum of the covariate for the first selected cohort."),
+            cell = function(value) {
+              if (value >= 0) value else '< min threshold'
+            }
           ),
+          sumValue_2 = reactable::colDef(
+            header = withTooltip("Second Sum",
+                                 "The total sum of the covariate for the second selected cohort."),
+            cell = function(value) {
+              if (value >= 0) value else '< min threshold'
+            }
+          ),
+          averageValue_1 = reactable::colDef(
+            header = withTooltip("First Mean",
+                                 "The mean of the covariate for the first selected cohort."), 
+            cell = function(value) {
+              if (value >= 0) round(value, digits = 3) else '< min threshold'
+            }
+          ),
+          averageValue_2 = reactable::colDef(
+            header = withTooltip("Second Mean",
+                                 "The mean of the covariate for the second selected cohort."),
+            cell = function(value) {
+              if (value >= 0) round(value, digits = 3) else '< min threshold'
+            }
+          ),
+        SMD = reactable::colDef(
+          header = withTooltip("SMD",
+                               "Standardized mean difference"),
+          format = reactable::colFormat(digits = 3)
+        ),
+        absSMD = reactable::colDef(
+          header = withTooltip("absSMD",
+                               "Absolute standardized mean difference"),
+          format = reactable::colFormat(digits = 3)
+        ),
           analysisName = reactable::colDef(
             header = withTooltip(
               "Covariate Class",
               "Class/type of the covariate"
             )
           )
-        )
-        
-        if(is.null(inputSelected()$targetIds) | is.null(inputSelected()$databaseIds)){
-          return(result) 
-        } else{
-          temp <- expand.grid(inputSelected()$targetIds,inputSelected()$databaseIds)
-          temp[,2] <- as.double(as.character(temp[,2]))
           
-          for(i in 1:nrow(temp)){
-            
-            targetName = names(inputVals$cohortIds)[temp[i,1] == inputVals$cohortIds]
-            databaseName = names(inputVals$databaseIds)[temp[i,2] == inputVals$databaseIds]
-            
-            result[[length(result) + 1]] <- reactable::colDef(
-              header = withTooltip(
-                paste0("Count-", temp[i,1], '-',temp[i,2]),
-                paste0("The number of patients in database ", databaseName, ' and target ', targetName, ' who has the covariate')
-              )
-            )
-            
-            names(result)[length(result)] <- paste0('countT', temp[i,1], 'D', ifelse(temp[i,2] <0, 'n', ''), abs(temp[i,2]) )
-            
-            result[[length(result) + 1]] <- reactable::colDef(
-              header = withTooltip(
-                paste0("Mean-", temp[i,1], '-', temp[i,2]),
-                paste0("The mean covariate value for patients in database ", databaseName, ' and target ', targetName)
-              ), 
-              format = reactable::colFormat(
-                digits = 3
-              )
-            )
-            names(result)[length(result)] <- paste0('averageT', temp[i,1], 'D', ifelse(temp[i,2] <0, 'n', ''), abs(temp[i,2]) )
-            
-          }
-          return(result) 
-        }
-        
-      })
+          # add other columns
+        )
+
+      # show selected inputs to user
+      inputSelectionDfServer(
+        id = 'inputSelected', 
+        dataFrameRow = selected,
+        ncol = 1
+      )
       
       #get results
-        resultTable <- shiny::reactive({
-          getCohortData(
+      selected <- shiny::reactiveVal()
+      shiny::observeEvent(input$generate,{
+        
+        runTables <- TRUE
+        
+        if(is.null(input$targetId1) | is.null(input$targetId2)){
+          runTables <- FALSE
+        }
+        if(is.null(input$databaseId)){
+          runTables <- FALSE
+        }
+        
+        if(input$targetId1 == input$targetId2){
+          runTables <- FALSE
+          shiny::showNotification('Must select different cohorts')
+        }
+        
+        selected(
+          data.frame(
+            `First Target` = names(children())[which(input$targetId1 == children())],
+            `Second Target` = names(children2())[which(input$targetId2 == children2())],
+            Database = names(inputVals$databaseIds)[input$databaseId == inputVals$databaseIds]
+          )
+        )
+        
+        selection1 <- options[[parentIndex()]]$children[[which(input$targetId1 == children())]]$charIds %>%
+          dplyr::filter(.data$databaseId == input$databaseId) %>%
+          dplyr::filter(.data$cohortDefinitionId == input$targetId1)
+        
+        if(nrow(selection1) == 0){
+          runTables <- FALSE
+          shiny::showNotification('No results for section 1')
+        }
+        
+        selection2 <- options[[which(input$parentTargetId2 == parents)]]$children[[which(input$targetId2 == children2())]]$charIds %>%
+          dplyr::filter(.data$databaseId == input$databaseId) %>%
+          dplyr::filter(.data$cohortDefinitionId == input$targetId2)
+        
+        if(nrow(selection2) == 0){
+          runTables <- FALSE
+          shiny::showNotification('No results for section 2')
+        }
+
+        
+        if(runTables){
+          resultTable <- characterizatonGetCohortComparisonData(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetIds = inputSelected()$targetIds,
-            databaseIds = inputSelected()$databaseIds,
-            analysisIds = inputSelected()$analysisIds
+            targetId1 = selection1$charCohortId[1],
+            targetId2 = selection2$charCohortId[1],
+            databaseId = input$databaseId,
+            minThreshold = 0.01,
+            addSMD = T
           )
-        })
-
-      resultTableServer(
-        id = 'mainTable',
-        df = resultTable,
-        colDefsInput = columns()
-      ) 
+          
+          countTable <- characterizatonGetCohortCounts(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            targetIds = c(selection1$charCohortId[1],selection2$charCohortId[1]),
+            targetNames = c(
+              names(children())[which(input$targetId1 == children())],
+              names(children2())[which(input$targetId2 == children2())]
+            ),
+            databaseId = input$databaseId
+          )
+          
+          resultTableServer(
+            id = 'mainTable',
+            df = resultTable,
+            colDefsInput = columns
+          ) 
+          
+          resultTableServer(
+            id = 'countTable',
+            df = countTable,
+            colDefsInput = NULL
+          )} else{
+            resultTableServer(
+              id = 'mainTable',
+              df = data.frame(),
+              colDefsInput = columns
+            ) 
+            
+            resultTableServer(
+              id = 'countTable',
+              df = data.frame(),
+              colDefsInput = NULL
+            ) 
+          }
+      })
 
       return(invisible(NULL))
       
@@ -232,135 +327,176 @@ characterizationTableServer <- function(
   
 }
 
+characterizatonGetCohortComparisonData <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    targetId1,
+    targetId2,
+    databaseId,
+    minThreshold, 
+    addSMD
+){
+  result <- characterizatonGetCohortData(
+    connectionHandler = connectionHandler,
+    resultDatabaseSettings = resultDatabaseSettings,
+    targetIds = c(targetId1, targetId2),
+    databaseIds = c(databaseId,databaseId),
+    minThreshold = minThreshold, 
+    addSMD = addSMD
+  )
+  
+  return(result)
+}
 
-getCohortData <- function(
+
+characterizatonGetCohortCounts <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    targetIds,
+    targetNames,
+    databaseId
+){
+  
+  start <- Sys.time()
+  result <- connectionHandler$queryDb(
+    sql = "
+select  cc.* 
+       from 
+  @schema.@c_table_prefixcohort_counts cc 
+  
+  where cc.cohort_definition_id in (@target_ids)
+  and cc.database_id = '@database_id'
+  and cc.run_id = 1
+  ;
+  ", 
+    schema = resultDatabaseSettings$schema, 
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
+    target_ids =   paste0(targetIds, collapse= ','),
+    database_id = databaseId
+  )
+  end <- Sys.time() - start 
+  message(paste0('Extracting ', nrow(result) ,' cohort count rows took: ', round(end, digits = 2), ' ', units(end)))
+  
+  result <- merge(
+    x = result,
+    y = data.frame(
+      selection = c('First','Second'),
+      cohortDefinitionId = targetIds,
+      cohortName = targetNames
+    ), 
+    by = 'cohortDefinitionId'
+  )
+  
+  result <- result %>% dplyr::select(
+    'selection',
+    'cohortName', 
+    'rowCount',
+    'personCount'
+  )
+  
+  return(result)
+  
+}
+
+
+characterizatonGetCohortData <- function(
     connectionHandler,
     resultDatabaseSettings,
     targetIds,
     databaseIds,
-    analysisIds
+    minThreshold = 0.01,
+    addSMD = F
 ){
   
-  if(is.null(targetIds) | is.null(databaseIds)){
+  if(is.null(targetIds) |  is.null(databaseIds)){
+    warning('Ids cannot be NULL')
    return(NULL)
   }
   
-  combinations <- expand.grid(targetIds, databaseIds)
-  combinations[,2] <- as.double(as.character(combinations[,2]))
-  
-sql <- paste0(
-"select ref.covariate_id, ref.covariate_name, an.analysis_name,",
-
-paste(
-  lapply(1:nrow(combinations), function(i){
-    paste0(
-"max(case when temp.selection_id = ",i," then temp.sum_value else 0 end) as count_t",combinations[i,1],'_d',ifelse(combinations[i,2] <0, 'n', ''),abs(combinations[i,2]),",",
-"max(case when temp.selection_id = ",i," then temp.average_value else 0 end) as average_t",combinations[i,1],'_d',ifelse(combinations[i,2] <0, 'n', ''),abs(combinations[i,2])
-)}), collapse = ','),
-
-" from @schema.@c_table_prefixcovariate_ref ref
- inner join @schema.@c_table_prefixanalysis_ref an
- on an.RUN_ID = ref.RUN_ID and
-  an.analysis_id = ref.analysis_id and
-  ref.analysis_id in (@analysis_ids)
-  
-
- left join
-
-( ",
-  
-  
-paste(
-    lapply(1:nrow(combinations), function(i){
+  shiny::withProgress(message = 'characterizatonGetCohortData', value = 0, {
+    
+    shiny::incProgress(1/4, detail = paste("Setting types"))
+    
+    types <- data.frame(
+      type = 1:length(targetIds),
+      cohortDefinitionId = targetIds,
+      databaseId = databaseIds
+    )
+    
+    shiny::incProgress(2/4, detail = paste("Extracting data"))
+    
+    sql <- paste0(
       paste0(
-        "
-  select 
-  co",i,".run_id, co",i,".COVARIATE_ID, co",i,".SUM_VALUE,	co",i,".AVERAGE_VALUE,
-  ",i," as selection_id
-   from
-  @schema.@c_table_prefixCOVARIATES co",i," 
-  inner join
-  (select * from @schema.@c_table_prefixcohort_details
-    where DATABASE_ID = '@database",i,"' and
-    TARGET_COHORT_ID = @target",i," and COHORT_TYPE = 'T'
-  ) as cd",i,"
-  on co",i,".COHORT_DEFINITION_ID = cd",i,".COHORT_DEFINITION_ID
-  and co",i,".DATABASE_ID = cd",i,".DATABASE_ID"
-        )
-
-    }), collapse = ' union '),
- 
-") temp 
-on ref.run_id = temp.run_id and 
-ref.covariate_id = temp.covariate_id
-
-group by 
-ref.covariate_id, ref.covariate_name, an.analysis_name
-"
-
-)
-
-
-  inputs <- c(
-    as.character(combinations$Var2), 
-    as.character(combinations$Var1), 
-    resultDatabaseSettings$schema, 
-    resultDatabaseSettings$cTablePrefix,
-    paste0(analysisIds, collapse = ',')
-  )
-  names(inputs) <- c(
-    paste0('database', 1:nrow(combinations)), 
-    paste0('target', 1:nrow(combinations)),
-    'schema',
-    'c_table_prefix',
-    'analysis_ids'
-  )
-  inputs <- as.list(inputs)
-  inputs$sql <- sql
+        paste0(
+          "select  ref.covariate_name, cov.* from   
+    @schema.@c_table_prefixCOVARIATES cov 
+    inner join 
+    @schema.@c_table_prefixcovariate_ref ref
+    on cov.covariate_id = ref.covariate_id
+    and cov.run_id = ref.run_id
+    and cov.database_id = ref.database_id
+    
+    where cov.cohort_definition_id = @target_id",1:length(targetIds),
+          " and cov.database_id = '@database_id",1:length(targetIds),"'
+     and cov.average_value >= @min_threshold"
+        ), collapse = ' union '
+      ),';'
+    )
+    
+    inputList <- as.list(c(targetIds, databaseIds))
+    names(inputList) <- c(paste0('target_id', 1:length(targetIds)), paste0('database_id', 1:length(databaseIds)))
+    inputList$sql <- sql
+    inputList$schema <- resultDatabaseSettings$schema
+    inputList$c_table_prefix <- resultDatabaseSettings$cTablePrefix
+    inputList$min_threshold <- minThreshold
+    
+    start <- Sys.time()
+    # settings.min_characterization_mean needed?
+    res <- do.call(what = connectionHandler$queryDb, args = inputList)
+    end <- Sys.time() - start 
+    shiny::incProgress(3/4, detail = paste("Extracted data"))
+    message(paste0('Extracting ', nrow(res) ,' characterization cohort rows took: ', round(end, digits = 2), ' ', units(end)))
+    
+    # add the first/section type
+    res <- merge(res, types, by = c('cohortDefinitionId','databaseId'))
+    
+    # pivot
+    result <- tidyr::pivot_wider(
+      data = res, 
+      id_cols = c('covariateName', 'covariateId'), 
+      names_from = 'type', 
+      values_from = c('sumValue', 'averageValue'), 
+      values_fn = mean, 
+      values_fill = -1
+    ) 
+    
+    if(addSMD == T){
+      # TODO get min_characterization_mean from settings table
+      # minCharacterizationMean <- minThreshold
+      # add SMD
+      convertMissing <- function(vec){sapply(vec, function(x) ifelse(x==-1, minThreshold, x))}
+      result$firstVar <- convertMissing(result$averageValue_1)*(1-convertMissing(result$averageValue_1))^2
+      result$secondVar <- convertMissing(result$averageValue_2)*(1-convertMissing(result$averageValue_2))^2
+      result$SMD <- (convertMissing(result$averageValue_1) - convertMissing(result$averageValue_2))/(sqrt((result$firstVar+result$secondVar)/2))
+      result$absSMD <- abs(result$SMD)
+    }
+    
+    shiny::incProgress(4/4, detail = paste("Done"))
+  })
   
-  result <- do.call(connectionHandler$queryDb, inputs)
-
-return(result)
+  return(result)
 }
 
 
 
 
-getDecCohortsInputs <- function(
+characterizationGetCohortsInputs <- function(
     connectionHandler,
     resultDatabaseSettings
 ) {
-  #shiny::withProgress(message = 'Getting target comparison inputs', value = 0, {
-  
-  
-  sql <-
-    ' select distinct c.cohort_definition_id, c.cohort_name from
-  @schema.@cg_table_prefixcohort_definition c
-  inner join
-  (select distinct TARGET_COHORT_ID as id
-  from @schema.@c_table_prefixcohort_details
-  ) ids
-  on ids.id = c.cohort_definition_id
-  ;'
-  
-  #shiny::incProgress(1/4, detail = paste("Extracting targetIds"))
-  
-  idVals <- connectionHandler$queryDb(
-    sql = sql,
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
-  )
-  ids <- idVals$cohortDefinitionId
-  names(ids) <- idVals$cohortName
-  
-  #shiny::incProgress(2/4, detail = paste("Extracted targetIds"))
-  
-  
+
   sql <- 'select d.database_id, d.cdm_source_abbreviation as database_name
   from @schema.@database_table d;'
-  
-  #shiny::incProgress(3/4, detail = paste("Extracting databaseIds"))
   
   database <- connectionHandler$queryDb(
     sql = sql,
@@ -369,32 +505,10 @@ getDecCohortsInputs <- function(
   )
   databaseIds <- database$databaseId
   names(databaseIds) <- database$databaseName
-  
-  
-  sql <- 'select distinct analysis_id, analysis_name 
-  from @schema.@c_table_prefixanalysis_ref order by analysis_name desc;'
-  
-  #shiny::incProgress(3/4, detail = paste("Extracting databaseIds"))
-  
-  analyses <- connectionHandler$queryDb(
-    sql = sql,
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix
-  )
-  analysisIds <- analyses$analysisId
-  names(analysisIds) <- analyses$analysisName
-  
-  
-  #shiny::incProgress(4/4, detail = paste("Done"))
-  
-  #  })
-  
+
   return(
     list(
-      cohortIds = ids,
-      databaseIds = databaseIds,
-      analysisIds = analysisIds
+      databaseIds = databaseIds
     )
   )
-  
 }

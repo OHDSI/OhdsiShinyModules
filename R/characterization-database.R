@@ -1,0 +1,281 @@
+# @file characterization-timeToEvent.R
+#
+# Copyright 2024 Observational Health Data Sciences and Informatics
+#
+# This file is part of OhdsiShinyModules
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+# view two cohorts and compare
+characterizationDatabaseComparisonViewer <- function(id) {
+  ns <- shiny::NS(id)
+  
+  shiny::div(
+    
+    # UI for inputs
+    # summary table
+    shinydashboard::box(
+      collapsible = TRUE,
+      title = "Options",
+      width = "100%",
+      shiny::uiOutput(ns("inputs"))
+    ),
+    
+    # displayed inputs
+    shiny::conditionalPanel(
+      condition = "input.generate != 0",
+      ns = ns,
+      
+      inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
+      
+      # add basic table 
+      resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
+      
+    )
+  )
+}
+
+
+
+characterizationDatabaseComparisonServer <- function(
+    id,
+    connectionHandler,
+    resultDatabaseSettings,
+    options,
+    parents,
+    parentIndex # reactive
+) {
+  shiny::moduleServer(
+    id,
+    function(input, output, session) {
+      
+      # TODO replace this with database input
+      inputVals <- characterizationGetCohortsInputs(
+        connectionHandler,
+        resultDatabaseSettings
+      )
+      
+      children <- shiny::reactive({
+        characterizationGetChildren(options, parentIndex())
+      })
+      
+      output$inputs <- shiny::renderUI({
+        
+        shiny::div(
+          shinyWidgets::pickerInput(
+            inputId = session$ns('targetId'), 
+            label = 'Target: ',
+            choices = children(),
+            selected = 1,
+            multiple = F,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
+          ),
+          
+          shiny::selectInput(
+            inputId = session$ns('databaseIds'), 
+            label = 'Databases: ',
+            choices = inputVals$databaseIds,
+            selected = 1,
+            multiple = T
+          ),
+          
+          shiny::sliderInput(
+            inputId = session$ns('minThreshold'), 
+            label = 'Covariate Threshold', 
+            min = 0, 
+            max = 1, 
+            value = 0.01, 
+            step = 0.01, 
+            ticks = F
+            ),
+          
+          shiny::actionButton(
+            inputId = session$ns('generate'), 
+            label = 'Generate'
+          )
+        )
+        
+      })
+      
+      
+      # show selected inputs to user
+      inputSelectionDfServer(
+        id = 'inputSelected', 
+        dataFrameRow = selected,
+        ncol = 1
+      )
+      
+      #get results
+      selected <- shiny::reactiveVal()
+      shiny::observeEvent(input$generate,{
+        
+        if(is.null(input$targetId)){
+          return(NULL)
+        }
+        
+        selected(
+          data.frame(
+            Target = names(children())[which(input$targetId == children())],
+            minTreshold = input$minThreshold
+          )
+        )
+
+        selectedChildChar <- options[[parentIndex()]]$children[[which(input$targetId == children())]]$charIds
+        
+        
+        #get results
+        if(sum(selectedChildChar$databaseId %in% input$databaseIds) > 0){
+          result <- characterizatonGetDatabaseComparisonData(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            targetIds = selectedChildChar$charCohortId[selectedChildChar$databaseId %in% input$databaseIds],
+            databaseIds = selectedChildChar$databaseId[selectedChildChar$databaseId %in% input$databaseIds],
+            minThreshold = input$minThreshold
+          )
+          databaseNames <- result$databaseNames
+          
+          meanColumns <- lapply(1:nrow(databaseNames), function(i){
+            reactable::colDef(
+              header = withTooltip(
+                paste0("Mean ", databaseNames$databaseName[i]),
+                paste0("The mean of the covariate for database ", databaseNames$databaseName[i])
+              ),
+              cell = function(value) {
+                if (value >= 0) round(value, digits = 3) else '< min threshold'
+              }
+            )
+          })
+          names(meanColumns) <- unlist(lapply(1:nrow(databaseNames), function(i) paste0('averageValue_',databaseNames$id[i])))
+          
+          sumColumns <- lapply(1:nrow(databaseNames), function(i){
+            reactable::colDef(
+              header = withTooltip(
+                paste0("Sum ", databaseNames$databaseName[i]),
+                paste0("The sums of the covariate for database ", databaseNames$databaseName[i])
+              ),
+              cell = function(value) {
+                if (value >= 0) value else '< min threshold'
+              }
+            )
+          })
+          names(sumColumns) <- unlist(lapply(1:nrow(databaseNames), function(i) paste0('sumValue_',databaseNames$id[i])))
+          
+          print('HERE 3')
+          
+          columns <- append(
+            list(
+              covariateName = reactable::colDef(
+                header = withTooltip(
+                  "Covariate Name",
+                  "The name of the covariate"
+                )
+              ),
+              covariateId = reactable::colDef(
+                show = F,
+                header = withTooltip("Covariate ID",
+                                     "Unique identifier of the covariate")
+              )
+            ),
+            append(
+              sumColumns,
+              meanColumns
+            )
+          )
+          
+          print('HERE 4')
+          
+          resultTableServer(
+            id = 'mainTable',
+            df = result$table,
+            colDefsInput = columns
+          ) 
+        } else{
+          shiny::showNotification('No results')
+          resultTableServer(
+            id = 'mainTable',
+            df = data.frame(),
+            colDefsInput = list(
+              covariateName = reactable::colDef(
+                header = withTooltip(
+                  "Covariate Name",
+                  "The name of the covariate"
+                )
+              ),
+              covariateId = reactable::colDef(
+                show = F,
+                header = withTooltip("Covariate ID",
+                                     "Unique identifier of the covariate")
+              )
+            )
+          ) 
+        }
+        
+        
+      })
+      
+    
+      return(invisible(NULL))
+      
+    })
+  
+}
+
+characterizatonGetDatabaseComparisonData <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    targetIds,
+    databaseIds,
+    minThreshold
+){
+  
+  result <- characterizatonGetCohortData(
+    connectionHandler = connectionHandler,
+    resultDatabaseSettings = resultDatabaseSettings,
+    targetIds = targetIds,
+    databaseIds = databaseIds,
+    minThreshold = minThreshold,
+    addSMD = F # unless two databases?
+  )
+  
+  databaseNames <- connectionHandler$queryDb(
+    sql = "select cdm_source_abbreviation as database_name, database_id
+     from @schema.@database_table;",
+    schema = resultDatabaseSettings$schema,
+    database_table = resultDatabaseSettings$databaseTable
+  )
+  
+  databaseNames <- merge(
+    databaseNames,
+    data.frame(
+      id = 1:length(databaseIds),
+      databaseId = databaseIds
+    ), 
+    by = 'databaseId'
+  )
+  
+  return(
+    list(
+      table = result, 
+      databaseNames = databaseNames
+    )
+  )
+  
+}

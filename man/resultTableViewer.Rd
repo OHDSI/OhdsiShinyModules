@@ -4,7 +4,11 @@
 \alias{resultTableViewer}
 \title{Result Table Viewer}
 \usage{
-resultTableViewer(id = "result-table", downloadedFileName = NULL)
+resultTableViewer(
+  id = "result-table",
+  downloadedFileName = NULL,
+  boxTitle = "Table"
+)
 }
 \arguments{
 \item{id}{string}

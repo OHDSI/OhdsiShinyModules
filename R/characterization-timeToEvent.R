@@ -31,19 +31,7 @@
 characterizationTimeToEventViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
-    
-    infoHelperViewer(
-      id = "helper",
-      helpLocation= system.file("characterization-www", "help-timeToEvent.html", package = utils::packageName())
-    ),
-    
-    # input component module
-    inputSelectionViewer(id = ns('input-selection')),
-    
-    shiny::conditionalPanel(
-      condition = 'input.generate != 0',
-      ns = shiny::NS(ns("input-selection")),
-      
+  
       shinydashboard::box(
         width = "100%",
         title = shiny::tagList(shiny::icon("gear"), "Results"),
@@ -62,9 +50,6 @@ characterizationTimeToEventViewer <- function(id) {
         )
       )
     )
-    
-    
-  )
 }
 
 
@@ -84,73 +69,18 @@ characterizationTimeToEventViewer <- function(id) {
 characterizationTimeToEventServer <- function(
   id, 
   connectionHandler,
-  resultDatabaseSettings
+  resultDatabaseSettings,
+  targetId,
+  outcomeId
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      # get the possible target ids
-      bothIds <- timeToEventGetIds(
-        connectionHandler,
-        resultDatabaseSettings
-      )
-
-      
-      # input selection component
-      inputSelected <- inputSelectionServer(
-        id = "input-selection", 
-        inputSettingList = list(
-          createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
-            varName = 'targetId',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Target: ',
-              choices = bothIds$targetIds,
-              #choicesOpt = list(style = rep_len("color: black;", 999)),
-              selected = bothIds$targetIds[1],
-              multiple = F,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          ),
-          
-          createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
-            varName = 'outcomeId',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Outcome: ',
-              choices = bothIds$outcomeIds,
-              #choicesOpt = list(style = rep_len("color: black;", 999)),
-              selected = bothIds$outcomeIds[1],
-              multiple = F,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          )
-        )
-      )
-      
       allData <- shiny::reactive({
         getTimeToEventData(
-          targetId = inputSelected()$targetId,
-          outcomeId = inputSelected()$outcomeId,
+          targetId = targetId(),
+          outcomeId = outcomeId(),
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings
         )
@@ -196,6 +126,7 @@ characterizationTimeToEventServer <- function(
   )
 }
 
+# can remove
 timeToEventGetIds <- function(
     connectionHandler,
     resultDatabaseSettings

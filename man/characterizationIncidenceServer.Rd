@@ -4,7 +4,16 @@
 \alias{characterizationIncidenceServer}
 \title{The module server for exploring incidence results}
 \usage{
-characterizationIncidenceServer(id, connectionHandler, resultDatabaseSettings)
+characterizationIncidenceServer(
+  id,
+  connectionHandler,
+  resultDatabaseSettings,
+  options,
+  parents,
+  parentIndex,
+  outcomes,
+  subTargets
+)
 }
 \arguments{
 \item{id}{the unique reference id for the module}

@@ -37,9 +37,6 @@ config <- initializeModuleConfig() %>%
     createDefaultAboutConfig()
   )  %>%
   addModuleConfig(
-    est 
-  )  %>%
-  addModuleConfig(
     createDefaultDatasourcesConfig()
   )  %>%
   addModuleConfig(
@@ -49,20 +46,14 @@ config <- initializeModuleConfig() %>%
     createDefaultCohortDiagnosticsConfig()
   ) %>%
   addModuleConfig(
+    est 
+  )  %>%
+  addModuleConfig(
     createDefaultCharacterizationConfig()
   ) %>%
   addModuleConfig(
     createDefaultPredictionConfig()
   ) %>%
-  addModuleConfig(
-    createDefaultCohortMethodConfig()
-  ) %>%
-  addModuleConfig(
-    createDefaultSccsConfig()
-  ) %>%
-  #addModuleConfig(
-  #  createDefaultEvidenceSynthesisConfig()
-  #) %>%
   addModuleConfig(
     ShinyAppBuilder::createDefaultReportConfig()
     )
@@ -82,5 +73,4 @@ ShinyAppBuilder::createShinyApp(
   title = 'Testing OhdsiShinyModules with ShinyAppBuilder',
   protocolLink = 'http://ohdsi.org'
 )
-
 

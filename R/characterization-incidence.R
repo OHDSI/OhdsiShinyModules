@@ -38,43 +38,6 @@ as_ggplot <- function(x){
 }
 
 
-# is_null_unit <- function (x)
-# {
-#     if (!grid::is.unit(x)) {
-#         return(FALSE)
-#     }
-#     all(grid::unitType(x) == "null")
-# }
-# 
-# force_panelsizes <- function(rows = NULL, cols = NULL, respect = NULL, total_width = NULL, total_height = NULL) {
-#   if (!is.null(rows) & !grid::is.unit(rows)) {
-#     rows <- grid::unit(rows, "null")
-#   }
-#   if (!is.null(cols) & !grid::is.unit(cols)) {
-#     cols <- grid::unit(cols, "null")
-#   }
-#   if (!is.null(total_width)) {
-#     if (grid::is.unit(cols) && !is_null_unit(cols)) {
-#       stop("Cannot set {.arg total_width} when {.arg cols} is not relative.")
-#     }
-#     if (!grid::is.unit(total_width)) {
-#       stop("{.arg total_width} must be a {.cls unit} object.")
-#     }
-#     rlang::arg_match0(grid::unitType(total_width), c("cm", "mm", "inches", "points"))
-#   }
-#   if (!is.null(total_height)) {
-#     if (grid::is.unit(rows) && !is_null_unit(rows)) {
-#       stop("Cannot set {.arg total_height} when {.arg rows} is not relative.")
-#     }
-#     if (!grid::is.unit(total_height)) {
-#       stop("{.arg total_height} must be a {.cls unit} object.")
-#     }
-#     rlang::arg_match0(grid::unitType(total_height), c("cm", "mm", "inches", "points"))
-#   }
-#   structure(list(rows = rows, cols = cols, respect = respect, total_width = total_width, total_height = total_height), class = "forcedsize")
-# }
-
-
 # Define the custom age sorting function
 custom_age_sort <- function(age_categories) {
   # Extract the largest integer from each category
@@ -99,10 +62,6 @@ break_setter = function(n = 5) {
 
 
 
-
-
-
-
 #' The module viewer for exploring incidence results 
 #'
 #' @details
@@ -117,19 +76,12 @@ break_setter = function(n = 5) {
 characterizationIncidenceViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
-
-    infoHelperViewer(
-      id = "helper",
-      helpLocation= system.file("characterization-www", "help-incidenceRate.html", package = utils::packageName())
-    ),
     
-    inputSelectionViewer(
-      id = ns("input-selection-results")
-    ),
+    shiny::uiOutput(ns("inputOptions")),
     
     shiny::conditionalPanel(
       condition = 'input.generate != 0',
-      ns = shiny::NS(ns("input-selection-results")),
+      ns = ns,
       
       shiny::tabsetPanel(
         type = 'pills',
@@ -292,185 +244,167 @@ characterizationIncidenceViewer <- function(id) {
 characterizationIncidenceServer <- function(
     id, 
     connectionHandler,
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    options,
+    parents,
+    parentIndex, # reactive
+    outcomes, # reactive
+    subTargets# reactive
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      
       ##  ns <- session$ns
       
-     options <- getIncidenceOptions( # written using getTargetOutcomes
-       connectionHandler,
-       resultDatabaseSettings
-     )
+      ages <- c(2:12, NA)
+      names(ages) <- c(sapply(2:12, function(i) paste0((i-2)*10,' - ',(i-1)*10-1)), 'All')
+      
+      sex <- c(8507, 8532 , NA)
+      names(sex) <- c('Male', 'Female', 'All')
+      
+      startYear <- c(NA, format(Sys.Date(), "%Y"):1990)
+      names(startYear) <- c('All', format(Sys.Date(), "%Y"):1990)
+      
+      # get tar and then call cohortIncidenceFormatTar()
+      
+      tarDf <- data.frame(
+        tarId = 1:3, 
+        tarStartWith = c('start','start','start'), 
+        tarStartOffset = c(1,1,1), 
+        tarEndWith = c('start','start','end'), 
+        tarEndOffset = c(9999,30,0)
+      )
+      sortedTars <- tarDf$tarId
+      names(sortedTars) <- cohortIncidenceFormatTar(tarDf)
+      
+     output$inputOptions <- shiny::renderUI({
+         shinydashboard::box(
+           collapsible = TRUE,
+           title = "Options",
+           width = "100%",
+           
+           shiny::div(
+             "Select Your Results",
+             style = "font-weight: bold; font-size: 20px; text-align: center; margin-bottom: 20px;"
+           ),
+           
+           shiny::selectInput(
+             inputId = session$ns('targetIds'),
+             label = 'Target: ',
+             choices = subTargets(),
+             selected = 1,
+             multiple = T,
+             selectize = TRUE,
+             width = NULL,
+             size = NULL
+           ),
+           
+           shiny::selectInput(
+             inputId = session$ns('outcomeIds'),
+             label = 'Outcome: ',
+             choices = outcomes(),
+             selected = 1,
+             multiple = T,
+             selectize = TRUE,
+             width = NULL,
+             size = NULL
+           ),
+           
+           shinyWidgets::pickerInput(
+             inputId = session$ns('ageIds'),
+             label = 'Filter By Age Group: ',
+             choices = ages,
+             selected = ages,
+             multiple = T,
+             options = shinyWidgets::pickerOptions(
+               actionsBox = TRUE,
+               liveSearch = TRUE,
+               size = 10,
+               dropupAuto = TRUE,
+               liveSearchStyle = "contains",
+               liveSearchPlaceholder = "Type here to search",
+               virtualScroll = 50
+             )
+           ),
+           
+           shinyWidgets::pickerInput(
+             inputId = session$ns('sexIds'),
+             label = 'Filter By Sex: ',
+             choices = sex,
+             selected = sex,
+             multiple = T,
+             options = shinyWidgets::pickerOptions(
+               actionsBox = TRUE,
+               liveSearch = TRUE,
+               size = 10,
+               dropupAuto = TRUE,
+               liveSearchStyle = "contains",
+               liveSearchPlaceholder = "Type here to search",
+               virtualScroll = 50
+             )
+           ),
+           
+           shinyWidgets::pickerInput(
+             inputId = session$ns('startYears'),
+             label = 'Filter By Start Year: ',
+             choices = startYear,
+             selected = startYear,
+             multiple = T,
+             options = shinyWidgets::pickerOptions(
+               actionsBox = TRUE,
+               liveSearch = TRUE,
+               size = 10,
+               dropupAuto = TRUE,
+               liveSearchStyle = "contains",
+               liveSearchPlaceholder = "Type here to search",
+               virtualScroll = 50
+             )
+           ),
+           
+           shinyWidgets::pickerInput(
+             inputId = session$ns('tars'),
+             label = 'Select Time at risk (TAR)',
+             choices = sortedTars,
+             selected = sortedTars[1],
+             multiple = F,
+             options = shinyWidgets::pickerOptions(
+               actionsBox = TRUE,
+               liveSearch = TRUE,
+               size = 10,
+               dropupAuto = TRUE,
+               liveSearchStyle = "contains",
+               liveSearchPlaceholder = "Type here to search",
+               virtualScroll = 50
+             )
+           ),
+           
+           shiny::actionButton(
+             inputId = session$ns('generate'), 
+             label = 'Generate',
+             icon = shiny::icon('redo') 
+           )
+         )
+       })
      
-     sortedAges <- custom_age_sort(options$ageGroupName)
+     outcomeIds <- shiny::reactiveVal(NULL)
+     targetIds <- shiny::reactiveVal(NULL)
+     incidenceRateTarFilter <- shiny::reactiveVal(NULL)
+     incidenceRateCalendarFilter <- shiny::reactiveVal(NULL)
+     incidenceRateAgeFilter <- shiny::reactiveVal(NULL)
+     incidenceRateGenderFilter <- shiny::reactiveVal(NULL)
+     shiny::observeEvent(input$generate,{
+       incidenceRateTarFilter(input$tars)
+       incidenceRateCalendarFilter(input$startYears)
+       incidenceRateAgeFilter(input$ageIds)
+       incidenceRateGenderFilter(input$sexIds)
+       outcomeIds(input$outcomeIds)
+       targetIds(input$targetIds)
+     })
      
-     # Extract the integers from each TAR string
-     tarIntegers <- as.integer(gsub("[^0-9]", "", options$tar))
-     # Sort the vector based on the extracted integers
-     sortedTars <- options$tar[order(tarIntegers)]
      
-        # input selection component
-        inputSelectedResults <- inputSelectionServer(
-          id = "input-selection-results", 
-          inputSettingList = list(
-            createInputSetting(
-              rowNumber = 1,                           
-              columnWidth = 12,
-              varName = 'firsttext',
-              inputReturn = T,
-              uiFunction = 'shiny::div',
-              uiInputs = list(
-                "Select Your Results",
-                style = "font-weight: bold; font-size: 20px; text-align: center; margin-bottom: 20px;"
-              )
-            ),
-            createInputSetting(
-              rowNumber = 2,                           
-              columnWidth = 6,
-              varName = 'targetIds',
-              uiFunction = 'shinyWidgets::pickerInput',
-              updateFunction = 'shinyWidgets::updatePickerInput',
-              uiInputs = list(
-                label = 'Target: ',
-                choices = options$targetIds,
-                selected = options$targetIds[1], #default should be just one (the first)
-                multiple = T,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            createInputSetting(
-              rowNumber = 2,                           
-              columnWidth = 6,
-              varName = 'outcomeIds',
-              uiFunction = 'shinyWidgets::pickerInput',
-              updateFunction = 'shinyWidgets::updatePickerInput',
-              uiInputs = list(
-                label = 'Outcome: ',
-                choices = options$outcomeIds,
-                selected = options$outcomeIds[1], #default should be just one (the first)
-                multiple = T,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            
-            # third row
-            createInputSetting(
-              rowNumber = 3,                           
-              columnWidth = 3,
-              varName = 'incidenceRateAgeFilter',
-              uiFunction = 'shinyWidgets::pickerInput',
-              updateFunction = 'shinyWidgets::updatePickerInput',
-              collapse = T,
-              uiInputs = list(
-                label = 'Filter By Age Group: ',
-                choices = sortedAges,
-                selected = sortedAges,
-                multiple = T,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  dropupAuto = TRUE,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            
-            
-            createInputSetting(
-              rowNumber = 3,                           
-              columnWidth = 3,
-              varName = 'incidenceRateGenderFilter',
-              uiFunction = 'shinyWidgets::pickerInput',
-              updateFunction = 'shinyWidgets::updatePickerInput',
-              collapse = T,
-              uiInputs = list(
-                label = 'Filter By Sex: ',
-                choices = sort(options$genderName, decreasing = F),
-                selected = options$genderName,
-                multiple = T,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  dropupAuto = TRUE,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            
-            createInputSetting(
-              rowNumber = 3,                           
-              columnWidth = 3,
-              varName = 'incidenceRateCalendarFilter',
-              uiFunction = 'shinyWidgets::pickerInput',
-              updateFunction = 'shinyWidgets::updatePickerInput',
-              collapse = T,
-              uiInputs = list(
-                label = 'Filter By Start Year: ',
-                choices = sort(options$startYear, decreasing = T),
-                selected = options$startYear,
-                multiple = T,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  dropupAuto = TRUE,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            
-            createInputSetting(
-              rowNumber = 3,                           
-              columnWidth = 3,
-              varName = 'incidenceRateTarFilter',
-              uiFunction = 'shinyWidgets::pickerInput',
-              updateFunction = 'shinyWidgets::updatePickerInput',
-              uiInputs = list(
-                label = 'Select Time at risk (TAR)',
-                choices = sortedTars,
-                selected = sortedTars[1],
-                multiple = F,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  dropupAuto = TRUE,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            )
-          )
-        )
-            
-            # 4th row text
+     options <- getIncidenceOptions()
+     
         inputSelectedCustomPlot <- inputSelectionServer(
           id = "input-selection-custom-plot", 
           inputSettingList = list(
@@ -667,21 +601,21 @@ characterizationIncidenceServer <- function(
       
       filteredData <- shiny::reactive(         
         {
-          if (is.null(inputSelectedResults()$targetIds) |
-              is.null(inputSelectedResults()$outcomeIds)
+          if (is.null(targetIds()) |
+              is.null(outcomeIds())
               ) {
             return(data.frame())
           }
           
-          else if(inputSelectedResults()$targetIds==inputSelectedResults()$outcomeIds &&
-                   length(inputSelectedResults()$targetIds)==1 && length(inputSelectedResults()$outcomeIds)==1
+          else if(targetIds() == outcomeIds() &&
+                   length(targetIds())==1 && length(outcomeIds())==1
           ){
             shiny::validate("Target and outcome cohorts must differ from each other. Make a different selection.")
           }
           
           else {
-            getIncidenceData(targetIds = inputSelectedResults()$targetIds,
-                           outcomeIds = inputSelectedResults()$outcomeIds,
+            getIncidenceData(targetIds = targetIds(),
+                           outcomeIds = outcomeIds(),
                            connectionHandler = connectionHandler,
                            resultDatabaseSettings = resultDatabaseSettings
           ) %>%
@@ -691,9 +625,9 @@ characterizationIncidenceServer <- function(
                           dplyr::across(dplyr::where(is.numeric), round, 4),
                           targetIdShort = paste("C", .data$targetCohortDefinitionId, sep = "-"),
                           outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
-            dplyr::filter(.data$ageGroupName %in% !!inputSelectedResults()$incidenceRateAgeFilter & 
-                            .data$genderName %in% !!inputSelectedResults()$incidenceRateGenderFilter & 
-                            .data$startYear %in% !!inputSelectedResults()$incidenceRateCalendarFilter  
+            dplyr::filter(.data$ageGroupName %in% !! incidenceRateAgeFilter() & 
+                            .data$genderName %in% !! incidenceRateGenderFilter() & 
+                            .data$startYear %in% !! incidenceRateCalendarFilter()  
             ) %>%
               dplyr::relocate("targetIdShort", .after = "targetName") %>%
               dplyr::relocate("outcomeIdShort", .after = "outcomeName")
@@ -703,21 +637,21 @@ characterizationIncidenceServer <- function(
       
       filteredDataAggregateForPlot <- shiny::reactive(         
         {
-          if (is.null(inputSelectedResults()$targetIds) |
-              is.null(inputSelectedResults()$outcomeIds)
+          if (is.null(targetIds()) |
+              is.null(outcomeIds())
           ) {
             return(data.frame())
           }
           
-          else if(inputSelectedResults()$targetIds==inputSelectedResults()$outcomeIds &&
-                  length(inputSelectedResults()$targetIds)==1 && length(inputSelectedResults()$outcomeIds)==1
+          else if(targetIds() == outcomeIds() &&
+                  length(targetIds()) == 1 && length(outcomeIds()) == 1
           ){
             shiny::validate("Target and outcome cohorts must differ from each other. Make a different selection.")
           }
           
           else {
-            getIncidenceData(targetIds = inputSelectedResults()$targetIds,
-                             outcomeIds = inputSelectedResults()$outcomeIds,
+            getIncidenceData(targetIds = targetIds(),
+                             outcomeIds = outcomeIds(),
                              connectionHandler = connectionHandler,
                              resultDatabaseSettings = resultDatabaseSettings
             ) %>%
@@ -769,14 +703,14 @@ characterizationIncidenceServer <- function(
       #ir plots
       irPlotCustom <- shiny::reactive(
         {
-          if (is.null(inputSelectedResults()$targetIds) |
-              is.null(inputSelectedResults()$outcomeIds)) {
+          if (is.null(targetIds()) |
+              is.null(outcomeIds())) {
             return(data.frame())
           }
           
-          ifelse(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar,
+          ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
           plotData <- filteredData() %>%
-            dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
+            dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
             shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
           )
 
@@ -1054,44 +988,11 @@ characterizationIncidenceServer <- function(
                 legend.box.spacing = ggplot2::unit(3, "pt"),
                 legend.text = ggplot2::element_text(size=10),
                 legend.title = ggplot2::element_text(size=16, face = "bold"),
-                #plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12),
-                #legend.spacing.x = ggplot2::unit(2.0, 'cm'),
-                # legend.box = "horizontal",
-                # legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
-                # legend.title = ggplot2::element_text(size=30), #change legend title font size
-                # legend.text = ggplot2::element_text(size=20),
-                panel.spacing = ggplot2::unit(2, "lines"),
-                # strip.background = ggplot2::element_blank(), 
+                 panel.spacing = ggplot2::unit(2, "lines"),
                 strip.text = ggplot2::element_text(face="bold", size = 14)
               ) + 
               ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
                               color = ggplot2::guide_legend(override.aes = list(size = 6)))
-            
-            #   
-            #   # Create a custom color scale
-            #   color_scale <- RColorBrewer::colorRampPalette(brewer.pal(9, "YlOrRd"))(100)
-            #   
-            #   # Create a faceted heatmap by outcome and data source
-            #   p <- ggplot2::ggplot(data = plotData, aes(x = targetIdShort, y = ageGroupName,
-            #                                             text = paste("Outcome ID:", outcomeIdShort, "<br>Outcome:", outcomeName,
-            #                                                          "<br>Target ID:", targetIdShort, "<br>Target:", targetName,
-            #                                                          "<br>TAR:", tar, "<br>Age:", ageGroupName, "<br>Sex:", genderName,
-            #                                                          "<br>TAR:",
-            #                                                          "<br>Incidence Rate:", incidenceRateP100py))) +
-            #     ggplot2::geom_tile(aes(fill = incidenceRateP100py), color = "white") +
-            #     ggplot2::scale_fill_gradient(colors = color_scale, name = "Incidence Rate") +
-            #     ggplot2::labs(title = "Incidence Rate by Strata Variables",
-            #          x = "Target Population Cohort",
-            #          y = "Age Category") +
-            #     ggplot2::theme_minimal() +
-            #     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
-            #           plot.title = element_text(hjust = 0.5)) +
-            #     ggplot2::facet_grid(outcome ~ data_source, scales = "free_x", space = "free_x")
-            #   
-            #   # Convert the ggplot plot to a Plotly plot
-            #   p <- plotly::ggplotly(p)
-            #   
-            #   
             
           }
           
@@ -1109,14 +1010,14 @@ characterizationIncidenceServer <- function(
       #render the event reactive incidence plot without legend
       renderIrPlotCustomNoLegend <- shiny::reactive(
         {
-          if (is.null(inputSelectedResults()$targetIds) |
-              is.null(inputSelectedResults()$outcomeIds)) {
+          if (is.null(targetIds()) |
+              is.null(outcomeIds())) {
             shiny::validate("Please select at least one target and one outcome.")
           }
           
           else {
           plotData <- filteredData() %>%
-            dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter)
+            dplyr::filter(.data$tar %in% incidenceRateTarFilter())
           
           # Get the number of facets in both rows and columns
           num_rows <- length(unique(plotData[[inputSelectedCustomPlot()$plotXTrellis]]))
@@ -1163,14 +1064,14 @@ characterizationIncidenceServer <- function(
       #render the event reactive incidence plot without legend
       renderIrPlotCustom <- shiny::reactive(
         {
-          if (is.null(inputSelectedResults()$targetIds) |
-              is.null(inputSelectedResults()$outcomeIds)) {
+          if (is.null(targetIds()) |
+              is.null(outcomeIds())) {
             shiny::validate("Please select at least one target and one outcome.")
           }
           
           else {
             plotData <- filteredData() %>%
-              dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter)
+              dplyr::filter(.data$tar %in% incidenceRateTarFilter())
             
             # Get the number of facets in both rows and columns
             num_rows <- length(unique(plotData[[inputSelectedCustomPlot()$plotXTrellis]]))
@@ -1227,25 +1128,25 @@ characterizationIncidenceServer <- function(
       renderIrPlotStandardAge <- shiny::reactive(
         {
           
-          if (is.null(inputSelectedResults()$targetIds) |
-              is.null(inputSelectedResults()$outcomeIds)) {
+          if (is.null(targetIds()) |
+              is.null(outcomeIds())) {
             return(data.frame())
           }
           
-          ifelse(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar,
+          ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
                  plotData <- filteredData() %>%
-                   dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
+                   dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
                  shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
           )
           
           #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
-          ifelse(length(inputSelectedResults()$targetId) * length(inputSelectedResults()$outcomeId) <= 10,
+          ifelse(length(targetIds()) * length(outcomeIds()) <= 10,
                  plotData <- filteredData(),
                  shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
           )
           
           #add check to make sure "> 1 distinct age is selected for by age plot"any" is in selection for year and sex
-          ifelse("Any" %in% inputSelectedResults()$incidenceRateCalendarFilter & "Any" %in% inputSelectedResults()$incidenceRateGenderFilter,
+          ifelse("Any" %in% incidenceRateCalendarFilter() & "Any" %in% incidenceRateGenderFilter(),
                  plotData <- filteredData(),
                  shiny::validate("This standard plot is designed to show results aggregated over all (`Any`) year and sex categories. Please make sure you have selected `Any` in the `Select your results` section above for these variables.")
           )
@@ -1331,13 +1232,7 @@ characterizationIncidenceServer <- function(
               legend.title.align = 0.5,
               plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
                                                    margin = ggplot2::margin(t = 20)),
-              #legend.spacing.x = ggplot2::unit(2.0, 'cm'),
-              # legend.box = "horizontal",
-              # legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
-              # legend.title = ggplot2::element_text(size=30), #change legend title font size
-              # legend.text = ggplot2::element_text(size=20),
               panel.spacing = ggplot2::unit(2, "lines"),
-              # strip.background = ggplot2::element_blank(), 
               strip.text = ggplot2::element_text(face="bold", size = 14),
               strip.background = ggplot2::element_blank(),
               strip.clip = "off"
@@ -1375,25 +1270,25 @@ characterizationIncidenceServer <- function(
 renderIrPlotStandardAgeSex <- shiny::reactive(
   {
     
-    if (is.null(inputSelectedResults()$targetIds) |
-        is.null(inputSelectedResults()$outcomeIds)) {
+    if (is.null(targetIds()) |
+        is.null(outcomeIds())) {
       return(data.frame())
     }
     
-    ifelse(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar,
+    ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
            plotData <- filteredData() %>%
-             dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
+             dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
            shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
     )
     
     #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
-    ifelse(length(inputSelectedResults()$targetId) * length(inputSelectedResults()$outcomeId) <= 10,
+    ifelse(length(targetIds()) * length(outcomeIds()) <= 10,
            plotData <- filteredData(),
            shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
     )
     
     #add check to make sure "Any" is in the year filter
-    ifelse("Any" %in% inputSelectedResults()$incidenceRateCalendarFilter,
+    ifelse("Any" %in% incidenceRateCalendarFilter(),
            plotData <- filteredData(),
            shiny::validate("This standard plot is designed to show results aggregated over all (`Any`) year categories. Please make sure you have selected `Any` in the `Select your results` section above for this variable.")
     )
@@ -1479,13 +1374,7 @@ renderIrPlotStandardAgeSex <- shiny::reactive(
         legend.title.align = 0.5,
         plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
                                              margin = ggplot2::margin(t = 20)),
-        #legend.spacing.x = ggplot2::unit(2.0, 'cm'),
-        # legend.box = "horizontal",
-        # legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
-        # legend.title = ggplot2::element_text(size=30), #change legend title font size
-        # legend.text = ggplot2::element_text(size=20),
         panel.spacing = ggplot2::unit(2, "lines"),
-        # strip.background = ggplot2::element_blank(), 
         strip.text = ggplot2::element_text(face="bold", size = 14),
         strip.background = ggplot2::element_blank(),
         strip.clip = "off"
@@ -1521,25 +1410,25 @@ output$downloadPlotStandardAgeSex <- shiny::downloadHandler(
 renderIrPlotStandardYear <- shiny::reactive(
   {
     
-    if (is.null(inputSelectedResults()$targetIds) |
-        is.null(inputSelectedResults()$outcomeIds)) {
+    if (is.null(targetIds()) |
+        is.null(outcomeIds())) {
       return(data.frame())
     }
     
-    ifelse(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar,
+    ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
            plotData <- filteredData() %>%
-             dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
+             dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
            shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
     )
     
-    ifelse(length(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar) == 1,
+    ifelse(length(incidenceRateTarFilter() %in% filteredData()$tar) == 1,
            plotData <- filteredData() %>%
-             dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
+             dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
            shiny::validate("Please select only one TAR at a time to view yearly plots.")
     )
     
-    ifelse((length(inputSelectedResults()$targetIds) == 1) & 
-             (length(inputSelectedResults()$outcomeIds) == 1), 
+    ifelse((length(targetIds()) == 1) & 
+             (length(outcomeIds()) == 1), 
            plotData <- plotData,
            shiny::validate("Please select only one Target and Outcome at a time to view yearly plots.")
     )
@@ -1590,24 +1479,12 @@ renderIrPlotStandardYear <- shiny::reactive(
       ) + 
       ggplot2::geom_line(ggplot2::aes(linetype = genderName)) +
       ggplot2::scale_colour_brewer(palette = "Paired") +
-      #geom_jitter() +
-      #scale_size_continuous(range = c(5,15)) +
-      # ggplot2::scale_colour_brewer(palette = "Paired") +
-      # ggplot2::facet_grid(
-      #   rows = dplyr::vars(Outcome),
-      #   cols = dplyr::vars(Age),
-      #   labeller = ggplot2::labeller(.rows = outcomeLabeller,
-      #                                .cols = ageLabeller),
-      #   scales = "free_y"
-      # ) + 
       ggplot2::facet_wrap(
         ~Age,
         labeller = "label_both",
         scales = "free_x",
         nrow = 2
       ) +
-      # scale_y_continuous(#breaks = base_breaks(),
-      #                    trans = 'log10')
       ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
                                   n.breaks = 3)
     
@@ -1617,9 +1494,7 @@ renderIrPlotStandardYear <- shiny::reactive(
       x = paste(names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "startYear"]), "\n"),
       y = paste(names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]), " (log10 scale)"),
       color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
-      #size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "outcomes"]),
       shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
-      #linetype = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
       caption = caption_text
     ) +
       ggplot2::guides(alpha = "none", size = "none", linetype = "none") + # Remove the alpha and size legend
@@ -1638,13 +1513,7 @@ renderIrPlotStandardYear <- shiny::reactive(
         legend.title.align = 0.5,
         plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
                                              margin = ggplot2::margin(t = 20)),
-        #legend.spacing.x = ggplot2::unit(2.0, 'cm'),
-        # legend.box = "horizontal",
-        # legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
-        # legend.title = ggplot2::element_text(size=30), #change legend title font size
-        # legend.text = ggplot2::element_text(size=20),
          panel.spacing = ggplot2::unit(2, "lines"),
-        # strip.background = ggplot2::element_blank(), 
         strip.text = ggplot2::element_text(face="bold", size = 14),
         strip.background = ggplot2::element_blank(),
         strip.clip = "off"
@@ -1686,19 +1555,19 @@ output$downloadPlotStandardYear <- shiny::downloadHandler(
 renderIrPlotStandardAggregate <- shiny::reactive(
   {
     
-    if (is.null(inputSelectedResults()$targetIds) |
-        is.null(inputSelectedResults()$outcomeIds)) {
+    if (is.null(targetIds()) |
+        is.null(outcomeIds())) {
       return(data.frame())
     }
     
-    ifelse(inputSelectedResults()$incidenceRateTarFilter %in% filteredData()$tar,
+    ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
            plotData <- filteredDataAggregateForPlot() %>%
-             dplyr::filter(.data$tar %in% inputSelectedResults()$incidenceRateTarFilter),
+             dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
            shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
     )
     
     #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
-    ifelse(length(inputSelectedResults()$targetId) * length(inputSelectedResults()$outcomeId) <= 10,
+    ifelse(length(targetIds()) * length(outcomeIds()) <= 10,
            plotData <- filteredData(),
            shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
     )
@@ -1758,8 +1627,6 @@ renderIrPlotStandardAggregate <- shiny::reactive(
       x = paste(names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "startYear"]), "\n"),
       y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]),
       color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
-      #size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "outcomes"]),
-      #shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
       caption = caption_text
     ) +
       ggplot2::guides(alpha = "none", size = "none") + # Remove the alpha and size legend
@@ -1778,13 +1645,7 @@ renderIrPlotStandardAggregate <- shiny::reactive(
         legend.title.align = 0.5,
         plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
                                              margin = ggplot2::margin(t = 20)),
-        #legend.spacing.x = ggplot2::unit(2.0, 'cm'),
-        # legend.box = "horizontal",
-        # legend.key.size = ggplot2::unit(3, 'points'), #change legend key size
-        # legend.title = ggplot2::element_text(size=30), #change legend title font size
-        # legend.text = ggplot2::element_text(size=20),
         panel.spacing = ggplot2::unit(2, "lines"),
-        # strip.background = ggplot2::element_blank(), 
         strip.text = ggplot2::element_text(face="bold", size = 14),
         strip.background = ggplot2::element_blank(),
         strip.clip = "off"
@@ -1843,7 +1704,7 @@ getIncidenceData <- function(
   
   if(!is.null(targetIds) & !is.null(outcomeIds)){
     
-    #shiny::withProgress(message = 'Getting incidence data', value = 0, {
+    shiny::withProgress(message = 'Getting incidence data', value = 0, {
     
     sql <- 'select d.cdm_source_abbreviation, i.* 
     from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
@@ -1853,7 +1714,7 @@ getIncidenceData <- function(
     and outcome_cohort_definition_id in (@outcome_ids)
     ;'
     
-    #shiny::incProgress(1/2, detail = paste("Created SQL - Extracting..."))
+    shiny::incProgress(1/2, detail = paste("Created SQL - Extracting..."))
     
     resultTable <- connectionHandler$queryDb(
       sql = sql, 
@@ -1864,12 +1725,14 @@ getIncidenceData <- function(
       database_table_name = resultDatabaseSettings$databaseTable
     )
     
-    #shiny::incProgress(2/2, detail = paste("Done..."))
+    shiny::incProgress(2/2, detail = paste("Done..."))
     
-    #})
+    })
     
     # format the tar
-    resultTable$tar <- paste0('(',resultTable$tarStartWith, " + ", resultTable$tarStartOffset, ') - (', resultTable$tarEndWith, " + ", resultTable$tarEndOffset, ')')
+    ##Jenna edit resultTable$tar <- paste0('(',resultTable$tarStartWith, " + ", resultTable$tarStartOffset, ') - (', resultTable$tarEndWith, " + ", resultTable$tarEndOffset, ')')
+    resultTable$tar <- cohortIncidenceFormatTar(resultTable)
+    
     resultTable <- resultTable %>% 
       dplyr::select(-c("tarStartWith","tarStartOffset","tarEndWith","tarEndOffset", "tarId", "subgroupName"))
     
@@ -1882,8 +1745,13 @@ getIncidenceData <- function(
   }
 }
 
+# Jenna added
+cohortIncidenceFormatTar <- function(x){
+  result <- paste0('(',x$tarStartWith, " + ", x$tarStartOffset, ') - (', x$tarEndWith, " + ", x$tarEndOffset, ')')
+  return(result)
+}
 
-getIncidenceOptions <- function(
+getIncidenceOptionsOld <- function(
     connectionHandler,
     resultDatabaseSettings
 ){
@@ -1972,7 +1840,9 @@ getIncidenceOptions <- function(
   
   # shiny::incProgress(3/3, detail = paste("Done"))
   # })
-  
+}
+
+getIncidenceOptions <- function(){  
   irPlotCategoricalChoices <- list(
     "cdmSourceAbbreviation",
     "ageGroupName",
@@ -2025,14 +1895,14 @@ getIncidenceOptions <- function(
   
   return(
     list(
-      targetIds = targetIds,
-      outcomeIds = outcomeIds,
-      tar = tar,
+      #targetIds = targetIds,
+      #outcomeIds = outcomeIds,
+      #tar = tar,
       irPlotNumericChoices = irPlotNumericChoices,
-      irPlotCategoricalChoices = irPlotCategoricalChoices,
-      ageGroupName = ageGroupName,
-      genderName = genderName,
-      startYear = startYear 
+      irPlotCategoricalChoices = irPlotCategoricalChoices
+      #ageGroupName = ageGroupName,
+      #genderName = genderName,
+      #startYear = startYear 
     )
   )
   

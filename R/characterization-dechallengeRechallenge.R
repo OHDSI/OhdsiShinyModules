@@ -31,24 +31,7 @@
 characterizationDechallengeRechallengeViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
-    
-    # helper component module
-    infoHelperViewer(
-      id = "helper",
-      helpLocation= system.file("characterization-www", "help-dechallengeRechallenge.html", package = utils::packageName())
-    ),
-    
-    # input component module
-    inputSelectionViewer(id = ns('input-selection')),
-    
-    shiny::conditionalPanel(
-      condition = 'input.generate != 0',
-      ns = shiny::NS(ns("input-selection")),
-      
       resultTableViewer(ns('tableResults'))
-        
-    
-    )
   )
 }
 
@@ -69,74 +52,21 @@ characterizationDechallengeRechallengeViewer <- function(id) {
 characterizationDechallengeRechallengeServer <- function(
   id, 
   connectionHandler,
-  resultDatabaseSettings
+  resultDatabaseSettings,
+  targetId,
+  outcomeId
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
 
-      # get the possible target ids
-      bothIds <- dechalRechalGetIds(
-        connectionHandler,
-        resultDatabaseSettings
-      )
-      
-      # input selection component
-      inputSelected <- inputSelectionServer(
-        id = "input-selection", 
-        inputSettingList = list(
-          createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
-            varName = 'targetId',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Target: ',
-              choices = bothIds$targetIds,
-              #choicesOpt = list(style = rep_len("color: black;", 999)),
-              selected = bothIds$targetIds[1],
-              multiple = F,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          ),
-          
-          createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
-            varName = 'outcomeId',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Outcome: ',
-              choices = bothIds$outcomeIds,
-              #choicesOpt = list(style = rep_len("color: black;", 999)),
-              selected = bothIds$outcomeIds[1],
-              multiple = F,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          )
-        )
-      )
       
       # fetch data when targetId changes
       allData <-shiny::reactive({
         getDechalRechalInputsData(
-          targetId = inputSelected()$targetId,
-          outcomeId = inputSelected()$outcomeId,
+          targetId = targetId(),
+          outcomeId = outcomeId(),
           connectionHandler = connectionHandler,
           resultDatabaseSettings
         )
@@ -183,8 +113,8 @@ characterizationDechallengeRechallengeServer <- function(
         if(!is.null(tableOutputs$actionType())){
           if(tableOutputs$actionType() == 'fails'){
             result <- getDechalRechalFailData(
-              targetId = inputSelected()$targetId,
-              outcomeId = inputSelected()$outcomeId,
+              targetId = targetId(),
+              outcomeId = outcomeId(),
               databaseId = allData()$databaseId[tableOutputs$actionIndex()$index], # update?
               dechallengeStopInterval = allData()$dechallengeStopInterval[tableOutputs$actionIndex()$index],
               dechallengeEvaluationWindow = allData()$dechallengeEvaluationWindow[tableOutputs$actionIndex()$index],
@@ -227,6 +157,7 @@ characterizationDechallengeRechallengeServer <- function(
   )
 }
 
+# can delete?
 dechalRechalGetIds <- function(
     connectionHandler,
     resultDatabaseSettings

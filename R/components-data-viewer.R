@@ -14,13 +14,14 @@
 #'
 resultTableViewer <- function(
     id = "result-table",
-    downloadedFileName = NULL
+    downloadedFileName = NULL,
+    boxTitle = 'Table'
     ) {
   ns <- shiny::NS(id)
   shiny::div(# UI
     shinydashboard::box(
       width = "100%",
-      title = shiny::span(shiny::icon("table"), "Table"),
+      title = shiny::span(shiny::icon("table"), boxTitle),
       shiny::fluidPage(
         shiny::fluidRow(
           shiny::column(
