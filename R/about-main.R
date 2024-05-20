@@ -136,7 +136,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "This module was not included in this analysis",
                                 icon = shiny::icon("database"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/DataSources.html"
                               )
                             }
                           })
@@ -157,7 +157,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "This module was not included in this analysis",
                                 icon = shiny::icon("user-gear"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Cohorts.html"
                               )
                             }
                           })
@@ -178,7 +178,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "This module was not included in this analysis",
                                 icon = shiny::icon("table"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Characterization.html"
                               )
                             }
                           })
@@ -199,7 +199,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "This module was not included in this analysis",
                                 icon = shiny::icon("users"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/CohortDiagnostics.html"
                               )
                             }
                           })
@@ -221,7 +221,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "This module was not included in this analysis",
                                 icon = shiny::icon("chart-column"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/CohortMethod.html"
                               )
                             }
                           })
@@ -242,7 +242,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "This module was not included in this analysis",
                                 icon = shiny::icon("chart-line"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Prediction.html"
                               )
                             }
                           })
@@ -263,7 +263,7 @@ aboutServer <- function(id = 'homepage',
                                 subtitle = "This module was not included in this analysis",
                                 icon = shiny::icon("people-arrows"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/SelfControlledCaseSeries.html"
                               )
                             }
                           })
@@ -285,7 +285,7 @@ aboutServer <- function(id = 'homepage',
                                   "This module was not included in this analysis",
                                 icon = shiny::icon("sliders"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/EvidenceSynthesis.html"
                               )
                             }
                           })
