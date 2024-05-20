@@ -32,10 +32,10 @@ characterizationTableViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
 
-    infoHelperViewer(
-      id = "helper",
-      helpLocation= system.file("characterization-www", "help-targetViewer.html", package = utils::packageName())
-    ),
+    # infoHelperViewer(
+    #   id = "helper",
+    #   helpLocation= system.file("characterization-www", "help-targetViewer.html", package = utils::packageName())
+    # ),
     
     
     # module that does input selection for a single row DF

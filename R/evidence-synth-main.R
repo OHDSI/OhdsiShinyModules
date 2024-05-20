@@ -31,11 +31,7 @@ evidenceSynthesisViewer <- function(id=1) {
     width = 12,
     title = shiny::span( shiny::icon("sliders"), 'Evidence Synthesis'),
     solidHeader = TRUE,
-    
-    infoHelperViewer(
-      id = "helper",
-      helpLocation= system.file("evidence-synthesis-www", "evidence-synthesis.html", package = utils::packageName())
-    ),
+
     
     # add two buttons - CM or SCCs
     shiny::tabsetPanel(

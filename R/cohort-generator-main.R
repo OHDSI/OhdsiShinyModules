@@ -50,14 +50,7 @@ cohortGeneratorViewer <- function(id) {
       width = '100%',
       title = shiny::span( shiny::icon("user-gear"),'Cohorts'),
       solidHeader = TRUE,
-      
-      shinydashboard::box(
-        collapsible = TRUE,
-        collapsed = TRUE,
-        title = shiny::span( shiny::icon("circle-question"), "Help & Information"),
-        width = "100%",
-        shiny::htmlTemplate(system.file("cohort-generator-www", "cohort-generator.html", package = utils::packageName()))
-      ),
+
       
       shiny::tabsetPanel(
         id = ns("cohortGeneratorTabs"),

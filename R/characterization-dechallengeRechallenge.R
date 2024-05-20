@@ -32,11 +32,7 @@ characterizationDechallengeRechallengeViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    # helper component module
-    infoHelperViewer(
-      id = "helper",
-      helpLocation= system.file("characterization-www", "help-dechallengeRechallenge.html", package = utils::packageName())
-    ),
+
     
     # input component module
     inputSelectionViewer(id = ns('input-selection')),

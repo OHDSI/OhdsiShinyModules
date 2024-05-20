@@ -118,10 +118,7 @@ characterizationIncidenceViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
 
-    infoHelperViewer(
-      id = "helper",
-      helpLocation= system.file("characterization-www", "help-incidenceRate.html", package = utils::packageName())
-    ),
+
     
     inputSelectionViewer(
       id = ns("input-selection-results")
