@@ -73,6 +73,24 @@ aboutViewer <- function(id = 'homepage') {
   )
 }
 
+targetedValueBox <- function(
+    value,
+    subtitle,
+    icon,
+    color,
+    href,
+    target = "_new"
+  ) {
+  valueBox <- shinydashboard::valueBox(
+    value = value,
+    subtitle = subtitle,
+    icon = icon,
+    color = color,
+    href = href
+  )
+  shiny::tagAppendAttributes(valueBox,.cssSelector="a", target=target)
+}
+
 #' The module server for the shiny app home
 #'
 #' @details
@@ -105,7 +123,7 @@ aboutServer <- function(id = 'homepage',
                         output$datasourcesBox <-
                           shinydashboard::renderValueBox({
                             if ("DataSources" %in% tab_names) {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "Data Sources",
                                 subtitle = "Data sources used in this analysis",
                                 icon = shiny::icon("database"),
@@ -113,12 +131,12 @@ aboutServer <- function(id = 'homepage',
                                 href = "https://ohdsi.github.io/OhdsiShinyModules/articles/DataSources.html"
                               )
                             } else {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "Data Sources",
                                 subtitle = "This module was not included in this analysis",
                                 icon = shiny::icon("database"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/DataSources.html"
                               )
                             }
                           })
@@ -126,7 +144,7 @@ aboutServer <- function(id = 'homepage',
                         output$cohortsBox <-
                           shinydashboard::renderValueBox({
                             if ("Cohorts" %in% tab_names) {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "Cohorts",
                                 subtitle = "Cohorts included in this analysis",
                                 icon = shiny::icon("user-gear"),
@@ -134,12 +152,12 @@ aboutServer <- function(id = 'homepage',
                                 href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Cohorts.html"
                               )
                             } else {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "Cohorts",
                                 subtitle = "This module was not included in this analysis",
                                 icon = shiny::icon("user-gear"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Cohorts.html"
                               )
                             }
                           })
@@ -147,7 +165,7 @@ aboutServer <- function(id = 'homepage',
                         output$characterizationBox <-
                           shinydashboard::renderValueBox({
                             if ("Characterization" %in% tab_names) {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "Characterization",
                                 subtitle = "Characterization results for this analysis",
                                 icon = shiny::icon("table"),
@@ -155,12 +173,12 @@ aboutServer <- function(id = 'homepage',
                                 href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Characterization.html"
                               )
                             } else {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "Characterization",
                                 subtitle = "This module was not included in this analysis",
                                 icon = shiny::icon("table"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Characterization.html"
                               )
                             }
                           })
@@ -168,7 +186,7 @@ aboutServer <- function(id = 'homepage',
                         output$cohortDiagnosticsBox <-
                           shinydashboard::renderValueBox({
                             if ("CohortDiagnostics" %in% tab_names) {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "Cohort Diagnostics",
                                 subtitle = "Cohort Diagnostics results for the cohorts included in this analysis",
                                 icon = shiny::icon("users"),
@@ -176,12 +194,12 @@ aboutServer <- function(id = 'homepage',
                                 href = "https://ohdsi.github.io/OhdsiShinyModules/articles/CohortDiagnostics.html"
                               )
                             } else {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "Cohort Diagnostics",
                                 subtitle = "This module was not included in this analysis",
                                 icon = shiny::icon("users"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/CohortDiagnostics.html"
                               )
                             }
                           })
@@ -190,7 +208,7 @@ aboutServer <- function(id = 'homepage',
                         output$cohortMethodBox <-
                           shinydashboard::renderValueBox({
                             if ("CohortMethod" %in% tab_names) {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "Cohort Method",
                                 subtitle = "Cohort Method results for this analysis",
                                 icon = shiny::icon("chart-column"),
@@ -198,12 +216,12 @@ aboutServer <- function(id = 'homepage',
                                 href = "https://ohdsi.github.io/OhdsiShinyModules/articles/CohortMethod.html"
                               )
                             } else {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "Cohort Method",
                                 subtitle = "This module was not included in this analysis",
                                 icon = shiny::icon("chart-column"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/CohortMethod.html"
                               )
                             }
                           })
@@ -211,7 +229,7 @@ aboutServer <- function(id = 'homepage',
                         output$predictionBox <-
                           shinydashboard::renderValueBox({
                             if ("Prediction" %in% tab_names) {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "Prediction",
                                 subtitle = "Patient-level Prediction results for this analysis",
                                 icon = shiny::icon("chart-line"),
@@ -219,12 +237,12 @@ aboutServer <- function(id = 'homepage',
                                 href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Prediction.html"
                               )
                             } else {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "Prediction",
                                 subtitle = "This module was not included in this analysis",
                                 icon = shiny::icon("chart-line"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Prediction.html"
                               )
                             }
                           })
@@ -232,7 +250,7 @@ aboutServer <- function(id = 'homepage',
                         output$sccsBox <-
                           shinydashboard::renderValueBox({
                             if ("SCCS" %in% tab_names) {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "SCCS",
                                 subtitle = "Self-Controlled Case Series results for this analysis",
                                 icon = shiny::icon("people-arrows"),
@@ -240,12 +258,12 @@ aboutServer <- function(id = 'homepage',
                                 href = "https://ohdsi.github.io/OhdsiShinyModules/articles/SelfControlledCaseSeries.html"
                               )
                             } else {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "SCCS",
                                 subtitle = "This module was not included in this analysis",
                                 icon = shiny::icon("people-arrows"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/SelfControlledCaseSeries.html"
                               )
                             }
                           })
@@ -253,7 +271,7 @@ aboutServer <- function(id = 'homepage',
                         output$evidenceSynthesisBox <-
                           shinydashboard::renderValueBox({
                             if ("Meta" %in% tab_names) {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "Meta",
                                 subtitle = "Meta Analysis results for this analysis",
                                 icon = shiny::icon("sliders"),
@@ -261,13 +279,13 @@ aboutServer <- function(id = 'homepage',
                                 href = "https://ohdsi.github.io/OhdsiShinyModules/articles/EvidenceSynthesis.html"
                               )
                             } else {
-                              shinydashboard::valueBox(
+                              targetedValueBox(
                                 value = "Meta",
                                 subtitle =
                                   "This module was not included in this analysis",
                                 icon = shiny::icon("sliders"),
                                 color = "black",
-                                href = NULL
+                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/EvidenceSynthesis.html"
                               )
                             }
                           })
