@@ -51,12 +51,18 @@ characterizationViewer <- function(id=1) {
     solidHeader = TRUE,
     
     # pick a targetId of interest 
-    shiny::uiOutput(ns("targetSelection")),
+    shinydashboard::box(
+      title = 'Target Of Interest', 
+      width = '100%',
+      status = "primary",
+      collapsible = T,
+      shiny::uiOutput(ns("targetSelection"))
+    ),
     
     shiny::conditionalPanel(
       condition = 'input.targetSelect', 
       ns = ns,
-      inputSelectionDfViewer(id = ns('targetSelected'), title = 'Selected'),
+      inputSelectionDfViewer(id = ns('targetSelected'), title = 'Selected Target'),
       shiny::tabsetPanel(
         type = 'pills',
         id = ns('mainPanel')
@@ -100,13 +106,32 @@ characterizationServer <- function(
       # PARENT TARGET SELECTION UI
       #================================================
       parents <- characterizationGetParents(options)
+      parentIndex <- shiny::reactiveVal(1)
+      subTargets <- shiny::reactiveVal()
+      
       # add an input for all char that lets you select cohort of interest
       output$targetSelection <- shiny::renderUI({
         shiny::div(
-          shiny::selectInput(
+          shinyWidgets::pickerInput(
             inputId = session$ns('targetId'),
-            label = 'Parent Target: ',
+            label = 'Target Group: ',
             choices = parents,
+            selected = parents[1],
+            multiple = FALSE,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              dropupAuto = F,
+              size = 10,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 500
+            )
+          ),
+          shiny::selectInput(
+            inputId = session$ns('subTargetId'),
+            label = 'Target: ',
+            choices = characterizationGetChildren(options,1),
             selected = 1,
             multiple = FALSE,
             selectize = TRUE,
@@ -121,22 +146,35 @@ characterizationServer <- function(
         )
       })
       
-
+      #================================================
+      # UPDATE TARGET BASED ON TARGET GROUP
+      #================================================
+      shiny::observeEvent(input$targetId,{
+        parentIndex(which(parents == input$targetId))
+        subTargets(characterizationGetChildren(options,which(parents == input$targetId)))
+        shiny::updateSelectInput(
+          inputId = 'subTargetId',
+          label = 'Target: ',
+          choices = subTargets(), 
+          selected = subTargets()[1]
+          )
+      })
+      
       #================================================
       # PARENT TARGET SELECTION ACTION
       #================================================
       # reactives updated when parent target is selected
-      parentIndex <- shiny::reactiveVal(1)
       outcomes <- shiny::reactiveVal()
-      subTargets <- shiny::reactiveVal()
       targetSelected <- shiny::reactiveVal()
+      subTargetId <- shiny::reactiveVal()
       # output the selected target
       shiny::observeEvent(input$targetSelect, {
         
         # First create input dataframe and add to the inputServer to display
         targetSelected(
           data.frame( 
-            `Parent Target` = names(parents)[parents == input$targetId]
+            `Target group` = names(parents)[parents == input$targetId],
+            `Target` = names(subTargets())[subTargets() == input$subTargetId]
           )
         )
         inputSelectionDfServer(
@@ -145,29 +183,17 @@ characterizationServer <- function(
           ncol = 1
         )
         
-        # update the parentIndex of interest
-        parentIndex(which(parents == input$targetId ))
+        subTargetId(input$subTargetId)
+        
         # update the outcomes for the selected parent target id
         outcomes(characterizationGetOutcomes(options, parentIndex()))
-        # update the child targets for the selected parent target id
-        subTargets(characterizationGetChildren(options, parentIndex()))
-        
+
         # create the outcome selector for the case exposure tabs
         output$outcomeSelection <- shiny::renderUI({
           shinydashboard::box(
             collapsible = TRUE,
             title = "Options",
             width = "100%",
-            shiny::selectInput(
-              inputId = session$ns('subTargetId'),
-              label = 'Target: ',
-              choices = subTargets(),
-              selected = 1,
-              multiple = FALSE,
-              selectize = TRUE,
-              width = NULL,
-              size = NULL
-            ),
             shiny::selectInput(
               inputId = session$ns('outcomeId'),
               label = 'Outcome: ',
@@ -195,19 +221,19 @@ characterizationServer <- function(
       # show the selected outcome
       outcomeSelected <- shiny::reactiveVal()
       outcomeId <- shiny::reactiveVal()
-      subTargetId <- shiny::reactiveVal()
+      #subTargetId <- shiny::reactiveVal()
       
       shiny::observeEvent(input$outcomeSelect, {
         outcomeSelected(
           data.frame( 
-            Target = names(subTargets())[subTargets() == input$subTargetId],
+            #Target = names(subTargets())[subTargets() == input$subTargetId],
             Outcome = names(outcomes())[outcomes() == input$outcomeId]
           )
         )
         
         # store the outcome and subTargetIds for the case exposure tabs
         outcomeId(input$outcomeId)
-        subTargetId(input$subTargetId)
+        #subTargetId(input$subTargetId)
         
         inputSelectionDfServer(
           id = 'outcomeSelected', 
@@ -376,7 +402,8 @@ characterizationServer <- function(
               resultDatabaseSettings = resultDatabaseSettings,
               options = options,
               parents = parents,
-              parentIndex = parentIndex
+              parentIndex = parentIndex,
+              subTargetId = subTargetId
             )
             previouslyLoaded(c(previouslyLoaded(), "Cohort Comparison"))
           }
@@ -393,7 +420,8 @@ characterizationServer <- function(
               resultDatabaseSettings = resultDatabaseSettings,
               options = options,
               parents = parents,
-              parentIndex = parentIndex
+              parentIndex = parentIndex,
+              subTargetId = subTargetId
             )
             previouslyLoaded(c(previouslyLoaded(), "Database Comparison"))
           }
@@ -477,7 +505,7 @@ characterizationServer <- function(
               parents = parents,
               parentIndex = parentIndex, # reactive
               outcomes = outcomes, # reactive
-              subTargets = subTargets# reactive
+              targetIds = subTargetId# reactive
             )
             previouslyLoaded(c(previouslyLoaded(), "Incidence Results"))
           }
@@ -571,7 +599,8 @@ characterizationGetOptions <- function(
   
   # get cohorts
   cg <- connectionHandler$queryDb(
-    sql = 'select * from @schema.@cg_table_prefixcohort_definition;',
+    sql = 'select * from @schema.@cg_table_prefixcohort_definition
+    ORDER BY cohort_name;',
     schema = resultDatabaseSettings$schema,
     cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )

@@ -155,7 +155,7 @@ estimationServer <- function(
     
       
       # use the function in report-main to get parent Ts with all children Ts, the outcomes for the Ts and the Cs
-      options <- OhdsiShinyModules:::getTandOs(
+      options <- getTandOs(
         connectionHandler,
         resultDatabaseSettings,
         includeCharacterization = F,
@@ -212,15 +212,21 @@ estimationServer <- function(
       output$targetSelection <- shiny::renderUI({
         shiny::fluidRow(
           shiny::div(
-            shiny::selectInput(
+            shinyWidgets::pickerInput(
               inputId = session$ns('targetId'),
               label = 'Target: ',
               choices = targets,
-              selected = 1,
+              selected = targets[1],
               multiple = FALSE,
-              selectize = TRUE,
-              width = NULL,
-              size = NULL
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                dropupAuto = F,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 500
+              )
             ), 
             shiny::selectInput(
               inputId = session$ns('outcomeId'),

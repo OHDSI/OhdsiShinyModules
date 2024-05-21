@@ -1,5 +1,5 @@
-#remotes::install_github('ohdsi/OhdsiShinyModules', ref = 'develop')
-#remotes::install_github("ohdsi/ShinyAppBuilder", ref = "develop")
+#remotes::install_github('ohdsi/OhdsiShinyModules', ref = 'estimation')
+#remotes::install_github("ohdsi/ShinyAppBuilder", ref = "estimation")
 library(dplyr)
 library(ShinyAppBuilder) # need to install if you do not have it 
 library(markdown)
@@ -19,6 +19,11 @@ if(!dir.exists('./drivers')){
 # connection details to an example sqlite database in the package
 connectionDetails <- OhdsiShinyModules::getExampleConnectionDetails()
 schema <- "main"
+
+#Sys.setenv(RESULTS_SERVER = system.file("extdata", "results.sqlite", package = "OhdsiShinyModules"))
+#Sys.unsetenv('RESULTS_USER')
+#Sys.unsetenv('RESULTS_PASSWORD')
+#Sys.setenv(RESULTS_DBMS = "sqlite")
 
 est <- ShinyAppBuilder::createModuleConfig(
   moduleId = 'estimation', 
@@ -46,7 +51,7 @@ config <- initializeModuleConfig() %>%
     createDefaultCohortDiagnosticsConfig()
   ) %>%
   addModuleConfig(
-    est 
+    createDefaultEstimationConfig()
   )  %>%
   addModuleConfig(
     createDefaultCharacterizationConfig()

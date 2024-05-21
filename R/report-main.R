@@ -116,7 +116,7 @@ reportServer <- function(
     server = Sys.getenv("RESULTS_SERVER"), 
     username = Sys.getenv("RESULTS_USER"), 
     password = Sys.getenv("RESULTS_PASSWORD"), 
-    dbms = "postgresql"
+    dbms = Sys.getenv("RESULTS_DBMS")
     ) {
   shiny::moduleServer(
     id,
@@ -125,7 +125,9 @@ reportServer <- function(
       # get input options
       tnos <- getTandOs(
         connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
+        resultDatabaseSettings = resultDatabaseSettings, 
+        includeCohortIncidence = F, # turning off for speed
+        includeSccs = F # turning off for speed
       )
       
       ## update input selectors
@@ -226,8 +228,13 @@ reportServer <- function(
           }
           subsetTargets <- tnos$groupedTs[[which(unlist(lapply(tnos$groupedTs, function(x) ifelse(is.null(x$cohortId), F, x$cohortId == input$targetId))))]]$subsets
           ind <- !is.na(subsetTargets$subsetId)
-          cts <- subsetTargets$subsetId[ind]
-          names(cts) <- subsetTargets$targetName[ind]
+          if(sum(ind)>0){
+            cts <- subsetTargets$subsetId[ind]
+            names(cts) <- subsetTargets$targetName[ind]
+          } else{
+            cts <- ''
+            names(cts) <- 'No indication'
+          }
           cmTargets(cts)
         }
       )
@@ -312,10 +319,18 @@ reportServer <- function(
           if(!is.null(input$cmSubsetId) & !is.null(input$targetId)){
             if(input$cmSubsetId != ''){
               multipler <- ifelse(input$cmSubsetId == 0, 1, 1000)
-              temp <- tnos$cs[[which(names(tnos$cs) == as.double(input$targetId)*multipler + as.double(input$cmSubsetId))]]
-              comps <- temp$comparatorId
-              names(comps) <- temp$comparatorName
-              comparators(comps)
+              if(length(which(names(tnos$cs) == as.double(input$targetId)*multipler + as.double(input$cmSubsetId)))>0){
+                temp <- tnos$cs[[which(names(tnos$cs) == as.double(input$targetId)*multipler + as.double(input$cmSubsetId))]]
+                comps <- temp$comparatorId
+                names(comps) <- temp$comparatorName
+                comparators(comps)
+              } else{
+                comps <- ''
+                names(comps) <- 'No Comparator'
+                comparators(comps)
+              }
+            } else{
+              shiny::showNotification('No indication available')
             }
           }
 
@@ -415,10 +430,21 @@ reportServer <- function(
           if(is.null(input$targetId)){
             return(NULL)
           }
-          temp <- tnos$tos[[which(names(tnos$tos) == input$targetId)]]
-          os <- temp$outcomeId
-          names(os) <- temp$outcomeName
-          outcomes(os)
+          
+          multipler <- ifelse(input$cmSubsetId == 0, 1, 1000)
+          cmTargetId <- as.double(input$targetId)*multipler + as.double(input$cmSubsetId)
+            
+          if(length(which(names(tnos$tos) %in% c(input$targetId, cmTargetId) ))>0){
+            temp <- tnos$tos[[which(names(tnos$tos) %in% c(input$targetId, cmTargetId))[1] ]]
+            os <- temp$outcomeId
+            names(os) <- temp$outcomeName
+            outcomes(os)
+          } else{
+            os <- ''
+            names(os) <- 'None'
+            outcomes(os)
+            shiny::showNotification('No Outcomes')
+          }
         }
       )
       
@@ -585,7 +611,8 @@ reportServer <- function(
               width = 6,
               shiny::dateRangeInput(
                 inputId = session$ns('dateRestriction'), 
-                label = 'Study date restriction'
+                label = 'Study date restriction', 
+                start = '1990-01-01'
               )
             ),
             shiny::column(
@@ -742,7 +769,7 @@ getTandOs <- function(
 ){
   
   # get cohorts
-  sql <- 'select * from @schema.@cg_table_prefixcohort_definition;'
+  sql <- 'select distinct * from @schema.@cg_table_prefixcohort_definition order by cohort_name;'
   cg <- connectionHandler$queryDb(
     sql = sql,
     schema = resultDatabaseSettings$schema,

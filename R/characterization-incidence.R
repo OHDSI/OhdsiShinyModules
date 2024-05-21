@@ -249,7 +249,7 @@ characterizationIncidenceServer <- function(
     parents,
     parentIndex, # reactive
     outcomes, # reactive
-    subTargets# reactive
+    targetIds # reactive
 ) {
   shiny::moduleServer(
     id,
@@ -289,16 +289,6 @@ characterizationIncidenceServer <- function(
              style = "font-weight: bold; font-size: 20px; text-align: center; margin-bottom: 20px;"
            ),
            
-           shiny::selectInput(
-             inputId = session$ns('targetIds'),
-             label = 'Target: ',
-             choices = subTargets(),
-             selected = 1,
-             multiple = T,
-             selectize = TRUE,
-             width = NULL,
-             size = NULL
-           ),
            
            shiny::selectInput(
              inputId = session$ns('outcomeIds'),
@@ -388,7 +378,6 @@ characterizationIncidenceServer <- function(
        })
      
      outcomeIds <- shiny::reactiveVal(NULL)
-     targetIds <- shiny::reactiveVal(NULL)
      incidenceRateTarFilter <- shiny::reactiveVal(NULL)
      incidenceRateCalendarFilter <- shiny::reactiveVal(NULL)
      incidenceRateAgeFilter <- shiny::reactiveVal(NULL)
@@ -399,7 +388,6 @@ characterizationIncidenceServer <- function(
        incidenceRateAgeFilter(input$ageIds)
        incidenceRateGenderFilter(input$sexIds)
        outcomeIds(input$outcomeIds)
-       targetIds(input$targetIds)
      })
      
      

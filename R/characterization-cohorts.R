@@ -41,8 +41,21 @@ characterizationCohortComparisonViewer <- function(id) {
         inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
         
         # add basic table 
-        resultTableViewer(id = ns('countTable'), boxTitle = 'Counts'),
-        resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
+        shiny::tabsetPanel(
+          type = 'pills',
+          shiny::tabPanel(
+            title = 'Counts',
+            resultTableViewer(id = ns('countTable'), boxTitle = 'Counts')
+          ),
+          shiny::tabPanel(
+            title = 'Binary',
+            resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
+          ),
+          shiny::tabPanel(
+            title = 'Continuous',
+            resultTableViewer(id = ns('continuousTable'), boxTitle = 'continuous')
+          )
+        )
         
       )
     )
@@ -56,7 +69,8 @@ characterizationCohortComparisonServer <- function(
     resultDatabaseSettings,
     options,
     parents,
-    parentIndex # reactive
+    parentIndex, # reactive
+    subTargetId # reactive
 ) {
   shiny::moduleServer(
     id,
@@ -67,59 +81,17 @@ characterizationCohortComparisonServer <- function(
         resultDatabaseSettings = resultDatabaseSettings
       )
       
-      children <- shiny::reactive({
-        characterizationGetChildren(options, parentIndex())
-      })
       
-      # update targetId2
-      initialChildren2 <- characterizationGetChildren(options, 1)
-      
-      children2 <- shiny::reactiveVal()
-      shiny::observeEvent(input$parentTargetId2,{
-        newIndex <- which(input$parentTargetId2 == parents)
-        result <- characterizationGetChildren(options, newIndex)
-        children2(result)
-        shinyWidgets::updatePickerInput(
-          session = session, 
-          inputId = 'targetId2', 
-          label = 'Second Target: ',
-          choices = result,
-          selected = result[1]
-            )
-        
-      })
-      
+      # initial comp chilren
+      comparatorOptions <- characterizationGetChildren(options, 1)
       output$inputs <- shiny::renderUI({
         
         shiny::div(
           shinyWidgets::pickerInput(
-            inputId = session$ns('targetId1'), 
-            label = 'First Target: ',
-            choices = children(),
-            selected = 1,
-            multiple = F,
-            options = shinyWidgets::pickerOptions(
-              actionsBox = TRUE,
-              liveSearch = TRUE,
-              size = 10,
-              liveSearchStyle = "contains",
-              liveSearchPlaceholder = "Type here to search",
-              virtualScroll = 50
-            )
-          ),
-          shiny::selectInput(
-            inputId = session$ns('parentTargetId2'),
-            label = 'Second Parent Target: ',
+            inputId = session$ns('comparatorGroup'),
+            label = 'Comparator Group: ',
             choices = parents,
             selected = parents[1],
-            multiple = F
-          ),
-          
-          shinyWidgets::pickerInput(
-            inputId = session$ns('targetId2'),
-            label = 'Second Target: ',
-            choices = initialChildren2,
-            selected = initialChildren2[1],
             multiple = F,
             options = shinyWidgets::pickerOptions(
               actionsBox = TRUE,
@@ -129,6 +101,14 @@ characterizationCohortComparisonServer <- function(
               liveSearchPlaceholder = "Type here to search",
               virtualScroll = 50
             )
+          ),
+          
+          shiny::selectInput(
+            inputId = session$ns('comparatorId'),
+            label = 'Comparator: ',
+            choices = comparatorOptions,
+            selected = comparatorOptions[1],
+            multiple = F
           ),
         
         shinyWidgets::pickerInput(
@@ -140,10 +120,11 @@ characterizationCohortComparisonServer <- function(
           options = shinyWidgets::pickerOptions(
             actionsBox = TRUE,
             liveSearch = TRUE,
+            dropupAuto = F,
             size = 10,
             liveSearchStyle = "contains",
             liveSearchPlaceholder = "Type here to search",
-            virtualScroll = 50
+            virtualScroll = 500
           )
         ),
         
@@ -155,72 +136,23 @@ characterizationCohortComparisonServer <- function(
       
       })
       
-      
-      columns <- list(
-        covariateName = reactable::colDef(
-          header = withTooltip(
-            "Covariate Name",
-            "The name of the covariate"
-          )
-        ),
-          covariateId = reactable::colDef(
-            show = F,
-            header = withTooltip("Covariate ID",
-                                 "Unique identifier of the covariate")
-          ),
-        firstVar = reactable::colDef(
-          show = F
-        ),
-        secondVar = reactable::colDef(
-          show = F
-        ),
-          sumValue_1 = reactable::colDef(
-            header = withTooltip("First Sum",
-                                 "The total sum of the covariate for the first selected cohort."),
-            cell = function(value) {
-              if (value >= 0) value else '< min threshold'
-            }
-          ),
-          sumValue_2 = reactable::colDef(
-            header = withTooltip("Second Sum",
-                                 "The total sum of the covariate for the second selected cohort."),
-            cell = function(value) {
-              if (value >= 0) value else '< min threshold'
-            }
-          ),
-          averageValue_1 = reactable::colDef(
-            header = withTooltip("First Mean",
-                                 "The mean of the covariate for the first selected cohort."), 
-            cell = function(value) {
-              if (value >= 0) round(value, digits = 3) else '< min threshold'
-            }
-          ),
-          averageValue_2 = reactable::colDef(
-            header = withTooltip("Second Mean",
-                                 "The mean of the covariate for the second selected cohort."),
-            cell = function(value) {
-              if (value >= 0) round(value, digits = 3) else '< min threshold'
-            }
-          ),
-        SMD = reactable::colDef(
-          header = withTooltip("SMD",
-                               "Standardized mean difference"),
-          format = reactable::colFormat(digits = 3)
-        ),
-        absSMD = reactable::colDef(
-          header = withTooltip("absSMD",
-                               "Absolute standardized mean difference"),
-          format = reactable::colFormat(digits = 3)
-        ),
-          analysisName = reactable::colDef(
-            header = withTooltip(
-              "Covariate Class",
-              "Class/type of the covariate"
-            )
-          )
-          
-          # add other columns
+      # update comparatorId
+      comparatorGroups <- shiny::reactiveVal()
+      comparatorIndex <- shiny::reactiveVal(1)
+      shiny::observeEvent(input$comparatorGroup,{
+        comparatorIndex(which(input$comparatorGroup == parents))
+        result <- characterizationGetChildren(options, comparatorIndex())
+        comparatorGroups(result)
+        shiny::updateSelectInput(
+          session = session, 
+          inputId = 'comparatorId', 
+          label = 'Comparator: ',
+          choices = result,
+          selected = result[1]
         )
+      })
+      
+    
 
       # show selected inputs to user
       inputSelectionDfServer(
@@ -235,38 +167,43 @@ characterizationCohortComparisonServer <- function(
         
         runTables <- TRUE
         
-        if(is.null(input$targetId1) | is.null(input$targetId2)){
+        if(is.null(subTargetId()) | is.null(input$comparatorId)){
           runTables <- FALSE
         }
         if(is.null(input$databaseId)){
           runTables <- FALSE
         }
         
-        if(input$targetId1 == input$targetId2){
+        if(subTargetId() == input$comparatorId){
           runTables <- FALSE
           shiny::showNotification('Must select different cohorts')
         }
         
+        # ADDED
+        subTargetIds <- unlist(lapply(options[[parentIndex()]]$children, function(x){x$subsetId}))
+        subTargetNames <- unlist(lapply(options[[parentIndex()]]$children, function(x){x$subsetName}))
+        
         selected(
           data.frame(
-            `First Target` = names(children())[which(input$targetId1 == children())],
-            `Second Target` = names(children2())[which(input$targetId2 == children2())],
+            Comparator = names(comparatorGroups())[which(comparatorGroups() == input$comparatorId)],
             Database = names(inputVals$databaseIds)[input$databaseId == inputVals$databaseIds]
           )
         )
         
-        selection1 <- options[[parentIndex()]]$children[[which(input$targetId1 == children())]]$charIds %>%
+        selection1 <- options[[parentIndex()]]$children[[which(subTargetIds == subTargetId())]]$charIds %>%
           dplyr::filter(.data$databaseId == input$databaseId) %>%
-          dplyr::filter(.data$cohortDefinitionId == input$targetId1)
+          dplyr::filter(.data$cohortType %in% c('T','O')) %>%
+          dplyr::filter(.data$cohortDefinitionId == subTargetId()) # is this needed?
         
         if(nrow(selection1) == 0){
           runTables <- FALSE
           shiny::showNotification('No results for section 1')
         }
         
-        selection2 <- options[[which(input$parentTargetId2 == parents)]]$children[[which(input$targetId2 == children2())]]$charIds %>%
+        selection2 <- options[[comparatorIndex()]]$children[[which(comparatorGroups() == input$comparatorId)]]$charIds %>%
           dplyr::filter(.data$databaseId == input$databaseId) %>%
-          dplyr::filter(.data$cohortDefinitionId == input$targetId2)
+          dplyr::filter(.data$cohortType %in% c('T','O')) %>%
+          dplyr::filter(.data$cohortDefinitionId == input$comparatorId)
         
         if(nrow(selection2) == 0){
           runTables <- FALSE
@@ -290,16 +227,29 @@ characterizationCohortComparisonServer <- function(
             resultDatabaseSettings = resultDatabaseSettings,
             targetIds = c(selection1$charCohortId[1],selection2$charCohortId[1]),
             targetNames = c(
-              names(children())[which(input$targetId1 == children())],
-              names(children2())[which(input$targetId2 == children2())]
+              subTargetNames[which(subTargetIds == subTargetId())], # modified
+              names(comparatorGroups())[which(input$comparatorId== comparatorGroups())]
             ),
             databaseId = input$databaseId
+          )
+          
+          continuousTable <- characterizatonGetCohortComparisonDataContinuous(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            targetIds = c(selection1$charCohortId[1],selection2$charCohortId[1]),
+            databaseIds = rep(input$databaseId,2)
           )
           
           resultTableServer(
             id = 'mainTable',
             df = resultTable,
-            colDefsInput = columns
+            colDefsInput = characterizationCohortsColumns()
+          ) 
+          
+          resultTableServer(
+            id = 'continuousTable',
+            df = continuousTable,
+            colDefsInput = characterizationCohortsColumnsContinuous()
           ) 
           
           resultTableServer(
@@ -325,6 +275,159 @@ characterizationCohortComparisonServer <- function(
       
     })
   
+}
+
+
+characterizationCohortsColumns <- function(x){
+  list(
+  covariateName = reactable::colDef(
+    header = withTooltip(
+      "Covariate Name",
+      "The name of the covariate"
+    )
+  ),
+  covariateId = reactable::colDef(
+    show = F,
+    header = withTooltip("Covariate ID",
+                         "Unique identifier of the covariate")
+  ),
+  firstVar = reactable::colDef(
+    show = F
+  ),
+  secondVar = reactable::colDef(
+    show = F
+  ),
+  sumValue_1 = reactable::colDef(
+    header = withTooltip("First Sum",
+                         "The total sum of the covariate for the first selected cohort."),
+    cell = function(value) {
+      if (value >= 0) value else '< min threshold'
+    }
+  ),
+  sumValue_2 = reactable::colDef(
+    header = withTooltip("Second Sum",
+                         "The total sum of the covariate for the second selected cohort."),
+    cell = function(value) {
+      if (value >= 0) value else '< min threshold'
+    }
+  ),
+  averageValue_1 = reactable::colDef(
+    header = withTooltip("First Mean",
+                         "The mean of the covariate for the first selected cohort."), 
+    cell = function(value) {
+      if (value >= 0) round(value, digits = 3) else '< min threshold'
+    }
+  ),
+  averageValue_2 = reactable::colDef(
+    header = withTooltip("Second Mean",
+                         "The mean of the covariate for the second selected cohort."),
+    cell = function(value) {
+      if (value >= 0) round(value, digits = 3) else '< min threshold'
+    }
+  ),
+  SMD = reactable::colDef(
+    header = withTooltip("SMD",
+                         "Standardized mean difference"),
+    format = reactable::colFormat(digits = 3)
+  ),
+  absSMD = reactable::colDef(
+    header = withTooltip("absSMD",
+                         "Absolute standardized mean difference"),
+    format = reactable::colFormat(digits = 3)
+  ),
+  analysisName = reactable::colDef(
+    header = withTooltip(
+      "Covariate Class",
+      "Class/type of the covariate"
+    )
+  )
+  
+  # add other columns
+)
+}
+
+characterizationCohortsColumnsContinuous <- function(x){
+  list(
+    covariateName = reactable::colDef(
+      header = withTooltip(
+        "Covariate Name",
+        "The name of the covariate"
+      )
+    ),
+    covariateId = reactable::colDef(
+      show = F,
+      header = withTooltip("Covariate ID",
+                           "Unique identifier of the covariate")
+    ),
+    countValue_1 = reactable::colDef(
+      header = withTooltip("First Count",
+                           "Number of people with the covariate for the first selected cohort."),
+      cell = function(value) {
+        if (value >= 0) value else '< min threshold'
+      }
+    ),
+    countValue_2 = reactable::colDef(
+      header = withTooltip("Second Count",
+                           "Number of people with the covariate for the second selected cohort."),
+      cell = function(value) {
+        if (value >= 0) value else '< min threshold'
+      }
+    ),
+    averageValue_1 = reactable::colDef(
+      header = withTooltip("First Mean",
+                           "The mean of the covariate for the first selected cohort."), 
+      cell = function(value) {
+        if (value >= 0) round(value, digits = 3) else '< min threshold'
+      }
+    ),
+    averageValue_2 = reactable::colDef(
+      header = withTooltip("Second Mean",
+                           "The mean of the covariate for the second selected cohort."),
+      cell = function(value) {
+        if (value >= 0) round(value, digits = 3) else '< min threshold'
+      }
+    ),
+    standardDeviation_1 = reactable::colDef(
+      header = withTooltip("First StDev",
+                           "The standard deviation of the covariate for the first selected cohort."), 
+      cell = function(value) {
+        if (value >= 0) round(value, digits = 3) else '< min threshold'
+      }
+    ),
+    standardDeviation_2 = reactable::colDef(
+      header = withTooltip("Second StDev",
+                           "The standard deviation of the covariate for the second selected cohort."),
+      cell = function(value) {
+        if (value >= 0) round(value, digits = 3) else '< min threshold'
+      }
+    ),
+    medianValue_1 = reactable::colDef(
+      header = withTooltip("First Median",
+                           "The median of the covariate for the first selected cohort."), 
+      cell = function(value) {
+        round(value, digits = 3)
+      }
+    ),
+    medianValue_2 = reactable::colDef(
+      header = withTooltip("Second Median",
+                           "The median of the covariate for the second selected cohort."),
+      cell = function(value) {
+        round(value, digits = 3)
+      }
+    ),
+    SMD = reactable::colDef(
+      header = withTooltip("SMD",
+                           "Standardized mean difference"),
+      format = reactable::colFormat(digits = 3)
+    ),
+    absSMD = reactable::colDef(
+      header = withTooltip("absSMD",
+                           "Absolute standardized mean difference"),
+      format = reactable::colFormat(digits = 3)
+    )
+    
+    # add other columns
+  )
 }
 
 characterizatonGetCohortComparisonData <- function(
@@ -412,7 +515,7 @@ characterizatonGetCohortData <- function(
     warning('Ids cannot be NULL')
    return(NULL)
   }
-  
+
   shiny::withProgress(message = 'characterizatonGetCohortData', value = 0, {
     
     shiny::incProgress(1/4, detail = paste("Setting types"))
@@ -487,6 +590,90 @@ characterizatonGetCohortData <- function(
   return(result)
 }
 
+
+characterizatonGetCohortComparisonDataContinuous <- function(
+  connectionHandler,
+  resultDatabaseSettings,
+  targetIds,
+  databaseIds
+){
+  
+  if(is.null(targetIds) |  is.null(databaseIds)){
+    warning('Ids cannot be NULL')
+    return(NULL)
+  }
+  
+  shiny::withProgress(message = 'characterizatonGetCohortDataContinuous', value = 0, {
+    
+    shiny::incProgress(1/4, detail = paste("Setting types"))
+    
+    types <- data.frame(
+      type = 1:length(targetIds),
+      cohortDefinitionId = targetIds,
+      databaseId = databaseIds
+    )
+    
+    shiny::incProgress(2/4, detail = paste("Extracting data"))
+    
+    sql <- paste0(
+      paste0(
+        paste0(
+          "select  ref.covariate_name, cov.* from   
+    @schema.@c_table_prefixCOVARIATES_continuous cov 
+    inner join 
+    @schema.@c_table_prefixcovariate_ref ref
+    on cov.covariate_id = ref.covariate_id
+    and cov.run_id = ref.run_id
+    and cov.database_id = ref.database_id
+    
+    where cov.cohort_definition_id = @target_id",1:length(targetIds),
+          " and cov.database_id = '@database_id",1:length(targetIds),"'"
+        ), collapse = ' union '
+      ),';'
+    )
+    
+    inputList <- as.list(c(targetIds, databaseIds))
+    names(inputList) <- c(paste0('target_id', 1:length(targetIds)), paste0('database_id', 1:length(databaseIds)))
+    inputList$sql <- sql
+    inputList$schema <- resultDatabaseSettings$schema
+    inputList$c_table_prefix <- resultDatabaseSettings$cTablePrefix
+    
+    start <- Sys.time()
+    # settings.min_characterization_mean needed?
+    res <- do.call(what = connectionHandler$queryDb, args = inputList)
+    end <- Sys.time() - start 
+    shiny::incProgress(3/4, detail = paste("Extracted data"))
+    message(paste0('Extracting ', nrow(res) ,' characterization cohort rows took: ', round(end, digits = 2), ' ', units(end)))
+    
+    # add the first/section type
+    res <- merge(res, types, by = c('cohortDefinitionId','databaseId'))
+    
+    # pivot
+    result <- tidyr::pivot_wider(
+      data = res, 
+      id_cols = c('covariateName', 'covariateId'), 
+      names_from = 'type', 
+      values_from = c('countValue', 'averageValue', 'standardDeviation', 'medianValue','minValue', 'maxValue', 'p25Value','p75Value'), 
+      values_fn = mean, 
+      values_fill = -1
+    ) 
+    
+    # if both have results then add SMD
+    if(length(unique(res$type)) > 1){
+      result <- result %>% 
+        dplyr::mutate(
+          SMD = (.data$averageValue_1-.data$averageValue_2)/(sqrt((.data$standardDeviation_1^2 + .data$standardDeviation_2^2)/2))
+        ) %>%
+        dplyr::mutate(
+          absSMD = abs(.data$SMD)
+        )
+    }
+    
+    shiny::incProgress(4/4, detail = paste("Done"))
+  })
+  
+  return(result)
+}
 
 
 

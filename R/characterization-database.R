@@ -54,7 +54,8 @@ characterizationDatabaseComparisonServer <- function(
     resultDatabaseSettings,
     options,
     parents,
-    parentIndex # reactive
+    parentIndex, # reactive
+    subTargetId # reactive
 ) {
   shiny::moduleServer(
     id,
@@ -73,27 +74,11 @@ characterizationDatabaseComparisonServer <- function(
       output$inputs <- shiny::renderUI({
         
         shiny::div(
-          shinyWidgets::pickerInput(
-            inputId = session$ns('targetId'), 
-            label = 'Target: ',
-            choices = children(),
-            selected = 1,
-            multiple = F,
-            options = shinyWidgets::pickerOptions(
-              actionsBox = TRUE,
-              liveSearch = TRUE,
-              size = 10,
-              liveSearchStyle = "contains",
-              liveSearchPlaceholder = "Type here to search",
-              virtualScroll = 50
-            )
-          ),
-          
           shiny::selectInput(
             inputId = session$ns('databaseIds'), 
             label = 'Databases: ',
             choices = inputVals$databaseIds,
-            selected = 1,
+            selected = inputVals$databaseIds[1],
             multiple = T
           ),
           
@@ -127,19 +112,28 @@ characterizationDatabaseComparisonServer <- function(
       selected <- shiny::reactiveVal()
       shiny::observeEvent(input$generate,{
         
-        if(is.null(input$targetId)){
+        if(is.null(input$databaseIds)){
+          shiny::showNotification('No databases selected')
+          return(NULL)
+        }
+        if(length(input$databaseIds) == 0 ){
+          shiny::showNotification('No databases selected')
           return(NULL)
         }
         
+        selectedDatabases <- paste0(
+          names(inputVals$databaseIds)[which(inputVals$databaseIds %in% input$databaseIds)], 
+          collapse =  ','
+          )
+        
         selected(
           data.frame(
-            Target = names(children())[which(input$targetId == children())],
+            Databases = selectedDatabases,
             minTreshold = input$minThreshold
           )
         )
 
-        selectedChildChar <- options[[parentIndex()]]$children[[which(input$targetId == children())]]$charIds
-        
+        selectedChildChar <- options[[parentIndex()]]$children[[which(subTargetId() == children())]]$charIds
         
         #get results
         if(sum(selectedChildChar$databaseId %in% input$databaseIds) > 0){
@@ -178,8 +172,6 @@ characterizationDatabaseComparisonServer <- function(
           })
           names(sumColumns) <- unlist(lapply(1:nrow(databaseNames), function(i) paste0('sumValue_',databaseNames$id[i])))
           
-          print('HERE 3')
-          
           columns <- append(
             list(
               covariateName = reactable::colDef(
@@ -199,8 +191,6 @@ characterizationDatabaseComparisonServer <- function(
               meanColumns
             )
           )
-          
-          print('HERE 4')
           
           resultTableServer(
             id = 'mainTable',
