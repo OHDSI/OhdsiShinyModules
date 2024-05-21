@@ -257,24 +257,22 @@ characterizationIncidenceServer <- function(
       
       ##  ns <- session$ns
       
-      ages <- c(2:12, NA)
-      names(ages) <- c(sapply(2:12, function(i) paste0((i-2)*10,' - ',(i-1)*10-1)), 'All')
+      ages <- c(2:12, 'Any')
+      names(ages) <- c(sapply(2:12, function(i) paste0((i-2)*10,' - ',(i-1)*10-1)), 'Any')
       
-      sex <- c(8507, 8532 , NA)
-      names(sex) <- c('Male', 'Female', 'All')
+      sex <- c(8507, 8532 , 'Any')
+      names(sex) <- c('Male', 'Female', 'Any')
       
-      startYear <- c(NA, format(Sys.Date(), "%Y"):1990)
-      names(startYear) <- c('All', format(Sys.Date(), "%Y"):1990)
+      startYear <- c('Any', format(Sys.Date(), "%Y"):1990)
+      names(startYear) <- c('Any', format(Sys.Date(), "%Y"):1990)
       
       # get tar and then call cohortIncidenceFormatTar()
       
-      tarDf <- data.frame(
-        tarId = 1:3, 
-        tarStartWith = c('start','start','start'), 
-        tarStartOffset = c(1,1,1), 
-        tarEndWith = c('start','start','end'), 
-        tarEndOffset = c(9999,30,0)
+      tarDf <- characterizationGetCiTars(
+        connectionHandler,
+        resultDatabaseSettings
       )
+      
       sortedTars <- tarDf$tarId
       names(sortedTars) <- cohortIncidenceFormatTar(tarDf)
       
@@ -383,7 +381,7 @@ characterizationIncidenceServer <- function(
      incidenceRateAgeFilter <- shiny::reactiveVal(NULL)
      incidenceRateGenderFilter <- shiny::reactiveVal(NULL)
      shiny::observeEvent(input$generate,{
-       incidenceRateTarFilter(input$tars)
+       incidenceRateTarFilter(names(sortedTars)[sortedTars == input$tars]) # filter needs actual value
        incidenceRateCalendarFilter(input$startYears)
        incidenceRateAgeFilter(input$ageIds)
        incidenceRateGenderFilter(input$sexIds)
@@ -587,74 +585,63 @@ characterizationIncidenceServer <- function(
         )
       
       
-      filteredData <- shiny::reactive(         
+      extractedData <- shiny::reactiveVal()
+      shiny::observeEvent(input$generate ,      
         {
           if (is.null(targetIds()) |
               is.null(outcomeIds())
               ) {
-            return(data.frame())
+            extractededData(data.frame())
           }
           
-          else if(targetIds() == outcomeIds() &&
+          else if(targetIds()[1] == outcomeIds()[1] &&
                    length(targetIds())==1 && length(outcomeIds())==1
           ){
             shiny::validate("Target and outcome cohorts must differ from each other. Make a different selection.")
           }
           
           else {
-            getIncidenceData(targetIds = targetIds(),
+            result <- getIncidenceData(targetIds = targetIds(),
                            outcomeIds = outcomeIds(),
                            connectionHandler = connectionHandler,
                            resultDatabaseSettings = resultDatabaseSettings
-          ) %>%
+          )
+            extractedData(result)
+          }
+        }
+      )
+      
+      filteredData <- shiny::reactive({
+        if(nrow(extractedData()) > 0){
+          extractedData() %>%
             dplyr::relocate("tar", .before = "outcomes") %>%
             dplyr::mutate(incidenceProportionP100p = as.numeric(.data$incidenceProportionP100p),
                           incidenceRateP100py = as.numeric(.data$incidenceRateP100py),
                           dplyr::across(dplyr::where(is.numeric), round, 4),
                           targetIdShort = paste("C", .data$targetCohortDefinitionId, sep = "-"),
                           outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
-            dplyr::filter(.data$ageGroupName %in% !! incidenceRateAgeFilter() & 
-                            .data$genderName %in% !! incidenceRateGenderFilter() & 
+            dplyr::filter(.data$ageId %in% !! incidenceRateAgeFilter() & 
+                            .data$genderId %in% !! incidenceRateGenderFilter() & 
                             .data$startYear %in% !! incidenceRateCalendarFilter()  
             ) %>%
-              dplyr::relocate("targetIdShort", .after = "targetName") %>%
-              dplyr::relocate("outcomeIdShort", .after = "outcomeName")
-          }
+            dplyr::relocate("targetIdShort", .after = "targetName") %>%
+            dplyr::relocate("outcomeIdShort", .after = "outcomeName")
         }
-      )
+      })
       
-      filteredDataAggregateForPlot <- shiny::reactive(         
-        {
-          if (is.null(targetIds()) |
-              is.null(outcomeIds())
-          ) {
-            return(data.frame())
-          }
-          
-          else if(targetIds() == outcomeIds() &&
-                  length(targetIds()) == 1 && length(outcomeIds()) == 1
-          ){
-            shiny::validate("Target and outcome cohorts must differ from each other. Make a different selection.")
-          }
-          
-          else {
-            getIncidenceData(targetIds = targetIds(),
-                             outcomeIds = outcomeIds(),
-                             connectionHandler = connectionHandler,
-                             resultDatabaseSettings = resultDatabaseSettings
-            ) %>%
-              dplyr::relocate("tar", .before = "outcomes") %>%
-              dplyr::mutate(incidenceProportionP100p = as.numeric(.data$incidenceProportionP100p),
-                            incidenceRateP100py = as.numeric(.data$incidenceRateP100py),
-                            dplyr::across(dplyr::where(is.numeric), round, 4),
-                            targetIdShort = paste("C", .data$targetCohortDefinitionId, sep = "-"),
-                            outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
-              dplyr::relocate("targetIdShort", .after = "targetName") %>%
-              dplyr::relocate("outcomeIdShort", .after = "outcomeName")
-      
-          }
+      filteredDataAggregateForPlot <-  shiny::reactive({
+        if(nrow(extractedData()) > 0){
+          extractedData() %>%
+            dplyr::relocate("tar", .before = "outcomes") %>%
+            dplyr::mutate(incidenceProportionP100p = as.numeric(.data$incidenceProportionP100p),
+                          incidenceRateP100py = as.numeric(.data$incidenceRateP100py),
+                          dplyr::across(dplyr::where(is.numeric), round, 4),
+                          targetIdShort = paste("C", .data$targetCohortDefinitionId, sep = "-"),
+                          outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
+            dplyr::relocate("targetIdShort", .after = "targetName") %>%
+            dplyr::relocate("outcomeIdShort", .after = "outcomeName")
         }
-      )
+      })
       
 
 
@@ -668,15 +655,15 @@ characterizationIncidenceServer <- function(
       ## CHECK - caused error for me but it is in Nate's latest code
       class(incidenceColList$genderName$filterMethod) <- "JS_EVAL"
       
-      renderIrTable <- shiny::reactive(
-        {
-          filteredData()
-        }
-      )
+      #renderIrTable <- shiny::reactive(
+      #  {
+      #    filteredData()
+      #  }
+      #)
       
       resultTableServer(
         id = "incidenceRateTable",
-        df = renderIrTable,
+        df = filteredData, #renderIrTable,
         selectedCols = c("cdmSourceAbbreviation", "targetName", "targetIdShort", "outcomeName", "outcomeIdShort",
                          "ageGroupName", "genderName", "startYear", "tar", "outcomes",
                          "incidenceProportionP100p", "incidenceRateP100py"),
@@ -687,13 +674,17 @@ characterizationIncidenceServer <- function(
       )
       
       '%!in%' <- function(x,y)!('%in%'(x,y))
+    
       
       #ir plots
-      irPlotCustom <- shiny::reactive(
+      irPlotCustom <- shiny::reactive( # observeEvent generate instead?
         {
           if (is.null(targetIds()) |
               is.null(outcomeIds())) {
             return(data.frame())
+          }
+          if(nrow(filteredData()) == 0){
+            return(FALSE)
           }
           
           ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
@@ -1002,6 +993,9 @@ characterizationIncidenceServer <- function(
               is.null(outcomeIds())) {
             shiny::validate("Please select at least one target and one outcome.")
           }
+          if(nrow(filteredData()) == 0){
+            shiny::validate("No results.")
+          }
           
           else {
           plotData <- filteredData() %>%
@@ -1055,6 +1049,9 @@ characterizationIncidenceServer <- function(
           if (is.null(targetIds()) |
               is.null(outcomeIds())) {
             shiny::validate("Please select at least one target and one outcome.")
+          }
+          if(nrow(filteredData()) == 0){
+            shiny::validate("No results.")
           }
           
           else {
@@ -1119,6 +1116,9 @@ characterizationIncidenceServer <- function(
           if (is.null(targetIds()) |
               is.null(outcomeIds())) {
             return(data.frame())
+          }
+          if(nrow(filteredData()) == 0){
+            shiny::validate("No results.")
           }
           
           ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
@@ -1262,6 +1262,9 @@ renderIrPlotStandardAgeSex <- shiny::reactive(
         is.null(outcomeIds())) {
       return(data.frame())
     }
+    if(nrow(filteredData()) == 0){
+      return(data.frame())
+    }
     
     ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
            plotData <- filteredData() %>%
@@ -1400,6 +1403,9 @@ renderIrPlotStandardYear <- shiny::reactive(
     
     if (is.null(targetIds()) |
         is.null(outcomeIds())) {
+      return(data.frame())
+    }
+    if(nrow(filteredData()) == 0){
       return(data.frame())
     }
     
@@ -1547,6 +1553,9 @@ renderIrPlotStandardAggregate <- shiny::reactive(
         is.null(outcomeIds())) {
       return(data.frame())
     }
+    if(nrow(filteredData()) == 0){
+      return(data.frame())
+    }
     
     ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
            plotData <- filteredDataAggregateForPlot() %>%
@@ -1692,6 +1701,9 @@ getIncidenceData <- function(
   
   if(!is.null(targetIds) & !is.null(outcomeIds)){
     
+    print(targetIds)
+    print(outcomeIds)
+    
     shiny::withProgress(message = 'Getting incidence data', value = 0, {
     
     sql <- 'select d.cdm_source_abbreviation, i.* 
@@ -1713,19 +1725,22 @@ getIncidenceData <- function(
       database_table_name = resultDatabaseSettings$databaseTable
     )
     
-    shiny::incProgress(2/2, detail = paste("Done..."))
+    shiny::incProgress(2/2, detail = paste("Extracted ", nrow(resultTable)," rows"))
     
     })
     
-    # format the tar
-    ##Jenna edit resultTable$tar <- paste0('(',resultTable$tarStartWith, " + ", resultTable$tarStartOffset, ') - (', resultTable$tarEndWith, " + ", resultTable$tarEndOffset, ')')
-    resultTable$tar <- cohortIncidenceFormatTar(resultTable)
-    
-    resultTable <- resultTable %>% 
-      dplyr::select(-c("tarStartWith","tarStartOffset","tarEndWith","tarEndOffset", "tarId", "subgroupName"))
-    
-    resultTable[is.na(resultTable)] <- 'Any'
-    resultTable <- unique(resultTable)
+    if(nrow(resultTable)>0){
+      
+      # format the tar
+      ##Jenna edit resultTable$tar <- paste0('(',resultTable$tarStartWith, " + ", resultTable$tarStartOffset, ') - (', resultTable$tarEndWith, " + ", resultTable$tarEndOffset, ')')
+      resultTable$tar <- cohortIncidenceFormatTar(resultTable)
+      
+      resultTable <- resultTable %>% 
+        dplyr::select(-c("tarStartWith","tarStartOffset","tarEndWith","tarEndOffset", "tarId", "subgroupName"))
+      
+      resultTable[is.na(resultTable)] <- 'Any'
+      resultTable <- unique(resultTable)
+    }
     
     return(resultTable)
   } else{
@@ -1894,5 +1909,50 @@ getIncidenceOptions <- function(){
     )
   )
   
+}
+
+
+
+characterizationGetCiTars <- function(
+  connectionHandler,
+  resultDatabaseSettings
+){
+  
+  useLookup <- tryCatch(
+    {
+    connectionHandler$queryDb(
+      sql = "SELECT *
+          from
+          @schema.@ci_table_prefixtar_lookup limit 1;", 
+      schema = resultDatabaseSettings$schema,
+      ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+    )
+      },  
+    error = function(e) return(c())
+  )
+  
+  if(length(useLookup)>0){
+  sql <- "SELECT distinct *
+          from
+          @schema.@ci_table_prefixtar_lookup;"
+  
+  tars <- connectionHandler$queryDb(
+    sql = sql, 
+    schema = resultDatabaseSettings$schema,
+    ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+  )
+  } else{
+    sql <- "SELECT distinct TAR_ID, TAR_START_WITH, TAR_START_OFFSET,
+            TAR_END_WITH, TAR_END_OFFSET
+            from
+            @schema.@ci_table_prefixincidence_summary;"
+    
+    tars <- connectionHandler$queryDb(
+      sql = sql, 
+      schema = resultDatabaseSettings$schema,
+      ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+    )
+  }
+  return(tars)
 }
 
