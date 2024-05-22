@@ -252,6 +252,8 @@ riskFactorTable <- function(
     dplyr::filter(.data$cohortDefinitionId == !!caseId) %>%
     dplyr::select(-"cohortDefinitionId")
   
+  print(paste0(caseData, 'cases'))
+  
   allId <- ids$cohortDefinitionId[ids$cohortType == 'T']
   allData <- data %>% 
     dplyr::filter(.data$cohortDefinitionId == !!allId) %>%
@@ -267,18 +269,19 @@ riskFactorTable <- function(
     dplyr::select(-"cohortDefinitionId")
   
   if(nrow(excludeData) > 0 ){
-    excludeData$exclude_N <- excludeData$sumValue[1]/excludeData$averageValue[1]
+    excludeData$N <- excludeData$sumValue[1]/excludeData$averageValue[1]
+    excludeN <- excludeData$sumValue[1]/excludeData$averageValue[1]
     colnames(excludeData)[!colnames(excludeData) %in% c('covariateId', 'covariateName')] <- paste0('exclude_',colnames(excludeData))
-  
+    
     # if prior Os then exclude from T
     allData <- allData %>% 
       dplyr::full_join(excludeData, by = c('covariateId', 'covariateName')) %>%
       dplyr::mutate(
-        sumValue = .data$sumValue - .data$prior_sumValue,
-        averageValue = (.data$sumValue - .data$prior_sumValue)/(.data$N-.data$exclude_N)
+        sumValue = .data$sumValue - .data$exclude_sumValue,
+        averageValue = (.data$sumValue - .data$exclude_sumValue)/(.data$N-!!excludeN)
       ) %>%
       dplyr::mutate(
-        N = .data$N-.data$exclude_N
+        N = .data$N-!!excludeN
       ) %>%
       dplyr::select("covariateId","covariateName","sumValue","averageValue", "N")
     

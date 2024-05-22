@@ -166,9 +166,9 @@ characterizationGetCaseSeriesOptions <- function(
   names(db) <- unique(options$databaseName)
   
   tar <- unique(options$timeAtRiskId)
-  names(tar) <- paste0('(', options$startAnchor, ' + ', options$riskWindowStart, ') - (', 
+  names(tar) <- unique(paste0('(', options$startAnchor, ' + ', options$riskWindowStart, ') - (', 
                        options$endAnchor, ' + ', options$riskWindowEnd, ')'
-                       )
+                       ))
   
   return(
     list(
