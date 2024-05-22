@@ -140,7 +140,7 @@ characterizationGetRiskFactorData <- function(
   shiny::withProgress(message = 'Getting risk factor data', value = 0, {
     shiny::incProgress(1/4, detail = paste("Extracting ids"))
     
-    sql <- "SELECT cd.cohort_definition_id, cd.cohort_type, cc.person_count as N
+    sql <- "SELECT distinct cd.cohort_definition_id, cd.cohort_type, cc.person_count as N
           from
           @schema.@c_table_prefixcohort_details cd
           left join 
@@ -252,7 +252,6 @@ riskFactorTable <- function(
     dplyr::filter(.data$cohortDefinitionId == !!caseId) %>%
     dplyr::select(-"cohortDefinitionId")
   
-  print(paste0(caseData, 'cases'))
   
   allId <- ids$cohortDefinitionId[ids$cohortType == 'T']
   allData <- data %>% 
@@ -349,8 +348,6 @@ riskFactorContinuousTable <- function(
   data,
   ids # have N in them
 ){
-  
-  print(ids)
   
   caseId <- ids$cohortDefinitionId[ids$cohortType == 'TnO']
   if(length(caseId ) == 0){
