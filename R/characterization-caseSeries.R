@@ -218,6 +218,7 @@ characterizationGetCaseSeriesData <- function(
     
   sql <- "SELECT cov.cohort_definition_id, cr.covariate_name, 
   s.min_prior_observation, s.outcome_washout_days,
+  s.case_post_outcome_duration, s.case_pre_target_duration,
   cov.covariate_id, cov.sum_value, cov.average_value 
           from
           @schema.@c_table_prefixcovariates cov
@@ -251,7 +252,9 @@ characterizationGetCaseSeriesData <- function(
   shiny::incProgress(3/4, detail = paste("Extracting continuous"))
 
   sql <- "SELECT cov.cohort_definition_id, cr.covariate_name, 
-    s.min_prior_observation, s.outcome_washout_days, cov.covariate_id, 
+    s.min_prior_observation, s.outcome_washout_days, 
+    s.case_post_outcome_duration, s.case_pre_target_duration,
+    cov.covariate_id, 
           cov.count_value, cov.min_value, cov.max_value, cov.average_value,
           cov.standard_deviation, cov.median_value, cov.p_10_value,
           cov.p_25_value, cov.p_75_value, cov.p_90_value
@@ -335,32 +338,32 @@ caseSeriesTable <- function(
       sumValueBefore = .data$sumValue,
       averageValueBefore = .data$averageValue,
     ) %>%
-    dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays', "sumValueBefore", "averageValueBefore")
+    dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration', "sumValueBefore", "averageValueBefore")
   
   afterData <-afterData %>%
     dplyr::mutate(
       sumValueAfter = .data$sumValue,
       averageValueAfter = .data$averageValue,
     ) %>%
-    dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays', "sumValueAfter", "averageValueAfter")
+    dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration', "sumValueAfter", "averageValueAfter")
   
   duringData <- duringData %>%
     dplyr::mutate(
       sumValueDuring = .data$sumValue,
       averageValueDuring = .data$averageValue,
     ) %>%
-    dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays', "sumValueDuring", "averageValueDuring")
+    dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration', "sumValueDuring", "averageValueDuring")
   
   
   
   allResults <- beforeData %>% 
     dplyr::full_join(
       y = duringData, 
-      by = c("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays')
+      by = c("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration')
     ) %>% 
     dplyr::full_join(
       y = afterData, 
-      by = c("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays')
+      by = c("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration')
     ) 
   
   return(allResults)
@@ -380,6 +383,12 @@ colDefs <- function(){
     ), 
     outcomeWashoutDays = reactable::colDef(
       name = "outcome washout days"
+    ),
+    casePostOutcomeDuration = reactable::colDef(
+      name = "Time after outcome we look for covariate"
+    ), 
+    casePreTargetDuration = reactable::colDef(
+      name = "Time before exposure we look for covariate"
     ),
     sumValueBefore = reactable::colDef(
       name = "Number of cases with feature before exposure", 
@@ -408,7 +417,7 @@ colDefs <- function(){
       format = reactable::colFormat(digits = 2, percent = T)
     ), 
     sumValueAfter = reactable::colDef(
-      name = "Number of cases with feature after exposure", 
+      name = "Number of cases with feature after outcome", 
       format = reactable::colFormat(digits = 2, percent = F),
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
@@ -417,7 +426,7 @@ colDefs <- function(){
       }
     ), 
     averageValueAfter = reactable::colDef(
-      name = "% of cases with feature after exposure", 
+      name = "% of cases with feature after outcome", 
       format = reactable::colFormat(digits = 2, percent = T)
     ), 
     
