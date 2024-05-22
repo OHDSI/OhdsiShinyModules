@@ -194,7 +194,7 @@ characterizationGetCaseSeriesData <- function(
   shiny::withProgress(message = 'Getting case series data', value = 0, {
     shiny::incProgress(1/4, detail = paste("Extracting ids"))
     
-    sql <- "SELECT cohort_definition_id, cohort_type
+    sql <- "SELECT distinct cohort_definition_id, cohort_type
           from
           @schema.@c_table_prefixcohort_details
           where target_cohort_id = @target_id
@@ -216,13 +216,20 @@ characterizationGetCaseSeriesData <- function(
     
     shiny::incProgress(2/4, detail = paste("Extracting binary"))
     
-  sql <- "SELECT cov.cohort_definition_id, cr.covariate_name, cov.covariate_id, cov.sum_value, cov.average_value 
+  sql <- "SELECT cov.cohort_definition_id, cr.covariate_name, 
+  s.min_prior_observation, s.outcome_washout_days,
+  cov.covariate_id, cov.sum_value, cov.average_value 
           from
           @schema.@c_table_prefixcovariates cov
           inner join  @schema.@c_table_prefixcovariate_ref cr
           on cov.run_id = cr.run_id and 
           cov.database_id = cr.database_id and 
           cov.covariate_id = cr.covariate_id
+          
+          inner join @schema.@c_table_prefixsettings s
+          on cov.run_id = s.run_id
+          and cov.database_id = s.database_id
+          
           where cov.cohort_definition_id in (@ids)
           and cov.database_id = '@database_id'
   ;"
@@ -243,7 +250,8 @@ characterizationGetCaseSeriesData <- function(
   
   shiny::incProgress(3/4, detail = paste("Extracting continuous"))
 
-  sql <- "SELECT cov.cohort_definition_id, cr.covariate_name, cov.covariate_id, 
+  sql <- "SELECT cov.cohort_definition_id, cr.covariate_name, 
+    s.min_prior_observation, s.outcome_washout_days, cov.covariate_id, 
           cov.count_value, cov.min_value, cov.max_value, cov.average_value,
           cov.standard_deviation, cov.median_value, cov.p_10_value,
           cov.p_25_value, cov.p_75_value, cov.p_90_value
@@ -253,6 +261,11 @@ characterizationGetCaseSeriesData <- function(
           on cov.run_id = cr.run_id and 
           cov.database_id = cr.database_id and 
           cov.covariate_id = cr.covariate_id
+          
+          inner join @schema.@c_table_prefixsettings s
+          on cov.run_id = s.run_id
+          and cov.database_id = s.database_id
+          
           where cov.cohort_definition_id in (@ids)
           and cov.database_id = '@database_id'
   ;"
@@ -322,32 +335,32 @@ caseSeriesTable <- function(
       sumValueBefore = .data$sumValue,
       averageValueBefore = .data$averageValue,
     ) %>%
-    dplyr::select("covariateName", "covariateId", "sumValueBefore", "averageValueBefore")
+    dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays', "sumValueBefore", "averageValueBefore")
   
   afterData <-afterData %>%
     dplyr::mutate(
       sumValueAfter = .data$sumValue,
       averageValueAfter = .data$averageValue,
     ) %>%
-    dplyr::select("covariateName", "covariateId", "sumValueAfter", "averageValueAfter")
+    dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays', "sumValueAfter", "averageValueAfter")
   
   duringData <- duringData %>%
     dplyr::mutate(
       sumValueDuring = .data$sumValue,
       averageValueDuring = .data$averageValue,
     ) %>%
-    dplyr::select("covariateName", "covariateId", "sumValueDuring", "averageValueDuring")
+    dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays', "sumValueDuring", "averageValueDuring")
   
   
   
   allResults <- beforeData %>% 
     dplyr::full_join(
       y = duringData, 
-      by = c("covariateName", "covariateId")
+      by = c("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays')
     ) %>% 
     dplyr::full_join(
       y = afterData, 
-      by = c("covariateName", "covariateId")
+      by = c("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays')
     ) 
   
   return(allResults)
@@ -361,6 +374,12 @@ colDefs <- function(){
     ),
     covariateId = reactable::colDef(
       show = F
+    ),
+    minPriorObservation = reactable::colDef(
+      name = "Minimum prior observation"
+    ), 
+    outcomeWashoutDays = reactable::colDef(
+      name = "outcome washout days"
     ),
     sumValueBefore = reactable::colDef(
       name = "Number of cases with feature before exposure", 
@@ -376,7 +395,7 @@ colDefs <- function(){
       format = reactable::colFormat(digits = 2, percent = T)
     ), 
     sumValueDuring = reactable::colDef(
-      name = "Number of cases with feature during exposure", 
+      name = "Number of cases with feature between exposure and outcome", 
       format = reactable::colFormat(digits = 2, percent = F),
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
@@ -385,7 +404,7 @@ colDefs <- function(){
       }
     ), 
     averageValueDuring = reactable::colDef(
-      name = "% of cases with feature during exposure", 
+      name = "% of cases with feature between exposure and outcome", 
       format = reactable::colFormat(digits = 2, percent = T)
     ), 
     sumValueAfter = reactable::colDef(

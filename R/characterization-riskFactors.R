@@ -168,13 +168,20 @@ characterizationGetRiskFactorData <- function(
     
     shiny::incProgress(2/4, detail = paste("Extracting binary"))
     
-  sql <- "SELECT cov.cohort_definition_id, cr.covariate_name, cov.covariate_id, cov.sum_value, cov.average_value 
+  sql <- "SELECT distinct cov.cohort_definition_id, cr.covariate_name, 
+  s.min_prior_observation, s.outcome_washout_days,
+  cov.covariate_id, cov.sum_value, cov.average_value 
           from
           @schema.@c_table_prefixcovariates cov
           inner join  @schema.@c_table_prefixcovariate_ref cr
           on cov.run_id = cr.run_id and 
           cov.database_id = cr.database_id and 
           cov.covariate_id = cr.covariate_id
+          
+          inner join @schema.@c_table_prefixsettings s
+          on cov.run_id = s.run_id
+          and cov.database_id = s.database_id
+          
           where cov.cohort_definition_id in (@ids)
           and cov.database_id = '@database_id'
           and cr.analysis_id not in (109, 110, 217, 218, 305, 417, 418, 505, 605, 713, 805, 926, 927)
@@ -196,7 +203,8 @@ characterizationGetRiskFactorData <- function(
   
   shiny::incProgress(3/4, detail = paste("Extracting continuous"))
 
-  sql <- "SELECT cov.cohort_definition_id, cr.covariate_name, cov.covariate_id, 
+  sql <- "SELECT distinct cov.cohort_definition_id, cr.covariate_name, 
+   s.min_prior_observation, s.outcome_washout_days,cov.covariate_id, 
           cov.count_value, cov.min_value, cov.max_value, cov.average_value,
           cov.standard_deviation, cov.median_value, cov.p_10_value,
           cov.p_25_value, cov.p_75_value, cov.p_90_value
@@ -206,6 +214,12 @@ characterizationGetRiskFactorData <- function(
           on cov.run_id = cr.run_id and 
           cov.database_id = cr.database_id and 
           cov.covariate_id = cr.covariate_id
+          
+          inner join @schema.@c_table_prefixsettings s
+          on cov.run_id = s.run_id
+          and cov.database_id = s.database_id
+          
+          
           where cov.cohort_definition_id in (@ids)
           and cov.database_id = '@database_id'
           and cr.analysis_id not in (109, 110, 217, 218, 305, 417, 418, 505, 605, 713, 805, 926, 927)
@@ -243,6 +257,8 @@ riskFactorTable <- function(
   data,
   ids
 ){
+  
+  data <- unique(data)
 
   caseId <- ids$cohortDefinitionId[ids$cohortType == 'TnO']
   if(length(caseId ) == 0){
@@ -251,13 +267,15 @@ riskFactorTable <- function(
   caseData <- data %>% 
     dplyr::filter(.data$cohortDefinitionId == !!caseId) %>%
     dplyr::select(-"cohortDefinitionId")
-  
+  #write.csv(caseData, '/Users/jreps/Documents/caseData.csv')
   
   allId <- ids$cohortDefinitionId[ids$cohortType == 'T']
   allData <- data %>% 
     dplyr::filter(.data$cohortDefinitionId == !!allId) %>%
     dplyr::select(-"cohortDefinitionId")
   allData$N <- allData$sumValue[1]/allData$averageValue[1]
+  
+  #write.csv(allData, '/Users/jreps/Documents/allData.csv')
   
   excludeId <- ids$cohortDefinitionId[ids$cohortType == 'TnOprior']
   if(length(excludeId) == 0){
@@ -270,11 +288,12 @@ riskFactorTable <- function(
   if(nrow(excludeData) > 0 ){
     excludeData$N <- excludeData$sumValue[1]/excludeData$averageValue[1]
     excludeN <- excludeData$sumValue[1]/excludeData$averageValue[1]
-    colnames(excludeData)[!colnames(excludeData) %in% c('covariateId', 'covariateName')] <- paste0('exclude_',colnames(excludeData))
+    colnamesInclude <- !colnames(excludeData) %in% c('covariateId', 'covariateName', 'minPriorObservation', 'outcomeWashoutDays')
+    colnames(excludeData)[colnamesInclude] <- paste0('exclude_',colnames(excludeData)[colnamesInclude])
     
     # if prior Os then exclude from T
     allData <- allData %>% 
-      dplyr::full_join(excludeData, by = c('covariateId', 'covariateName')) %>%
+      dplyr::full_join(excludeData, by = c('covariateId', 'covariateName', 'minPriorObservation', 'outcomeWashoutDays')) %>%
       dplyr::mutate(
         sumValue = .data$sumValue - .data$exclude_sumValue,
         averageValue = (.data$sumValue - .data$exclude_sumValue)/(.data$N-!!excludeN)
@@ -282,7 +301,7 @@ riskFactorTable <- function(
       dplyr::mutate(
         N = .data$N-!!excludeN
       ) %>%
-      dplyr::select("covariateId","covariateName","sumValue","averageValue", "N")
+      dplyr::select("covariateId","covariateName","sumValue","averageValue", "N", 'minPriorObservation', 'outcomeWashoutDays')
     
     }
   
@@ -293,11 +312,11 @@ riskFactorTable <- function(
       caseSumValue = .data$sumValue,
       caseAverageValue = .data$averageValue
     ) %>%
-      dplyr::select("covariateId","covariateName","caseSumValue","caseAverageValue", "caseN")
+      dplyr::select("covariateId","covariateName","caseSumValue","caseAverageValue", "caseN", 'minPriorObservation', 'outcomeWashoutDays')
     
     # join with cases
     allData <- allData %>% 
-      dplyr::full_join(caseData, by = c('covariateId', 'covariateName')) %>%
+      dplyr::full_join(caseData, by = c('covariateId', 'covariateName', 'minPriorObservation', 'outcomeWashoutDays')) %>%
       dplyr::mutate_if(is.numeric,dplyr::coalesce,0) %>%
       dplyr::mutate(
         nonCaseSumValue = .data$sumValue - .data$caseSumValue,
@@ -308,6 +327,7 @@ riskFactorTable <- function(
       ) %>%
       dplyr::select(
         "covariateId","covariateName",
+        'minPriorObservation', 'outcomeWashoutDays',
         "caseSumValue","caseAverageValue", 
         "nonCaseSumValue","nonCaseAverageValue",
         "N","caseN"
@@ -326,6 +346,8 @@ riskFactorTable <- function(
       ) %>%
       dplyr::select(-"meanDiff",-"std1", -"std2",-"N",-"caseN")
   
+    #write.csv(allData, '/Users/jreps/Documents/finalData.csv')
+    
     
   } else{
     allData <- allData %>% 
@@ -335,12 +357,13 @@ riskFactorTable <- function(
       ) %>%
       dplyr::select(
         "covariateId","covariateName",
+        'minPriorObservation', 'outcomeWashoutDays',
         "nonCaseSumValue","nonCaseAverageValue"
       )
   }
   
   
-  return(allData)
+  return(unique(allData))
 }
 
 
@@ -348,6 +371,8 @@ riskFactorContinuousTable <- function(
   data,
   ids # have N in them
 ){
+  
+  data <- unique(data)
   
   caseId <- ids$cohortDefinitionId[ids$cohortType == 'TnO']
   if(length(caseId ) == 0){
@@ -377,13 +402,15 @@ riskFactorContinuousTable <- function(
         caseP75Value = .data$p75Value,
         caseP90Value = .data$p90Value
       ) %>%
-      dplyr::select("covariateId","covariateName","caseCountValue","caseAverageValue", 
+      dplyr::select("covariateId","covariateName",
+                    'minPriorObservation', 'outcomeWashoutDays',
+                    "caseCountValue","caseAverageValue", 
                     "caseStandardDeviation", "caseMedianValue", "caseP10Value", "caseP25Value",
                     "caseP75Value", "caseP90Value", "caseMaxValue", "caseMinValue")
     
     # join with cases
     allData <- allData %>% 
-      dplyr::full_join(caseData, by = c('covariateId', 'covariateName')) %>%
+      dplyr::full_join(caseData, by = c('covariateId', 'covariateName', 'minPriorObservation', 'outcomeWashoutDays')) %>%
       dplyr::mutate(
         targetCountValue = .data$countValue,
         targetAverageValue = .data$averageValue,
@@ -396,7 +423,9 @@ riskFactorContinuousTable <- function(
         targetP75Value = .data$p75Value,
         targetP90Value = .data$p90Value
       )  %>%
-      dplyr::select("covariateId","covariateName","caseCountValue","caseAverageValue",
+      dplyr::select("covariateId","covariateName",
+                    'minPriorObservation', 'outcomeWashoutDays',
+                    "caseCountValue","caseAverageValue",
                     "caseStandardDeviation", "caseMedianValue", "caseP10Value", "caseP25Value",
                     "caseP75Value", "caseP90Value", "caseMaxValue", "caseMinValue",
                     
@@ -417,7 +446,7 @@ riskFactorContinuousTable <- function(
   }
   
   
-  return(allData)
+  return(unique(allData))
   
 }
 
@@ -429,6 +458,12 @@ characteriationRiskFactorColDefs <- function(){
     ),
     covariateId = reactable::colDef(
       show = F
+    ),
+    minPriorObservation = reactable::colDef(
+      name = "Minimum prior observation"
+      ), 
+    outcomeWashoutDays = reactable::colDef(
+      name = "outcome washout days"
     ),
     nonCaseSumValue = reactable::colDef(
       name = "Number of non-cases with feature before exposure", 
@@ -486,6 +521,12 @@ characteriationRiskFactorContColDefs <- function(){
     ),
     covariateId = reactable::colDef(
       show = F
+    ),
+    minPriorObservation = reactable::colDef(
+      name = "Minimum prior observation"
+    ), 
+    outcomeWashoutDays = reactable::colDef(
+      name = "outcome washout days"
     ),
     targetCountValue = reactable::colDef(
       name = "Number of target population with feature", 
