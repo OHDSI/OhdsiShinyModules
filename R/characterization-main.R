@@ -628,7 +628,8 @@ union
 
 select database_id, cohort_definition_id as char_cohort_id, target_cohort_id as cohort_definition_id, cohort_type
 from @schema.@c_table_prefixcohort_details
-where cohort_type = 'Tall'                                
+where cohort_type = 'Tall'   
+
 ;",
 schema = resultDatabaseSettings$schema,
 c_table_prefix = resultDatabaseSettings$cTablePrefix
@@ -636,19 +637,29 @@ c_table_prefix = resultDatabaseSettings$cTablePrefix
 
 TnOs <- connectionHandler$queryDb(
   sql = "
-select distinct  
-cd.target_cohort_id,
-cd.outcome_cohort_id,
-c.cohort_name
-from @schema.@c_table_prefixcohort_details cd
+select distinct temp.*, c.cohort_name 
+
+from 
+(select distinct  
+target_cohort_id,
+outcome_cohort_id
+from @schema.@c_table_prefixcohort_details
+where cohort_type = 'TnO'
+
+union
+
+select * 
+from @schema.@ci_table_prefixcohorts_lookup
+
+) temp
 inner join 
- @schema.@cg_table_prefixcohort_definition c
- on cd.outcome_cohort_id = c.cohort_definition_id
-where cd.cohort_type = 'TnO'
+@schema.@cg_table_prefixcohort_definition c
+on temp.outcome_cohort_id = c.cohort_definition_id
 ;",
   schema = resultDatabaseSettings$schema,
   c_table_prefix = resultDatabaseSettings$cTablePrefix,
-  cg_table_prefix = resultDatabaseSettings$cgTablePrefix
+  cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+  ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix
 )
 # fix backwards compatability
 cg$subsetParent[is.na(cg$isSubset)] <- cg$cohortDefinitionId
