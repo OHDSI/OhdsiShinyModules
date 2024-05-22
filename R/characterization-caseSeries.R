@@ -233,6 +233,7 @@ characterizationGetCaseSeriesData <- function(
           
           where cov.cohort_definition_id in (@ids)
           and cov.database_id = '@database_id'
+          and cr.analysis_id in (109, 110, 217, 218, 305, 417, 418, 505, 605, 713, 805, 926, 927)
   ;"
 
   binary <- connectionHandler$queryDb(
@@ -271,6 +272,7 @@ characterizationGetCaseSeriesData <- function(
           
           where cov.cohort_definition_id in (@ids)
           and cov.database_id = '@database_id'
+          and cr.analysis_id in (109, 110, 217, 218, 305, 417, 418, 505, 605, 713, 805, 926, 927)
   ;"
   
   # TODO - how to remove prior outcomes??
