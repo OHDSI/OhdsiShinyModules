@@ -140,7 +140,9 @@ characterizationGetRiskFactorData <- function(
   shiny::withProgress(message = 'Getting risk factor data', value = 0, {
     shiny::incProgress(1/4, detail = paste("Extracting ids"))
     
-    sql <- "SELECT distinct cd.cohort_definition_id, cd.cohort_type, cc.person_count as N
+    sql <- "SELECT distinct 
+    cd.cohort_definition_id, cd.cohort_type, 
+    cc.person_count as N
           from
           @schema.@c_table_prefixcohort_details cd
           left join 
@@ -191,7 +193,7 @@ characterizationGetRiskFactorData <- function(
     sql = sql, 
     schema = resultDatabaseSettings$schema,
     c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    ids = paste0(ids$cohortDefinitionId, collapse = ','),
+    ids = paste0(unique(ids$cohortDefinitionId), collapse = ','),
     database_id = databaseId
   )
   
@@ -259,7 +261,7 @@ riskFactorTable <- function(
 ){
   
   data <- unique(data)
-
+  
   caseId <- ids$cohortDefinitionId[ids$cohortType == 'TnO']
   if(length(caseId ) == 0){
     caseId <- -1
@@ -267,15 +269,25 @@ riskFactorTable <- function(
   caseData <- data %>% 
     dplyr::filter(.data$cohortDefinitionId == !!caseId) %>%
     dplyr::select(-"cohortDefinitionId")
-  #write.csv(caseData, '/Users/jreps/Documents/caseData.csv')
   
+  casecounts <- caseData %>% 
+    dplyr::mutate(N = .data$sumValue/.data$averageValue) %>%
+    dplyr::select('minPriorObservation', 'outcomeWashoutDays', 'N') %>%
+    dplyr::group_by(.data$minPriorObservation, .data$outcomeWashoutDays) %>%
+    dplyr::summarise(caseN = round(max(.data$N)))
+  
+  #write.csv(caseData, '/Users/jreps/Documents/caseData.csv')
+
   allId <- ids$cohortDefinitionId[ids$cohortType == 'T']
   allData <- data %>% 
     dplyr::filter(.data$cohortDefinitionId == !!allId) %>%
     dplyr::select(-"cohortDefinitionId")
-  allData$N <- allData$sumValue[1]/allData$averageValue[1]
   
-  #write.csv(allData, '/Users/jreps/Documents/allData.csv')
+  allcounts <- allData %>% 
+    dplyr::mutate(N = .data$sumValue/.data$averageValue) %>%
+    dplyr::select('minPriorObservation', 'outcomeWashoutDays', 'N') %>%
+    dplyr::group_by(.data$minPriorObservation, .data$outcomeWashoutDays) %>%
+    dplyr::summarise(N = round(max(.data$N)))
   
   excludeId <- ids$cohortDefinitionId[ids$cohortType == 'TnOprior']
   if(length(excludeId) == 0){
@@ -284,43 +296,68 @@ riskFactorTable <- function(
   excludeData <- data %>% 
     dplyr::filter(.data$cohortDefinitionId == !!excludeId) %>%
     dplyr::select(-"cohortDefinitionId")
+  excludecounts <- excludeData %>% 
+    dplyr::mutate(N = .data$sumValue/.data$averageValue) %>%
+    dplyr::select('minPriorObservation', 'outcomeWashoutDays', 'N') %>%
+    dplyr::group_by(.data$minPriorObservation, .data$outcomeWashoutDays) %>%
+    dplyr::summarise(exclude_N = round(max(.data$N)))
+
   
   if(nrow(excludeData) > 0 ){
-    excludeData$N <- excludeData$sumValue[1]/excludeData$averageValue[1]
-    excludeN <- excludeData$sumValue[1]/excludeData$averageValue[1]
     colnamesInclude <- !colnames(excludeData) %in% c('covariateId', 'covariateName', 'minPriorObservation', 'outcomeWashoutDays')
     colnames(excludeData)[colnamesInclude] <- paste0('exclude_',colnames(excludeData)[colnamesInclude])
     
     # if prior Os then exclude from T
     allData <- allData %>% 
-      dplyr::full_join(excludeData, by = c('covariateId', 'covariateName', 'minPriorObservation', 'outcomeWashoutDays')) %>%
-      dplyr::mutate(
+      dplyr::left_join(excludeData, by = c('covariateId', 'covariateName', 'minPriorObservation', 'outcomeWashoutDays')) %>%
+      dplyr::left_join( # add N per washout/min obs
+        allcounts, 
+        by = c('minPriorObservation', 'outcomeWashoutDays')
+      ) %>%
+      dplyr::left_join( # add N per washout/min obs
+        excludecounts, 
+        by = c('minPriorObservation', 'outcomeWashoutDays')
+      ) %>%
+      dplyr::mutate_if(is.numeric,dplyr::coalesce,0) %>%
+      dplyr::mutate( # add exclude N per washout/min obs
         sumValue = .data$sumValue - .data$exclude_sumValue,
-        averageValue = (.data$sumValue - .data$exclude_sumValue)/(.data$N-!!excludeN)
+        averageValue = (.data$sumValue - .data$exclude_sumValue)/(.data$N-.data$exclude_N)
       ) %>%
       dplyr::mutate(
-        N = .data$N-!!excludeN
+        N = .data$N-.data$exclude_N
       ) %>%
       dplyr::select("covariateId","covariateName","sumValue","averageValue", "N", 'minPriorObservation', 'outcomeWashoutDays')
     
     }
-  
+
   if(nrow(caseData) > 0){
-    caseData$caseN <- caseData$sumValue[1]/caseData$averageValue[1]
     caseData <- caseData %>%
       dplyr::mutate(
       caseSumValue = .data$sumValue,
       caseAverageValue = .data$averageValue
     ) %>%
-      dplyr::select("covariateId","covariateName","caseSumValue","caseAverageValue", "caseN", 'minPriorObservation', 'outcomeWashoutDays')
+      dplyr::select("covariateId","covariateName","caseSumValue","caseAverageValue", 'minPriorObservation', 'outcomeWashoutDays')
     
     # join with cases
     allData <- allData %>% 
       dplyr::full_join(caseData, by = c('covariateId', 'covariateName', 'minPriorObservation', 'outcomeWashoutDays')) %>%
+      dplyr::left_join(
+        casecounts, 
+        by = c('minPriorObservation', 'outcomeWashoutDays')
+      ) %>%
       dplyr::mutate_if(is.numeric,dplyr::coalesce,0) %>%
       dplyr::mutate(
-        nonCaseSumValue = .data$sumValue - .data$caseSumValue,
-        nonCaseAverageValue = (.data$sumValue - .data$caseSumValue)/(.data$N-.data$caseN)
+        nonCaseSumValue = ifelse(
+          .data$sumValue > 0,
+          .data$sumValue - .data$caseSumValue,
+          0
+          )
+        ,
+        nonCaseAverageValue = ifelse(
+          .data$sumValue > 0,
+          (.data$sumValue - .data$caseSumValue)/(.data$N-.data$caseN),
+          0
+          )
       ) %>%
       dplyr::mutate(
         nonCaseN = .data$N-.data$caseN
@@ -329,26 +366,27 @@ riskFactorTable <- function(
         "covariateId","covariateName",
         'minPriorObservation', 'outcomeWashoutDays',
         "caseSumValue","caseAverageValue", 
-        "nonCaseSumValue","nonCaseAverageValue",
-        "N","caseN"
+        "nonCaseSumValue","nonCaseAverageValue"
+        ,"nonCaseN", "caseN", "N"
         )
     
+
     # add abs smd
     allData <- allData %>% 
       dplyr::mutate(
         meanDiff = .data$caseAverageValue - .data$nonCaseAverageValue,
         std1 =  sqrt(((1-.data$caseAverageValue)^2*.data$caseSumValue + (-.data$caseAverageValue)^2*(.data$caseN - .data$caseSumValue))/.data$caseN),
-        std2 =  sqrt(((1-.data$nonCaseAverageValue)^2*.data$nonCaseSumValue + (-.data$nonCaseAverageValue)^2*(.data$N - .data$nonCaseSumValue))/.data$N)
+        std2 =  sqrt(((1-.data$nonCaseAverageValue)^2*.data$nonCaseSumValue + (-.data$nonCaseAverageValue)^2*(.data$nonCaseN - .data$nonCaseSumValue))/.data$nonCaseN)
       ) %>% 
       dplyr::mutate(
         SMD = .data$meanDiff/sqrt((.data$std1^2 + .data$std2^2)/2),
         absSMD = abs(.data$meanDiff/sqrt((.data$std1^2 + .data$std2^2)/2))
       ) %>%
-      dplyr::select(-"meanDiff",-"std1", -"std2",-"N",-"caseN")
+      dplyr::select(-"meanDiff",-"std1", -"std2", -"N",-"caseN", -"nonCaseN")
   
     #write.csv(allData, '/Users/jreps/Documents/finalData.csv')
     
-    
+
   } else{
     allData <- allData %>% 
       dplyr::mutate(
