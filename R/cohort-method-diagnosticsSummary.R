@@ -1,6 +1,6 @@
 # @file cohort-method-diagnosticsSummary
 #
-# Copyright 2023 Observational Health Data Sciences and Informatics
+# Copyright 2024 Observational Health Data Sciences and Informatics
 #
 # This file is part of OhdsiShinyModules
 #
@@ -91,112 +91,99 @@ cohortMethodDiagnosticsSummaryServer <- function(
         target = reactable::colDef(
           header = withTooltip(
             "Target",
-            "The target cohort of interest "
+            "The target cohort of interest"
           ),
           minWidth = 300
         ),
         comparator = reactable::colDef(
           header = withTooltip(
             "Comparator",
-            "The comparator cohort of interest "
+            "The comparator cohort of interest"
           ),
           minWidth = 300
         ),
         outcome = reactable::colDef(
           header = withTooltip(
             "Outcome",
-            "The outcome of interest "
+            "The outcome of interest"
           )
         ),
         analysis = reactable::colDef(
           header = withTooltip(
             "Analysis",
-            "The analysis name "
+            "The analysis name"
           )
         ),
         
         mdrr = reactable::colDef(
           header = withTooltip(
-            "mdrr",
+            "MDRR",
             "The minimum detectible relative risk"
           ),
           format = reactable::colFormat(digits = 4)
         ),
         ease = reactable::colDef(
           header = withTooltip(
-            "ease",
-            "The ..."
+            "EASE",
+            "The expected absolute systematic error"
           ),
           format = reactable::colFormat(digits = 4)
         ),
         maxSdm = reactable::colDef(
           header = withTooltip(
-            "max SDM",
-            "The ..."
+            "Max SDM",
+            "The maximum absolute standardized difference of mean"
           ),
           format = reactable::colFormat(digits = 4)
         ),
         sharedMaxSdm = reactable::colDef(
           header = withTooltip(
-            "shared max SDM",
-            "The ..."
+            "Shared Max SDM",
+            "The maximum absolute standardized difference of mean of the shared balance (shared across outcomes)"
           ),
           format = reactable::colFormat(digits = 4)
         ),
         equipoise = reactable::colDef(
           header = withTooltip(
-            "equipoise",
-            "The ..."
-          ),
-          format = reactable::colFormat(digits = 4)
-        ),
-        attritionFraction = reactable::colDef(
-          header = withTooltip(
-            "Attrition fraction",
-            "The ..."
+            "Equipoise",
+            "The fraction of the study population with a preference score between 0.3 and 0.7"
           ),
           format = reactable::colFormat(digits = 4)
         ),
         balanceDiagnostic = reactable::colDef(
           header = withTooltip(
-            "balanceDiagnostic",
-            "The ..."
+            "Balance Diagnostic",
+            "Pass / warning / fail classification of the balance diagnostic (Max SDM)"
           )
         ),
         mdrrDiagnostic = reactable::colDef(
           header = withTooltip(
-            "mdrrDiagnostic",
-            "The ..."
+            "MDRR Diagnostic",
+            "Pass / warning / fail classification of the MDRR diagnostic"
           )
         ),
         sharedBalanceDiagnostic = reactable::colDef(
           header = withTooltip(
-            "sharedBalanceDiagnostic",
-            "The ..."
+            "Shared Balance Diagnostic",
+            "Pass / warning / fail classification of the shared balance diagnostic (Shared Max SDM)"
           )
         ),
         easeDiagnostic = reactable::colDef(
           header = withTooltip(
-            "easeDiagnostic",
-            "The ..."
-          )
-        ),
-        attritionDiagnostic = reactable::colDef(
-          header = withTooltip(
-            "attritionDiagnostic",
-            "The ..."
+            "Ease Diagnostic",
+            "Pass / warning / fail classification of the EASE diagnostic"
           )
         ),
         equipoiseDiagnostic = reactable::colDef(
           header = withTooltip(
-            "equipoiseDiagnostic",
-            "The ..."
+            "Equipoise Diagnostic",
+            "Pass / warning / fail classification of the equipoise diagnostic"
           )
         ),
         
         unblind = reactable::colDef(
           header = withTooltip(
-            "unblind",
+            "Unblind",
             "If the value is 1 then the diagnostics passed and results can be unblinded"
           )
         ),
@@ -240,14 +227,14 @@ getColDefsCmDiag <- function(
         target = reactable::colDef(
           header = withTooltip(
             "Target",
-            "The target cohort of interest "
+            "The target cohort of interest"
           ),
           sticky = "left"
         ),
         comparator = reactable::colDef(
           header = withTooltip(
             "Comparator",
-            "The comparator cohort of interest "
+            "The comparator cohort of interest"
           ),
           sticky = "left"
         )
@@ -271,7 +258,7 @@ getColDefsCmDiag <- function(
     FUN = function(x){
       reactable::colDef(
         header = withTooltip(
-          substring(x,1,40),
+          paste0(substring(x,1,35), "...", sep=""),
           x
         ),
         style = function(value) {
@@ -342,13 +329,11 @@ getCmDiagnosticsData <- function(
       cmds.shared_max_sdm,
       cmds.equipoise,
       cmds.mdrr,
-      cmds.attrition_fraction,
       cmds.ease,
       cmds.balance_diagnostic,
       cmds.shared_balance_diagnostic, -- added back
       cmds.equipoise_diagnostic,
       cmds.mdrr_diagnostic,
-      cmds.attrition_diagnostic,
       cmds.ease_diagnostic,
       cmds.unblind
     FROM

@@ -4,7 +4,6 @@ shiny::testServer(
   app = characterizationIncidenceServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization,
-    mainPanelTab = shiny::reactiveVal("Feature Comparison"),
     resultDatabaseSettings = resultDatabaseSettingsCharacterization
   ), 
   expr = {
@@ -34,5 +33,12 @@ test_that("Test characterizationIncidence ui", {
   # Test ui
   ui <- characterizationIncidenceViewer(id = 'viewer')
   checkmate::expect_list(ui)
+})
+
+test_that("Test as_ggplot global", {
+  #Test as_ggplot function
+    plot <- cowplot::get_legend(ggplot2::qplot(x=1:5, y=1:5, colour = runif(5)))
+    result <- as_ggplot(plot)
+    testthat::expect_is(result, 'ggplot')
 })
 

@@ -1,3 +1,38 @@
+OhdsiShinyModules v2.1.4
+========================
+Fixed missing call to dplyr in CohortDiagnostics load up
+
+OhdsiShinyModules v2.1.3
+========================
+Hotfix release to fix issue with cohort diagnostics reports hanging on load when using `DatabaseConnector::dbListTables`
+on postgres backends
+
+OhdsiShinyModules v2.1.2
+========================
+Fixed bug in cohort diagnostics incidence rate plots not showing for different strata
+
+OhdsiShinyModules v2.1.1
+========================
+Fixed bug in cohort diagnostics load up of orphan concepts server causing app to crash on load
+
+OhdsiShinyModules v2.1.0
+========================
+Support for data models from SCCS version 5.2.0
+Support for data models from Cohort Method version 5.2.0
+Fixes for CohortDiagnostics Orpahan concept table by re-writing with DB level pagination
+Automated release of Docker Images upon package release
+
+OhdsiShinyModules v2.0.2
+========================
+edited characterization server to work with new aggregate features method in characterization package
+edited characterization server to work when one or more characterization result is missing
+edited evidence synth module to highlight the bayesian and fix issue with comparison names not showing
+
+OhdsiShinyModules v2.0.1
+========================
+Bug Fixes:
+- Fix for CohortDiagnostic app not loading when characterization was set to FALSE
+
 OhdsiShinyModules v2.0.0
 ========================
 - updated all models to use the same resultDatabaseSettings

@@ -1,6 +1,6 @@
 # @file sccs-diagnosticsSummary
 #
-# Copyright 2023 Observational Health Data Sciences and Informatics
+# Copyright 2024 Observational Health Data Sciences and Informatics
 #
 # This file is part of OhdsiShinyModules
 #
@@ -55,13 +55,24 @@ sccsDiagnosticsSummaryServer <- function(
       
       
       data <- shiny::reactive({
-        
+        exposure <- inputSelected()$exposure
+
+        if (is.character(exposure)) {
+          exposureGroup <- strsplit(exposure, " ")[[1]]
+          targetId <- exposureGroup[[1]]
+          indidcationId <- exposureGroup[[2]]
+        } else {
+          targetId <- -1
+          indidcationId <- -1
+        }
+
         getSccsAllDiagnosticsSummary(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          targetIds = inputSelected()$exposure,
+          targetIds = targetId,
           outcomeIds = inputSelected()$outcome,
-          analysisIds = inputSelected()$analysis
+          analysisIds = inputSelected()$analysis,
+          indicationIds = indidcationId
         )
       })
       
@@ -289,13 +300,18 @@ getSccsAllDiagnosticsSummary <- function(
     resultDatabaseSettings,
     targetIds,
     outcomeIds,
-    analysisIds = NULL
+    analysisIds = NULL,
+    indicationIds = NULL
 ) {
   
-  if(is.null(targetIds)){
+  if(is.null(targetIds) || is.null(outcomeIds)){
     return(NULL)
   }
-  
+
+  if (any(indicationIds == -1)) {
+    indicationIds <- NULL
+  }
+
   sql <- "
   SELECT 
   d.cdm_source_abbreviation as database_name,
@@ -337,6 +353,7 @@ getSccsAllDiagnosticsSummary <- function(
    c2.cohort_definition_id in (@target_ids)
    and c.cohort_definition_id in (@outcome_ids)
    {@use_analysis}?{and a.analysis_id in (@analysis_ids)}
+   {@use_indications} ? {and eos.nesting_cohort_id IN (@indication_ids)} : {and eos.nesting_cohort_id IS NULL}
   ;
   "
   result <- connectionHandler$queryDb(
@@ -350,8 +367,9 @@ getSccsAllDiagnosticsSummary <- function(
     target_ids = paste0(targetIds, collapse = ','),
     outcome_ids = paste0(outcomeIds, collapse = ','),
     analysis_ids = paste0(analysisIds, collapse = ','),
+    indication_ids = paste0(indicationIds, collapse = ','),
     use_analysis = !is.null(analysisIds),
-    
+    use_indications = !is.null(indicationIds),
     snakeCaseToCamelCase = TRUE
   )
   

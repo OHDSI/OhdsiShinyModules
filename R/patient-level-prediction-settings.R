@@ -1,6 +1,6 @@
 # @file patient-level-prediction-settings.R
 #
-# Copyright 2023 Observational Health Data Sciences and Informatics
+# Copyright 2024 Observational Health Data Sciences and Informatics
 #
 # This file is part of OhdsiShinyModules
 #
@@ -219,7 +219,7 @@ patientLevelPredictionSettingsServer <- function(
       # Model settings
       output$model <- shinydashboard::renderInfoBox({
         shinydashboard::infoBox(
-          'Model',
+          'Model Settings',
           shiny::actionButton(session$ns("showModel"),"View"), 
           icon = shiny::icon("sliders-h"),
           color = "light-blue"

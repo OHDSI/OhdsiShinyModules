@@ -1,6 +1,6 @@
 # @file characterization-timeToEvent.R
 #
-# Copyright 2023 Observational Health Data Sciences and Informatics
+# Copyright 2024 Observational Health Data Sciences and Informatics
 #
 # This file is part of OhdsiShinyModules
 #
@@ -75,7 +75,6 @@ characterizationTimeToEventViewer <- function(id) {
 #'
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
-#' @param mainPanelTab the current tab 
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #' 
 #' @return
@@ -85,16 +84,11 @@ characterizationTimeToEventViewer <- function(id) {
 characterizationTimeToEventServer <- function(
   id, 
   connectionHandler,
-  mainPanelTab,
   resultDatabaseSettings
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      #if(mainPanelTab() != 'Time To Event'){
-      #  return(invisible(NULL))
-      #}
       
       # get the possible target ids
       bothIds <- timeToEventGetIds(

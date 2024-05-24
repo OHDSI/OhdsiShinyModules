@@ -1,6 +1,6 @@
 # @file characterization-DechallengeRechallenge.R
 #
-# Copyright 2023 Observational Health Data Sciences and Informatics
+# Copyright 2024 Observational Health Data Sciences and Informatics
 #
 # This file is part of OhdsiShinyModules
 #
@@ -60,7 +60,6 @@ characterizationDechallengeRechallengeViewer <- function(id) {
 #'
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
-#' @param mainPanelTab the current tab 
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #' 
 #' @return
@@ -70,7 +69,6 @@ characterizationDechallengeRechallengeViewer <- function(id) {
 characterizationDechallengeRechallengeServer <- function(
   id, 
   connectionHandler,
-  mainPanelTab,
   resultDatabaseSettings
 ) {
   shiny::moduleServer(
@@ -193,9 +191,10 @@ characterizationDechallengeRechallengeServer <- function(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings
             )
-            print(result)
             failData(result)
             # module to show failed plots
+            
+            if(nrow(result) > 0){
             shiny::showModal(
               shiny::modalDialog(
                 title = paste0("Failed Plots: "),
@@ -205,6 +204,9 @@ characterizationDechallengeRechallengeServer <- function(
                 footer = NULL
               )
             )
+            } else{
+              showNotification("No fails to display")
+            }
           }
         }
       })
@@ -294,7 +296,7 @@ getDechalRechalInputsData <- function(
   
   shiny::withProgress(message = 'Extracting DECHALLENGE_RECHALLENGE data', value = 0, {
   
-  sql <- "SELECT d.CDM_SOURCE_ABBREVIATION as database_name, dr.*
+  sql <- "SELECT distinct d.CDM_SOURCE_ABBREVIATION as database_name, dr.*
           FROM @schema.@c_table_prefixDECHALLENGE_RECHALLENGE dr 
           inner join @schema.@database_table d
           on dr.database_id = d.database_id

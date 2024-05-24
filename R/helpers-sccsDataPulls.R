@@ -35,6 +35,40 @@ sccsGetOutcomes <- function(
 }
 
 
+sccsGetExposureIndications <- function(connectionHandler,
+                                       resultDatabaseSettings) {
+
+  sql <- "SELECT
+      e.era_id AS exposure_id,
+      c2.cohort_name as exposure_name,
+      coalesce(c.cohort_definition_id, -1) as indication_id,
+      coalesce(c.cohort_name, 'No indication') as indication_name
+
+   FROM @schema.@sccs_table_prefixexposures_outcome_set eos
+   LEFT JOIN @schema.@cg_table_prefixcohort_definition c on eos.nesting_cohort_id = c.cohort_definition_id
+
+  INNER JOIN @schema.@sccs_table_prefixcovariate cov
+        ON eos.exposures_outcome_set_id = cov.exposures_outcome_set_id
+
+  INNER JOIN @schema.@sccs_table_prefixexposure e
+        ON eos.exposures_outcome_set_id = e.exposures_outcome_set_id
+        AND cov.era_id = e.era_id
+
+   INNER JOIN @schema.@cg_table_prefixcohort_definition c2 on e.era_id = c2.cohort_definition_id
+   GROUP BY c.cohort_definition_id,  c.cohort_name, e.era_id, c2.cohort_name
+  "
+  result <- connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    snakeCaseToCamelCase = TRUE
+  )
+
+  result
+}
+
+
 sccsGetExposures <- function(
     connectionHandler, 
     resultDatabaseSettings
@@ -42,14 +76,26 @@ sccsGetExposures <- function(
   # Note Query rew-written from dplyr because of data type/casting issues with null values in left joins
   sql <- "
   select distinct
-  c.cohort_name as name,
+  c1.cohort_name as name,
   e.era_id as exposure_id
   
-  from
-   @schema.@cg_table_prefixcohort_definition as c
-   inner join
-   @schema.@sccs_table_prefixexposure as e
-   on e.era_id = c.cohort_definition_id;
+  from @schema.@sccs_table_prefixresult r
+
+  INNER JOIN @schema.@sccs_table_prefixexposures_outcome_set eos
+      ON r.exposures_outcome_set_id = eos.exposures_outcome_set_id
+
+  INNER JOIN @schema.@sccs_table_prefixcovariate cov
+        ON r.exposures_outcome_set_id = cov.exposures_outcome_set_id
+        AND r.analysis_id = cov.analysis_id
+        AND r.covariate_id = cov.covariate_id
+
+  INNER JOIN @schema.@sccs_table_prefixexposure e
+        ON r.exposures_outcome_set_id = e.exposures_outcome_set_id
+        AND cov.era_id = e.era_id
+
+  INNER JOIN @schema.@cg_table_prefixcohort_definition as c1 on c1.cohort_definition_id = e.era_id
+  WHERE e.true_effect_size IS NULL
+   ;
   "
   exposures <- connectionHandler$queryDb(
     sql,
@@ -58,10 +104,9 @@ sccsGetExposures <- function(
     sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
     snakeCaseToCamelCase = TRUE
   )
-  
+
   result <- exposures$exposureId
   names(result) <- exposures$name
-  
   return(result)
 }
 

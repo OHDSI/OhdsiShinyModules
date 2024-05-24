@@ -7,7 +7,6 @@
 characterizationDechallengeRechallengeServer(
   id,
   connectionHandler,
-  mainPanelTab,
   resultDatabaseSettings
 )
 }
@@ -15,8 +14,6 @@ characterizationDechallengeRechallengeServer(
 \item{id}{the unique reference id for the module}
 
 \item{connectionHandler}{the connection to the prediction result database}
-
-\item{mainPanelTab}{the current tab}
 
 \item{resultDatabaseSettings}{a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix}
 }

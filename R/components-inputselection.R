@@ -43,7 +43,8 @@ createInputSetting <- function(
       options = shinyWidgets::pickerOptions()
     ),
     updateFunction = NULL,
-    collapse = F
+    collapse = F,
+    namesCallback = NULL
     ){
   
   result <- list(
@@ -54,7 +55,8 @@ createInputSetting <- function(
     uiFunction = uiFunction,
     uiInputs = uiInputs,
     updateFunction = updateFunction,
-    collapse = collapse
+    collapse = collapse,
+    namesCallback = namesCallback
   )
   
   class(result) <- 'inputSetting'
@@ -141,18 +143,25 @@ inputSelectionServer <- function(
                   width = inputSettingList[[x]]$columnWidth,
                   shiny::tags$b(paste0(inputSettingList[[x]]$uiInputs$label)),
                   if(!is.null(inputSettingList[[x]]$uiInputs$choices)){
-                    # adding below incase a vector with no names is used
-                    if(is.null(names(inputSettingList[[x]]$uiInputs$choices))){
-                      names(inputSettingList[[x]]$uiInputs$choices) <- inputSettingList[[x]]$uiInputs$choices
+                    inputVar <- paste0('input_',x)
+                    if (!is.null(inputSettingList[[x]]$namesCallback)) {
+                      namesVec <- inputSettingList[[x]]$namesCallback(input[[inputVar]])
+                    } else {
+                      # adding below incase a vector with no names is used
+                      if(is.null(names(inputSettingList[[x]]$uiInputs$choices))){
+                        names(inputSettingList[[x]]$uiInputs$choices) <- inputSettingList[[x]]$uiInputs$choices
+                      }
+  
+                      namesVec <- names(inputSettingList[[x]]$uiInputs$choices)[inputSettingList[[x]]$uiInputs$choices %in% input[[inputVar]]]
+                      
                     }
-                    
                     # add selections on new row unless collapse is F
                     if(!inputSettingList[[x]]$collapse){
                       shiny::HTML(
-                        paste("<p>", names(inputSettingList[[x]]$uiInputs$choices)[inputSettingList[[x]]$uiInputs$choices %in% input[[paste0('input_',x)]]], '</p>')
+                        paste("<p>", namesVec, '</p>')
                       )
                       } else{
-                        paste(names(inputSettingList[[x]]$uiInputs$choices)[inputSettingList[[x]]$uiInputs$choices %in% input[[paste0('input_',x)]]], collapse = ', ')
+                        paste(namesVec, collapse = ', ')
                       }
                   } else{
                     
