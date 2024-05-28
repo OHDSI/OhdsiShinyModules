@@ -20,14 +20,16 @@
     tables <- connectionHandler$queryDb(sql, schema = schema) |>
       dplyr::pull("tableName") |>
       tolower()
-    return(tables)
-  }
-
-  return(
-    DatabaseConnector::getTableNames(connectionHandler$getConnection(),
+    
+  } else if (connectionHandler$dbms() != "sqlite") {
+    tables <- DatabaseConnector::getTableNames(connectionHandler$getConnection(),
                                      databaseSchema = schema) |>
       tolower()
-  )
+  } else {
+    tables <- DatabaseConnector::getTableNames(connectionHandler$getConnection()) |>
+      tolower()
+  }
+  return(tables)
 }
 
 
