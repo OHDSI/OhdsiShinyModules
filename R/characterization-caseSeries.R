@@ -80,10 +80,10 @@ characterizationCaseSeriesServer <- function(
           ),
           
           shiny::selectInput(
-            inputId = session$ns('tarId'),
+            inputId = session$ns('tarInd'),
             label = 'Time-at-risk: ',
-            choices = options()$tarIds,
-            selected = options()$tarIds[1],
+            choices = options()$tarInds,
+            selected = options()$tarInds[1],
             multiple = F
           ),
           
@@ -103,7 +103,7 @@ characterizationCaseSeriesServer <- function(
             targetId = targetId(),
             outcomeId = outcomeId(),
             databaseId = input$databaseId,
-            timeAtRiskId = input$tarId
+            tar = options()$tarList[[which(options()$tarInds == input$tarInd)]]
           )
         
         binTableOutputs <- resultTableServer(
@@ -135,45 +135,47 @@ characterizationGetCaseSeriesOptions <- function(
   outcomeId
 ){
   
-  sql <- "SELECT distinct cd.database_id, d.CDM_SOURCE_ABBREVIATION as database_name,
-          cd.time_at_risk_id, 
-          t.RISK_WINDOW_START,	t.RISK_WINDOW_END,	
-          t.START_ANCHOR, t.END_ANCHOR
+  sql <- "SELECT distinct s.database_id, d.CDM_SOURCE_ABBREVIATION as database_name,
+          s.setting_id, 
+          s.RISK_WINDOW_START,	s.RISK_WINDOW_END,	
+          s.START_ANCHOR, s.END_ANCHOR
           from
-          @schema.@c_table_prefixcohort_details cd
+          @schema.@c_table_prefixsettings s
           inner join @schema.@database_meta_table d 
-          on cd.database_id = d.database_id
-          inner join @schema.@c_table_prefixtime_at_risk t
-          on t.database_id = cd.database_id
-          and t.run_id = cd.run_id
-          and t.time_at_risk_id = cd.time_at_risk_id
-          
-          where cd.target_cohort_id = @target_id
+          on s.database_id = d.database_id
+          inner join @schema.@c_table_prefixcohort_details cd
+          on s.setting_id = cd.setting_id
+          and s.database_id = cd.database_id
+          and cd.target_cohort_id = @target_id
           and cd.outcome_cohort_id = @outcome_id
-          and cd.time_at_risk_id != 0
+          and cd.cohort_type = 'TnO'
   ;"
   
   options <- connectionHandler$queryDb(
     sql = sql, 
     schema = resultDatabaseSettings$schema,
     c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    database_meta_table = resultDatabaseSettings$databaseTable,
     target_id = targetId,
-    outcome_id = outcomeId
+    outcome_id = outcomeId,
+    database_meta_table = resultDatabaseSettings$databaseTable
   )
   
   db <- unique(options$databaseId)
   names(db) <- unique(options$databaseName)
   
-  tar <- unique(options$timeAtRiskId)
-  names(tar) <- unique(paste0('(', options$startAnchor, ' + ', options$riskWindowStart, ') - (', 
-                       options$endAnchor, ' + ', options$riskWindowEnd, ')'
+  tar <- unique(options[,c('startAnchor','riskWindowStart', 'endAnchor', 'riskWindowEnd')])
+  tarList <- lapply(1:nrow(tar), function(i) as.list(tar[i,]))
+  #tar <- unique(options$settingId)
+  tarInds <- 1:nrow(tar)
+  names(tarInds) <- unique(paste0('(', tar$startAnchor, ' + ', tar$riskWindowStart, ') - (', 
+                       tar$endAnchor, ' + ', tar$riskWindowEnd, ')'
                        ))
   
   return(
     list(
       databaseIds = db,
-      tarIds = tar
+      tarInds = tarInds,
+      tarList = tarList
     )
   )
   
@@ -186,52 +188,41 @@ characterizationGetCaseSeriesData <- function(
   targetId,
   outcomeId,
   databaseId,
-  timeAtRiskId
+  tar
 ){
   
-  ids <- 
-    
   shiny::withProgress(message = 'Getting case series data', value = 0, {
-    shiny::incProgress(1/4, detail = paste("Extracting ids"))
+    shiny::incProgress(1/4, detail = paste("Extracting binary"))
     
-    sql <- "SELECT distinct cohort_definition_id, cohort_type
-          from
-          @schema.@c_table_prefixcohort_details
-          where target_cohort_id = @target_id
-          and outcome_cohort_id = @outcome_id
-          and database_id = '@database_id'
-          and time_at_risk_id = @time_at_risk_id
-          and cohort_type in ('TnObetween','OnT','TnO')
-  ;"
-    
-    ids <- connectionHandler$queryDb(
-      sql = sql, 
-      schema = resultDatabaseSettings$schema,
-      c_table_prefix = resultDatabaseSettings$cTablePrefix,
-      target_id = targetId,
-      outcome_id = outcomeId,
-      database_id = databaseId,
-      time_at_risk_id = timeAtRiskId
-    )
-    
-    shiny::incProgress(2/4, detail = paste("Extracting binary"))
-    
-  sql <- "SELECT cov.cohort_definition_id, cr.covariate_name, 
+  sql <- "SELECT 
+  case 
+  when cov.cohort_type = 'TnO' then 'Before'
+  when cov.cohort_type = 'TnObetween' then 'During'
+  when cov.cohort_type = 'OnT' then 'After'
+  end as type, 
+  cr.covariate_name, 
   s.min_prior_observation, s.outcome_washout_days,
   s.case_post_outcome_duration, s.case_pre_target_duration,
   cov.covariate_id, cov.sum_value, cov.average_value 
           from
           @schema.@c_table_prefixcovariates cov
           inner join  @schema.@c_table_prefixcovariate_ref cr
-          on cov.run_id = cr.run_id and 
+          on cov.setting_id = cr.setting_id and 
           cov.database_id = cr.database_id and 
           cov.covariate_id = cr.covariate_id
           
           inner join @schema.@c_table_prefixsettings s
-          on cov.run_id = s.run_id
+          on cov.setting_id = s.setting_id
           and cov.database_id = s.database_id
-          
-          where cov.cohort_definition_id in (@ids)
+
+          where cov.target_cohort_id = @target_id
+          and cov.outcome_cohort_id = @outcome_id
+          and cov.cohort_type in ('TnObetween','OnT','TnO')
+          --and cov.setting_id = @setting_id
+          and s.risk_window_start = @risk_window_start
+          and s.risk_window_end = @risk_window_end
+          and s.start_anchor = '@start_anchor'
+          and s.end_anchor = '@end_anchor'
           and cov.database_id = '@database_id'
           and cr.analysis_id in (109, 110, 217, 218, 305, 417, 418, 505, 605, 713, 805, 926, 927)
   ;"
@@ -240,19 +231,29 @@ characterizationGetCaseSeriesData <- function(
     sql = sql, 
     schema = resultDatabaseSettings$schema,
     c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    ids = paste0(ids$cohortDefinitionId, collapse = ','),
+    target_id = targetId,
+    outcome_id = outcomeId,
+    risk_window_start = tar$riskWindowStart,
+    risk_window_end = tar$riskWindowEnd,
+    start_anchor = tar$startAnchor,
+    end_anchor = tar$endAnchor,
     database_id = databaseId
   )
   
   # now process into table
   binary <- caseSeriesTable(
-    data = binary,
-    ids = ids
+    data = binary
   )
   
   shiny::incProgress(3/4, detail = paste("Extracting continuous"))
 
-  sql <- "SELECT cov.cohort_definition_id, cr.covariate_name, 
+  sql <- "SELECT
+    case 
+  when cov.cohort_type = 'TnO' then 'Before'
+  when cov.cohort_type = 'TnObetween' then 'During'
+  when cov.cohort_type = 'OnT' then 'After'
+  end as type, 
+  cr.covariate_name, 
     s.min_prior_observation, s.outcome_washout_days, 
     s.case_post_outcome_duration, s.case_pre_target_duration,
     cov.covariate_id, 
@@ -262,15 +263,21 @@ characterizationGetCaseSeriesData <- function(
           from
           @schema.@c_table_prefixcovariates_continuous cov
           inner join  @schema.@c_table_prefixcovariate_ref cr
-          on cov.run_id = cr.run_id and 
+          on cov.setting_id = cr.setting_id and 
           cov.database_id = cr.database_id and 
           cov.covariate_id = cr.covariate_id
           
           inner join @schema.@c_table_prefixsettings s
-          on cov.run_id = s.run_id
+          on cov.setting_id = s.setting_id
           and cov.database_id = s.database_id
           
-          where cov.cohort_definition_id in (@ids)
+          where cov.target_cohort_id = @target_id
+          and cov.outcome_cohort_id = @outcome_id
+          and cov.cohort_type in ('TnObetween','OnT','TnO')
+          and s.risk_window_start = @risk_window_start
+          and s.risk_window_end = @risk_window_end
+          and s.start_anchor = '@start_anchor'
+          and s.end_anchor = '@end_anchor'
           and cov.database_id = '@database_id'
           and cr.analysis_id in (109, 110, 217, 218, 305, 417, 418, 505, 605, 713, 805, 926, 927)
   ;"
@@ -280,17 +287,14 @@ characterizationGetCaseSeriesData <- function(
     sql = sql, 
     schema = resultDatabaseSettings$schema,
     c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    ids = paste0(ids$cohortDefinitionId, collapse = ','),
+    target_id = targetId,
+    outcome_id = outcomeId,
+    risk_window_start = tar$riskWindowStart,
+    risk_window_end = tar$riskWindowEnd,
+    start_anchor = tar$startAnchor,
+    end_anchor = tar$endAnchor,
     database_id = databaseId
   )
-  
-  # add type
-  ids <- merge(ids, data.frame(
-    cohortType = c('TnObetween','OnT','TnO'),
-    type = c('During', "After", 'Before')
-  ), by = 'cohortType') %>%
-    dplyr::select("cohortDefinitionId","type")
-  continuous <- merge(ids, continuous, by = 'cohortDefinitionId')
   
   shiny::incProgress(4/4, detail = paste("Done"))
   
@@ -307,31 +311,22 @@ characterizationGetCaseSeriesData <- function(
 
 # now process into table
 caseSeriesTable <- function(
-  data,
-  ids
+  data
 ){
   
-  timeBeforeId <- ids$cohortDefinitionId[ids$cohortType == 'TnO']
-  timeDuringId <- ids$cohortDefinitionId[ids$cohortType == 'TnObetween']
-  timeAfterId <- ids$cohortDefinitionId[ids$cohortType == 'OnT']
-  
-
   # Before Index Cases
   beforeData <- data %>% 
-    dplyr::filter(.data$cohortDefinitionId == !!timeBeforeId) %>%
-    dplyr::select(-"cohortDefinitionId") 
+    dplyr::filter(.data$type == 'Before') 
   Nbefore <- beforeData$sumValue[1]/beforeData$averageValue[1]
   
   # After Index Cases
   afterData <- data %>% 
-    dplyr::filter(.data$cohortDefinitionId == !!timeAfterId) %>%
-    dplyr::select(-"cohortDefinitionId") 
+    dplyr::filter(.data$type == 'After') 
   Nafter <- afterData$sumValue[1]/afterData$averageValue[1]
   
   # During Index Cases
   duringData <- data %>% 
-    dplyr::filter(.data$cohortDefinitionId == !!timeDuringId) %>%
-    dplyr::select(-"cohortDefinitionId") 
+    dplyr::filter(.data$type == 'During') 
   Nduring <- duringData$sumValue[1]/duringData$averageValue[1]
   
   

@@ -94,12 +94,24 @@ characterizationServer <- function(
     id,
     function(input, output, session) {
       
+      
+      # this function checks tables exist for the tabs
+      # and returns the tabs that should be displayed
+      # as the tables exist
+      charTypes <- getCharacterizationTypes(
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
+      
       #================================================
       # GETTING OPTIONS FOR INPTUS
       #================================================
+      #TODO add time-to-event and dechal-rechal options
       options <- characterizationGetOptions(
         connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
+        resultDatabaseSettings = resultDatabaseSettings, 
+        includeAggregate = "Risk Factor" %in% charTypes$subPanel,
+        includeIncidence = "Incidence Results" %in% charTypes$subPanel
       )
       
       #================================================
@@ -246,14 +258,7 @@ characterizationServer <- function(
       #================================================
       # CREATE TABS BASED ON RESULTS TABLES
       #================================================
-      # this function checks tables exist for the tabs
-      # and returns the tabs that should be displayed
-      # as the tables exist
-      charTypes <- getCharacterizationTypes(
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      
+
       # MAIN PANELS
       #first populate the mainPanel
       typesMainPanel <- list(
@@ -594,7 +599,9 @@ getCharacterizationTypes <- function(
 
 characterizationGetOptions <- function(
     connectionHandler,
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    includeAggregate,
+    includeIncidence
     ){
   
   # get cohorts
@@ -606,29 +613,13 @@ characterizationGetOptions <- function(
   )
   
 # database_id needed for old results but not for new ones
+  # TODO - add tte and decha rechal?
 cohorts <- connectionHandler$queryDb(
 sql = "
-select database_id, cohort_definition_id as char_cohort_id, outcome_cohort_id as cohort_definition_id, cohort_type 
+
+select distinct database_id, target_cohort_id as cohort_definition_id, cohort_type
 from @schema.@c_table_prefixcohort_details
-where cohort_type = 'O'
-
-union
-
-select database_id, cohort_definition_id as char_cohort_id, outcome_cohort_id as cohort_definition_id, cohort_type
-from @schema.@c_table_prefixcohort_details
-where cohort_type = 'Oall'   
-
-union
-
-select database_id, cohort_definition_id as char_cohort_id, target_cohort_id as cohort_definition_id, cohort_type
-from @schema.@c_table_prefixcohort_details
-where cohort_type = 'T'
-
-union
-
-select database_id, cohort_definition_id as char_cohort_id, target_cohort_id as cohort_definition_id, cohort_type
-from @schema.@c_table_prefixcohort_details
-where cohort_type = 'Tall'   
+where cohort_type = 'Target'
 
 ;",
 schema = resultDatabaseSettings$schema,
@@ -640,17 +631,24 @@ TnOs <- connectionHandler$queryDb(
 select distinct temp.*, c.cohort_name 
 
 from 
-(select distinct  
+(
+{@include_aggregate} ? {
+select distinct  
 target_cohort_id,
 outcome_cohort_id
 from @schema.@c_table_prefixcohort_details
 where cohort_type = 'TnO'
 
+{@include_incidence} ? {
 union
+}
+}
+
+{@include_incidence} ? {
 
 select * 
 from @schema.@ci_table_prefixcohorts_lookup
-
+}
 ) temp
 inner join 
 @schema.@cg_table_prefixcohort_definition c
@@ -659,7 +657,9 @@ on temp.outcome_cohort_id = c.cohort_definition_id
   schema = resultDatabaseSettings$schema,
   c_table_prefix = resultDatabaseSettings$cTablePrefix,
   cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-  ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+  ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix,
+  include_incidence = includeIncidence,
+  include_aggregate = includeAggregate
 )
 # fix backwards compatability
 cg$subsetParent[is.na(cg$isSubset)] <- cg$cohortDefinitionId
@@ -675,7 +675,6 @@ results <- lapply(parents, function(id){
       list(
         subsetName = cg$cohortName[cg$cohortDefinitionId == sid],
         subsetId = sid,
-        charIds = cohorts[cohorts$cohortDefinitionId == sid,],
         outcomeIds = unique(TnOs$outcomeCohortId[TnOs$targetCohortId == sid]),
         outcomeNames = unique(TnOs$cohortName[TnOs$targetCohortId == sid])
         # add outcomes from case exposures
