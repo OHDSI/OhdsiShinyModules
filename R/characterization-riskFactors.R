@@ -269,6 +269,9 @@ riskFactorTable <- function(
 ){
   
   data <- unique(data)
+  if(nrow(data) == 0){
+    return(data)
+  }
   
   outcomeWashoutDays <- unique(data$outcomeWashoutDays)
   outcomeWashoutDays <- outcomeWashoutDays[!is.na(outcomeWashoutDays)]
