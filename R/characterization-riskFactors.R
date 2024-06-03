@@ -80,10 +80,10 @@ characterizationRiskFactorServer <- function(
           ),
           
           shiny::selectInput(
-            inputId = session$ns('tarId'),
+            inputId = session$ns('tarInd'),
             label = 'Time-at-risk: ',
-            choices = options()$tarIds,
-            selected = options()$tarIds[1],
+            choices = options()$tarInds,
+            selected = options()$tarInds[1],
             multiple = F
           ),
           
@@ -103,7 +103,7 @@ characterizationRiskFactorServer <- function(
             targetId = targetId(),
             outcomeId = outcomeId(),
             databaseId = input$databaseId,
-            timeAtRiskId = input$tarId
+            tar = options()$tarList[[which(options()$tarInds == input$tarInd)]]
           )
         
         binTableOutputs <- resultTableServer(
@@ -134,58 +134,63 @@ characterizationGetRiskFactorData <- function(
   targetId,
   outcomeId,
   databaseId,
-  timeAtRiskId
+  tar
 ){
   
   shiny::withProgress(message = 'Getting risk factor data', value = 0, {
     shiny::incProgress(1/4, detail = paste("Extracting ids"))
     
-    sql <- "SELECT distinct 
-    cd.cohort_definition_id, cd.cohort_type, 
-    cc.person_count as N
+    sql <- "SELECT distinct setting_id
           from
-          @schema.@c_table_prefixcohort_details cd
-          left join 
-          @schema.@c_table_prefixcohort_counts cc
-          on cd.run_id = cc.run_id
-          and cd.database_id = cc.database_id
-          and cd.cohort_definition_id = cc.cohort_definition_id
+          @schema.@c_table_prefixsettings
+          where database_id = '@database_id'
+          and risk_window_start = @risk_window_start
+          and risk_window_end = @risk_window_end
+          and start_anchor = '@start_anchor'
+          and end_anchor = '@end_anchor'
           
-          where cd.target_cohort_id = @target_id
-          and cd.outcome_cohort_id in (0, @outcome_id)
-          and cd.database_id = '@database_id'
-          and cd.time_at_risk_id in (0, @time_at_risk_id)
-          and cd.cohort_type in ('T','TnO', 'TnOprior')
+          union
+          
+          SELECT distinct setting_id
+          from
+          @schema.@c_table_prefixsettings
+          where database_id = '@database_id'
+          and risk_window_start is NULL
   ;"
     
     ids <- connectionHandler$queryDb(
       sql = sql, 
       schema = resultDatabaseSettings$schema,
       c_table_prefix = resultDatabaseSettings$cTablePrefix,
-      target_id = targetId,
-      outcome_id = outcomeId,
       database_id = databaseId,
-      time_at_risk_id = timeAtRiskId
+      risk_window_start = tar$riskWindowStart,
+      start_anchor = tar$startAnchor,
+      risk_window_end = tar$riskWindowEnd,
+      end_anchor = tar$endAnchor
     )
     
     shiny::incProgress(2/4, detail = paste("Extracting binary"))
     
-  sql <- "SELECT distinct cov.cohort_definition_id, cr.covariate_name, 
+  sql <- "SELECT distinct cov.cohort_type, cr.covariate_name, 
   s.min_prior_observation, s.outcome_washout_days,
   cov.covariate_id, cov.sum_value, cov.average_value 
           from
           @schema.@c_table_prefixcovariates cov
           inner join  @schema.@c_table_prefixcovariate_ref cr
-          on cov.run_id = cr.run_id and 
+          on cov.setting_id = cr.setting_id and 
           cov.database_id = cr.database_id and 
           cov.covariate_id = cr.covariate_id
           
           inner join @schema.@c_table_prefixsettings s
-          on cov.run_id = s.run_id
+          on cov.setting_id = s.setting_id
           and cov.database_id = s.database_id
           
-          where cov.cohort_definition_id in (@ids)
+          where 
+          cov.target_cohort_id = @target_id
+          and cov.outcome_cohort_id in (0,@outcome_id)
+          and cov.cohort_type in ('Target','TnO', 'TnOprior')
           and cov.database_id = '@database_id'
+          and cov.setting_id in (@setting_ids)
           and cr.analysis_id not in (109, 110, 217, 218, 305, 417, 418, 505, 605, 713, 805, 926, 927)
   ;"
 
@@ -193,19 +198,20 @@ characterizationGetRiskFactorData <- function(
     sql = sql, 
     schema = resultDatabaseSettings$schema,
     c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    ids = paste0(unique(ids$cohortDefinitionId), collapse = ','),
-    database_id = databaseId
+    target_id = targetId,
+    outcome_id = outcomeId,
+    database_id = databaseId,
+    setting_ids = paste0(ids$settingId, collapse=',')
   )
   
   # now process into table
   binary <- riskFactorTable(
-    data = binary,
-    ids = ids
+    data = binary
   )
   
   shiny::incProgress(3/4, detail = paste("Extracting continuous"))
 
-  sql <- "SELECT distinct cov.cohort_definition_id, cr.covariate_name, 
+  sql <- "SELECT distinct cov.cohort_type, cr.covariate_name, 
    s.min_prior_observation, s.outcome_washout_days,cov.covariate_id, 
           cov.count_value, cov.min_value, cov.max_value, cov.average_value,
           cov.standard_deviation, cov.median_value, cov.p_10_value,
@@ -213,17 +219,19 @@ characterizationGetRiskFactorData <- function(
           from
           @schema.@c_table_prefixcovariates_continuous cov
           inner join  @schema.@c_table_prefixcovariate_ref cr
-          on cov.run_id = cr.run_id and 
+          on cov.setting_id = cr.setting_id and 
           cov.database_id = cr.database_id and 
           cov.covariate_id = cr.covariate_id
           
           inner join @schema.@c_table_prefixsettings s
-          on cov.run_id = s.run_id
+          on cov.setting_id = s.setting_id
           and cov.database_id = s.database_id
           
-          
-          where cov.cohort_definition_id in (@ids)
+          where cov.target_cohort_id = @target_id
+          and cov.outcome_cohort_id = @outcome_id
+          and cov.cohort_type in ('Target','TnO', 'TnOprior')
           and cov.database_id = '@database_id'
+          and cov.setting_id in (@setting_ids)
           and cr.analysis_id not in (109, 110, 217, 218, 305, 417, 418, 505, 605, 713, 805, 926, 927)
   ;"
   
@@ -232,13 +240,14 @@ characterizationGetRiskFactorData <- function(
     sql = sql, 
     schema = resultDatabaseSettings$schema,
     c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    ids = paste0(ids$cohortDefinitionId, collapse = ','),
-    database_id = databaseId
+    target_id = targetId,
+    outcome_id = outcomeId,
+    database_id = databaseId,
+    setting_ids = paste0(ids$settingId, collapse=',')
   )  
   
   continuous <- riskFactorContinuousTable(
-    data = continuous,
-    ids = ids
+    data = continuous
   )
   
   shiny::incProgress(4/4, detail = paste("Done"))
@@ -256,67 +265,77 @@ characterizationGetRiskFactorData <- function(
 
 # now process into table
 riskFactorTable <- function(
-  data,
-  ids
+  data
 ){
   
   data <- unique(data)
-  
-  caseId <- ids$cohortDefinitionId[ids$cohortType == 'TnO']
-  if(length(caseId ) == 0){
-    caseId <- -1
+  if(nrow(data) == 0){
+    return(data)
   }
-  caseData <- data %>% 
-    dplyr::filter(.data$cohortDefinitionId == !!caseId) %>%
-    dplyr::select(-"cohortDefinitionId")
   
-  casecounts <- caseData %>% 
-    dplyr::mutate(N = .data$sumValue/.data$averageValue) %>%
-    dplyr::select('minPriorObservation', 'outcomeWashoutDays', 'N') %>%
-    dplyr::group_by(.data$minPriorObservation, .data$outcomeWashoutDays) %>%
-    dplyr::summarise(caseN = round(max(.data$N)))
+  outcomeWashoutDays <- unique(data$outcomeWashoutDays)
+  outcomeWashoutDays <- outcomeWashoutDays[!is.na(outcomeWashoutDays)]
   
-  #write.csv(caseData, '/Users/jreps/Documents/caseData.csv')
-
-  allId <- ids$cohortDefinitionId[ids$cohortType == 'T']
   allData <- data %>% 
-    dplyr::filter(.data$cohortDefinitionId == !!allId) %>%
-    dplyr::select(-"cohortDefinitionId")
+    dplyr::filter(.data$cohortType == 'Target') %>%
+    dplyr::select(-"cohortType", -"outcomeWashoutDays")
   
   allcounts <- allData %>% 
     dplyr::mutate(N = .data$sumValue/.data$averageValue) %>%
-    dplyr::select('minPriorObservation', 'outcomeWashoutDays', 'N') %>%
-    dplyr::group_by(.data$minPriorObservation, .data$outcomeWashoutDays) %>%
+    dplyr::select('minPriorObservation', 'N') %>%
+    dplyr::group_by(.data$minPriorObservation) %>%
     dplyr::summarise(N = round(max(.data$N)))
   
-  excludeId <- ids$cohortDefinitionId[ids$cohortType == 'TnOprior']
-  if(length(excludeId) == 0){
-    excludeId <- -1
+  getN <- function(priorObs){
+    sapply(priorObs, function(x){
+      allcounts$N[allcounts$minPriorObservation == x]
+    })
   }
+  
+  completeData <- c()
+  for(outcomeWashoutDay in outcomeWashoutDays){
+  caseData <- data %>% 
+    dplyr::filter(
+      .data$cohortType == 'TnO' &
+      .data$outcomeWashoutDays == !!outcomeWashoutDay
+        ) %>%
+    dplyr::select(-"cohortType")
+  
+  casecounts <- caseData %>% 
+    dplyr::mutate(N = .data$sumValue/.data$averageValue) %>%
+    dplyr::select('minPriorObservation', 'N') %>%
+    dplyr::group_by(.data$minPriorObservation) %>%
+    dplyr::summarise(caseN = round(max(.data$N)))
+  
   excludeData <- data %>% 
-    dplyr::filter(.data$cohortDefinitionId == !!excludeId) %>%
-    dplyr::select(-"cohortDefinitionId")
+    dplyr::filter(
+      .data$cohortType == 'TnOprior' & 
+        .data$outcomeWashoutDays == !!outcomeWashoutDay
+      ) %>%
+    dplyr::select(-"cohortType")
+  
   excludecounts <- excludeData %>% 
     dplyr::mutate(N = .data$sumValue/.data$averageValue) %>%
-    dplyr::select('minPriorObservation', 'outcomeWashoutDays', 'N') %>%
-    dplyr::group_by(.data$minPriorObservation, .data$outcomeWashoutDays) %>%
-    dplyr::summarise(exclude_N = round(max(.data$N)))
-
+    dplyr::select('minPriorObservation', 'N') %>%
+    dplyr::group_by(.data$minPriorObservation) %>%
+    dplyr::summarise(exclude_N = round(max(.data$N, na.rm = T)))
   
   if(nrow(excludeData) > 0 ){
-    colnamesInclude <- !colnames(excludeData) %in% c('covariateId', 'covariateName', 'minPriorObservation', 'outcomeWashoutDays')
+    colnamesInclude <- !colnames(excludeData) %in% c('covariateId', 'covariateName', 'minPriorObservation')
     colnames(excludeData)[colnamesInclude] <- paste0('exclude_',colnames(excludeData)[colnamesInclude])
     
     # if prior Os then exclude from T
     allData <- allData %>% 
-      dplyr::left_join(excludeData, by = c('covariateId', 'covariateName', 'minPriorObservation', 'outcomeWashoutDays')) %>%
-      dplyr::left_join( # add N per washout/min obs
+      dplyr::left_join(
+        excludeData, 
+        by = c('covariateId', 'covariateName', 'minPriorObservation')) %>%
+      dplyr::inner_join( # add N per washout/min obs
         allcounts, 
-        by = c('minPriorObservation', 'outcomeWashoutDays')
-      ) %>%
-      dplyr::left_join( # add N per washout/min obs
+        by = c('minPriorObservation')
+      )  %>%
+      dplyr::inner_join( # add N per washout/min obs
         excludecounts, 
-        by = c('minPriorObservation', 'outcomeWashoutDays')
+        by = c('minPriorObservation')
       ) %>%
       dplyr::mutate_if(is.numeric,dplyr::coalesce,0) %>%
       dplyr::mutate( # add exclude N per washout/min obs
@@ -326,7 +345,18 @@ riskFactorTable <- function(
       dplyr::mutate(
         N = .data$N-.data$exclude_N
       ) %>%
-      dplyr::select("covariateId","covariateName","sumValue","averageValue", "N", 'minPriorObservation', 'outcomeWashoutDays')
+      dplyr::select("covariateId","covariateName","sumValue","averageValue", "N", 'minPriorObservation')
+    
+    allcounts <- allData %>% 
+      dplyr::select('minPriorObservation', 'N') %>%
+      dplyr::group_by(.data$minPriorObservation) %>%
+      dplyr::summarise(N = round(max(.data$N)))
+    
+    getN <- function(priorObs){
+      sapply(priorObs, function(x){
+        allcounts$N[allcounts$minPriorObservation == x]
+      })
+    }
     
     }
 
@@ -336,14 +366,22 @@ riskFactorTable <- function(
       caseSumValue = .data$sumValue,
       caseAverageValue = .data$averageValue
     ) %>%
-      dplyr::select("covariateId","covariateName","caseSumValue","caseAverageValue", 'minPriorObservation', 'outcomeWashoutDays')
+      dplyr::select("covariateId","covariateName","caseSumValue","caseAverageValue", 'minPriorObservation')
     
     # join with cases
     allData <- allData %>% 
-      dplyr::full_join(caseData, by = c('covariateId', 'covariateName', 'minPriorObservation', 'outcomeWashoutDays')) %>%
+      dplyr::full_join(caseData, 
+                       by = c('covariateId', 'covariateName', 'minPriorObservation')) %>%
       dplyr::left_join(
         casecounts, 
-        by = c('minPriorObservation', 'outcomeWashoutDays')
+        by = c('minPriorObservation')
+      ) %>%
+      dplyr::mutate(
+        N = ifelse(
+          is.na(.data$N),
+          getN(.data$minPriorObservation),
+          .data$N
+        )
       ) %>%
       dplyr::mutate_if(is.numeric,dplyr::coalesce,0) %>%
       dplyr::mutate(
@@ -364,7 +402,7 @@ riskFactorTable <- function(
       ) %>%
       dplyr::select(
         "covariateId","covariateName",
-        'minPriorObservation', 'outcomeWashoutDays',
+        'minPriorObservation',
         "caseSumValue","caseAverageValue", 
         "nonCaseSumValue","nonCaseAverageValue"
         ,"nonCaseN", "caseN", "N"
@@ -384,46 +422,49 @@ riskFactorTable <- function(
       ) %>%
       dplyr::select(-"meanDiff",-"std1", -"std2", -"N",-"caseN", -"nonCaseN")
   
-    #write.csv(allData, '/Users/jreps/Documents/finalData.csv')
-    
 
-  } else{
+    # add outcomewashout back here
     allData <- allData %>% 
+      dplyr::mutate(
+        outcomeWashoutDays = !!outcomeWashoutDay
+      )
+    
+    completeData <- rbind(allData, completeData)
+
+  } 
+  
+  } # end outcomeWashoutDays loop
+  
+  if(nrow(completeData) == 0){
+    completeData <- allData %>% 
       dplyr::mutate(
         nonCaseSumValue = .data$sumValue,
         nonCaseAverageValue = .data$averageValue
       ) %>%
       dplyr::select(
         "covariateId","covariateName",
-        'minPriorObservation', 'outcomeWashoutDays',
+        'minPriorObservation',
         "nonCaseSumValue","nonCaseAverageValue"
       )
   }
   
-  
-  return(unique(allData))
+  return(unique(completeData))
 }
 
 
 riskFactorContinuousTable <- function(
-  data,
-  ids # have N in them
+  data
 ){
   
   data <- unique(data)
   
-  caseId <- ids$cohortDefinitionId[ids$cohortType == 'TnO']
-  if(length(caseId ) == 0){
-    caseId <- -1
-  }
   caseData <- data %>% 
-    dplyr::filter(.data$cohortDefinitionId == !!caseId) %>%
-    dplyr::select(-"cohortDefinitionId")
+    dplyr::filter(.data$cohortType == 'TnO') %>%
+    dplyr::select(-"cohortType")
   
-  allId <- ids$cohortDefinitionId[ids$cohortType == 'T']
   allData <- data %>% 
-    dplyr::filter(.data$cohortDefinitionId == !!allId) %>%
-    dplyr::select(-"cohortDefinitionId")
+    dplyr::filter(.data$cohortType == 'Target') %>%
+    dplyr::select(-"cohortType", -"outcomeWashoutDays")
   
   if(nrow(caseData) > 0){
 
@@ -448,7 +489,7 @@ riskFactorContinuousTable <- function(
     
     # join with cases
     allData <- allData %>% 
-      dplyr::full_join(caseData, by = c('covariateId', 'covariateName', 'minPriorObservation', 'outcomeWashoutDays')) %>%
+      dplyr::full_join(caseData, by = c('covariateId', 'covariateName', 'minPriorObservation')) %>%
       dplyr::mutate(
         targetCountValue = .data$countValue,
         targetAverageValue = .data$averageValue,

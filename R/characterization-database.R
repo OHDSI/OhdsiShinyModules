@@ -61,15 +61,13 @@ characterizationDatabaseComparisonServer <- function(
     id,
     function(input, output, session) {
       
-      # TODO replace this with database input
-      inputVals <- characterizationGetCohortsInputs(
+      # TODO react to subTargetId
+      inputVals <- shiny::reactive({
+        characterizationGetCohortsInputs(
         connectionHandler,
-        resultDatabaseSettings
-      )
-      
-      children <- shiny::reactive({
-        characterizationGetChildren(options, parentIndex())
-      })
+        resultDatabaseSettings,
+        targetId = subTargetId
+      )})
       
       output$inputs <- shiny::renderUI({
         
@@ -77,8 +75,8 @@ characterizationDatabaseComparisonServer <- function(
           shiny::selectInput(
             inputId = session$ns('databaseIds'), 
             label = 'Databases: ',
-            choices = inputVals$databaseIds,
-            selected = inputVals$databaseIds[1],
+            choices = inputVals()$databaseIds,
+            selected = inputVals()$databaseIds[1],
             multiple = T
           ),
           
@@ -122,7 +120,7 @@ characterizationDatabaseComparisonServer <- function(
         }
         
         selectedDatabases <- paste0(
-          names(inputVals$databaseIds)[which(inputVals$databaseIds %in% input$databaseIds)], 
+          names(inputVals()$databaseIds)[which(inputVals()$databaseIds %in% input$databaseIds)], 
           collapse =  ','
           )
         
@@ -133,15 +131,15 @@ characterizationDatabaseComparisonServer <- function(
           )
         )
 
-        selectedChildChar <- options[[parentIndex()]]$children[[which(subTargetId() == children())]]$charIds
-        
+
         #get results
-        if(sum(selectedChildChar$databaseId %in% input$databaseIds) > 0){
+        #if(sum(selectedChildChar$databaseId %in% input$databaseIds) > 0){
+        if(length(input$databaseIds) > 0){
           result <- characterizatonGetDatabaseComparisonData(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetIds = selectedChildChar$charCohortId[selectedChildChar$databaseId %in% input$databaseIds],
-            databaseIds = selectedChildChar$databaseId[selectedChildChar$databaseId %in% input$databaseIds],
+            targetIds = subTargetId(),
+            databaseIds = input$databaseIds,
             minThreshold = input$minThreshold
           )
           databaseNames <- result$databaseNames

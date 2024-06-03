@@ -76,10 +76,11 @@ characterizationCohortComparisonServer <- function(
     id,
     function(input, output, session) {
       
-      inputVals <- characterizationGetCohortsInputs(
+      inputVals <- shiny::reactive({characterizationGetCohortsInputs(
         connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
+        resultDatabaseSettings = resultDatabaseSettings,
+        targetId = subTargetId
+      )})
       
       
       # initial comp chilren
@@ -116,8 +117,8 @@ characterizationCohortComparisonServer <- function(
         shinyWidgets::pickerInput(
           inputId = session$ns('databaseId'),
           label = 'Database: ',
-          choices = inputVals$databaseIds,
-          selected = inputVals$databaseIds[1],
+          choices = inputVals()$databaseIds,
+          selected = inputVals()$databaseIds[1],
           multiple = F,
           options = shinyWidgets::pickerOptions(
             actionsBox = TRUE,
@@ -188,26 +189,30 @@ characterizationCohortComparisonServer <- function(
         selected(
           data.frame(
             Comparator = names(comparatorGroups())[which(comparatorGroups() == input$comparatorId)],
-            Database = names(inputVals$databaseIds)[input$databaseId == inputVals$databaseIds]
+            Database = names(inputVals()$databaseIds)[input$databaseId == inputVals()$databaseIds]
           )
         )
         
-        selection1 <- options[[parentIndex()]]$children[[which(subTargetIds == subTargetId())]]$charIds %>%
-          dplyr::filter(.data$databaseId == input$databaseId) %>%
-          dplyr::filter(.data$cohortType %in% c('T','O')) %>%
-          dplyr::filter(.data$cohortDefinitionId == subTargetId()) # is this needed?
+        selection1 <- subTargetId()
+        #selection1 <- options[[parentIndex()]]$children[[which(subTargetIds == subTargetId())]]$charIds %>%
+        #  dplyr::filter(.data$databaseId == input$databaseId) %>%
+        #  dplyr::filter(.data$cohortType %in% c('T','O')) %>%
+        # dplyr::filter(.data$cohortDefinitionId == subTargetId()) # is this needed?
         
-        if(nrow(selection1) == 0){
+        #if(nrow(selection1) == 0){
+        if(length(selection1) == 0){
           runTables <- FALSE
           shiny::showNotification('No results for section 1')
         }
         
-        selection2 <- options[[comparatorIndex()]]$children[[which(comparatorGroups() == input$comparatorId)]]$charIds %>%
-          dplyr::filter(.data$databaseId == input$databaseId) %>%
-          dplyr::filter(.data$cohortType %in% c('T','O')) %>%
-          dplyr::filter(.data$cohortDefinitionId == input$comparatorId)
+        selection2 <- input$comparatorId
+        #selection2 <- options[[comparatorIndex()]]$children[[which(comparatorGroups() == input$comparatorId)]]$charIds %>%
+        #  dplyr::filter(.data$databaseId == input$databaseId) %>%
+        #  dplyr::filter(.data$cohortType %in% c('T','O')) %>%
+        #  dplyr::filter(.data$cohortDefinitionId == input$comparatorId)
         
-        if(nrow(selection2) == 0){
+        #if(nrow(selection2) == 0){
+        if(length(selection2) == 0){
           runTables <- FALSE
           shiny::showNotification('No results for section 2')
         }
@@ -217,8 +222,10 @@ characterizationCohortComparisonServer <- function(
           resultTable <- characterizatonGetCohortComparisonData(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetId1 = selection1$charCohortId[1],
-            targetId2 = selection2$charCohortId[1],
+            #targetId1 = selection1$charCohortId[1],
+            #targetId2 = selection2$charCohortId[1],
+            targetId1 = selection1,
+            targetId2 = selection2,
             databaseId = input$databaseId,
             minThreshold = 0.01,
             addSMD = T
@@ -227,7 +234,8 @@ characterizationCohortComparisonServer <- function(
           countTable <- characterizatonGetCohortCounts(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetIds = c(selection1$charCohortId[1],selection2$charCohortId[1]),
+            #targetIds = c(selection1$charCohortId[1],selection2$charCohortId[1]),
+            targetIds = c(selection1,selection2),
             targetNames = c(
               subTargetNames[which(subTargetIds == subTargetId())], # modified
               names(comparatorGroups())[which(input$comparatorId== comparatorGroups())]
@@ -264,7 +272,8 @@ characterizationCohortComparisonServer <- function(
           continuousTable <- characterizatonGetCohortComparisonDataContinuous(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetIds = c(selection1$charCohortId[1],selection2$charCohortId[1]),
+            #targetIds = c(selection1$charCohortId[1],selection2$charCohortId[1]),
+            targetIds = c(selection1,selection2),
             databaseIds = rep(input$databaseId,2)
           )
           
@@ -532,13 +541,29 @@ characterizatonGetCohortCounts <- function(
   start <- Sys.time()
   result <- connectionHandler$queryDb(
     sql = "
-select  cc.* 
+select  distinct cc.target_cohort_id as cohort_definition_id,
+        cc.min_prior_observation,
+        cc.row_count,
+        cc.person_count
        from 
   @schema.@c_table_prefixcohort_counts cc 
+  where 
+  cc.target_cohort_id in (@target_ids) 
+  and cc.cohort_type = 'Target'
+  AND cc.database_id = '@database_id'
   
-  where cc.cohort_definition_id in (@target_ids)
-  and cc.database_id = '@database_id'
-  and cc.run_id = 1
+  union
+  
+  select  cc.outcome_cohort_id as cohort_definition_id,
+        cc.min_prior_observation,
+        cc.row_count,
+        cc.person_count
+       from 
+  @schema.@c_table_prefixcohort_counts cc 
+  where 
+  cc.outcome_cohort_id in (@target_ids) 
+  and cc.cohort_type = 'Outcome'
+  AND cc.database_id = '@database_id'
   ;
   ", 
     schema = resultDatabaseSettings$schema, 
@@ -562,6 +587,7 @@ select  cc.*
   result <- result %>% dplyr::select(
     'selection',
     'cohortName', 
+    'minPriorObservation',
     'rowCount',
     'personCount'
   )
@@ -595,22 +621,33 @@ characterizatonGetCohortData <- function(
       databaseId = databaseIds
     )
     
+    # 
+    
     shiny::incProgress(2/4, detail = paste("Extracting data"))
     
     sql <- paste0(
       paste0(
         paste0(
-          "select  ref.covariate_name, cov.* from   
+          "select  ref.covariate_name, 
+          s.min_prior_observation,
+          cov.target_cohort_id as cohort_definition_id,
+          cov.* from   
     @schema.@c_table_prefixCOVARIATES cov 
     inner join 
     @schema.@c_table_prefixcovariate_ref ref
     on cov.covariate_id = ref.covariate_id
-    and cov.run_id = ref.run_id
+    and cov.setting_id = ref.setting_id
     and cov.database_id = ref.database_id
+    inner join 
+    @schema.@c_table_prefixsettings s
+    on s.database_id = cov.database_id
+    and s.setting_id = cov.setting_id
     
-    where cov.cohort_definition_id = @target_id",1:length(targetIds),
-          " and cov.database_id = '@database_id",1:length(targetIds),"'
-     and cov.average_value >= @min_threshold"
+    where 
+    (cov.target_cohort_id = @target_id",1:length(targetIds),
+    " and cov.cohort_type = 'Target') 
+     AND cov.database_id = '@database_id",1:length(targetIds),"'
+     AND cov.average_value >= @min_threshold"
         ), collapse = ' union '
       ),';'
     )
@@ -635,7 +672,7 @@ characterizatonGetCohortData <- function(
     # pivot
     result <- tidyr::pivot_wider(
       data = res, 
-      id_cols = c('covariateName', 'covariateId'), 
+      id_cols = c('covariateName', 'covariateId','minPriorObservation'), 
       names_from = 'type', 
       values_from = c('sumValue', 'averageValue'), 
       values_fn = mean, 
@@ -687,16 +724,26 @@ characterizatonGetCohortComparisonDataContinuous <- function(
     sql <- paste0(
       paste0(
         paste0(
-          "select  ref.covariate_name, cov.* from   
+          "select  ref.covariate_name, 
+          s.min_prior_observation,
+          cov.target_cohort_id as cohort_definition_id,
+          cov.* from   
     @schema.@c_table_prefixCOVARIATES_continuous cov 
     inner join 
     @schema.@c_table_prefixcovariate_ref ref
     on cov.covariate_id = ref.covariate_id
-    and cov.run_id = ref.run_id
+    and cov.setting_id = ref.setting_id
     and cov.database_id = ref.database_id
+    inner join
+    @schema.@c_table_prefixsettings s 
+    on cov.setting_id = s.setting_id
+    and cov.database_id = s.database_id
     
-    where cov.cohort_definition_id = @target_id",1:length(targetIds),
-          " and cov.database_id = '@database_id",1:length(targetIds),"'"
+    where 
+    (cov.target_cohort_id = @target_id",1:length(targetIds),
+          " and cov.cohort_type = 'Target') 
+     AND cov.database_id = '@database_id",1:length(targetIds),"'
+     "
         ), collapse = ' union '
       ),';'
     )
@@ -720,7 +767,7 @@ characterizatonGetCohortComparisonDataContinuous <- function(
     # pivot
     result <- tidyr::pivot_wider(
       data = res, 
-      id_cols = c('covariateName', 'covariateId'), 
+      id_cols = c('covariateName', 'covariateId','minPriorObservation'), 
       names_from = 'type', 
       values_from = c('countValue', 'averageValue', 'standardDeviation', 'medianValue','minValue', 'maxValue', 'p25Value','p75Value'), 
       values_fn = mean, 
@@ -748,16 +795,27 @@ characterizatonGetCohortComparisonDataContinuous <- function(
 
 characterizationGetCohortsInputs <- function(
     connectionHandler,
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    targetId # reactive
 ) {
 
-  sql <- 'select d.database_id, d.cdm_source_abbreviation as database_name
-  from @schema.@database_table d;'
+  sql <- "select distinct 
+  d.database_id, d.cdm_source_abbreviation as database_name
+  from @schema.@database_table d
+  
+  inner join 
+  @schema.@c_table_prefixcohort_details cd
+  on d.database_id = cd.database_id
+  where cd.target_cohort_id = @target_id
+  and cd.cohort_type = 'Target'
+  ;"
   
   database <- connectionHandler$queryDb(
     sql = sql,
     schema = resultDatabaseSettings$schema,
-    database_table = resultDatabaseSettings$databaseTable
+    database_table = resultDatabaseSettings$databaseTable,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
+    target_id = targetId()
   )
   databaseIds <- database$databaseId
   names(databaseIds) <- database$databaseName
