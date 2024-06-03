@@ -276,6 +276,17 @@ characterizationIncidenceServer <- function(
       sortedTars <- tarDf$tarId
       names(sortedTars) <- cohortIncidenceFormatTar(tarDf)
       
+      databases <- c("IBM MDCR",
+                     "IBM MDCD",
+                     "JMDC",
+                     "France DA",
+                     "LPDAU",
+                     "Optum EHR",
+                     "IBM CCAE",
+                     "PharMetrics",
+                     "OPTUM Extended SES",
+                     "German DA")
+      
      output$inputOptions <- shiny::renderUI({
          shinydashboard::box(
            collapsible = TRUE,
@@ -297,6 +308,23 @@ characterizationIncidenceServer <- function(
              selectize = TRUE,
              width = NULL,
              size = NULL
+           ),
+           
+           shinyWidgets::pickerInput(
+             inputId = session$ns('databaseSelector'),
+             label = 'Filter By Database: ',
+             choices = databases,
+             selected = databases,
+             multiple = T,
+             options = shinyWidgets::pickerOptions(
+               actionsBox = TRUE,
+               liveSearch = TRUE,
+               size = 10,
+               dropupAuto = TRUE,
+               liveSearchStyle = "contains",
+               liveSearchPlaceholder = "Type here to search",
+               virtualScroll = 50
+             )
            ),
            
            shinyWidgets::pickerInput(
@@ -380,11 +408,13 @@ characterizationIncidenceServer <- function(
      incidenceRateCalendarFilter <- shiny::reactiveVal(NULL)
      incidenceRateAgeFilter <- shiny::reactiveVal(NULL)
      incidenceRateGenderFilter <- shiny::reactiveVal(NULL)
+     incidenceRateDbFilter <- shiny::reactiveVal(NULL)
      shiny::observeEvent(input$generate,{
        incidenceRateTarFilter(names(sortedTars)[sortedTars == input$tars]) # filter needs actual value
        incidenceRateCalendarFilter(input$startYears)
        incidenceRateAgeFilter(input$ageIds)
        incidenceRateGenderFilter(input$sexIds)
+       incidenceRateDbFilter(input$databaseSelector)
        outcomeIds(input$outcomeIds)
      })
      
@@ -591,7 +621,7 @@ characterizationIncidenceServer <- function(
           if (is.null(targetIds()) |
               is.null(outcomeIds())
               ) {
-            extractededData(data.frame())
+            extractedData(data.frame())
           }
           
           else if(targetIds()[1] == outcomeIds()[1] &&
@@ -622,7 +652,9 @@ characterizationIncidenceServer <- function(
                           outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
             dplyr::filter(.data$ageId %in% !! incidenceRateAgeFilter() & 
                             .data$genderId %in% !! incidenceRateGenderFilter() & 
-                            .data$startYear %in% !! incidenceRateCalendarFilter()  
+                            .data$startYear %in% !! incidenceRateCalendarFilter() & 
+                            .data$tar %in% incidenceRateTarFilter() &
+                            .data$cdmSourceAbbreviation %in% !! incidenceRateDbFilter()
             ) %>%
             dplyr::relocate("targetIdShort", .after = "targetName") %>%
             dplyr::relocate("outcomeIdShort", .after = "outcomeName")
@@ -1284,8 +1316,14 @@ renderIrPlotStandardAgeSex <- shiny::reactive(
            shiny::validate("This standard plot is designed to show results aggregated over all (`Any`) year categories. Please make sure you have selected `Any` in the `Select your results` section above for this variable.")
     )
     
+    #add check to make sure males and females are included
+    ifelse(8507 %in% incidenceRateGenderFilter() & 8532 %in% incidenceRateGenderFilter(),
+           plotData <- filteredData(),
+           shiny::validate("This standard plot is designed to show results stratified by male and female biological sex. Please make sure you have both `Male` and `Female` selected above and try again.")
+    )
+    
     plotData <- plotData %>%
-      dplyr::filter(ageGroupName != "Any" & 
+      dplyr::filter( #ageGroupName != "Any" & 
                       genderName != "Any" & 
                       startYear == "Any") %>%
       dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
@@ -1427,6 +1465,12 @@ renderIrPlotStandardYear <- shiny::reactive(
            shiny::validate("Please select only one Target and Outcome at a time to view yearly plots.")
     )
     
+    ifelse((length(incidenceRateCalendarFilter()) == 1) & 
+             (incidenceRateCalendarFilter() == "Any"), 
+           shiny::validate("Please select at least one start year besides `Any`. This plot depicts calendar trends over time on the x-axis, so at least one distinct year is required."),
+           plotData <- plotData
+    )
+    
     
     
     plotData <- plotData %>%
@@ -1459,6 +1503,11 @@ renderIrPlotStandardYear <- shiny::reactive(
     # Take the specific tar value you want to plot
     tar_value <- unique(plotData$tar)[1]
     
+    plotData <- plotData %>%
+      dplyr::filter("Any" %!in% startYear) %>%
+      dplyr::mutate(startYear = as.Date(paste0(startYear, "-01-01"))
+                    )
+    
     base_plot <- ggplot2::ggplot(
       data = plotData,
       ggplot2::aes(x = startYear,
@@ -1480,7 +1529,12 @@ renderIrPlotStandardYear <- shiny::reactive(
         nrow = 2
       ) +
       ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
-                                  n.breaks = 3)
+                                  n.breaks = 3) +
+      ggplot2::scale_x_date(breaks= seq(min(plotData$startYear), max(plotData$startYear), by = "3 years"),
+                            date_labels = "%Y",
+                            limits = c(min(plotData$startYear),
+                                     max(plotData$startYear))
+                            )
     
     base_plot <- base_plot + ggplot2::labs(
       title = paste("Incidence Rate for Time at Risk:", tar_value),
@@ -1567,6 +1621,13 @@ renderIrPlotStandardAggregate <- shiny::reactive(
     ifelse(length(targetIds()) * length(outcomeIds()) <= 10,
            plotData <- filteredData(),
            shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
+    )
+    
+    ifelse("Any" %in% incidenceRateAgeFilter() & 
+             "Any" %in% incidenceRateGenderFilter() & 
+             "Any" %in% incidenceRateCalendarFilter(),
+           plotData <- filteredData(),
+           shiny::validate("This plot requires the `Any` category to be selected to aggregate over all ages, sexes, and years. Please ensure `Any` is selected in each of these inputs above and try again.")
     )
     
     plotData <- plotData %>%

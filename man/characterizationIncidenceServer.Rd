@@ -12,7 +12,7 @@ characterizationIncidenceServer(
   parents,
   parentIndex,
   outcomes,
-  subTargets
+  targetIds
 )
 }
 \arguments{

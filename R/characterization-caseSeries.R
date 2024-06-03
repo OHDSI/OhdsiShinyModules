@@ -109,14 +109,14 @@ characterizationCaseSeriesServer <- function(
         binTableOutputs <- resultTableServer(
           id = "binaryTable", 
           df = allData$binary,
-          colDefsInput = colDefs(), # function below
+          colDefsInput = colDefsBinary(), # function below
           addActions = NULL
         )
         
         conTableOutputs <- resultTableServer(
           id = "continuousTable", 
           df = allData$continuous,
-          colDefsInput = colDefs(), # function below
+          colDefsInput = colDefsContinuous(), # function below
           addActions = NULL
         )
         
@@ -371,29 +371,40 @@ caseSeriesTable <- function(
   return(allResults)
 }
 
-colDefs <- function(){
+colDefsBinary <- function(){
   result <- list(
     covariateName = reactable::colDef(
-      name = "Covariate Name", 
+      header = withTooltip("Covariate Name",
+                           "Name of the covariate"),
       filterable = T
     ),
     covariateId = reactable::colDef(
       show = F
     ),
     minPriorObservation = reactable::colDef(
-      name = "Minimum prior observation"
+      header = withTooltip("Min Prior Observation",
+                           "Minimum prior observation time (days)"),
+      filterable = T
     ), 
     outcomeWashoutDays = reactable::colDef(
-      name = "outcome washout days"
+      header = withTooltip("Outcome Washout Days",
+                           "Number of days for the outcome washout"),
+      filterable = T
     ),
     casePostOutcomeDuration = reactable::colDef(
-      name = "Time after outcome we look for covariate"
+      header = withTooltip("Days Post-outcome Covariate Window",
+                           "Number of days after the outcome we look for the covariate"),
+      filterable = T
     ), 
     casePreTargetDuration = reactable::colDef(
-      name = "Time before exposure we look for covariate"
+      header = withTooltip("Days Pre-exposure Covariate Window",
+                           "Number of days before the exposure we look for the covariate"),
+      filterable = T
     ),
     sumValueBefore = reactable::colDef(
-      name = "Number of cases with feature before exposure", 
+      header = withTooltip("# Cases with Feature Pre-exposure",
+                           "Number of cases with the covariate prior to exposure"),
+      filterable = T,
       format = reactable::colFormat(digits = 2, percent = F),
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
@@ -402,11 +413,15 @@ colDefs <- function(){
       }
     ), 
     averageValueBefore = reactable::colDef(
-      name = "% of cases with feature before exposure", 
+      header = withTooltip("% of Cases with Feature Pre-exposure",
+                           "Percent of cases with the covariate prior to exposure"),
+      filterable = T,
       format = reactable::colFormat(digits = 2, percent = T)
     ), 
     sumValueDuring = reactable::colDef(
-      name = "Number of cases with feature between exposure and outcome", 
+      header = withTooltip("# of Cases with Feature Between Exposure & Outcome",
+                           "Number of cases with the covariate between the exposure and outcome"),
+      filterable = T,
       format = reactable::colFormat(digits = 2, percent = F),
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
@@ -415,11 +430,15 @@ colDefs <- function(){
       }
     ), 
     averageValueDuring = reactable::colDef(
-      name = "% of cases with feature between exposure and outcome", 
+      header = withTooltip("% of Cases with Feature Between Exposure & Outcome",
+                           "Percent of cases with the covariate between the exposure and outcome"),
+      filterable = T,
       format = reactable::colFormat(digits = 2, percent = T)
     ), 
     sumValueAfter = reactable::colDef(
-      name = "Number of cases with feature after outcome", 
+      header = withTooltip("# of Cases with Feautre Post-outcome",
+                           "Number of cases with the covariate after the outcome"),
+      filterable = T,
       format = reactable::colFormat(digits = 2, percent = F),
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
@@ -428,7 +447,9 @@ colDefs <- function(){
       }
     ), 
     averageValueAfter = reactable::colDef(
-      name = "% of cases with feature after outcome", 
+      header = withTooltip("% of Cases with Feature Post-outcome",
+                           "Percent of cases with the covariate after the outcome"),
+      filterable = T,
       format = reactable::colFormat(digits = 2, percent = T)
     ), 
     
@@ -446,6 +467,110 @@ colDefs <- function(){
       }
     )
   )
+  return(result)
+}
+
+colDefsContinuous <- function(){
+  result <- list(
+    cohortDefinitionId = reactable::colDef(
+      header = withTooltip("Cohort ID",
+                           "Unique identifier of the cohort"),
+      filterable = T
+    ),
+    type = reactable::colDef(
+      header = withTooltip("Time of Cases Relative to Index",
+                           "Time period relative to index date for cases for the covariate"),
+      filterable = T
+    ),
+    covariateName = reactable::colDef(
+      header = withTooltip("Covariate Name",
+                           "Name of the covariate"),
+      filterable = T
+    ),
+    covariateId = reactable::colDef(
+      show = F
+    ),
+    minPriorObservation = reactable::colDef(
+      header = withTooltip("Min Prior Observation",
+                           "Minimum prior observation time (days)"),
+      filterable = T
+    ), 
+    outcomeWashoutDays = reactable::colDef(
+      header = withTooltip("Outcome Washout Days",
+                           "Number of days for the outcome washout"),
+      filterable = T
+    ),
+    casePostOutcomeDuration = reactable::colDef(
+      header = withTooltip("Days Post-outcome Covariate Window",
+                           "Number of days after the outcome we look for the covariate"),
+      filterable = T
+    ), 
+    casePreTargetDuration = reactable::colDef(
+      header = withTooltip("Days Pre-exposure Covariate Window",
+                           "Number of days before the exposure we look for the covariate"),
+      filterable = T
+    ),
+    countValue = reactable::colDef(
+      header = withTooltip("# Cases with Feature",
+                           "Number of cases with the covariate"),
+      filterable = T,
+      format = reactable::colFormat(digits = 2, percent = F)
+    ), 
+    minValue = reactable::colDef(
+      header = withTooltip("Min Value",
+                           "Minimum value of the covariate"),
+      filterable = T,
+      format = reactable::colFormat(digits = 2, percent = F)
+    ), 
+    maxValue = reactable::colDef(
+      header = withTooltip("Max Value",
+                           "Maximum value of the covariate"),
+      filterable = T,
+      format = reactable::colFormat(digits = 2, percent = F)
+    ), 
+    averageValue = reactable::colDef(
+      header = withTooltip("Average Value",
+                           "Average value of the covariate"),
+      filterable = T,
+      format = reactable::colFormat(digits = 2, percent = F)
+    ), 
+    standardDeviation = reactable::colDef(
+      header = withTooltip("SD",
+                           "Standard deviation of the covariate"),
+      filterable = T,
+      format = reactable::colFormat(digits = 2, percent = F)
+    ), 
+    medianValue = reactable::colDef(
+      header = withTooltip("Median Value",
+                           "Median value of the covariate"),
+      filterable = T,
+      format = reactable::colFormat(digits = 2, percent = F)
+    ), 
+    p10Value = reactable::colDef(
+      header = withTooltip("10th %tile",
+                           "10th percentile value of the covariate"),
+      filterable = T,
+      format = reactable::colFormat(digits = 2, percent = F)
+    ), 
+    p25Value = reactable::colDef(
+      header = withTooltip("25th %tile",
+                           "25th percentile value of the covariate"),
+      filterable = T,
+      format = reactable::colFormat(digits = 2, percent = F)
+    ), 
+    p75Value = reactable::colDef(
+      header = withTooltip("75th %tile",
+                           "75th percentile value of the covariate"),
+      filterable = T,
+      format = reactable::colFormat(digits = 2, percent = F)
+    ), 
+    p90Value = reactable::colDef(
+      header = withTooltip("90th %tile",
+                           "90th percentile value of the covariate"),
+      filterable = T,
+      format = reactable::colFormat(digits = 2, percent = F)
+    )
+    )
   return(result)
 }
 

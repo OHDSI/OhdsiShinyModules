@@ -490,21 +490,28 @@ riskFactorContinuousTable <- function(
 
 characteriationRiskFactorColDefs <- function(){
   result <- list(
-    covariateName = reactable::colDef(
-      name = "Covariate Name", 
-      filterable = T
-    ),
     covariateId = reactable::colDef(
       show = F
     ),
+    covariateName = reactable::colDef(
+      header = withTooltip("Covariate Name",
+                           "Name of the covariate"),
+      filterable = T
+    ),
     minPriorObservation = reactable::colDef(
-      name = "Minimum prior observation"
+      header = withTooltip("Min Prior Observation",
+                           "Minimum prior observation time (days)"),
+      filterable = T
       ), 
     outcomeWashoutDays = reactable::colDef(
-      name = "outcome washout days"
+      header = withTooltip("Outcome Washout Days",
+                           "Number of days for the outcome washout"),
+      filterable = T
     ),
     nonCaseSumValue = reactable::colDef(
-      name = "Number of non-cases with feature before exposure", 
+      header = withTooltip("# Non-cases with Feature Before Exposure",
+                           "Number of non-cases for the outcome with the feature before exposure"),
+      filterable = T, 
       format = reactable::colFormat(
         percent = F,
         separators = TRUE
@@ -516,7 +523,9 @@ characteriationRiskFactorColDefs <- function(){
       }
     ), 
     caseSumValue = reactable::colDef(
-      name = "Number of cases with feature before exposure", 
+      header = withTooltip("# Cases with Feature Before Exposure",
+                           "Number of cases for the outcome with the feature before exposure"),
+      filterable = T, 
       format = reactable::colFormat(
         separators = TRUE, 
         percent = F
@@ -528,21 +537,29 @@ characteriationRiskFactorColDefs <- function(){
       }
     ), 
     nonCaseAverageValue = reactable::colDef(
-      name = "% of non-cases with feature before exposure", 
+      header = withTooltip("% Non-cases with Feature Before Exposure",
+                           "Percent of non-cases for the outcome with the feature before exposure"),
+      filterable = T, 
       format = reactable::colFormat(digits = 2, percent = T)
     ), 
     caseAverageValue = reactable::colDef(
-      name = "% of cases with feature before exposure", 
+      header = withTooltip("% Cases with Feature Before Exposure",
+                           "Percent of Cases for the outcome with the feature before exposure"),
+      filterable = T, 
       format = reactable::colFormat(digits = 2, percent = T)
     ), 
     
     SMD = reactable::colDef(
-      name = "Standardized mean difference", 
+      header = withTooltip("SMD",
+                           "Standardized mean difference"),
+      filterable = T, 
       format = reactable::colFormat(digits = 2, percent = F)
     ), 
     
     absSMD = reactable::colDef(
-      name = "Absolute standardized mean difference", 
+      header = withTooltip("absSMD",
+                           "Absolute value of standardized mean difference"),
+      filterable = T, 
       format = reactable::colFormat(digits = 2, percent = F)
     )
   )
@@ -554,20 +571,28 @@ characteriationRiskFactorColDefs <- function(){
 characteriationRiskFactorContColDefs <- function(){
   result <- list(
     covariateName = reactable::colDef(
-      name = "Covariate Name", 
+      header = withTooltip("Covariate Name",
+                           "Name of the covariate"),
       filterable = T
     ),
     covariateId = reactable::colDef(
       show = F
     ),
     minPriorObservation = reactable::colDef(
-      name = "Minimum prior observation"
+      header = withTooltip("Min Prior Observation",
+                           "Minimum prior observation time (days)"),
+      filterable = T
     ), 
     outcomeWashoutDays = reactable::colDef(
-      name = "outcome washout days"
+      header = withTooltip("Outcome Washout Days",
+                           "Number of days for the outcome washout"),
+      filterable = T
     ),
     targetCountValue = reactable::colDef(
-      name = "Number of target population with feature", 
+        header = withTooltip("# of Target with Feature",
+                             "Number of the target population with feature"),
+        filterable = T
+      , 
       format = reactable::colFormat(
         percent = F,
         separators = TRUE
@@ -579,7 +604,9 @@ characteriationRiskFactorContColDefs <- function(){
       }
     ), 
     caseCountValue = reactable::colDef(
-      name = "Number of cases with feature", 
+      header = withTooltip("# of Cases with Feature",
+                           "Number of the cases in the target population with feature"), 
+      filterable = T,
       format = reactable::colFormat(
         separators = TRUE, 
         percent = F
@@ -591,23 +618,120 @@ characteriationRiskFactorContColDefs <- function(){
       }
     ), 
     targetAverageValue = reactable::colDef(
-      name = "Target mean feature value", 
+      header = withTooltip("Target Mean Feature Value",
+                           "Mean value of the feature in the target population"), 
+      filterable = T,
       format = reactable::colFormat(digits = 2, percent = F)
     ), 
     caseAverageValue = reactable::colDef(
-      name = "Cases mean feature value", 
+      header = withTooltip("Cases Mean Feature Value",
+                           "Mean value of the feature in the cases"), 
+      filterable = T,
       format = reactable::colFormat(digits = 2, percent = F)
     ), 
     
     targetStandardDeviation = reactable::colDef(
-      name = "Target standard deviation", 
+      header = withTooltip("Target SD Feature Value",
+                           "Standard deviation of the feature value in the target population"), 
+      filterable = T,
       format = reactable::colFormat(digits = 2, percent = F)
     ), 
     caseStandardDeviation  = reactable::colDef(
-      name = "Cases standard deviation", 
+      header = withTooltip("Cases SD Feature Value",
+                           "Standard deviation of the feature value in the cases"), 
+      filterable = T, 
       format = reactable::colFormat(digits = 2, percent = F)
     ), 
-    
+    caseMedianValue  = reactable::colDef(
+      header = withTooltip("Cases Median Feature Value",
+                           "Median of the feature value in the cases"), 
+      filterable = T, 
+      format = reactable::colFormat(digits = 2, percent = F)
+    ),
+    caseP10Value  = reactable::colDef(
+      header = withTooltip("Cases 10th %ile Feature Value",
+                           "10th percentile of the feature value in the cases"), 
+      filterable = T, 
+      format = reactable::colFormat(digits = 2, percent = F)
+    ),
+    caseP25Value  = reactable::colDef(
+      header = withTooltip("Cases 25th %tile Feature Value",
+                           "25th percentile of the feature value in the cases"), 
+      filterable = T, 
+      format = reactable::colFormat(digits = 2, percent = F)
+    ),
+    caseP75Value  = reactable::colDef(
+      header = withTooltip("Cases 75th %tile Feature Value",
+                           "75th percentile of the feature value in the cases"), 
+      filterable = T, 
+      format = reactable::colFormat(digits = 2, percent = F)
+    ),
+    caseP90Value  = reactable::colDef(
+      header = withTooltip("Cases 90th %tile Feature Value",
+                           "90th percentile of the feature value in the cases"), 
+      filterable = T, 
+      format = reactable::colFormat(digits = 2, percent = F)
+    ),
+    caseMaxValue  = reactable::colDef(
+      header = withTooltip("Cases Max Feature Value",
+                           "Maximum of the feature value in the cases"), 
+      filterable = T, 
+      format = reactable::colFormat(digits = 2, percent = F)
+    ),
+    caseMinValue  = reactable::colDef(
+      header = withTooltip("Cases Min Feature Value",
+                           "Minimum of the feature value in the cases"), 
+      filterable = T, 
+      format = reactable::colFormat(digits = 2, percent = F)
+    ),
+    targetMedianValue  = reactable::colDef(
+      header = withTooltip("Target Median Feature Value",
+                           "Median of the feature value in the target population"), 
+      filterable = T, 
+      format = reactable::colFormat(digits = 2, percent = F)
+    ),
+    targetP10Value  = reactable::colDef(
+      header = withTooltip("Target 10th %ile Feature Value",
+                           "10th percentile of the feature value in the target population"), 
+      filterable = T, 
+      format = reactable::colFormat(digits = 2, percent = F)
+    ),
+    targetP25Value  = reactable::colDef(
+      header = withTooltip("Target 25th %tile Feature Value",
+                           "25th percentile of the feature value in the target population"), 
+      filterable = T, 
+      format = reactable::colFormat(digits = 2, percent = F)
+    ),
+    targetP75Value  = reactable::colDef(
+      header = withTooltip("Target 75th %tile Feature Value",
+                           "75th percentile of the feature value in the target population"), 
+      filterable = T, 
+      format = reactable::colFormat(digits = 2, percent = F)
+    ),
+    targetP90Value  = reactable::colDef(
+      header = withTooltip("Target 90th %tile Feature Value",
+                           "90th percentile of the feature value in the target population"), 
+      filterable = T, 
+      format = reactable::colFormat(digits = 2, percent = F)
+    ),
+    targetMaxValue  = reactable::colDef(
+      header = withTooltip("Target Max Feature Value",
+                           "Maximum of the feature value in the target population"), 
+      filterable = T, 
+      format = reactable::colFormat(digits = 2, percent = F)
+    ),
+    targetMinValue  = reactable::colDef(
+      header = withTooltip("Target Min Feature Value",
+                           "Minimum of the feature value in the target population"), 
+      filterable = T, 
+      format = reactable::colFormat(digits = 2, percent = F)
+    ),
+    targetBoxPlot = reactable::colDef(
+      show = F
+    ),
+    caseBoxPlot = reactable::colDef(
+      show = F
+    ),
     #targetBoxPlot = reactable::colDef(cell = function(value, index) {
     #  ggplot2::ggplot() +
     #        ggplot2::geom_boxplot(
@@ -633,12 +757,15 @@ characteriationRiskFactorContColDefs <- function(){
     #sparkline::spk_chr(c(data$targetMinValue[index], data$targetP10Value[index], data$targetP25Value[index], data$targetMedianValue[index], 3, 6, 6), type="box", raw = TRUE, width = 200)
     
     SMD = reactable::colDef(
-      name = "SMD", 
+      header = withTooltip("SMD",
+                           "Standardized mean difference"), 
+      filterable = T, 
       format = reactable::colFormat(digits = 2, percent = F)
     ), 
-    
     absSMD = reactable::colDef(
-      name = "Absolute SMD", 
+      header = withTooltip("absSMD",
+                           "Absolute value of the standardized mean difference"), 
+      filterable = T,  
       format = reactable::colFormat(digits = 2, percent = F)
     )
   )

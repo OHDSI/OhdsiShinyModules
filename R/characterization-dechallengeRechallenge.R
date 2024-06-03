@@ -31,7 +31,26 @@
 characterizationDechallengeRechallengeViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
-      resultTableViewer(ns('tableResults'))
+    shiny::fluidPage(
+      shiny::fluidRow(
+        shinydashboard::box(
+          status = 'warning', 
+          width = '100%',
+          title = shiny::span( shiny::icon("triangle-exclamation"),'Warnings (if any)'),
+          solidHeader = TRUE,
+          shiny::htmlOutput(ns('warningTextTarget')),
+          shiny::htmlOutput(ns('warningTextOutcome'))
+        )
+      ),
+      shiny::fluidRow(
+        shinydashboard::box(
+          status = 'info', 
+          width = '100%',
+          solidHeader = TRUE,
+        resultTableViewer(ns('tableResults'))
+        )
+      )
+    )
   )
 }
 
@@ -75,36 +94,150 @@ characterizationDechallengeRechallengeServer <- function(
           #databases(allData$databaseId)
           #dechallengeStopInterval(allData$dechallengeStopInterval)
           #dechallengeEvaluationWindow(allData$dechallengeEvaluationWindow)
+      
+      countDataTarget <- shiny::reactive({getCohortCounts(connection,
+                                                  resultDatabaseSettings) %>%
+        dplyr::filter(cohortId %in% targetId())
+      })
+      
+      countDataOutcome <- shiny::reactive({getCohortCounts(connection,
+                                                           resultDatabaseSettings) %>%
+          dplyr::filter(cohortId %in% outcomeId())
+      })
+      
+      warningTextTarget <- reactive({
+        ifelse(countDataTarget()$cohortEntries[1] == countDataTarget()$cohortSubjects[1],
+               'WARNING: The target cohort does not have multiple records per person, so observing rechallenge attempts not possible.',
+               '') 
+      })
+      
+      warningTextOutcome <- reactive({
+        ifelse(countDataOutcome()$cohortEntries[1] == countDataOutcome()$cohortSubjects[1],
+               'WARNING:  The outcome cohort does not have multiple records per person, so observing dechallenge and rechallenge failures is not possible.',
+               '') 
+      })
+      
+      output$warningTextTarget <- renderText(warningTextTarget()) 
+      output$warningTextOutcome <- renderText(warningTextOutcome()) 
+      
+      
+      
+      
+      characteriationDechalRechalColDefs <- function(){
+        result <- list(
+          databaseName = reactable::colDef(
+            header = withTooltip("Database",
+                                 "Name of the database"),
+            filterable = T
+          ),
+          databaseId = reactable::colDef(
+            show = F
+          ),
+          targetCohortDefinitionId = reactable::colDef(
+            show = F
+          ),
+          outcomeCohortDefinitionId = reactable::colDef(
+            show = F
+          ),
+          dechallengeStopInterval = reactable::colDef(
+            header = withTooltip("Dechallenge Stop Interval",
+                                 ""),
+            filterable = T
+          ),
+          dechallengeEvaluationWindow = reactable::colDef(
+            header = withTooltip("Dechallenge Evaluation Window",
+                                 ""),
+            filterable = T
+          ), 
+          numExposureEras = reactable::colDef(
+            header = withTooltip("# of Exposure Eras",
+                                 ""),
+            filterable = T
+          ),
+          numPersonsExposed = reactable::colDef(
+            header = withTooltip("# of Exposed Persons",
+                                 ""),
+            filterable = T
+          ),
+          numCases = reactable::colDef(
+            header = withTooltip("# of Cases",
+                                 ""),
+            filterable = T
+          ),
+          dechallengeAttempt = reactable::colDef(
+            header = withTooltip("# of Dechallenge Attempts",
+                                 ""),
+            filterable = T
+          ),
+          dechallengeFail = reactable::colDef(
+            header = withTooltip("# of Dechallenge Fails",
+                                 ""),
+            filterable = T
+          ),
+          dechallengeSuccess = reactable::colDef(
+            header = withTooltip("# of Dechallenge Successes",
+                                 ""),
+            filterable = T
+          ),
+          rechallengeAttempt = reactable::colDef(
+            header = withTooltip("# of Rechallenge Attempts",
+                                 ""),
+            filterable = T
+          ),
+          rechallengeFail = reactable::colDef(
+            header = withTooltip("# of Rechallenge Fails",
+                                 ""),
+            filterable = T
+          ),
+          rechallengeSuccess = reactable::colDef(
+            header = withTooltip("# of Rechallenge Successes",
+                                 ""),
+            filterable = T
+          ),
+          pctDechallengeAttempt = reactable::colDef(
+            header = withTooltip("% of Dechallenge Attempts",
+                                 ""),
+            filterable = T,
+            format = reactable::colFormat(digits = 2, percent = T)
+          ),
+          pctDechallengeSuccess = reactable::colDef(
+            header = withTooltip("% of Dechallenge Success",
+                                 ""),
+            filterable = T,
+            format = reactable::colFormat(digits = 2, percent = T)
+          ),
+          pctDechallengeFail = reactable::colDef(
+            header = withTooltip("% of Dechallenge Fail",
+                                 ""),
+            filterable = T,
+            format = reactable::colFormat(digits = 2, percent = T)
+          ),
+          pctRechallengeAttempt = reactable::colDef(
+            header = withTooltip("% of Rechallenge Attempts",
+                                 ""),
+            filterable = T,
+            format = reactable::colFormat(digits = 2, percent = T)
+          ),
+          pctRechallengeSuccess = reactable::colDef(
+            header = withTooltip("% of Rechallenge Success",
+                                 ""),
+            filterable = T,
+            format = reactable::colFormat(digits = 2, percent = T)
+          ),
+          pctRechallengeFail = reactable::colDef(
+            header = withTooltip("% of Rechallenge Fail",
+                                 ""),
+            filterable = T,
+            format = reactable::colFormat(digits = 2, percent = T)
+          )
+        )
+        return(result)
+      }
           
       tableOutputs <- resultTableServer(
         id = "tableResults", 
         df = allData,
-        colDefsInput = list(  
-          targetCohortDefinitionId = reactable::colDef(show = F),
-          databaseId = reactable::colDef(show = F),
-          outcomeCohortDefinitionId = reactable::colDef(show = F),
-          
-          databaseName = reactable::colDef(name = 'Database'),
-          
-          pctDechallengeAttempt = reactable::colDef(
-            format = reactable::colFormat(digits = 2, percent = T)
-          ),
-          pctDechallengeSuccess = reactable::colDef(
-            format = reactable::colFormat(digits = 2, percent = T)
-          ),
-          pctDechallengeFail = reactable::colDef(
-            format = reactable::colFormat(digits = 2, percent = T)
-          ),
-          pctRechallengeAttempt = reactable::colDef(
-            format = reactable::colFormat(digits = 2, percent = T)
-          ),
-          pctRechallengeSuccess = reactable::colDef(
-            format = reactable::colFormat(digits = 2, percent = T)
-          ),
-          pctRechallengeFail = reactable::colDef(
-            format = reactable::colFormat(digits = 2, percent = T)
-          )
-          ),
+        colDefsInput = characteriationDechalRechalColDefs(),
         addActions = c('fails')
       )
       
@@ -305,6 +438,29 @@ getDechalRechalFailData <- function(
   
   return(data)
   
+}
+
+getCohortCounts <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT cc.cohort_id, cc.cohort_entries, cc.cohort_subjects
+  FROM @schema.@cg_table_prefixCOHORT_COUNT cc
+  join @schema.@database_table_prefix@database_table dt
+  on cc.database_id = dt.database_id
+  join @schema.@cg_table_prefixCOHORT_DEFINITION cd
+  on cd.cohort_definition_id = cc.cohort_id
+  ;"
+  return(
+    connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+      database_table = resultDatabaseSettings$databaseTable,
+      database_table_prefix = resultDatabaseSettings$databaseTablePrefix
+    )
+  )
 }
 
 plotDechalRechal <- function(

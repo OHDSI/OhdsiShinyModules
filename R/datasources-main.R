@@ -167,6 +167,9 @@ datasourcesServer <- function(
       resultTableServer(id = "datasourcesTable",
                         df = datasourcesData,
                         colDefsInput = datasourcesColList,
+                        selectedCols = c("cdmSourceName", "cdmSourceAbbreviation", "cdmHolder",
+                                         "sourceReleaseDate", "cdmReleaseDate", "cdmVersion",
+                                         "vocabularyVersion", "maxObsPeriodEndDate"),
                         downloadedFileName = "datasourcesTable-")
       
       return(invisible(NULL))

@@ -274,7 +274,9 @@ plotTimeToEvent <- function(
     ggplot2::facet_wrap(ncol = nDatabases ,
       .data$timeScale ~ .data$databaseName , scales = 'free'
         ) +
-    ggplot2::theme_minimal()
+    ggplot2::theme_minimal() + 
+    ggplot2::guides(fill=ggplot2::guide_legend(title="Outcome Type")) + 
+    ggplot2::labs(y= "# of Events", x = "Time (days) to Event")
   
   shiny::incProgress(2/2, detail = paste("Finished"))
   

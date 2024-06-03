@@ -11,7 +11,7 @@ reportServer(
   server = Sys.getenv("RESULTS_SERVER"),
   username = Sys.getenv("RESULTS_USER"),
   password = Sys.getenv("RESULTS_PASSWORD"),
-  dbms = "postgresql"
+  dbms = Sys.getenv("RESULTS_DBMS")
 )
 }
 \arguments{

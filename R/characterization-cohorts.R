@@ -53,7 +53,7 @@ characterizationCohortComparisonViewer <- function(id) {
           ),
           shiny::tabPanel(
             title = 'Continuous',
-            resultTableViewer(id = ns('continuousTable'), boxTitle = 'continuous')
+            resultTableViewer(id = ns('continuousTable'), boxTitle = 'Continuous')
           )
         )
         
@@ -99,7 +99,9 @@ characterizationCohortComparisonServer <- function(
               size = 10,
               liveSearchStyle = "contains",
               liveSearchPlaceholder = "Type here to search",
-              virtualScroll = 50
+              virtualScroll = 50,
+              #container = "div.tabbable",
+              dropupAuto = FALSE
             )
           ),
           
@@ -233,6 +235,32 @@ characterizationCohortComparisonServer <- function(
             databaseId = input$databaseId
           )
           
+          characteriationCountTableColDefs <- function(){
+            result <- list(
+              selection = reactable::colDef(
+                header = withTooltip("Selected Cohort",
+                                     "Which cohort of the above selections"),
+                filterable = T
+              ),
+              covariateName = reactable::colDef(
+                header = withTooltip("Covariate Name",
+                                     "Name of the covariate"),
+                filterable = T
+              ),
+              rowCount = reactable::colDef(
+                header = withTooltip("Record Count",
+                                     "Count of the number of records"),
+                filterable = T
+              ), 
+              personCount = reactable::colDef(
+                header = withTooltip("Person Count",
+                                     "Count of the number of persons"),
+                filterable = T
+              )
+            )
+            return(result)
+          }
+          
           continuousTable <- characterizatonGetCohortComparisonDataContinuous(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
@@ -255,20 +283,21 @@ characterizationCohortComparisonServer <- function(
           resultTableServer(
             id = 'countTable',
             df = countTable,
-            colDefsInput = NULL
-          )} else{
-            resultTableServer(
-              id = 'mainTable',
-              df = data.frame(),
-              colDefsInput = columns
-            ) 
-            
-            resultTableServer(
-              id = 'countTable',
-              df = data.frame(),
-              colDefsInput = NULL
-            ) 
-          }
+            colDefsInput = characteriationCountTableColDefs()
+          )} 
+        # else{
+        #     resultTableServer(
+        #       id = 'mainTable',
+        #       df = data.frame(),
+        #       colDefsInput = columns
+        #     ) 
+        #     
+        #     resultTableServer(
+        #       id = 'countTable',
+        #       df = data.frame(),
+        #       colDefsInput = NULL
+        #     ) 
+        #   }
       })
 
       return(invisible(NULL))
@@ -423,6 +452,46 @@ characterizationCohortsColumnsContinuous <- function(x){
     absSMD = reactable::colDef(
       header = withTooltip("absSMD",
                            "Absolute standardized mean difference"),
+      format = reactable::colFormat(digits = 3)
+    ),
+    minValue_2 = reactable::colDef(
+      header = withTooltip("Second Min Value",
+                           "Minimum value of the second selected cohort"),
+      format = reactable::colFormat(digits = 3)
+    ),
+    minValue_1 = reactable::colDef(
+      header = withTooltip("First Min Value",
+                           "Minimum value of the first selected cohort"),
+      format = reactable::colFormat(digits = 3)
+    ),
+    maxValue_2 = reactable::colDef(
+      header = withTooltip("Second Max Value",
+                           "Maximum value of the second selected cohort"),
+      format = reactable::colFormat(digits = 3)
+    ),
+    maxValue_1 = reactable::colDef(
+      header = withTooltip("First Max Value",
+                           "Maximum value of the first selected cohort"),
+      format = reactable::colFormat(digits = 3)
+    ),
+    p25Value_2 = reactable::colDef(
+      header = withTooltip("Second 25th %tile",
+                           "25th percentile value of the second selected cohort"),
+      format = reactable::colFormat(digits = 3)
+    ),
+    p25Value_1 = reactable::colDef(
+      header = withTooltip("First 25th %tile",
+                           "25th percentile value of the first selected cohort"),
+      format = reactable::colFormat(digits = 3)
+    ),
+    p75Value_2 = reactable::colDef(
+      header = withTooltip("Second 75th %tile",
+                           "75th percentile value of the second selected cohort"),
+      format = reactable::colFormat(digits = 3)
+    ),
+    p75Value_1 = reactable::colDef(
+      header = withTooltip("First 75th %tile",
+                           "75th percentile value of the first selected cohort"),
       format = reactable::colFormat(digits = 3)
     )
     

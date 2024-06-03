@@ -129,7 +129,7 @@ characterizationDatabaseComparisonServer <- function(
         selected(
           data.frame(
             Databases = selectedDatabases,
-            minTreshold = input$minThreshold
+            `Minimum Covariate Threshold` = input$minThreshold
           )
         )
 
