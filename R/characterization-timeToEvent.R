@@ -32,23 +32,15 @@ characterizationTimeToEventViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
   
-      shinydashboard::box(
-        width = "100%",
-        title = shiny::tagList(shiny::icon("gear"), "Results"),
-        
-        shiny::fluidRow(
-          shiny::column(
-            width = 2,
-            shiny::uiOutput(ns('timeToEventPlotInputs'))
-          ),
-          shiny::column(
-            width = 10,
-            shinycssloaders::withSpinner(
-              shiny::plotOutput(ns('timeToEvent'))
-            )
-          )
-        )
+    shinydashboard::box(
+      width = "100%",
+      title = "",
+      
+      shiny::uiOutput(ns('timeToEventPlotInputs')),
+      shinycssloaders::withSpinner(
+        shiny::plotOutput(ns('timeToEvent'))
       )
+    )
     )
 }
 
@@ -91,20 +83,49 @@ characterizationTimeToEventServer <- function(
         shiny::fluidPage(
           shiny::fluidRow(
             
-            shiny::checkboxGroupInput(
-              inputId = session$ns("databases"), 
+            shiny::selectInput(
+              inputId = session$ns("databases"),
               label = "Databases:",
-              choiceNames = unique(allData()$databaseName), 
-              choiceValues = unique(allData()$databaseName),
+              multiple = T, 
+              choices = unique(allData()$databaseName),
               selected = unique(allData()$databaseName)
-            ),
-            shiny::checkboxGroupInput(
-              inputId = session$ns("times"), 
-              label = "Timespan:",
-              choiceNames = unique(allData()$timeScale), 
-              choiceValues = unique(allData()$timeScale),
-              selected = unique(allData()$timeScale)
+              ),
+            
+            shiny::fluidRow(
+              shiny::column(
+                width = 3,
+                shiny::selectInput(
+                  inputId = session$ns("times"), 
+                  label = "Timespan:",
+                  multiple = T, 
+                  choices =  unique(allData()$timeScale),
+                  selected =  unique(allData()$timeScale)
+                )
+              ),
+              
+              shiny::column(
+                width = 3,
+                shiny::selectInput(
+                  inputId = session$ns("outcomeTypes"), 
+                  label = "Outcome occurrence type:",
+                  multiple = T, 
+                  choices =  unique(allData()$outcomeType),
+                  selected =  unique(allData()$outcomeType)
+                )
+              ),
+              
+              shiny::column(
+                width = 6,
+                shiny::selectInput(
+                  inputId = session$ns("targetOutcomeTypes"), 
+                  label = "Timing of outcome:",
+                  multiple = T, 
+                  choices =  unique(allData()$targetOutcomeType),
+                  selected =  unique(allData()$targetOutcomeType)
+                )
+              )
             )
+            
             
           )
         )
@@ -115,7 +136,9 @@ characterizationTimeToEventServer <- function(
           plotTimeToEvent(
             timeToEventData = allData, # reactive
             databases = input$databases,
-            times = input$times
+            times = input$times,
+            outcomeType = input$outcomeTypes,
+            targetOutcomeType = input$targetOutcomeTypes
           )
         )
     
@@ -123,62 +146,6 @@ characterizationTimeToEventServer <- function(
       return(invisible(NULL))
       
     }
-  )
-}
-
-# can remove
-timeToEventGetIds <- function(
-    connectionHandler,
-    resultDatabaseSettings
-){
-  
-  shiny::withProgress(message = 'Getting time to event T and O ids', value = 0, {
-  
-  sql <- "SELECT DISTINCT 
-     t.COHORT_NAME as target, TARGET_COHORT_DEFINITION_ID, 
-     o.COHORT_NAME as outcome, OUTCOME_COHORT_DEFINITION_ID 
-  FROM @schema.@c_table_prefixTIME_TO_EVENT tte
- inner join @schema.@cg_table_prefixCOHORT_DEFINITION t
-          on tte.TARGET_COHORT_DEFINITION_ID = t.COHORT_DEFINITION_ID
-   inner join @schema.@cg_table_prefixCOHORT_DEFINITION o
-          on tte.OUTCOME_COHORT_DEFINITION_ID = o.COHORT_DEFINITION_ID
-  ;"
-
-
-  shiny::incProgress(1/4, detail = paste("Fetching ids"))
-  
-  bothIds <- connectionHandler$queryDb(
-    sql = sql, 
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
-  )
-  
-  shiny::incProgress(3/4, detail = paste("Processing ids"))
-  
-  targetUnique <- bothIds %>% 
-    dplyr::select(c("targetCohortDefinitionId", "target")) %>%
-    dplyr::distinct()
-  
-  targetIds <- targetUnique$targetCohortDefinitionId
-  names(targetIds) <- targetUnique$target
-  
-  outcomeUnique <- bothIds %>% 
-    dplyr::select(c("outcomeCohortDefinitionId", "outcome")) %>%
-    dplyr::distinct()
-  
-  outcomeIds <- outcomeUnique$outcomeCohortDefinitionId
-  names(outcomeIds) <- outcomeUnique$outcome
-  
-  shiny::incProgress(4/4, detail = paste("Finished"))
-  
-  })
-  
-  return(
-    list(
-      targetIds = targetIds, 
-      outcomeIds = outcomeIds
-      )
   )
 }
 
@@ -217,13 +184,17 @@ getTimeToEventData <- function(
   
   })
   
+  #write.csv(data,'/Users/jreps/Documents/tte_data.csv')
+  
   return(data)
 }
 
 plotTimeToEvent <- function(
   timeToEventData,
   databases,
-  times
+  times,
+  outcomeTypes,
+  targetOutcomeTypes
 ){
   
   if(is.null(timeToEventData())){
@@ -233,14 +204,27 @@ plotTimeToEvent <- function(
   timeToEventData <- timeToEventData() %>% 
     dplyr::filter(.data$databaseName %in% databases)
   
-  if(is.null(timeToEventData)){
+  if(nrow(timeToEventData) == 0){
+    shiny::showNotification('No results for selected databases')
     return(NULL)
   }
   
   timeToEventData <- timeToEventData %>% 
     dplyr::filter(.data$timeScale %in% times)
   
-  if(is.null(timeToEventData)){
+  if(nrow(timeToEventData) == 0){
+    shiny::showNotification('No results for selected databases and times')
+    return(NULL)
+  }
+  
+  timeToEventData <- timeToEventData %>% 
+    dplyr::filter(
+      .data$outcomeType %in% outcomeTypes &
+      .data$targetOutcomeType %in% targetOutcomeTypes
+      )
+  
+  if(nrow(timeToEventData) == 0){
+    shiny::showNotification('No results for selection')
     return(NULL)
   }
   
