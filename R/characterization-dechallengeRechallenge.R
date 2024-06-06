@@ -91,28 +91,31 @@ characterizationDechallengeRechallengeServer <- function(
         )
       })
 
-          #databases(allData$databaseId)
-          #dechallengeStopInterval(allData$dechallengeStopInterval)
-          #dechallengeEvaluationWindow(allData$dechallengeEvaluationWindow)
-      
-      countDataTarget <- shiny::reactive({getCohortCounts(connection,
-                                                  resultDatabaseSettings) %>%
-        dplyr::filter(cohortId %in% targetId())
+
+      targetUniquePeople <- shiny::reactive({
+        isCohortUniquePeople(
+          connectionHandler = connectionHandler, 
+          resultDatabaseSettings = resultDatabaseSettings,
+          cohortId = targetId()
+        )
       })
       
-      countDataOutcome <- shiny::reactive({getCohortCounts(connection,
-                                                           resultDatabaseSettings) %>%
-          dplyr::filter(cohortId %in% outcomeId())
+      outcomeUniquePeople <- shiny::reactive({
+        isCohortUniquePeople(
+          connectionHandler = connectionHandler, 
+          resultDatabaseSettings = resultDatabaseSettings,
+          cohortId = outcomeId()
+        )
       })
       
       warningTextTarget <- reactive({
-        ifelse(countDataTarget()$cohortEntries[1] == countDataTarget()$cohortSubjects[1],
+        ifelse(targetUniquePeople(),
                'WARNING: The target cohort does not have multiple records per person, so observing rechallenge attempts not possible.',
                '') 
       })
       
       warningTextOutcome <- reactive({
-        ifelse(countDataOutcome()$cohortEntries[1] == countDataOutcome()$cohortSubjects[1],
+        ifelse(outcomeUniquePeople(),
                'WARNING:  The outcome cohort does not have multiple records per person, so observing dechallenge and rechallenge failures is not possible.',
                '') 
       })
@@ -440,27 +443,25 @@ getDechalRechalFailData <- function(
   
 }
 
-getCohortCounts <- function(
+isCohortUniquePeople <- function(
     connectionHandler, 
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    cohortId
 ) {
   
-  sql <- "SELECT cc.cohort_id, cc.cohort_entries, cc.cohort_subjects
+  sql <- "SELECT 
+  cc.database_id, cc.cohort_id, cc.cohort_entries, cc.cohort_subjects
   FROM @schema.@cg_table_prefixCOHORT_COUNT cc
-  join @schema.@database_table_prefix@database_table dt
-  on cc.database_id = dt.database_id
-  join @schema.@cg_table_prefixCOHORT_DEFINITION cd
-  on cd.cohort_definition_id = cc.cohort_id
+  where cc.cohort_id = @cohort_id
   ;"
-  return(
-    connectionHandler$queryDb(
+  res <- connectionHandler$queryDb(
       sql = sql,
       schema = resultDatabaseSettings$schema,
       cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-      database_table = resultDatabaseSettings$databaseTable,
-      database_table_prefix = resultDatabaseSettings$databaseTablePrefix
+      cohort_id = cohortId
     )
-  )
+  
+  return(sum(res$cohortEntries == res$cohortSubjects) == nrow(res))
 }
 
 plotDechalRechal <- function(
