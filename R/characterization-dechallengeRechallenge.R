@@ -31,26 +31,15 @@
 characterizationDechallengeRechallengeViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
-    shiny::fluidPage(
-      shiny::fluidRow(
-        shinydashboard::box(
-          status = 'warning', 
-          width = '100%',
-          title = shiny::span( shiny::icon("triangle-exclamation"),'Warnings (if any)'),
-          solidHeader = TRUE,
-          shiny::htmlOutput(ns('warningTextTarget')),
-          shiny::htmlOutput(ns('warningTextOutcome'))
-        )
-      ),
-      shiny::fluidRow(
+    
+        shiny::uiOutput(ns('warning')),
+        
         shinydashboard::box(
           status = 'info', 
           width = '100%',
           solidHeader = TRUE,
         resultTableViewer(ns('tableResults'))
         )
-      )
-    )
   )
 }
 
@@ -90,8 +79,9 @@ characterizationDechallengeRechallengeServer <- function(
           resultDatabaseSettings
         )
       })
-
-
+      
+      
+      # warning when not unique
       targetUniquePeople <- shiny::reactive({
         isCohortUniquePeople(
           connectionHandler = connectionHandler, 
@@ -108,24 +98,30 @@ characterizationDechallengeRechallengeServer <- function(
         )
       })
       
-      warningTextTarget <- reactive({
-        ifelse(targetUniquePeople(),
-               'WARNING: The target cohort does not have multiple records per person, so observing rechallenge attempts not possible.',
-               '') 
-      })
-      
-      warningTextOutcome <- reactive({
-        ifelse(outcomeUniquePeople(),
-               'WARNING:  The outcome cohort does not have multiple records per person, so observing dechallenge and rechallenge failures is not possible.',
-               '') 
-      })
-      
-      output$warningTextTarget <- renderText(warningTextTarget()) 
-      output$warningTextOutcome <- renderText(warningTextOutcome()) 
-      
-      
-      
-      
+      output$warning <- shiny::renderUI(
+        if(targetUniquePeople() || outcomeUniquePeople()){
+            shinydashboard::box(
+              status = 'warning', 
+              width = '100%',
+              title = shiny::span( shiny::icon("triangle-exclamation"),'Warnings'),
+              solidHeader = TRUE,
+              shiny::p(
+                ifelse(targetUniquePeople(),
+                       'WARNING: The target cohort does not have multiple records per person, so observing rechallenge attempts not possible.',
+                       '') 
+              ),
+              shiny::p(
+                ifelse(outcomeUniquePeople(),
+                       'WARNING: The outcome cohort does not have multiple records per person, so observing rechallenge attempts not possible.',
+                       '') 
+              )
+            )
+        } else{
+          shiny::renderUI(shiny::div())
+        }
+      )
+
+
       characteriationDechalRechalColDefs <- function(){
         result <- list(
           databaseName = reactable::colDef(
