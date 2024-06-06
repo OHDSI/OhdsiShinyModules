@@ -29,10 +29,14 @@ characterizationRiskFactorViewer <- function(id) {
     shiny::conditionalPanel(
       condition = 'input.generate != 0',
       ns = ns,
+      
+      inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
+      
       shinydashboard::tabBox(
         width = "100%",
         # Title can include an icon
         title = shiny::tagList(shiny::icon("gear"), "Risk Factors"),
+        
         shiny::tabPanel("Binary Feature Table", 
                         resultTableViewer(ns('binaryTable'))
         ),
@@ -95,14 +99,20 @@ characterizationRiskFactorServer <- function(
         
       })
       
+      # save the selections
+      selected <- shiny::reactive({
+        data.frame(
+        database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
+        time_at_risk = names(options()$tarInds)[which(input$tarInd == options()$tarInds)]
+      )})
+      
       shiny::observeEvent(input$generate, {
         
-        # add database and tar here
-        selected <- data.frame(
-          database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
-          time_at_risk = names(options()$tarInds)[which(input$tarInd == options()$tarInds)]
+        inputSelectionDfServer(
+          id = 'inputSelected', 
+          dataFrameRow = selected,
+          ncol = 1
         )
-        print(selected)
         
         allData <- characterizationGetRiskFactorData(
             connectionHandler = connectionHandler,
