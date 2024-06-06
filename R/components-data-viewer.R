@@ -246,6 +246,7 @@ resultTableServer <- function(
         onClick <- NULL
       }
       
+
       output$columnSelector <- shiny::renderUI({
         
         shinyWidgets::pickerInput(
@@ -267,6 +268,7 @@ resultTableServer <- function(
         )
         
       })
+
       
       #need to try adding browser() to all reactives to see why selected cols isnt working
       
@@ -324,7 +326,6 @@ function filterMinValue(rows, columnId, filterValue) {
   });
 }
 "
-      
       output$resultData <- reactable::renderReactable({
           if (is.null(input$dataCols)) {
             data = newdf()
@@ -356,7 +357,7 @@ function filterMinValue(rows, columnId, filterValue) {
             showSortIcon = TRUE,
             striped = TRUE,
             highlight = TRUE,
-            defaultColDef = reactable::colDef(align = "left"),
+            #defaultColDef = reactable::colDef(align = "left"),
             defaultSorted = sortedColumns(),
             rowStyle = list(
               height = height

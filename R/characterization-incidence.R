@@ -621,7 +621,7 @@ characterizationIncidenceServer <- function(
           if (is.null(targetIds()) |
               is.null(outcomeIds())
               ) {
-            extractedData(data.frame())
+            shiny::validate("Please wait...")
           }
           
           else if(targetIds()[1] == outcomeIds()[1] &&
@@ -642,6 +642,7 @@ characterizationIncidenceServer <- function(
       )
       
       filteredData <- shiny::reactive({
+        shiny::req(nrow(extractedData() > 0))
         if(nrow(extractedData()) > 0){
           extractedData() %>%
             dplyr::relocate("tar", .before = "outcomes") %>%
@@ -687,23 +688,36 @@ characterizationIncidenceServer <- function(
       ## CHECK - caused error for me but it is in Nate's latest code
       class(incidenceColList$genderName$filterMethod) <- "JS_EVAL"
       
-      #renderIrTable <- shiny::reactive(
+      # renderIrTable <- shiny::reactive(
       #  {
       #    filteredData()
       #  }
-      #)
+      # )
       
-      resultTableServer(
-        id = "incidenceRateTable",
-        df = filteredData, #renderIrTable,
-        selectedCols = c("cdmSourceAbbreviation", "targetName", "targetIdShort", "outcomeName", "outcomeIdShort",
-                         "ageGroupName", "genderName", "startYear", "tar", "outcomes",
-                         "incidenceProportionP100p", "incidenceRateP100py"),
-        sortedCols = c("ageGroupName", "genderName", "startYear", "incidenceRateP100py"),
-        elementId = "incidence-select",
-        colDefsInput = incidenceColList,
-        downloadedFileName = "incidenceRateTable-"
-      )
+       resultTableServer(
+          id = "incidenceRateTable",
+          df = filteredData, #renderIrTable,
+          selectedCols = c("cdmSourceAbbreviation", "targetName", "targetIdShort", "outcomeName", "outcomeIdShort",
+                           "ageGroupName", "genderName", "startYear", "tar", "outcomes",
+                           "incidenceProportionP100p", "incidenceRateP100py"),
+          sortedCols = c("ageGroupName", "genderName", "startYear", "incidenceRateP100py"),
+          elementId = "incidence-select",
+          colDefsInput = incidenceColList,
+          downloadedFileName = "incidenceRateTable-"
+        ) 
+        
+      
+      # resultTableServer(
+      #   id = "incidenceRateTable",
+      #   df = filteredData, #renderIrTable,
+      #   selectedCols = c("cdmSourceAbbreviation", "targetName", "targetIdShort", "outcomeName", "outcomeIdShort",
+      #                    "ageGroupName", "genderName", "startYear", "tar", "outcomes",
+      #                    "incidenceProportionP100p", "incidenceRateP100py"),
+      #   sortedCols = c("ageGroupName", "genderName", "startYear", "incidenceRateP100py"),
+      #   elementId = "incidence-select",
+      #   colDefsInput = incidenceColList,
+      #   downloadedFileName = "incidenceRateTable-"
+      # )
       
       '%!in%' <- function(x,y)!('%in%'(x,y))
     
