@@ -371,7 +371,8 @@ colDefsBinary <- function(){
     covariateName = reactable::colDef(
       header = withTooltip("Covariate Name",
                            "Name of the covariate"),
-      filterable = T
+      filterable = T,
+      minWidth = 300
     ),
     covariateId = reactable::colDef(
       show = F
@@ -480,7 +481,8 @@ colDefsContinuous <- function(){
     covariateName = reactable::colDef(
       header = withTooltip("Covariate Name",
                            "Name of the covariate"),
-      filterable = T
+      filterable = T,
+      minWidth = 300
     ),
     covariateId = reactable::colDef(
       show = F

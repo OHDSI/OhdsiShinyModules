@@ -97,6 +97,13 @@ characterizationRiskFactorServer <- function(
       
       shiny::observeEvent(input$generate, {
         
+        # add database and tar here
+        selected <- data.frame(
+          database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
+          time_at_risk = names(options()$tarInds)[which(input$tarInd == options()$tarInds)]
+        )
+        print(selected)
+        
         allData <- characterizationGetRiskFactorData(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
@@ -203,6 +210,7 @@ characterizationGetRiskFactorData <- function(
     database_id = databaseId,
     setting_ids = paste0(ids$settingId, collapse=',')
   )
+  message(paste0('Extracted ',nrow(binary),' binary RF rows'))
   
   # now process into table
   binary <- riskFactorTable(
@@ -228,7 +236,7 @@ characterizationGetRiskFactorData <- function(
           and cov.database_id = s.database_id
           
           where cov.target_cohort_id = @target_id
-          and cov.outcome_cohort_id = @outcome_id
+          and cov.outcome_cohort_id in (0,@outcome_id)
           and cov.cohort_type in ('Target','TnO', 'TnOprior')
           and cov.database_id = '@database_id'
           and cov.setting_id in (@setting_ids)
@@ -244,7 +252,9 @@ characterizationGetRiskFactorData <- function(
     outcome_id = outcomeId,
     database_id = databaseId,
     setting_ids = paste0(ids$settingId, collapse=',')
-  )  
+  ) 
+  
+  message(paste0('Extracted ',nrow(binary),' continuous RF rows'))
   
   continuous <- riskFactorContinuousTable(
     data = continuous
@@ -268,6 +278,10 @@ riskFactorTable <- function(
   data
 ){
   
+  if(is.null(data)){
+    return(data)
+  }
+  
   data <- unique(data)
   if(nrow(data) == 0){
     return(data)
@@ -275,6 +289,22 @@ riskFactorTable <- function(
   
   outcomeWashoutDays <- unique(data$outcomeWashoutDays)
   outcomeWashoutDays <- outcomeWashoutDays[!is.na(outcomeWashoutDays)]
+  if(length(outcomeWashoutDays) == 0){
+    shiny::showNotification('No cases')
+    data <- data %>% 
+      dplyr::filter(.data$cohortType == 'Target') %>%
+      dplyr::select(-"cohortType", -"outcomeWashoutDays") %>% 
+      dplyr::mutate(
+        nonCaseSumValue = .data$sumValue,
+        nonCaseAverageValue = .data$averageValue
+      ) %>%
+      dplyr::select(
+        "covariateId","covariateName",
+        'minPriorObservation',
+        "nonCaseSumValue","nonCaseAverageValue"
+      )
+    return(data)
+  }
   
   allData <- data %>% 
     dplyr::filter(.data$cohortType == 'Target') %>%
@@ -294,6 +324,7 @@ riskFactorTable <- function(
   
   completeData <- c()
   for(outcomeWashoutDay in outcomeWashoutDays){
+    
   caseData <- data %>% 
     dplyr::filter(
       .data$cohortType == 'TnO' &
@@ -320,6 +351,7 @@ riskFactorTable <- function(
     dplyr::group_by(.data$minPriorObservation) %>%
     dplyr::summarise(exclude_N = round(max(.data$N, na.rm = T)))
   
+
   if(nrow(excludeData) > 0 ){
     colnamesInclude <- !colnames(excludeData) %in% c('covariateId', 'covariateName', 'minPriorObservation')
     colnames(excludeData)[colnamesInclude] <- paste0('exclude_',colnames(excludeData)[colnamesInclude])
@@ -427,7 +459,9 @@ riskFactorTable <- function(
     allData <- allData %>% 
       dplyr::mutate(
         outcomeWashoutDays = !!outcomeWashoutDay
-      )
+      ) %>%
+      dplyr::relocate(.data$outcomeWashoutDays, 
+                      .after = .data$minPriorObservation)
     
     completeData <- rbind(allData, completeData)
 
@@ -448,6 +482,7 @@ riskFactorTable <- function(
       )
   }
   
+
   return(unique(completeData))
 }
 
@@ -456,6 +491,7 @@ riskFactorContinuousTable <- function(
   data
 ){
   
+
   data <- unique(data)
   
   caseData <- data %>% 
@@ -537,7 +573,8 @@ characteriationRiskFactorColDefs <- function(){
     covariateName = reactable::colDef(
       header = withTooltip("Covariate Name",
                            "Name of the covariate"),
-      filterable = T
+      filterable = T,
+      minWidth = 300
     ),
     minPriorObservation = reactable::colDef(
       header = withTooltip("Min Prior Observation",
@@ -614,7 +651,8 @@ characteriationRiskFactorContColDefs <- function(){
     covariateName = reactable::colDef(
       header = withTooltip("Covariate Name",
                            "Name of the covariate"),
-      filterable = T
+      filterable = T,
+      minWidth = 300
     ),
     covariateId = reactable::colDef(
       show = F

@@ -40,8 +40,21 @@ characterizationDatabaseComparisonViewer <- function(id) {
       inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
       
       # add basic table 
-      resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
-      
+      shiny::tabsetPanel(
+        type = 'pills',
+        shiny::tabPanel(
+          title = 'Counts',
+          resultTableViewer(id = ns('countTable'), boxTitle = 'Counts')
+        ),
+        shiny::tabPanel(
+          title = 'Binary',
+          resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
+        ),
+        shiny::tabPanel(
+          title = 'Continuous',
+          resultTableViewer(id = ns('continuousTable'), boxTitle = 'Continuous')
+        )
+      )
     )
   )
 }
@@ -133,8 +146,25 @@ characterizationDatabaseComparisonServer <- function(
 
 
         #get results
-        #if(sum(selectedChildChar$databaseId %in% input$databaseIds) > 0){
+        results <- list(
+          table = data.frame(),
+          databaseNames = data.frame(
+            id = 1,
+            databaseName = 'None'
+          )
+          )
+        continuousTable <- data.frame()
+        countTable <- data.frame()
+        
         if(length(input$databaseIds) > 0){
+          
+          countTable <- characterizatonGetCohortCounts(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            targetIds = subTargetId(),
+            databaseIds = input$databaseIds
+          )
+          
           result <- characterizatonGetDatabaseComparisonData(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
@@ -142,16 +172,30 @@ characterizationDatabaseComparisonServer <- function(
             databaseIds = input$databaseIds,
             minThreshold = input$minThreshold
           )
+          
+          continuousTable <- characterizatonGetCohortComparisonDataContinuous(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            targetIds = subTargetId(),
+            databaseIds = input$databaseIds,
+            pivot = F
+          )
+          
+        } else{
+          shiny::showNotification('No results')
+        }
+        
+        
           databaseNames <- result$databaseNames
           
           meanColumns <- lapply(1:nrow(databaseNames), function(i){
             reactable::colDef(
               header = withTooltip(
-                paste0("Mean ", databaseNames$databaseName[i]),
-                paste0("The mean of the covariate for database ", databaseNames$databaseName[i])
+                paste0(databaseNames$databaseName[i], ' %'),
+                paste0("The percentage of the target population in database ", databaseNames$databaseName[i], ' who had the covariate prior.')
               ),
               cell = function(value) {
-                if (value >= 0) round(value, digits = 3) else '< min threshold'
+                if (value >= 0) paste0(round(value*100, digits = 3),' %') else '< min threshold'
               }
             )
           })
@@ -160,8 +204,8 @@ characterizationDatabaseComparisonServer <- function(
           sumColumns <- lapply(1:nrow(databaseNames), function(i){
             reactable::colDef(
               header = withTooltip(
-                paste0("Sum ", databaseNames$databaseName[i]),
-                paste0("The sums of the covariate for database ", databaseNames$databaseName[i])
+                paste0(databaseNames$databaseName[i], " Count"),
+                paste0("The number of people in the target cohort in database ", databaseNames$databaseName[i], ' who have the covariate prior.')
               ),
               cell = function(value) {
                 if (value >= 0) value else '< min threshold'
@@ -169,54 +213,29 @@ characterizationDatabaseComparisonServer <- function(
             )
           })
           names(sumColumns) <- unlist(lapply(1:nrow(databaseNames), function(i) paste0('sumValue_',databaseNames$id[i])))
+        
           
-          columns <- append(
-            list(
-              covariateName = reactable::colDef(
-                header = withTooltip(
-                  "Covariate Name",
-                  "The name of the covariate"
-                )
-              ),
-              covariateId = reactable::colDef(
-                show = F,
-                header = withTooltip("Covariate ID",
-                                     "Unique identifier of the covariate")
-              )
-            ),
-            append(
-              sumColumns,
-              meanColumns
-            )
-          )
-          
+          resultTableServer(
+            id = 'countTable',
+            df = countTable, 
+            colDefsInput = characteriationCountTableColDefs()
+          ) 
           resultTableServer(
             id = 'mainTable',
             df = result$table,
-            colDefsInput = columns
-          ) 
-        } else{
-          shiny::showNotification('No results')
-          resultTableServer(
-            id = 'mainTable',
-            df = data.frame(),
-            colDefsInput = list(
-              covariateName = reactable::colDef(
-                header = withTooltip(
-                  "Covariate Name",
-                  "The name of the covariate"
-                )
-              ),
-              covariateId = reactable::colDef(
-                show = F,
-                header = withTooltip("Covariate ID",
-                                     "Unique identifier of the covariate")
+            colDefsInput = append(
+              characterizationCohortsColumns(),
+              append(
+                sumColumns,
+                meanColumns
               )
             )
-          ) 
-        }
-        
-        
+          )
+          resultTableServer(
+            id = 'continuousTable',
+            df = continuousTable,
+            colDefsInput = characterizationCohortsColumnsContinuous()
+          )
       })
       
     
@@ -240,7 +259,7 @@ characterizatonGetDatabaseComparisonData <- function(
     targetIds = targetIds,
     databaseIds = databaseIds,
     minThreshold = minThreshold,
-    addSMD = F # unless two databases?
+    addSMD = length(databaseIds) == 2
   )
   
   databaseNames <- connectionHandler$queryDb(

@@ -100,7 +100,7 @@ characterizationCohortComparisonServer <- function(
               size = 10,
               liveSearchStyle = "contains",
               liveSearchPlaceholder = "Type here to search",
-              virtualScroll = 50,
+              #virtualScroll = 50,
               #container = "div.tabbable",
               dropupAuto = FALSE
             )
@@ -155,8 +155,7 @@ characterizationCohortComparisonServer <- function(
         )
       })
       
-    
-
+  
       # show selected inputs to user
       inputSelectionDfServer(
         id = 'inputSelected', 
@@ -194,24 +193,14 @@ characterizationCohortComparisonServer <- function(
         )
         
         selection1 <- subTargetId()
-        #selection1 <- options[[parentIndex()]]$children[[which(subTargetIds == subTargetId())]]$charIds %>%
-        #  dplyr::filter(.data$databaseId == input$databaseId) %>%
-        #  dplyr::filter(.data$cohortType %in% c('T','O')) %>%
-        # dplyr::filter(.data$cohortDefinitionId == subTargetId()) # is this needed?
-        
-        #if(nrow(selection1) == 0){
+
         if(length(selection1) == 0){
           runTables <- FALSE
           shiny::showNotification('No results for section 1')
         }
         
         selection2 <- input$comparatorId
-        #selection2 <- options[[comparatorIndex()]]$children[[which(comparatorGroups() == input$comparatorId)]]$charIds %>%
-        #  dplyr::filter(.data$databaseId == input$databaseId) %>%
-        #  dplyr::filter(.data$cohortType %in% c('T','O')) %>%
-        #  dplyr::filter(.data$cohortDefinitionId == input$comparatorId)
-        
-        #if(nrow(selection2) == 0){
+ 
         if(length(selection2) == 0){
           runTables <- FALSE
           shiny::showNotification('No results for section 2')
@@ -219,14 +208,11 @@ characterizationCohortComparisonServer <- function(
 
         
         if(runTables){
-          resultTable <- characterizatonGetCohortComparisonData(
+          resultTable <- characterizatonGetCohortData(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            #targetId1 = selection1$charCohortId[1],
-            #targetId2 = selection2$charCohortId[1],
-            targetId1 = selection1,
-            targetId2 = selection2,
-            databaseId = input$databaseId,
+            targetIds = c(selection1,selection2),
+            databaseIds = input$databaseId,
             minThreshold = 0.01,
             addSMD = T
           )
@@ -234,59 +220,29 @@ characterizationCohortComparisonServer <- function(
           countTable <- characterizatonGetCohortCounts(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            #targetIds = c(selection1$charCohortId[1],selection2$charCohortId[1]),
             targetIds = c(selection1,selection2),
-            targetNames = c(
-              subTargetNames[which(subTargetIds == subTargetId())], # modified
-              names(comparatorGroups())[which(input$comparatorId== comparatorGroups())]
-            ),
-            databaseId = input$databaseId
+            databaseIds = input$databaseId
           )
-          
-          characteriationCountTableColDefs <- function(){
-            result <- list(
-              selection = reactable::colDef(
-                header = withTooltip("Selected Cohort",
-                                     "Which cohort of the above selections"),
-                filterable = T
-              ),
-              covariateName = reactable::colDef(
-                header = withTooltip("Covariate Name",
-                                     "Name of the covariate"),
-                filterable = T
-              ),
-              rowCount = reactable::colDef(
-                header = withTooltip("Record Count",
-                                     "Count of the number of records"),
-                filterable = T
-              ), 
-              personCount = reactable::colDef(
-                header = withTooltip("Person Count",
-                                     "Count of the number of persons"),
-                filterable = T
-              )
-            )
-            return(result)
-          }
-          
+        
           continuousTable <- characterizatonGetCohortComparisonDataContinuous(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            #targetIds = c(selection1$charCohortId[1],selection2$charCohortId[1]),
             targetIds = c(selection1,selection2),
-            databaseIds = rep(input$databaseId,2)
+            databaseIds = input$databaseId
           )
-          
+
           resultTableServer(
             id = 'mainTable',
             df = resultTable,
-            colDefsInput = characterizationCohortsColumns()
+            colDefsInput = characterizationCohortsColumns(
+              addExtras = T
+            )
           ) 
           
           resultTableServer(
             id = 'continuousTable',
             df = continuousTable,
-            colDefsInput = characterizationCohortsColumnsContinuous()
+            colDefsInput = characterizationCohortsColumnsContinuous(addExtras = T)
           ) 
           
           resultTableServer(
@@ -294,19 +250,7 @@ characterizationCohortComparisonServer <- function(
             df = countTable,
             colDefsInput = characteriationCountTableColDefs()
           )} 
-        # else{
-        #     resultTableServer(
-        #       id = 'mainTable',
-        #       df = data.frame(),
-        #       colDefsInput = columns
-        #     ) 
-        #     
-        #     resultTableServer(
-        #       id = 'countTable',
-        #       df = data.frame(),
-        #       colDefsInput = NULL
-        #     ) 
-        #   }
+        
       })
 
       return(invisible(NULL))
@@ -316,217 +260,327 @@ characterizationCohortComparisonServer <- function(
 }
 
 
-characterizationCohortsColumns <- function(x){
-  list(
-  covariateName = reactable::colDef(
-    header = withTooltip(
-      "Covariate Name",
-      "The name of the covariate"
-    )
-  ),
-  covariateId = reactable::colDef(
-    show = F,
-    header = withTooltip("Covariate ID",
-                         "Unique identifier of the covariate")
-  ),
-  firstVar = reactable::colDef(
-    show = F
-  ),
-  secondVar = reactable::colDef(
-    show = F
-  ),
-  sumValue_1 = reactable::colDef(
-    header = withTooltip("First Sum",
-                         "The total sum of the covariate for the first selected cohort."),
-    cell = function(value) {
-      if (value >= 0) value else '< min threshold'
-    }
-  ),
-  sumValue_2 = reactable::colDef(
-    header = withTooltip("Second Sum",
-                         "The total sum of the covariate for the second selected cohort."),
-    cell = function(value) {
-      if (value >= 0) value else '< min threshold'
-    }
-  ),
-  averageValue_1 = reactable::colDef(
-    header = withTooltip("First Mean",
-                         "The mean of the covariate for the first selected cohort."), 
-    cell = function(value) {
-      if (value >= 0) round(value, digits = 3) else '< min threshold'
-    }
-  ),
-  averageValue_2 = reactable::colDef(
-    header = withTooltip("Second Mean",
-                         "The mean of the covariate for the second selected cohort."),
-    cell = function(value) {
-      if (value >= 0) round(value, digits = 3) else '< min threshold'
-    }
-  ),
-  SMD = reactable::colDef(
-    header = withTooltip("SMD",
-                         "Standardized mean difference"),
-    format = reactable::colFormat(digits = 3)
-  ),
-  absSMD = reactable::colDef(
-    header = withTooltip("absSMD",
-                         "Absolute standardized mean difference"),
-    format = reactable::colFormat(digits = 3)
-  ),
-  analysisName = reactable::colDef(
-    header = withTooltip(
-      "Covariate Class",
-      "Class/type of the covariate"
-    )
-  )
+characterizationCohortsColumns <- function(
+    addExtras = F
+    ){
   
-  # add other columns
-)
-}
-
-characterizationCohortsColumnsContinuous <- function(x){
-  list(
+  res <- list(
     covariateName = reactable::colDef(
       header = withTooltip(
         "Covariate Name",
         "The name of the covariate"
-      )
+      ), 
+      minWidth = 300
     ),
     covariateId = reactable::colDef(
       show = F,
       header = withTooltip("Covariate ID",
                            "Unique identifier of the covariate")
     ),
-    countValue_1 = reactable::colDef(
-      header = withTooltip("First Count",
-                           "Number of people with the covariate for the first selected cohort."),
-      cell = function(value) {
-        if (value >= 0) value else '< min threshold'
-      }
-    ),
-    countValue_2 = reactable::colDef(
-      header = withTooltip("Second Count",
-                           "Number of people with the covariate for the second selected cohort."),
-      cell = function(value) {
-        if (value >= 0) value else '< min threshold'
-      }
-    ),
-    averageValue_1 = reactable::colDef(
-      header = withTooltip("First Mean",
-                           "The mean of the covariate for the first selected cohort."), 
-      cell = function(value) {
-        if (value >= 0) round(value, digits = 3) else '< min threshold'
-      }
-    ),
-    averageValue_2 = reactable::colDef(
-      header = withTooltip("Second Mean",
-                           "The mean of the covariate for the second selected cohort."),
-      cell = function(value) {
-        if (value >= 0) round(value, digits = 3) else '< min threshold'
-      }
-    ),
-    standardDeviation_1 = reactable::colDef(
-      header = withTooltip("First StDev",
-                           "The standard deviation of the covariate for the first selected cohort."), 
-      cell = function(value) {
-        if (value >= 0) round(value, digits = 3) else '< min threshold'
-      }
-    ),
-    standardDeviation_2 = reactable::colDef(
-      header = withTooltip("Second StDev",
-                           "The standard deviation of the covariate for the second selected cohort."),
-      cell = function(value) {
-        if (value >= 0) round(value, digits = 3) else '< min threshold'
-      }
-    ),
-    medianValue_1 = reactable::colDef(
-      header = withTooltip("First Median",
-                           "The median of the covariate for the first selected cohort."), 
-      cell = function(value) {
-        round(value, digits = 3)
-      }
-    ),
-    medianValue_2 = reactable::colDef(
-      header = withTooltip("Second Median",
-                           "The median of the covariate for the second selected cohort."),
-      cell = function(value) {
-        round(value, digits = 3)
-      }
-    ),
+    minPriorObservation = reactable::colDef(
+      header = withTooltip(
+        "Min Prior Obs",
+        "The minimum prior observation a patient in the target 
+        population must have to be included."),
+      filterable = T
+    ), 
     SMD = reactable::colDef(
       header = withTooltip("SMD",
-                           "Standardized mean difference"),
+                           "Standardized mean difference between the target and comparator percentages"),
       format = reactable::colFormat(digits = 3)
     ),
     absSMD = reactable::colDef(
       header = withTooltip("absSMD",
-                           "Absolute standardized mean difference"),
+                           "Absolute standardized mean difference between the target and comparator percentages"),
       format = reactable::colFormat(digits = 3)
     ),
-    minValue_2 = reactable::colDef(
-      header = withTooltip("Second Min Value",
-                           "Minimum value of the second selected cohort"),
-      format = reactable::colFormat(digits = 3)
-    ),
-    minValue_1 = reactable::colDef(
-      header = withTooltip("First Min Value",
-                           "Minimum value of the first selected cohort"),
-      format = reactable::colFormat(digits = 3)
-    ),
-    maxValue_2 = reactable::colDef(
-      header = withTooltip("Second Max Value",
-                           "Maximum value of the second selected cohort"),
-      format = reactable::colFormat(digits = 3)
-    ),
-    maxValue_1 = reactable::colDef(
-      header = withTooltip("First Max Value",
-                           "Maximum value of the first selected cohort"),
-      format = reactable::colFormat(digits = 3)
-    ),
-    p25Value_2 = reactable::colDef(
-      header = withTooltip("Second 25th %tile",
-                           "25th percentile value of the second selected cohort"),
-      format = reactable::colFormat(digits = 3)
-    ),
-    p25Value_1 = reactable::colDef(
-      header = withTooltip("First 25th %tile",
-                           "25th percentile value of the first selected cohort"),
-      format = reactable::colFormat(digits = 3)
-    ),
-    p75Value_2 = reactable::colDef(
-      header = withTooltip("Second 75th %tile",
-                           "75th percentile value of the second selected cohort"),
-      format = reactable::colFormat(digits = 3)
-    ),
-    p75Value_1 = reactable::colDef(
-      header = withTooltip("First 75th %tile",
-                           "75th percentile value of the first selected cohort"),
-      format = reactable::colFormat(digits = 3)
+    analysisName = reactable::colDef(
+      header = withTooltip(
+        "Covariate Class",
+        "Class/type of the covariate"
+      )
     )
-    
-    # add other columns
-  )
-}
-
-characterizatonGetCohortComparisonData <- function(
-    connectionHandler,
-    resultDatabaseSettings,
-    targetId1,
-    targetId2,
-    databaseId,
-    minThreshold, 
-    addSMD
-){
-  result <- characterizatonGetCohortData(
-    connectionHandler = connectionHandler,
-    resultDatabaseSettings = resultDatabaseSettings,
-    targetIds = c(targetId1, targetId2),
-    databaseIds = c(databaseId,databaseId),
-    minThreshold = minThreshold, 
-    addSMD = addSMD
   )
   
+  if(addExtras){
+    res <- append(
+      res,
+      list(
+        sumValue_1 = reactable::colDef(
+          header = withTooltip("Target Sum",
+                               "The total sum of the covariate for the target cohort."),
+          cell = function(value) {
+            if (value >= 0) value else '< min threshold'
+          }
+        ),
+        sumValue_2 = reactable::colDef(
+          header = withTooltip("Compatator Sum",
+                               "The total sum of the covariate for the comparator cohort."),
+          cell = function(value) {
+            if (value >= 0) value else '< min threshold'
+          }
+        ),
+        averageValue_1 = reactable::colDef(
+          header = withTooltip("Target %",
+                               "The percentage of the target cohort who had the covariate prior to index."), 
+          cell = function(value) {
+            if (value >= 0) paste0(round(value*100, digits = 3),'%') else '< min threshold'
+          }
+        ),
+        averageValue_2 = reactable::colDef(
+          header = withTooltip("Comparator %",
+                               "The percentage of the comparator cohort who had the covariate prior to index"),
+          cell = function(value) {
+            if (value >= 0) paste0(round(value*100, digits = 3),'%') else '< min threshold'
+          }
+        )
+      )
+      )
+  }
+  return(res)
+}
+
+characteriationCountTableColDefs <- function(
+    ){
+  result <- list(
+    selection = reactable::colDef(
+      filterable = T
+    ),
+    cohortName = reactable::colDef(
+      header = withTooltip("Cohort",
+                           "Name of the cohort"),
+      filterable = T
+    ),
+    minPriorObservation = reactable::colDef(
+      header = withTooltip(
+        "Min Prior Obs",
+        "The minimum prior observation a patient in the target 
+        population must have to be included."),
+      filterable = T
+    ), 
+    rowCount = reactable::colDef(
+      header = withTooltip("Record Count",
+                           "Count of the number of records"),
+      filterable = T
+    ), 
+    personCount = reactable::colDef(
+      header = withTooltip("Person Count",
+                           "Count of the number of persons"),
+      filterable = T
+    )
+  )
   return(result)
+}
+
+characterizationCohortsColumnsContinuous <- function(
+    addExtras = F
+  ){
+  res <- list(
+    covariateName = reactable::colDef(
+      header = withTooltip(
+        "Covariate Name",
+        "The name of the covariate"
+      ), 
+      filterable = T, 
+      minWidth = 300,
+    ),
+    databaseName = reactable::colDef(
+      header = withTooltip(
+        "Database",
+        "The name of the database"
+      ), 
+      filterable = T
+    ),
+    covariateId = reactable::colDef(
+      show = F,
+      header = withTooltip("Covariate ID",
+                           "Unique identifier of the covariate")
+    ),
+    minPriorObservation = reactable::colDef(
+      header = withTooltip(
+        "Min Prior Obs",
+        "The minimum prior observation a patient in the target 
+        population must have to be included."),
+      filterable = T
+    ), 
+    outcomeWashoutPeriod = reactable::colDef(
+      show = F
+      ),
+    countValue = reactable::colDef(
+      header = withTooltip("Count",
+                           "Number of people with the covariate in the cohort."),
+      cell = function(value) {
+        if (value >= 0) value else '< min threshold'
+      }
+    ),
+    averageValue = reactable::colDef(
+      header = withTooltip("Mean",
+                           "The mean value of the covariate in the cohort"),
+      cell = function(value) {
+        if (value >= 0) round(value, digits = 3) else '< min threshold'
+      }
+    ),
+    standardDeviation = reactable::colDef(
+      header = withTooltip("StDev",
+                           "The standard deviation value of the covariate in the cohort"),
+      cell = function(value) {
+        if (value >= 0) round(value, digits = 3) else '< min threshold'
+      }
+    ),
+    medianValue = reactable::colDef(
+      header = withTooltip("Median",
+                           "The median value of the covariate in the cohort."),
+      cell = function(value) {
+        round(value, digits = 3)
+      }
+    ),
+    minValue = reactable::colDef(
+      header = withTooltip("Min Value",
+                           "Minimum value of the covariate in the cohort"),
+      format = reactable::colFormat(digits = 3)
+    ),
+    maxValue = reactable::colDef(
+      header = withTooltip("Max Value",
+                           "Maximum value the covariate in the cohort"),
+      format = reactable::colFormat(digits = 3)
+    ),
+    p25Value = reactable::colDef(
+      header = withTooltip("25th %tile",
+                           "25th percentile value of the covariate in the cohort"),
+      format = reactable::colFormat(digits = 3)
+    ),
+    p75Value = reactable::colDef(
+      header = withTooltip("75th %tile",
+                           "75th percentile value of the covariate in the cohort"),
+      format = reactable::colFormat(digits = 3)
+    ),
+    p10Value = reactable::colDef(
+      header = withTooltip("10th %tile",
+                           "10th percentile value of the covariate in the cohort"),
+      format = reactable::colFormat(digits = 3)
+    ),
+    p90Value = reactable::colDef(
+      header = withTooltip("90th %tile",
+                           "90th percentile value of the covariate in the cohort"),
+      format = reactable::colFormat(digits = 3)
+    )
+  )
+  
+  if(addExtras){
+    res <- append(
+      res,
+      list(
+        SMD = reactable::colDef(
+          header = withTooltip("SMD",
+                               "Standardized mean difference"),
+          format = reactable::colFormat(digits = 3)
+        ),
+        absSMD = reactable::colDef(
+          header = withTooltip("absSMD",
+                               "Absolute standardized mean difference"),
+          format = reactable::colFormat(digits = 3)
+        ),
+        countValue_1 = reactable::colDef(
+          header = withTooltip("Target Count",
+                               "Number of people with the covariate for the target cohort."),
+          cell = function(value) {
+            if (value >= 0) value else '< min threshold'
+          }
+        ),
+        countValue_2 = reactable::colDef(
+          header = withTooltip("Comparator Count",
+                               "Number of people with the covariate for the comparator cohort."),
+          cell = function(value) {
+            if (value >= 0) value else '< min threshold'
+          }
+        ),
+        averageValue_1 = reactable::colDef(
+          header = withTooltip("Target Mean",
+                               "The mean of the covariate for the target cohort."), 
+          cell = function(value) {
+            if (value >= 0) round(value, digits = 3) else '< min threshold'
+          }
+        ),
+        averageValue_2 = reactable::colDef(
+          header = withTooltip("Comparator Mean",
+                               "The mean of the covariate for the comparator cohort."),
+          cell = function(value) {
+            if (value >= 0) round(value, digits = 3) else '< min threshold'
+          }
+        ),
+        standardDeviation_1 = reactable::colDef(
+          header = withTooltip("Target StDev",
+                               "The standard deviation of the covariate for the target cohort."), 
+          cell = function(value) {
+            if (value >= 0) round(value, digits = 3) else '< min threshold'
+          }
+        ),
+        standardDeviation_2 = reactable::colDef(
+          header = withTooltip("Comparator StDev",
+                               "The standard deviation of the covariate for the comparator cohort."),
+          cell = function(value) {
+            if (value >= 0) round(value, digits = 3) else '< min threshold'
+          }
+        ),
+        medianValue_1 = reactable::colDef(
+          header = withTooltip("Target Median",
+                               "The median of the covariate for the target cohort."), 
+          cell = function(value) {
+            round(value, digits = 3)
+          }
+        ),
+        medianValue_2 = reactable::colDef(
+          header = withTooltip("Comparator Median",
+                               "The median of the covariate for the comparator cohort."),
+          cell = function(value) {
+            round(value, digits = 3)
+          }
+        ),
+        minValue_2 = reactable::colDef(
+          header = withTooltip("Comparator Min Value",
+                               "Minimum value of the comparator cohort"),
+          format = reactable::colFormat(digits = 3)
+        ),
+        minValue_1 = reactable::colDef(
+          header = withTooltip("Target Min Value",
+                               "Minimum value of the target cohort"),
+          format = reactable::colFormat(digits = 3)
+        ),
+        maxValue_2 = reactable::colDef(
+          header = withTooltip("Comparator Max Value",
+                               "Maximum value of the comparator cohort"),
+          format = reactable::colFormat(digits = 3)
+        ),
+        maxValue_1 = reactable::colDef(
+          header = withTooltip("Target Max Value",
+                               "Maximum value of the target cohort"),
+          format = reactable::colFormat(digits = 3)
+        ),
+        p25Value_2 = reactable::colDef(
+          header = withTooltip("Comparator 25th %tile",
+                               "25th percentile value of the comparator cohort"),
+          format = reactable::colFormat(digits = 3)
+        ),
+        p25Value_1 = reactable::colDef(
+          header = withTooltip("Target 25th %tile",
+                               "25th percentile value of the target cohort"),
+          format = reactable::colFormat(digits = 3)
+        ),
+        p75Value_2 = reactable::colDef(
+          header = withTooltip("Comparator 75th %tile",
+                               "75th percentile value of the comparator cohort"),
+          format = reactable::colFormat(digits = 3)
+        ),
+        p75Value_1 = reactable::colDef(
+          header = withTooltip("Target 75th %tile",
+                               "75th percentile value of the target cohort"),
+          format = reactable::colFormat(digits = 3)
+        )
+      )
+    )
+  }
+  
+  return(res)
 }
 
 
@@ -534,55 +588,57 @@ characterizatonGetCohortCounts <- function(
     connectionHandler,
     resultDatabaseSettings,
     targetIds,
-    targetNames,
-    databaseId
+    databaseIds
 ){
   
   start <- Sys.time()
   result <- connectionHandler$queryDb(
     sql = "
-select  distinct cc.target_cohort_id as cohort_definition_id,
+select  distinct 
+        cc.target_cohort_id as cohort_definition_id,
         cc.min_prior_observation,
         cc.row_count,
-        cc.person_count
-       from 
+        cc.person_count,
+        d.cdm_source_abbreviation as database_name,
+        d.database_id,
+        cg.cohort_name 
+  from 
+  @schema.@database_table d
+  inner join
   @schema.@c_table_prefixcohort_counts cc 
-  where 
+  on d.database_id = cc.database_id
+  inner join
+  @schema.@cg_table_prefixcohort_definition cg
+  on cg.cohort_definition_id = cc.target_cohort_id
+  
+  where
   cc.target_cohort_id in (@target_ids) 
   and cc.cohort_type = 'Target'
-  AND cc.database_id = '@database_id'
-  
-  union
-  
-  select  cc.outcome_cohort_id as cohort_definition_id,
-        cc.min_prior_observation,
-        cc.row_count,
-        cc.person_count
-       from 
-  @schema.@c_table_prefixcohort_counts cc 
-  where 
-  cc.outcome_cohort_id in (@target_ids) 
-  and cc.cohort_type = 'Outcome'
-  AND cc.database_id = '@database_id'
+  AND cc.database_id in (@database_ids)
   ;
   ", 
     schema = resultDatabaseSettings$schema, 
     c_table_prefix = resultDatabaseSettings$cTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
     target_ids =   paste0(targetIds, collapse= ','),
-    database_id = databaseId
+    database_ids = paste0("'",databaseIds,"'",collapse= ','), 
+    database_table = resultDatabaseSettings$databaseTable
   )
   end <- Sys.time() - start 
   message(paste0('Extracting ', nrow(result) ,' cohort count rows took: ', round(end, digits = 2), ' ', units(end)))
   
+  if(length(targetIds)>1){
   result <- merge(
     x = result,
     y = data.frame(
-      selection = c('First','Second'),
-      cohortDefinitionId = targetIds,
-      cohortName = targetNames
+      selection = c('Target','Comparator'),
+      cohortDefinitionId = targetIds
     ), 
     by = 'cohortDefinitionId'
   )
+  } else{
+    result$selection <- result$databaseName
+  }
   
   result <- result %>% dplyr::select(
     'selection',
@@ -616,19 +672,14 @@ characterizatonGetCohortData <- function(
     shiny::incProgress(1/4, detail = paste("Setting types"))
     
     types <- data.frame(
-      type = 1:length(targetIds),
-      cohortDefinitionId = targetIds,
-      databaseId = databaseIds
+      type = 1:(length(targetIds)*length(databaseIds)),
+      cohortDefinitionId = rep(targetIds, length(databaseIds)),
+      databaseId = rep(databaseIds, length(targetIds))
     )
-    
-    # 
     
     shiny::incProgress(2/4, detail = paste("Extracting data"))
     
-    sql <- paste0(
-      paste0(
-        paste0(
-          "select  ref.covariate_name, 
+    sql <- "select  ref.covariate_name, 
           s.min_prior_observation,
           cov.target_cohort_id as cohort_definition_id,
           cov.* from   
@@ -644,24 +695,21 @@ characterizatonGetCohortData <- function(
     and s.setting_id = cov.setting_id
     
     where 
-    (cov.target_cohort_id = @target_id",1:length(targetIds),
-    " and cov.cohort_type = 'Target') 
-     AND cov.database_id = '@database_id",1:length(targetIds),"'
-     AND cov.average_value >= @min_threshold"
-        ), collapse = ' union '
-      ),';'
-    )
-    
-    inputList <- as.list(c(targetIds, databaseIds))
-    names(inputList) <- c(paste0('target_id', 1:length(targetIds)), paste0('database_id', 1:length(databaseIds)))
-    inputList$sql <- sql
-    inputList$schema <- resultDatabaseSettings$schema
-    inputList$c_table_prefix <- resultDatabaseSettings$cTablePrefix
-    inputList$min_threshold <- minThreshold
-    
+    cov.target_cohort_id in (@target_ids) 
+    and cov.cohort_type = 'Target'
+    AND cov.database_id in (@database_ids)
+    AND cov.average_value >= @min_threshold;"
+          
     start <- Sys.time()
     # settings.min_characterization_mean needed?
-    res <- do.call(what = connectionHandler$queryDb, args = inputList)
+    res <- connectionHandler$queryDb(
+      sql = sql,
+      target_ids = paste0(targetIds, collapse = ','),
+      database_ids = paste0("'",databaseIds,"'", collapse = ','),
+      schema = resultDatabaseSettings$schema,
+      c_table_prefix = resultDatabaseSettings$cTablePrefix,
+      min_threshold = minThreshold
+    )
     end <- Sys.time() - start 
     shiny::incProgress(3/4, detail = paste("Extracted data"))
     message(paste0('Extracting ', nrow(res) ,' characterization cohort rows took: ', round(end, digits = 2), ' ', units(end)))
@@ -683,13 +731,18 @@ characterizatonGetCohortData <- function(
       # TODO get min_characterization_mean from settings table
       # minCharacterizationMean <- minThreshold
       # add SMD
-      convertMissing <- function(vec){sapply(vec, function(x) ifelse(x==-1, minThreshold, x))}
-      result$firstVar <- convertMissing(result$averageValue_1)*(1-convertMissing(result$averageValue_1))^2
-      result$secondVar <- convertMissing(result$averageValue_2)*(1-convertMissing(result$averageValue_2))^2
-      result$SMD <- (convertMissing(result$averageValue_1) - convertMissing(result$averageValue_2))/(sqrt((result$firstVar+result$secondVar)/2))
-      result$absSMD <- abs(result$SMD)
+      if(sum(c('averageValue_1','averageValue_2') %in% colnames(result)) == 2){
+        convertMissing <- function(vec){sapply(vec, function(x) ifelse(x==-1, minThreshold, x))}
+        result$firstVar <- convertMissing(result$averageValue_1)*(1-convertMissing(result$averageValue_1))^2
+        result$secondVar <- convertMissing(result$averageValue_2)*(1-convertMissing(result$averageValue_2))^2
+        result$SMD <- (convertMissing(result$averageValue_1) - convertMissing(result$averageValue_2))/(sqrt((result$firstVar+result$secondVar)/2))
+        result$absSMD <- abs(result$SMD)
+        result <- result %>% dplyr::select(-"firstVar",-"secondVar")
+        
+      } else{
+        shiny::showNotification('Unable to add SMD due to missing columns')
+      }
     }
-    
     shiny::incProgress(4/4, detail = paste("Done"))
   })
   
@@ -701,33 +754,36 @@ characterizatonGetCohortComparisonDataContinuous <- function(
   connectionHandler,
   resultDatabaseSettings,
   targetIds,
-  databaseIds
+  databaseIds,
+  pivot = T
 ){
-  
+
   if(is.null(targetIds) |  is.null(databaseIds)){
     warning('Ids cannot be NULL')
     return(NULL)
   }
+  targetIds <- unique(targetIds)
+  databaseIds <- unique(databaseIds)
   
   shiny::withProgress(message = 'characterizatonGetCohortDataContinuous', value = 0, {
     
     shiny::incProgress(1/4, detail = paste("Setting types"))
     
     types <- data.frame(
-      type = 1:length(targetIds),
-      cohortDefinitionId = targetIds,
-      databaseId = databaseIds
+      type = 1:(length(targetIds)*length(databaseIds)),
+      cohortDefinitionId = rep(targetIds, length(databaseIds)),
+      databaseId = rep(databaseIds, length(targetIds))
     )
     
     shiny::incProgress(2/4, detail = paste("Extracting data"))
     
-    sql <- paste0(
-      paste0(
-        paste0(
-          "select  ref.covariate_name, 
+    sql <- "select  ref.covariate_name, 
           s.min_prior_observation,
           cov.target_cohort_id as cohort_definition_id,
-          cov.* from   
+          cov.*,
+          d.CDM_SOURCE_ABBREVIATION as database_name
+          
+          from   
     @schema.@c_table_prefixCOVARIATES_continuous cov 
     inner join 
     @schema.@c_table_prefixcovariate_ref ref
@@ -738,59 +794,66 @@ characterizatonGetCohortComparisonDataContinuous <- function(
     @schema.@c_table_prefixsettings s 
     on cov.setting_id = s.setting_id
     and cov.database_id = s.database_id
+    inner join @schema.@database_meta_table d 
+    on s.database_id = d.database_id
     
     where 
-    (cov.target_cohort_id = @target_id",1:length(targetIds),
-          " and cov.cohort_type = 'Target') 
-     AND cov.database_id = '@database_id",1:length(targetIds),"'
-     "
-        ), collapse = ' union '
-      ),';'
-    )
-    
-    inputList <- as.list(c(targetIds, databaseIds))
-    names(inputList) <- c(paste0('target_id', 1:length(targetIds)), paste0('database_id', 1:length(databaseIds)))
-    inputList$sql <- sql
-    inputList$schema <- resultDatabaseSettings$schema
-    inputList$c_table_prefix <- resultDatabaseSettings$cTablePrefix
+    cov.target_cohort_id in (@target_ids) 
+    and cov.cohort_type = 'Target'
+    AND cov.database_id in (@database_ids);"
     
     start <- Sys.time()
     # settings.min_characterization_mean needed?
-    res <- do.call(what = connectionHandler$queryDb, args = inputList)
+    res <- connectionHandler$queryDb(
+      sql = sql,
+      target_ids = paste0(targetIds, collapse = ','),
+      database_ids = paste0("'",databaseIds,"'", collapse = ','),
+      schema = resultDatabaseSettings$schema,
+      c_table_prefix = resultDatabaseSettings$cTablePrefix,
+      database_meta_table = resultDatabaseSettings$databaseTable
+    )
     end <- Sys.time() - start 
     shiny::incProgress(3/4, detail = paste("Extracted data"))
-    message(paste0('Extracting ', nrow(res) ,' characterization cohort rows took: ', round(end, digits = 2), ' ', units(end)))
+    message(paste0('Extracting ', nrow(res) ,' continuous characterization cohort rows took: ', round(end, digits = 2), ' ', units(end)))
     
     # add the first/section type
     res <- merge(res, types, by = c('cohortDefinitionId','databaseId'))
     
-    # pivot
-    result <- tidyr::pivot_wider(
-      data = res, 
-      id_cols = c('covariateName', 'covariateId','minPriorObservation'), 
-      names_from = 'type', 
-      values_from = c('countValue', 'averageValue', 'standardDeviation', 'medianValue','minValue', 'maxValue', 'p25Value','p75Value'), 
-      values_fn = mean, 
-      values_fill = -1
-    ) 
-    
-    # if both have results then add SMD
-    if(length(unique(res$type)) > 1){
-      result <- result %>% 
-        dplyr::mutate(
-          SMD = (.data$averageValue_1-.data$averageValue_2)/(sqrt((.data$standardDeviation_1^2 + .data$standardDeviation_2^2)/2))
-        ) %>%
-        dplyr::mutate(
-          absSMD = abs(.data$SMD)
-        )
+    if(pivot){
+      # if pivot
+      res <- tidyr::pivot_wider(
+        data = res, 
+        id_cols = c('covariateName', 'covariateId','minPriorObservation'), 
+        names_from = 'type', 
+        values_from = c('countValue', 'averageValue', 'standardDeviation', 'medianValue','minValue', 'maxValue', 'p25Value','p75Value'), 
+        values_fn = mean, 
+        values_fill = -1
+      ) 
+      
+      # if both have results then add SMD
+      if(length(unique(res$type)) == 2){
+        res <- res %>% 
+          dplyr::mutate(
+            SMD = (.data$averageValue_1-.data$averageValue_2)/(sqrt((.data$standardDeviation_1^2 + .data$standardDeviation_2^2)/2))
+          ) %>%
+          dplyr::mutate(
+            absSMD = abs(.data$SMD)
+          )
+      }
+    } else{
+      # if multiple databases make the type the databaseName
+      res$type <- res$databaseName
+      res <- res %>% dplyr::select(-"cohortDefinitionId", -"databaseId", -"type",
+                                   -"settingId", -"targetCohortId", -"outcomeCohortId", 
+                                   -"cohortType") %>%
+        dplyr::relocate(.data$databaseName, .after = .data$covariateName)
     }
     
     shiny::incProgress(4/4, detail = paste("Done"))
   })
   
-  return(result)
+  return(res)
 }
-
 
 
 characterizationGetCohortsInputs <- function(
@@ -798,7 +861,7 @@ characterizationGetCohortsInputs <- function(
     resultDatabaseSettings,
     targetId # reactive
 ) {
-
+  
   sql <- "select distinct 
   d.database_id, d.cdm_source_abbreviation as database_name
   from @schema.@database_table d
@@ -819,7 +882,7 @@ characterizationGetCohortsInputs <- function(
   )
   databaseIds <- database$databaseId
   names(databaseIds) <- database$databaseName
-
+  
   return(
     list(
       databaseIds = databaseIds
