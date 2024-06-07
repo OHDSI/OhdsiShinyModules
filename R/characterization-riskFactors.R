@@ -688,9 +688,9 @@ characteriationRiskFactorColDefs <- function(
         oninput <- sprintf("Reactable.setFilter('%s', '%s', this.value)", elementId, name)
         shiny::tags$input(
           type = "range",
-          min = floor(min(values)),
-          max = ceiling(max(values)),
-          value = floor(min(values)),
+          min = floor(min(values, na.rm = T)),
+          max = ceiling(max(values, na.rm = T)),
+          value = floor(min(values, na.rm = T)),
           oninput = oninput,
           onchange = oninput, # For IE11 support
           "aria-label" = sprintf("Filter by minimum %s", name)
@@ -936,9 +936,9 @@ characteriationRiskFactorContColDefs <- function(
         oninput <- sprintf("Reactable.setFilter('%s', '%s', this.value)", elementId, name)
         shiny::tags$input(
           type = "range",
-          min = floor(min(values)),
-          max = ceiling(max(values)),
-          value = floor(min(values)),
+          min = floor(min(values, na.rm = T)),
+          max = ceiling(max(values, na.rm = T)),
+          value = floor(min(values, na.rm = T)),
           oninput = oninput,
           onchange = oninput, # For IE11 support
           "aria-label" = sprintf("Filter by minimum %s", name)
