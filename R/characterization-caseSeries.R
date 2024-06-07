@@ -125,15 +125,21 @@ characterizationCaseSeriesServer <- function(
         binTableOutputs <- resultTableServer(
           id = "binaryTable", 
           df = allData$binary,
-          colDefsInput = colDefsBinary(), # function below
-          addActions = NULL
+          colDefsInput = colDefsBinary(
+            elementId = session$ns('binary-table-filter')
+          ), # function below
+          addActions = NULL,
+          elementId = session$ns('binary-table-filter')
         )
         
         conTableOutputs <- resultTableServer(
           id = "continuousTable", 
           df = allData$continuous,
-          colDefsInput = colDefsContinuous(), # function below
-          addActions = NULL
+          colDefsInput = colDefsContinuous(
+            elementId = session$ns('continuous-table-filter')
+          ), # function below
+          addActions = NULL,
+          elementId = session$ns('continuous-table-filter')
         )
         
       })
@@ -382,7 +388,9 @@ caseSeriesTable <- function(
   return(allResults)
 }
 
-colDefsBinary <- function(){
+colDefsBinary <- function(
+    elementId
+    ){
   result <- list(
     covariateName = reactable::colDef(
       header = withTooltip("Covariate Name",
@@ -396,12 +404,34 @@ colDefsBinary <- function(){
     minPriorObservation = reactable::colDef(
       header = withTooltip("Min Prior Observation",
                            "Minimum prior observation time (days)"),
-      filterable = T
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
     ), 
     outcomeWashoutDays = reactable::colDef(
       header = withTooltip("Outcome Washout Days",
                            "Number of days for the outcome washout"),
-      filterable = T
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
     ),
     casePostOutcomeDuration = reactable::colDef(
       header = withTooltip("Days Post-outcome Covariate Window",
@@ -466,10 +496,11 @@ colDefsBinary <- function(){
     ), 
     
     analysisName = reactable::colDef(
+      filterable = T,
       filterInput = function(values, name) {
         shiny::tags$select(
           # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('desc-cont-select', '%s', event.target.value || undefined)", name),
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
           # "All" has an empty value to clear the filter, and is the default option
           shiny::tags$option(value = "", "All"),
           lapply(unique(values), shiny::tags$option),
@@ -482,7 +513,9 @@ colDefsBinary <- function(){
   return(result)
 }
 
-colDefsContinuous <- function(){
+colDefsContinuous <- function(
+    elementId
+    ){
   result <- list(
     cohortDefinitionId = reactable::colDef(
       header = withTooltip("Cohort ID",
@@ -492,7 +525,18 @@ colDefsContinuous <- function(){
     type = reactable::colDef(
       header = withTooltip("Time of Cases Relative to Index",
                            "Time period relative to index date for cases for the covariate"),
-      filterable = T
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
     ),
     covariateName = reactable::colDef(
       header = withTooltip("Covariate Name",
@@ -506,22 +550,66 @@ colDefsContinuous <- function(){
     minPriorObservation = reactable::colDef(
       header = withTooltip("Min Prior Observation",
                            "Minimum prior observation time (days)"),
-      filterable = T
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
     ), 
     outcomeWashoutDays = reactable::colDef(
       header = withTooltip("Outcome Washout Days",
                            "Number of days for the outcome washout"),
-      filterable = T
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
     ),
     casePostOutcomeDuration = reactable::colDef(
       header = withTooltip("Days Post-outcome Covariate Window",
                            "Number of days after the outcome we look for the covariate"),
-      filterable = T
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
     ), 
     casePreTargetDuration = reactable::colDef(
       header = withTooltip("Days Pre-exposure Covariate Window",
                            "Number of days before the exposure we look for the covariate"),
-      filterable = T
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
     ),
     countValue = reactable::colDef(
       header = withTooltip("# Cases with Feature",

@@ -235,20 +235,29 @@ characterizationCohortComparisonServer <- function(
             id = 'mainTable',
             df = resultTable,
             colDefsInput = characterizationCohortsColumns(
-              addExtras = T
-            )
+              addExtras = T,
+              elementId = session$ns('main-table-filter')
+            ), 
+            elementId = session$ns('main-table-filter')
           ) 
           
           resultTableServer(
             id = 'continuousTable',
             df = continuousTable,
-            colDefsInput = characterizationCohortsColumnsContinuous(addExtras = T)
+            colDefsInput = characterizationCohortsColumnsContinuous(
+              addExtras = T,
+              elementId = session$ns('continuous-table-filter')
+              ),
+            elementId = session$ns('continuous-table-filter')
           ) 
           
           resultTableServer(
             id = 'countTable',
             df = countTable,
-            colDefsInput = characteriationCountTableColDefs()
+            colDefsInput = characteriationCountTableColDefs(
+              elementId = session$ns('count-table-filter')
+            ),
+            elementId = session$ns('count-table-filter')
           )} 
         
       })
@@ -261,7 +270,8 @@ characterizationCohortComparisonServer <- function(
 
 
 characterizationCohortsColumns <- function(
-    addExtras = F
+    addExtras = F,
+    elementId 
     ){
   
   res <- list(
@@ -282,7 +292,18 @@ characterizationCohortsColumns <- function(
         "Min Prior Obs",
         "The minimum prior observation a patient in the target 
         population must have to be included."),
-      filterable = T
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
     ), 
     SMD = reactable::colDef(
       header = withTooltip("SMD",
@@ -292,7 +313,25 @@ characterizationCohortsColumns <- function(
     absSMD = reactable::colDef(
       header = withTooltip("absSMD",
                            "Absolute standardized mean difference between the target and comparator percentages"),
-      format = reactable::colFormat(digits = 3)
+      format = reactable::colFormat(digits = 3),
+      filterable = TRUE,
+      filterMethod = reactable::JS("function(rows, columnId, filterValue) {
+        return rows.filter(function(row) {
+          return row.values[columnId] >= filterValue
+        })
+      }"),
+      filterInput = function(values, name) {
+        oninput <- sprintf("Reactable.setFilter('%s', '%s', this.value)", elementId, name)
+        shiny::tags$input(
+          type = "range",
+          min = floor(min(values)),
+          max = ceiling(max(values)),
+          value = floor(min(values)),
+          oninput = oninput,
+          onchange = oninput, # For IE11 support
+          "aria-label" = sprintf("Filter by minimum %s", name)
+        )
+      }
     ),
     analysisName = reactable::colDef(
       header = withTooltip(
@@ -341,6 +380,7 @@ characterizationCohortsColumns <- function(
 }
 
 characteriationCountTableColDefs <- function(
+    elementId
     ){
   result <- list(
     selection = reactable::colDef(
@@ -356,7 +396,18 @@ characteriationCountTableColDefs <- function(
         "Min Prior Obs",
         "The minimum prior observation a patient in the target 
         population must have to be included."),
-      filterable = T
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
     ), 
     rowCount = reactable::colDef(
       header = withTooltip("Record Count",
@@ -373,7 +424,8 @@ characteriationCountTableColDefs <- function(
 }
 
 characterizationCohortsColumnsContinuous <- function(
-    addExtras = F
+    addExtras = F,
+    elementId
   ){
   res <- list(
     covariateName = reactable::colDef(
@@ -389,7 +441,18 @@ characterizationCohortsColumnsContinuous <- function(
         "Database",
         "The name of the database"
       ), 
-      filterable = T
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
     ),
     covariateId = reactable::colDef(
       show = F,
@@ -401,7 +464,18 @@ characterizationCohortsColumnsContinuous <- function(
         "Min Prior Obs",
         "The minimum prior observation a patient in the target 
         population must have to be included."),
-      filterable = T
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
     ), 
     outcomeWashoutPeriod = reactable::colDef(
       show = F
@@ -411,6 +485,18 @@ characterizationCohortsColumnsContinuous <- function(
                            "Number of people with the covariate in the cohort."),
       cell = function(value) {
         if (value >= 0) value else '< min threshold'
+      },
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
       }
     ),
     averageValue = reactable::colDef(

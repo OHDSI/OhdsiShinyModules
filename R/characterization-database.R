@@ -218,23 +218,33 @@ characterizationDatabaseComparisonServer <- function(
           resultTableServer(
             id = 'countTable',
             df = countTable, 
-            colDefsInput = characteriationCountTableColDefs()
+            colDefsInput = characteriationCountTableColDefs(
+              elementId = session$ns('count-table-filter')
+            ),
+            elementId = session$ns('count-table-filter')
           ) 
           resultTableServer(
             id = 'mainTable',
             df = result$table,
             colDefsInput = append(
-              characterizationCohortsColumns(),
+              characterizationCohortsColumns(
+                elementId = session$ns('main-table-filter')
+              ),
               append(
                 sumColumns,
                 meanColumns
               )
-            )
+            ),
+            elementId = session$ns('main-table-filter')
           )
+          
           resultTableServer(
             id = 'continuousTable',
             df = continuousTable,
-            colDefsInput = characterizationCohortsColumnsContinuous()
+            colDefsInput = characterizationCohortsColumnsContinuous(
+              elementId = session$ns('continuous-table-filter')
+            ),
+            elementId = session$ns('continuous-table-filter')
           )
       })
       

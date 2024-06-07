@@ -126,15 +126,21 @@ characterizationRiskFactorServer <- function(
         binTableOutputs <- resultTableServer(
           id = "binaryTable", 
           df = allData$binary,
-          colDefsInput = characteriationRiskFactorColDefs(), # function below
-          addActions = NULL
+          colDefsInput = characteriationRiskFactorColDefs(
+            elementId = session$ns('binary-table-filter')
+          ), # function below
+          addActions = NULL,
+          elementId = session$ns('binary-table-filter')
         )
         
         conTableOutputs <- resultTableServer(
           id = "continuousTable", 
           df = allData$continuous,
-          colDefsInput = characteriationRiskFactorContColDefs(), # function below
-          addActions = NULL
+          colDefsInput = characteriationRiskFactorContColDefs(
+            elementId = session$ns('continuous-table-filter')
+          ), # function below
+          addActions = NULL,
+          elementId = session$ns('continuous-table-filter')
         )
         
       })
@@ -575,7 +581,9 @@ riskFactorContinuousTable <- function(
   
 }
 
-characteriationRiskFactorColDefs <- function(){
+characteriationRiskFactorColDefs <- function(
+    elementId
+    ){
   result <- list(
     covariateId = reactable::colDef(
       show = F
@@ -589,12 +597,34 @@ characteriationRiskFactorColDefs <- function(){
     minPriorObservation = reactable::colDef(
       header = withTooltip("Min Prior Observation",
                            "Minimum prior observation time (days)"),
-      filterable = T
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
       ), 
     outcomeWashoutDays = reactable::colDef(
       header = withTooltip("Outcome Washout Days",
                            "Number of days for the outcome washout"),
-      filterable = T
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
     ),
     nonCaseSumValue = reactable::colDef(
       header = withTooltip("# Non-cases with Feature Before Exposure",
@@ -647,8 +677,25 @@ characteriationRiskFactorColDefs <- function(){
     absSMD = reactable::colDef(
       header = withTooltip("absSMD",
                            "Absolute value of standardized mean difference"),
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
+      format = reactable::colFormat(digits = 2, percent = F),
+      filterable = TRUE,
+      filterMethod = reactable::JS("function(rows, columnId, filterValue) {
+        return rows.filter(function(row) {
+          return row.values[columnId] >= filterValue
+        })
+      }"),
+      filterInput = function(values, name) {
+        oninput <- sprintf("Reactable.setFilter('%s', '%s', this.value)", elementId, name)
+        shiny::tags$input(
+          type = "range",
+          min = floor(min(values)),
+          max = ceiling(max(values)),
+          value = floor(min(values)),
+          oninput = oninput,
+          onchange = oninput, # For IE11 support
+          "aria-label" = sprintf("Filter by minimum %s", name)
+        )
+      }
     )
   )
   return(result)
@@ -656,7 +703,9 @@ characteriationRiskFactorColDefs <- function(){
 
 
 
-characteriationRiskFactorContColDefs <- function(){
+characteriationRiskFactorContColDefs <- function(
+    elementId
+    ){
   result <- list(
     covariateName = reactable::colDef(
       header = withTooltip("Covariate Name",
@@ -670,12 +719,34 @@ characteriationRiskFactorContColDefs <- function(){
     minPriorObservation = reactable::colDef(
       header = withTooltip("Min Prior Observation",
                            "Minimum prior observation time (days)"),
-      filterable = T
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
     ), 
     outcomeWashoutDays = reactable::colDef(
       header = withTooltip("Outcome Washout Days",
                            "Number of days for the outcome washout"),
-      filterable = T
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
     ),
     targetCountValue = reactable::colDef(
         header = withTooltip("# of Target with Feature",
@@ -854,8 +925,25 @@ characteriationRiskFactorContColDefs <- function(){
     absSMD = reactable::colDef(
       header = withTooltip("absSMD",
                            "Absolute value of the standardized mean difference"), 
-      filterable = T,  
-      format = reactable::colFormat(digits = 2, percent = F)
+      format = reactable::colFormat(digits = 2, percent = F),
+      filterable = TRUE,
+      filterMethod = reactable::JS("function(rows, columnId, filterValue) {
+        return rows.filter(function(row) {
+          return row.values[columnId] >= filterValue
+        })
+      }"),
+      filterInput = function(values, name) {
+        oninput <- sprintf("Reactable.setFilter('%s', '%s', this.value)", elementId, name)
+        shiny::tags$input(
+          type = "range",
+          min = floor(min(values)),
+          max = ceiling(max(values)),
+          value = floor(min(values)),
+          oninput = oninput,
+          onchange = oninput, # For IE11 support
+          "aria-label" = sprintf("Filter by minimum %s", name)
+        )
+      }
     )
   )
   return(result)
