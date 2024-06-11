@@ -819,11 +819,24 @@ characterizatonGetCohortData <- function(
       # add SMD
       if(sum(c('averageValue_1','averageValue_2') %in% colnames(result)) == 2){
         convertMissing <- function(vec){sapply(vec, function(x) ifelse(x==-1, minThreshold, x))}
-        result$firstVar <- convertMissing(result$averageValue_1)*(1-convertMissing(result$averageValue_1))^2
-        result$secondVar <- convertMissing(result$averageValue_2)*(1-convertMissing(result$averageValue_2))^2
+        
+        Ns <- c()
+        for(minPriorObservation in unique(result$minPriorObservation)){
+          ind <- result$minPriorObservation == minPriorObservation
+          Ns <- rbind(Ns,
+                      data.frame(
+                        minPriorObservation = minPriorObservation,
+                        N_1 = max(result$sumValue_1[ind]/result$averageValue_1[ind], na.rm = T),
+                        N_2 = max(result$sumValue_2[ind]/result$averageValue_2[ind], na.rm = T)
+                      )
+          )
+        }
+        result <- merge(result, Ns, by = 'minPriorObservation')
+        result$firstVar <- ((convertMissing(result$averageValue_1)-1)^2*result$sumValue_1 + (convertMissing(result$averageValue_1)-0)^2*(result$N_1-result$sumValue_1))/result$N_1
+        result$secondVar <- ((convertMissing(result$averageValue_2)-1)^2*result$sumValue_2 + (convertMissing(result$averageValue_2)-0)^2*(result$N_2-result$sumValue_2))/result$N_2
         result$SMD <- (convertMissing(result$averageValue_1) - convertMissing(result$averageValue_2))/(sqrt((result$firstVar+result$secondVar)/2))
         result$absSMD <- abs(result$SMD)
-        result <- result %>% dplyr::select(-"firstVar",-"secondVar")
+        result <- result %>% dplyr::select(-"firstVar",-"secondVar", -"N_1", -"N_2")
         
       } else{
         shiny::showNotification('Unable to add SMD due to missing columns')
