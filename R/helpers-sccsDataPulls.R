@@ -16,8 +16,6 @@ sccsGetOutcomes <- function(
    inner join
    @schema.@sccs_table_prefixexposure as e
    on e.exposures_outcome_set_id = eos.exposures_outcome_set_id
-   
-   --where e.true_effect_size != 1
    ;
   "
   outcomes <- connectionHandler$queryDb(
@@ -42,7 +40,7 @@ sccsGetExposureIndications <- function(connectionHandler,
       e.era_id AS exposure_id,
       c2.cohort_name as exposure_name,
       coalesce(c.cohort_definition_id, -1) as indication_id,
-      coalesce(c.cohort_name, 'No indication') as indication_name
+      coalesce(c.cohort_name, CONCAT(c2.cohort_name, ' - No indication')) as indication_name
 
    FROM @schema.@sccs_table_prefixexposures_outcome_set eos
    LEFT JOIN @schema.@cg_table_prefixcohort_definition c on eos.nesting_cohort_id = c.cohort_definition_id
@@ -55,6 +53,7 @@ sccsGetExposureIndications <- function(connectionHandler,
         AND cov.era_id = e.era_id
 
    INNER JOIN @schema.@cg_table_prefixcohort_definition c2 on e.era_id = c2.cohort_definition_id
+   WHERE true_effect_size IS NULL
    GROUP BY c.cohort_definition_id,  c.cohort_name, e.era_id, c2.cohort_name
   "
   result <- connectionHandler$queryDb(
@@ -471,6 +470,7 @@ getSccsControlEstimates <- function(connectionHandler,
   WHERE sr.database_id = '@database_id'
   AND sr.analysis_id = @analysis_id
   AND sr.covariate_id = @covariate_id
+  AND true_effect_size is not NULL
   "
   connectionHandler$queryDb(sql,
                             schema = resultDatabaseSettings$schema,
