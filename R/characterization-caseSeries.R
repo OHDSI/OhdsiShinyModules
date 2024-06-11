@@ -99,13 +99,14 @@ characterizationCaseSeriesServer <- function(
       })
       
       # save the selections
-      selected <- shiny::reactive({
-        data.frame(
-          database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
-          time_at_risk = names(options()$tarInds)[which(input$tarInd == options()$tarInds)]
-        )})
+      selected <- shiny::reactiveVal(NULL)
       
       shiny::observeEvent(input$generate, {
+        
+        selected(data.frame(
+          database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
+          time_at_risk = names(options()$tarInds)[which(input$tarInd == options()$tarInds)]
+        ))
         
         inputSelectionDfServer(
           id = 'inputSelected', 

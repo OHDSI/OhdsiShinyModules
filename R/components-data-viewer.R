@@ -175,6 +175,13 @@ resultTableServer <- function(
     id,
     function(input, output, session) {
       
+      
+      # find the columns that are set to show=F
+      colNames <- names(colDefsInput)
+      showCol <- unlist(lapply(colDefsInput, function(x) ifelse(is.null(x$show), T, x$show)))
+      showColNames <- colNames[showCol]
+
+      
       # convert a data.frame to a reactive
       if(!inherits(df, 'reactive')){
         df <- shiny::reactiveVal(df)
@@ -200,8 +207,8 @@ resultTableServer <- function(
         if(!is.null(selectedCols)){
           intersect(colnames(newdf()), selectedCols)
         }
-        else{
-            colnames(newdf())
+        else{ # edited to restrict to colDef - show = T columns
+            intersect(colnames(newdf()), showColNames)
         }
       })
       
@@ -252,7 +259,7 @@ resultTableServer <- function(
         shinyWidgets::pickerInput(
           inputId = session$ns('dataCols'),
           label = 'Select Columns to Display: ',
-          choices = colnames(newdf()),
+          choices = intersect(colnames(newdf()), showColNames), # edited to only show columns show = T
           selected = selectedColumns(),
           choicesOpt = list(style = rep_len("color: black;", 999)),
           multiple = T,
