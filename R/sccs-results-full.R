@@ -102,7 +102,8 @@ sccsFullResultServer <- function(
     connectionHandler,
     resultDatabaseSettings,
     selectedRow,
-    actionCount
+    actionCount,
+    inputSelected
 ) {
   
   shiny::moduleServer(
@@ -211,9 +212,9 @@ sccsFullResultServer <- function(
         df = powerTable,
         colDefsInput = colDefsInput
       )
-        
+
+
       output$attritionPlot <- shiny::renderPlot({
-        
         row <- selectedRow()
         if (is.null(row)) {
           return(NULL)
@@ -221,6 +222,7 @@ sccsFullResultServer <- function(
           attrition <- getSccsAttrition(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
+            exposuresOutcomeSetId = strsplit(inputSelected()$exposure, " ")[[1]][[3]],
             outcomeId = row$outcomeId,
             databaseId = row$databaseId,
             analysisId = row$analysisId,

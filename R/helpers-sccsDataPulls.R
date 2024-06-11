@@ -39,6 +39,7 @@ sccsGetExposureIndications <- function(connectionHandler,
   sql <- "SELECT
       e.era_id AS exposure_id,
       c2.cohort_name as exposure_name,
+      e.exposures_outcome_set_id,
       coalesce(c.cohort_definition_id, -1) as indication_id,
       coalesce(c.cohort_name, CONCAT(c2.cohort_name, ' - No indication')) as indication_name
 
@@ -307,15 +308,14 @@ getSccsTimeToEvent <- function(connectionHandler,
     p = ifelse(is.null(p$preExposureP), -1, p$preExposureP),
     snakeCaseToCamelCase = TRUE
   )
-    
+
     return(timeToEvent)
 }
 
 
-
 getSccsAttrition <- function(connectionHandler,
                              resultDatabaseSettings,
-                             #exposuresId,
+                             exposuresOutcomeSetId,
                              outcomeId,
                              databaseId,
                              analysisId,
@@ -323,23 +323,25 @@ getSccsAttrition <- function(connectionHandler,
   sql <- "
   SELECT a.*
   FROM @schema.@sccs_table_prefixattrition a
-  inner join
-  @schema.@sccs_table_prefixexposures_outcome_set eos
+  inner join @schema.@sccs_table_prefixexposures_outcome_set eos
   on a.exposures_outcome_set_id = eos.exposures_outcome_set_id
-  
+
   WHERE a.database_id = '@database_id'
+  AND eos.exposures_outcome_set_id = @exposures_outcome_set_id
   AND a.analysis_id = @analysis_id
   AND eos.outcome_id = @outcome_id
   AND a.covariate_id = @covariate_id
   "
-  connectionHandler$queryDb(sql,
-                            schema = resultDatabaseSettings$schema,
-                            sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-                            database_id = databaseId,
-                            analysis_id = analysisId,
-                            outcome_id = outcomeId,
-                            covariate_id = covariateId,
-                            snakeCaseToCamelCase = TRUE)
+  res <- connectionHandler$queryDb(sql,
+                                      schema = resultDatabaseSettings$schema,
+                                      sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+                                      exposures_outcome_set_id = exposuresOutcomeSetId,
+                                      database_id = databaseId,
+                                      analysis_id = analysisId,
+                                      outcome_id = outcomeId,
+                                      covariate_id = covariateId,
+                                      snakeCaseToCamelCase = TRUE)
+  return(res)
 }
 
 getSccsEventDepObservation <- function(connectionHandler,
@@ -517,7 +519,7 @@ getSccsDiagnosticsSummary <- function(connectionHandler,
                             outcome_id = outcomeId,
                             exposure_id = exposureId,
                             snakeCaseToCamelCase = TRUE)
-  
+
 }
 
 
