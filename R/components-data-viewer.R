@@ -381,7 +381,7 @@ function filterMinValue(rows, columnId, filterValue) {
       # download full data button
       output$downloadDataFull <- shiny::downloadHandler(
         filename = function() {
-          paste('result-data-full-', downloadedFileName, Sys.Date(), '.csv', sep = '')
+          paste('result-data-full-', downloadedFileName, Sys.Date(), '.xlsx', sep = '')
         },
         content = function(con) {
           wb <- openxlsx::buildWorkbook(x = list(
