@@ -24,6 +24,7 @@ Imports:
     htmltools,
     lubridate,
     methods,
+    openxlsx,
     ParallelLogger,
     plotly,
     purrr,

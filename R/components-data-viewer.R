@@ -149,6 +149,7 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param id string, table id must match resultsTableViewer function
 #' @param df reactive that returns a data frame
 #' @param colDefsInput named list of reactable::colDefs
+#' @param details The details of the results such as cohort names and database names
 #' @param selectedCols string vector of columns the reactable should display to start by default. Defaults to ALL if not specified.
 #' @param sortedCols string vector of columns the reactable should sort by by default. Defaults to no sort if not specified.
 #' @param elementId optional string vector of element Id name for custom dropdown filtering if present in the customColDef list. Defaults to NULL.
@@ -164,6 +165,7 @@ resultTableServer <- function(
     id, #string
     df, #data.frame
     colDefsInput,
+    details = data.frame(), # details about the data.frame such as target and database name
     selectedCols = NULL,
     sortedCols = NULL,
     elementId = NULL,
@@ -382,11 +384,11 @@ function filterMinValue(rows, columnId, filterValue) {
           paste('result-data-full-', downloadedFileName, Sys.Date(), '.csv', sep = '')
         },
         content = function(con) {
-          utils::write.csv(
-            x = df(), 
-            file = con,
-            row.names = F
-          )
+          wb <- openxlsx::buildWorkbook(x = list(
+            details = details,
+            results = df()
+          ))
+          openxlsx::saveWorkbook(wb = wb, file = con)
         }
       )
       
