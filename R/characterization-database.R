@@ -214,10 +214,18 @@ characterizationDatabaseComparisonServer <- function(
           })
           names(sumColumns) <- unlist(lapply(1:nrow(databaseNames), function(i) paste0('sumValue_',databaseNames$id[i])))
         
+          targetGroups <- characterizationGetChildren(options, parentIndex())
           
           resultTableServer(
             id = 'countTable',
             df = countTable, 
+            details = data.frame(
+              Target = names(targetGroups)[which(targetGroups == subTargetId())],
+              Databases = selectedDatabases,
+              `Minimum Covariate Threshold` = input$minThreshold,
+              Analysis = 'Cohort comparison across databases'
+            ),
+            downloadedFileName = 'database_comparison_counts',
             colDefsInput = characteriationCountTableColDefs(
               elementId = session$ns('count-table-filter')
             ),
@@ -226,6 +234,13 @@ characterizationDatabaseComparisonServer <- function(
           resultTableServer(
             id = 'mainTable',
             df = result$table,
+            details = data.frame(
+              Target = names(targetGroups)[which(targetGroups == subTargetId())],
+              Databases = selectedDatabases,
+              `Minimum Covariate Threshold` = input$minThreshold,
+              Analysis = 'Cohort comparison across databases'
+            ),
+            downloadedFileName = 'database_comparison_binary',
             colDefsInput = append(
               characterizationCohortsColumns(
                 elementId = session$ns('main-table-filter')
@@ -241,6 +256,13 @@ characterizationDatabaseComparisonServer <- function(
           resultTableServer(
             id = 'continuousTable',
             df = continuousTable,
+            details = data.frame(
+              Target = names(targetGroups)[which(targetGroups == subTargetId())],
+              Databases = selectedDatabases,
+              `Minimum Covariate Threshold` = input$minThreshold,
+              Analysis = 'Cohort comparison across databases'
+            ),
+            downloadedFileName = 'database_comparison_cont',
             colDefsInput = characterizationCohortsColumnsContinuous(
               elementId = session$ns('continuous-table-filter')
             ),

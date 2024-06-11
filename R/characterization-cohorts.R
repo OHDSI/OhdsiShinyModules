@@ -167,6 +167,8 @@ characterizationCohortComparisonServer <- function(
       selected <- shiny::reactiveVal()
       shiny::observeEvent(input$generate,{
         
+        targetGroups <- characterizationGetChildren(options, parentIndex())
+        
         runTables <- TRUE
         
         if(is.null(subTargetId()) | is.null(input$comparatorId)){
@@ -230,10 +232,17 @@ characterizationCohortComparisonServer <- function(
             targetIds = c(selection1,selection2),
             databaseIds = input$databaseId
           )
-
+          
           resultTableServer(
             id = 'mainTable',
             df = resultTable,
+            details = data.frame(
+              Target = names(targetGroups)[which(targetGroups == subTargetId())],
+              Comparator = names(comparatorGroups())[which(comparatorGroups() == input$comparatorId)],
+              Database = names(inputVals()$databaseIds)[input$databaseId == inputVals()$databaseIds],
+              Analysis = 'Cohort comparison within database'
+            ),
+            downloadedFileName = 'cohort_comparison_binary',
             colDefsInput = characterizationCohortsColumns(
               addExtras = T,
               elementId = session$ns('main-table-filter')
@@ -244,6 +253,13 @@ characterizationCohortComparisonServer <- function(
           resultTableServer(
             id = 'continuousTable',
             df = continuousTable,
+            details = data.frame(
+              Target = names(targetGroups)[which(targetGroups == subTargetId())],
+              Comparator = names(comparatorGroups())[which(comparatorGroups() == input$comparatorId)],
+              Database = names(inputVals()$databaseIds)[input$databaseId == inputVals()$databaseIds],
+              Analysis = 'Cohort comparison within database'
+            ),
+            downloadedFileName = 'cohort_comparison_cont',
             colDefsInput = characterizationCohortsColumnsContinuous(
               addExtras = T,
               elementId = session$ns('continuous-table-filter')
@@ -254,6 +270,13 @@ characterizationCohortComparisonServer <- function(
           resultTableServer(
             id = 'countTable',
             df = countTable,
+            details = data.frame(
+              Target = names(targetGroups)[which(targetGroups == subTargetId())],
+              Comparator = names(comparatorGroups())[which(comparatorGroups() == input$comparatorId)],
+              Database = names(inputVals()$databaseIds)[input$databaseId == inputVals()$databaseIds],
+              Analysis = 'Cohort comparison within database'
+            ),
+            downloadedFileName = 'cohort_comparison_count',
             colDefsInput = characteriationCountTableColDefs(
               elementId = session$ns('count-table-filter')
             ),
