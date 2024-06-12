@@ -125,7 +125,15 @@ characterizationCaseSeriesServer <- function(
         
         binTableOutputs <- resultTableServer(
           id = "binaryTable", 
-          df = allData$binary,
+          df = allData$binary, 
+          details = data.frame(
+            database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
+            tar = names(options()$tarInds)[which(input$tarInd == options()$tarInds)],
+            target = options()$targetName,
+            outcome = options()$outcomeName,
+            description = "Case series binary features before target index, during exposure and after outcome index"
+          ),
+          downloadedFileName = 'case_series_binary',
           colDefsInput = colDefsBinary(
             elementId = session$ns('binary-table-filter')
           ), # function below
@@ -136,6 +144,14 @@ characterizationCaseSeriesServer <- function(
         conTableOutputs <- resultTableServer(
           id = "continuousTable", 
           df = allData$continuous,
+          details = data.frame(
+            database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
+            tar = names(options()$tarInds)[which(input$tarInd == options()$tarInds)],
+            target = options()$targetName,
+            outcome = options()$outcomeName,
+            description = "Case series continuous features before target index, during exposure and after outcome index"
+          ),
+          downloadedFileName = 'case_series_continuous',
           colDefsInput = colDefsContinuous(
             elementId = session$ns('continuous-table-filter')
           ), # function below
@@ -161,7 +177,10 @@ characterizationGetCaseSeriesOptions <- function(
   sql <- "SELECT distinct s.database_id, d.CDM_SOURCE_ABBREVIATION as database_name,
           s.setting_id, 
           s.RISK_WINDOW_START,	s.RISK_WINDOW_END,	
-          s.START_ANCHOR, s.END_ANCHOR
+          s.START_ANCHOR, s.END_ANCHOR,
+          ct1.cohort_name as target_name,
+          ct2.cohort_name as outcome_name
+          
           from
           @schema.@c_table_prefixsettings s
           inner join @schema.@database_meta_table d 
@@ -172,6 +191,18 @@ characterizationGetCaseSeriesOptions <- function(
           and cd.target_cohort_id = @target_id
           and cd.outcome_cohort_id = @outcome_id
           and cd.cohort_type = 'TnO'
+          
+          inner join
+          @schema.@cg_table_prefixcohort_definition ct1
+          on 
+          ct1.cohort_definition_id = cd.target_cohort_id
+          
+          inner join
+          @schema.@cg_table_prefixcohort_definition ct2
+          on 
+          ct2.cohort_definition_id = cd.outcome_cohort_id
+          
+          
   ;"
   
   options <- connectionHandler$queryDb(
@@ -180,8 +211,12 @@ characterizationGetCaseSeriesOptions <- function(
     c_table_prefix = resultDatabaseSettings$cTablePrefix,
     target_id = targetId,
     outcome_id = outcomeId,
-    database_meta_table = resultDatabaseSettings$databaseTable
+    database_meta_table = resultDatabaseSettings$databaseTable,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
+  
+  outcomeName <- unique(options$outcomeName)
+  targetName <- unique(options$targetName)
   
   db <- unique(options$databaseId)
   names(db) <- unique(options$databaseName)
@@ -198,7 +233,9 @@ characterizationGetCaseSeriesOptions <- function(
     list(
       databaseIds = db,
       tarInds = tarInds,
-      tarList = tarList
+      tarList = tarList,
+      outcomeName = outcomeName,
+      targetName = targetName
     )
   )
   
