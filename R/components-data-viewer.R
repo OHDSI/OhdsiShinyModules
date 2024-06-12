@@ -181,7 +181,11 @@ resultTableServer <- function(
       # find the columns that are set to show=F
       colNames <- names(colDefsInput)
       showCol <- unlist(lapply(colDefsInput, function(x) ifelse(is.null(x$show), T, x$show)))
-      showColNames <- colNames[showCol]
+      if(is.null(addActions)){
+        showColNames <- colNames[showCol]
+      } else{
+        showColNames <- c(colNames[showCol],'actions')
+      }
 
       
       # convert a data.frame to a reactive
