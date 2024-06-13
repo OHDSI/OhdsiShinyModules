@@ -68,6 +68,16 @@ characterizationDechallengeRechallengeServer <- function(
     id,
     function(input, output, session) {
       
+      
+      options <- shiny::reactive({
+        characterizationGetCaseSeriesOptions(
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          targetId = targetId(),
+          outcomeId = outcomeId()
+        )
+      })
+      
 
       
       # fetch data when targetId changes
@@ -140,92 +150,92 @@ characterizationDechallengeRechallengeServer <- function(
           ),
           dechallengeStopInterval = reactable::colDef(
             header = withTooltip("Dechallenge Stop Interval",
-                                 ""),
+                                 "An integer specifying the how much time to add to the cohort_end when determining whether the event starts during cohort and ends after"),
             filterable = T
           ),
           dechallengeEvaluationWindow = reactable::colDef(
             header = withTooltip("Dechallenge Evaluation Window",
-                                 ""),
+                                 "A period of time evaluated for outcome recurrence after discontinuation of exposure, among patients with challenge outcomes"),
             filterable = T
           ), 
           numExposureEras = reactable::colDef(
             header = withTooltip("# of Exposure Eras",
-                                 ""),
+                                 "Distinct number of exposure events (i.e. drug eras) in a given target cohort"),
             filterable = T
           ),
           numPersonsExposed = reactable::colDef(
             header = withTooltip("# of Exposed Persons",
-                                 ""),
+                                 "Distinct nuber of people exposed in target cohort. A person must have at least 1 day exposure to be included"),
             filterable = T
           ),
           numCases = reactable::colDef(
             header = withTooltip("# of Cases",
-                                 ""),
+                                 "Distinct number of persons in outcome cohort. A person must have at least 1 day of observation time to be included"),
             filterable = T
           ),
           dechallengeAttempt = reactable::colDef(
             header = withTooltip("# of Dechallenge Attempts",
-                                 ""),
+                                 "Distinct count of people with observable time after discontinuation of the exposure era during which the challenge outcome occurred"),
             filterable = T
           ),
           dechallengeFail = reactable::colDef(
             header = withTooltip("# of Dechallenge Fails",
-                                 ""),
+                                 "Among people with challenge outcomes, the distinct number of people with outcomes during dechallengeEvaluationWindow"),
             filterable = T
           ),
           dechallengeSuccess = reactable::colDef(
             header = withTooltip("# of Dechallenge Successes",
-                                 ""),
+                                 "Among people with challenge outcomes, the distinct number of people without outcomes during the dechallengeEvaluationWindow"),
             filterable = T
           ),
           rechallengeAttempt = reactable::colDef(
             header = withTooltip("# of Rechallenge Attempts",
-                                 ""),
+                                 "Number of people with a new exposure era after the occurrence of an outcome during a prior exposure era"),
             filterable = T
           ),
           rechallengeFail = reactable::colDef(
             header = withTooltip("# of Rechallenge Fails",
-                                 ""),
+                                 "Number of people with a new exposure era during which an outcome occurred, after the occurrence of an outcome during a prior exposure era"),
             filterable = T
           ),
           rechallengeSuccess = reactable::colDef(
             header = withTooltip("# of Rechallenge Successes",
-                                 ""),
+                                 "Number of people with a new exposure era during which an outcome did not occur, after the occurrence of an outcome during a prior exposure era"),
             filterable = T
           ),
           pctDechallengeAttempt = reactable::colDef(
             header = withTooltip("% of Dechallenge Attempts",
-                                 ""),
+                                 "Percent of people with observable time after discontinuation of the exposure era during which the challenge outcome occurred"),
             filterable = T,
             format = reactable::colFormat(digits = 2, percent = T)
           ),
           pctDechallengeSuccess = reactable::colDef(
             header = withTooltip("% of Dechallenge Success",
-                                 ""),
+                                 "Among people with challenge outcomes, the percent of people with outcomes during dechallengeEvaluationWindow"),
             filterable = T,
             format = reactable::colFormat(digits = 2, percent = T)
           ),
           pctDechallengeFail = reactable::colDef(
             header = withTooltip("% of Dechallenge Fail",
-                                 ""),
+                                 "Among people with challenge outcomes, the percent of people without outcomes during the dechallengeEvaluationWindow"),
             filterable = T,
             format = reactable::colFormat(digits = 2, percent = T)
           ),
           pctRechallengeAttempt = reactable::colDef(
             header = withTooltip("% of Rechallenge Attempts",
-                                 ""),
+                                 "Percent of people with a new exposure era after the occurrence of an outcome during a prior exposure era"),
             filterable = T,
             format = reactable::colFormat(digits = 2, percent = T)
           ),
           pctRechallengeSuccess = reactable::colDef(
             header = withTooltip("% of Rechallenge Success",
-                                 ""),
+                                 "Percent of people with a new exposure era during which an outcome occurred, after the occurrence of an outcome during a prior exposure era"),
             filterable = T,
             format = reactable::colFormat(digits = 2, percent = T)
           ),
           pctRechallengeFail = reactable::colDef(
             header = withTooltip("% of Rechallenge Fail",
-                                 ""),
+                                 "Percent of people with a new exposure era during which an outcome did not occur, after the occurrence of an outcome during a prior exposure era"),
             filterable = T,
             format = reactable::colFormat(digits = 2, percent = T)
           )
@@ -236,6 +246,12 @@ characterizationDechallengeRechallengeServer <- function(
       tableOutputs <- resultTableServer(
         id = "tableResults", 
         df = allData,
+        details = data.frame(
+          target = options()$targetName,
+          outcome = options()$outcomeName,
+          Analysis = 'Exposed Cases Summary - Dechallenge-Rechallenge'
+        ),
+        downloadedFileName = 'dechallege-rechallenge',
         colDefsInput = characteriationDechalRechalColDefs(),
         addActions = c('fails')
       )

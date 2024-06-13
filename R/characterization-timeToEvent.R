@@ -31,17 +31,37 @@
 characterizationTimeToEventViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
-  
-    shinydashboard::box(
-      width = "100%",
-      title = "",
+    
+    shiny::tabsetPanel(
+      type = 'pills',
+      id = ns('tteMainPanel'),
       
-      shiny::uiOutput(ns('timeToEventPlotInputs')),
-      shinycssloaders::withSpinner(
-        shiny::plotOutput(ns('timeToEvent'))
+      shiny::tabPanel(
+        title = "Time-to-event Plots",
+  
+      shinydashboard::box(
+        width = "100%",
+        title = "",
+        
+        shiny::uiOutput(ns('timeToEventPlotInputs')),
+        shinycssloaders::withSpinner(
+          shiny::plotOutput(ns('timeToEvent'))
+          )
+        )
+      ),
+    
+    shiny::tabPanel(
+      title = "Time-to-event Table",
+      
+      shinydashboard::box(
+        status = 'info', 
+        width = '100%',
+        solidHeader = TRUE,
+        resultTableViewer(ns('tableResults'))
+        )
       )
     )
-    )
+  )
 }
 
 
@@ -69,14 +89,105 @@ characterizationTimeToEventServer <- function(
     id,
     function(input, output, session) {
       
+      options <- shiny::reactive({
+        characterizationGetCaseSeriesOptions(
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          targetId = targetId(),
+          outcomeId = outcomeId()
+        )
+      })
+      
       allData <- shiny::reactive({
         getTimeToEventData(
           targetId = targetId(),
           outcomeId = outcomeId(),
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings
-        )
+        ) %>%
+          dplyr::mutate(targetName = options()$targetName,
+                        outcomeName = options()$outcomeName) %>%
+          dplyr::relocate(databaseName, .before = databaseId) %>%
+          dplyr::relocate(targetName, .after = databaseName) %>%
+          dplyr::relocate(outcomeName, .after = targetName)
       })
+        
+      
+      characterizationTimeToEventColDefs <- function(){
+        result <- list(
+          databaseName = reactable::colDef(
+            header = withTooltip("Database",
+                                 "Name of the database"),
+            filterable = T
+          ),
+          databaseId = reactable::colDef(
+            header = withTooltip("Database ID",
+                                 "Unique ID of the database"),
+            filterable = T,
+            show = F
+          ),
+          targetCohortDefinitionId = reactable::colDef(
+            header = withTooltip("Target ID",
+                                 "Unique ID of the target cohort"),
+            filterable = T,
+            show = F
+          ),
+          targetName = reactable::colDef(
+            header = withTooltip("Target Name",
+                                 "Name of the target cohort"),
+            filterable = T
+          ),
+          outcomeCohortDefinitionId = reactable::colDef(
+            header = withTooltip("Outcome ID",
+                                 "Unique ID of the outcome cohort"),
+            filterable = T,
+            show = F
+          ),
+          outcomeName = reactable::colDef(
+            header = withTooltip("Outcome Name",
+                                 "Name of the outcome cohort"),
+            filterable = T
+          ),
+          outcomeType = reactable::colDef(
+            header = withTooltip("Outcome Type",
+                                 "Type of the outcome, either first or subsequent occurrence"),
+            filterable = T
+          ),
+          targetOutcomeType = reactable::colDef(
+            header = withTooltip("Target-Outcome Type",
+                                 "The timing of the event relative to the target era"),
+            filterable = T
+          ),
+          timeToEvent = reactable::colDef(
+            header = withTooltip("Time (in days) To Event",
+                                 "The time in days relative to target index until the event occurred"),
+            filterable = T
+          ),
+          numEvents = reactable::colDef(
+            header = withTooltip("# of Events",
+                                 "The number of events that occurred"),
+            filterable = T
+          ),
+          timeScale = reactable::colDef(
+            header = withTooltip("Time Scale",
+                                 "The time scale in which the events occurred"),
+            filterable = T
+          )
+        )
+        return(result)
+      }
+      
+      tableOutputs <- resultTableServer(
+        id = "tableResults", 
+        df = allData,
+        details = data.frame(
+          target = options()$targetName,
+          outcome = options()$outcomeName,
+          Analysis = 'Exposed Cases Summary - Time-to-event'
+        ),
+        downloadedFileName = 'time_to_event',
+        colDefsInput = characterizationTimeToEventColDefs()
+      )
       
       output$timeToEventPlotInputs <- shiny::renderUI({
         

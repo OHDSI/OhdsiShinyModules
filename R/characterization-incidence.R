@@ -421,6 +421,15 @@ characterizationIncidenceServer <- function(
      
      options <- getIncidenceOptions()
      
+     optionsGlobal <- shiny::reactive({
+       characterizationGetCaseSeriesOptions(
+         connectionHandler = connectionHandler,
+         resultDatabaseSettings = resultDatabaseSettings,
+         targetId = targetId(),
+         outcomeId = outcomeId()
+       )
+     })
+     
         inputSelectedCustomPlot <- inputSelectionServer(
           id = "input-selection-custom-plot", 
           inputSettingList = list(
@@ -646,6 +655,9 @@ characterizationIncidenceServer <- function(
         if(nrow(extractedData()) > 0){
           extractedData() %>%
             dplyr::relocate("tar", .before = "outcomes") %>%
+            dplyr::select(-c("targetName", "outcomeName")) %>%
+            dplyr::rename(targetName = targetCohortName,
+                          outcomeName = outcomeCohortName) %>%
             dplyr::mutate(incidenceProportionP100p = as.numeric(.data$incidenceProportionP100p),
                           incidenceRateP100py = as.numeric(.data$incidenceRateP100py),
                           dplyr::across(dplyr::where(is.numeric), round, 4),
@@ -657,6 +669,8 @@ characterizationIncidenceServer <- function(
                             .data$tar %in% incidenceRateTarFilter() &
                             .data$cdmSourceAbbreviation %in% !! incidenceRateDbFilter()
             ) %>%
+            dplyr::relocate("targetName", .after = "cdmSourceAbbreviation") %>%
+            dplyr::relocate("outcomeName", .after = "targetName") %>%
             dplyr::relocate("targetIdShort", .after = "targetName") %>%
             dplyr::relocate("outcomeIdShort", .after = "outcomeName")
         }
@@ -735,7 +749,10 @@ characterizationIncidenceServer <- function(
           
           ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
           plotData <- filteredData() %>%
-            dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
+            dplyr::filter(.data$tar %in% incidenceRateTarFilter()) %>%
+            dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
+                          outcomeLabel = paste(outcomeIdShort, " = ", outcomeName)
+                          ),
             shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
           )
 
@@ -767,6 +784,16 @@ characterizationIncidenceServer <- function(
           shape_aesthetic <- NULL
           trellis_aesthetic_x <- NULL
           trellis_aesthetic_y <- NULL
+          
+          # Get unique target and outcome labels
+          unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
+          unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
+          
+          # Combine all unique values into a final vector
+          final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
+          
+          # Create the caption text with line breaks
+          caption_text <- paste(final_unique_values, collapse = "\n")
           
           if (inputSelectedCustomPlot()$plotColor == "Target Cohort" | inputSelectedCustomPlot()$plotColor == "Outcome Cohort") {
             color_aesthetic <- if (inputSelectedCustomPlot()$plotColor == "Target Cohort") {
@@ -990,6 +1017,8 @@ characterizationIncidenceServer <- function(
             }
             
             
+            
+            
             # Rest of your ggplot code remains the same
             base_plot <- base_plot + ggplot2::labs(
               title = paste("Incidence Rate for TAR:", tar_value),
@@ -997,8 +1026,8 @@ characterizationIncidenceServer <- function(
               y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% inputSelectedCustomPlot()$plotYAxis]),
               color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelectedCustomPlot()$plotColor]),
               size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% inputSelectedCustomPlot()$plotSize]),
-              shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelectedCustomPlot()$plotShape]
-              )
+              shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelectedCustomPlot()$plotShape]),
+              caption = caption_text
             ) +
               ggplot2::scale_y_log10(breaks = scales::breaks_log(n=6)) +
               ggplot2::guides(alpha = "none") + # Remove the alpha legend
@@ -1014,7 +1043,9 @@ characterizationIncidenceServer <- function(
                 legend.text = ggplot2::element_text(size=10),
                 legend.title = ggplot2::element_text(size=16, face = "bold"),
                  panel.spacing = ggplot2::unit(2, "lines"),
-                strip.text = ggplot2::element_text(face="bold", size = 14)
+                strip.text = ggplot2::element_text(face="bold", size = 14),
+                plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
+                                                     margin = ggplot2::margin(t = 20))
               ) + 
               ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
                               color = ggplot2::guide_legend(override.aes = list(size = 6)))
@@ -1781,13 +1812,16 @@ getIncidenceData <- function(
     
     shiny::withProgress(message = 'Getting incidence data', value = 0, {
     
-    sql <- 'select d.cdm_source_abbreviation, i.* 
-    from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
-    inner join @result_schema.@database_table_name d
+    sql <- 'select d.cdm_source_abbreviation, i.*, ct1.cohort_name as target_cohort_name, ct2.cohort_name as outcome_cohort_name
+from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
+inner join @result_schema.@database_table_name d
     on d.database_id = i.database_id
-    where target_cohort_definition_id in (@target_ids)
-    and outcome_cohort_definition_id in (@outcome_ids)
-    ;'
+inner join @result_schema.@cg_table_prefixcohort_definition ct1
+    on ct1.cohort_definition_id = i.target_cohort_definition_id
+inner join @result_schema.@cg_table_prefixcohort_definition ct2
+    on ct2.cohort_definition_id = i.outcome_cohort_definition_id
+where i.target_cohort_definition_id in (@target_ids)
+  and i.outcome_cohort_definition_id in (@outcome_ids);'
     
     shiny::incProgress(1/2, detail = paste("Created SQL - Extracting..."))
     
@@ -1795,6 +1829,7 @@ getIncidenceData <- function(
       sql = sql, 
       result_schema = resultDatabaseSettings$schema,
       incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix,
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
       target_ids = paste(as.double(targetIds), collapse = ','),
       outcome_ids = paste(as.double(outcomeIds), collapse = ','),
       database_table_name = resultDatabaseSettings$databaseTable
@@ -1836,32 +1871,47 @@ getIncidenceOptionsOld <- function(
   
   # shiny::withProgress(message = 'Getting incidence inputs', value = 0, {
   
-  sql <- 'select distinct target_cohort_definition_id, target_name 
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
+  sql <- 'select distinct i.target_cohort_definition_id, ct1.cohort_name 
+  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
+  
+  inner join
+          @result_schema.@cg_table_prefixcohort_definition ct1
+          on 
+          ct1.cohort_definition_id = i.target_cohort_definition_id
+  
+  ;'
   
   #shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
   
   targets <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
   targetIds <- targets$targetCohortDefinitionId
-  names(targetIds) <- targets$targetName
+  names(targetIds) <- targets$cohortName
   
-  sql <- 'select distinct outcome_cohort_definition_id, outcome_name 
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
+  sql <- 'select distinct i.outcome_cohort_definition_id, ct1.cohort_name 
+  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
   
-  #shiny::incProgress(2/3, detail = paste("Created SQL - Extracting outcomes"))
+  inner join
+          @result_schema.@cg_table_prefixcohort_definition ct1
+          on 
+          ct1.cohort_definition_id = i.outcome_cohort_definition_id
+  
+  ;'
+  
+  #shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
   
   outcomes <- connectionHandler$queryDb(
     sql = sql, 
     result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
-  
   outcomeIds <- outcomes$outcomeCohortDefinitionId
-  names(outcomeIds) <- outcomes$outcomeName
+  names(outcomeIds) <- outcomes$cohortName
   
   sql <- 'select distinct tar_id, tar_start_with, tar_start_offset, tar_end_with, tar_end_offset
   from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'

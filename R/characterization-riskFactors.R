@@ -126,6 +126,14 @@ characterizationRiskFactorServer <- function(
         binTableOutputs <- resultTableServer(
           id = "binaryTable", 
           df = allData$binary,
+          details = data.frame(
+            target = options()$targetName,
+            outcome = options()$outcomeName,
+            Database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
+            TimeAtRisk = options()$tarList[[which(options()$tarInds == input$tarInd)]],
+            Analysis = 'Exposed Cases Summary - Risk Factor'
+          ),
+          downloadedFileName = 'risk_factor_binary',
           colDefsInput = characteriationRiskFactorColDefs(
             elementId = session$ns('binary-table-filter')
           ), # function below
