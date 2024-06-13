@@ -896,6 +896,14 @@ getTandOs <- function(
   cov.exposures_outcome_set_id = ds.exposures_outcome_set_id and
   cov.analysis_id = ds.analysis_id and
   cov.database_id = ds.database_id
+  
+  -- adding code to remove the negative controls
+  INNER JOIN 
+  @schema.@sccs_table_prefixcovariate_analysis ca
+  on 
+  ca.analysis_id = cov.analysis_id and
+  ca.covariate_analysis_id = cov.covariate_analysis_id
+  where ca.variable_of_interest = 1
    
   }
   
@@ -941,7 +949,7 @@ getTandOs <- function(
   
   # get target heirarchy 
   groupedCohorts <- lapply(unique(res$tid), function(tid){
-    data.frame(
+    list(
       cohortId = tid,
       cohortName = unique(res$targetName[res$tid == tid]),
       subsets = data.frame(

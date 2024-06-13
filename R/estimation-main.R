@@ -160,9 +160,9 @@ estimationServer <- function(
         resultDatabaseSettings,
         includeCharacterization = F,
         includeCohortIncidence = F,
-        includeCohortMethod = T,
+        includeCohortMethod = "Cohort Method" %in% estimationTypes,
         includePrediction = F, 
-        includeSccs = F # slow so turning off
+        includeSccs = "SCCS" %in% estimationTypes # slow so turning off
       )
       
       # Targets
@@ -171,9 +171,9 @@ estimationServer <- function(
       
       # initial outcomes for first T
       outcomeDf <- options$tos[[1]]
+      outcomes <- shiny::reactiveVal(outcomeDf)
       initialOutcomes <- outcomeDf$outcomeId
       names(initialOutcomes ) <- outcomeDf$outcomeName
-      outcomes <- shiny::reactiveVal()
       
       shiny::observeEvent(input$targetId,{
         
@@ -194,10 +194,9 @@ estimationServer <- function(
         ))
         
         
-        if(length(options()$outcomeId)>0){
-          outcomeDf <- options()
-          outcomesVector <- options()$outcomeId
-          names(outcomesVector) <- options()$outcomeName
+        if(length(outcomes()$outcomeId)>0){
+          outcomesVector <- outcomes()$outcomeId
+          names(outcomesVector) <- outcomes()$outcomeName
           
           shiny::updateSelectInput(
             session = session, 
@@ -258,7 +257,7 @@ estimationServer <- function(
       outcomeId <- shiny::reactiveVal()
       
       shiny::observeEvent(input$targetSelect, {
-
+        
         targetSelected(
           data.frame( 
             Target = names(targets)[targets == input$targetId],
@@ -298,53 +297,57 @@ estimationServer <- function(
       #=======================================
       # SERVERS
       #=======================================
-      estimationCmDiagnosticServer(
-        id = 'estimationCmDiagnostic', 
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings,
-        targetIds = targetIds,
-        comparatorIds = comparatorIds,
-        outcomeId = outcomeId
-      )
+      if('Cohort Method' %in% estimationTypes){
+        estimationCmDiagnosticServer(
+          id = 'estimationCmDiagnostic', 
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          targetIds = targetIds,
+          comparatorIds = comparatorIds,
+          outcomeId = outcomeId
+        )
+        
+        cmData <- estimationCmResultsServer(
+          id = 'estimationCmResults', 
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          targetIds = targetIds,
+          comparatorIds = comparatorIds,
+          outcomeId = outcomeId
+        )
+        
+        estimationCmPlotsServer(
+          id = 'estimationCmPlots', 
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          cmData = cmData
+        )
+      }
       
-      cmData <- estimationCmResultsServer(
-        id = 'estimationCmResults', 
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings,
-        targetIds = targetIds,
-        comparatorIds = comparatorIds,
-        outcomeId = outcomeId
-      )
-      
-      estimationCmPlotsServer(
-        id = 'estimationCmPlots', 
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings,
-        cmData = cmData
-      )
-      
-      estimationSccsDiagnosticServer(
-        id = 'estimationSccsDiagnostic', 
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings,
-        targetIds = targetIds,
-        outcomeId = outcomeId
-      )
-      
-      sccsData <- estimationSccsResultsServer(
-        id = 'estimationSccsResults', 
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings,
-        targetIds = targetIds,
-        outcomeId = outcomeId
-      )
-      
-      estimationSccsPlotsServer(
-        id = 'estimationSccsPlots', 
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings,
-        sccsData = sccsData
-      )
+      if('SCCS' %in% estimationTypes){
+        estimationSccsDiagnosticServer(
+          id = 'estimationSccsDiagnostic', 
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          targetIds = targetIds,
+          outcomeId = outcomeId
+        )
+        
+        sccsData <- estimationSccsResultsServer(
+          id = 'estimationSccsResults', 
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          targetIds = targetIds,
+          outcomeId = outcomeId
+        )
+        
+        estimationSccsPlotsServer(
+          id = 'estimationSccsPlots', 
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          sccsData = sccsData
+        )
+      }
       
     }
   )
