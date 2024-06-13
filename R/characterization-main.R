@@ -206,15 +206,21 @@ characterizationServer <- function(
             collapsible = TRUE,
             title = "Options",
             width = "100%",
-            shiny::selectInput(
+            
+            shinyWidgets::pickerInput(
               inputId = session$ns('outcomeId'),
               label = 'Outcome: ',
               choices = outcomes(),
               selected = 1,
               multiple = FALSE,
-              selectize = TRUE,
-              width = NULL,
-              size = NULL
+              options = shinyWidgets::pickerOptions(
+                actionsBox = F,
+                dropupAuto = F,
+                size = 10,
+                liveSearch = TRUE,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search"
+              )
             ),
             shiny::actionButton(
               inputId = session$ns('outcomeSelect'), 
@@ -596,7 +602,7 @@ getCharacterizationTypes <- function(
   ))
 }
 
-
+# TODO add tte and dechal as include options
 characterizationGetOptions <- function(
     connectionHandler,
     resultDatabaseSettings,
@@ -612,8 +618,7 @@ characterizationGetOptions <- function(
     cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
   
-# database_id needed for old results but not for new ones
-  # TODO - add tte and decha rechal?
+# TODO - add tte and decha rechal?
 cohorts <- connectionHandler$queryDb(
 sql = "
 
@@ -653,6 +658,7 @@ from @schema.@ci_table_prefixcohorts_lookup
 inner join 
 @schema.@cg_table_prefixcohort_definition c
 on temp.outcome_cohort_id = c.cohort_definition_id
+
 ;",
   schema = resultDatabaseSettings$schema,
   c_table_prefix = resultDatabaseSettings$cTablePrefix,
@@ -715,6 +721,9 @@ characterizationGetOutcomes <- function(options, index){
   
   outcomes <- result$ids
   names(outcomes) <- result$names
+  
+  # sort the outcomes alphabetically
+  outcomes <- outcomes[order(names(outcomes))]
   return(outcomes)
 }
 
