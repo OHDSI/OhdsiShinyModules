@@ -61,7 +61,7 @@ estimationViewer <- function(id=1) {
     # database, analysis, pass/fail, viewResult/viewDiagnostic
     # extracts from SCCS/CM/Evidence Synthesis
   
-    conditionalPanel(
+    shiny::conditionalPanel(
       condition = 'input.targetSelect', 
       ns = ns,
       
