@@ -538,6 +538,9 @@ cyclicSplineDesign <- function(x, knots, ord = 4) {
 }
 
 plotControlEstimates <- function(controlEstimates) {
+    if(nrow(controlEstimates) == 0){
+      shiny::validate('No rows')
+    } 
   size <- 2
   labelY <- 0.7
   d <- rbind(data.frame(yGroup = "Uncalibrated",
@@ -556,7 +559,10 @@ plotControlEstimates <- function(controlEstimates) {
   d <- d[!is.na(d$ci95Lb),]
   d <- d[!is.na(d$ci95Ub),]
   if (nrow(d) == 0) {
-    return(NULL)
+    shiny::validate('No rows')
+  }
+  if (nrow(d) == 1) {
+    shiny::validate('Only one row so cannot aggregate')
   }
   d$Group <- as.factor(d$trueRr)
   d$Significant <- d$ci95Lb > d$trueRr | d$ci95Ub < d$trueRr

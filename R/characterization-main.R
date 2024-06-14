@@ -618,6 +618,15 @@ characterizationGetOptions <- function(
     cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
   
+  # check whether lookup table in CI exists
+  ciLookup <- !is.null(tryCatch({
+    connectionHandler$queryDb(
+      sql = 'select * from @schema.@ci_table_prefixcohorts_lookup limit 1;',
+      schema = resultDatabaseSettings$schema,
+      ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+    )
+  }, error = function(e){return(NULL)}))
+  
 # TODO - add tte and decha rechal?
 cohorts <- connectionHandler$queryDb(
 sql = "
@@ -650,9 +659,14 @@ union
 }
 
 {@include_incidence} ? {
+{@ci_lookup} ?
+{select * from @schema.@ci_table_prefixcohorts_lookup} : {
+select distinct target_cohort_definition_id as target_cohort_id, 
+outcome_cohort_definition_id as outcome_cohort_id
+from
+@schema.@ci_table_prefixincidence_summary
+}
 
-select * 
-from @schema.@ci_table_prefixcohorts_lookup
 }
 ) temp
 inner join 
@@ -665,7 +679,8 @@ on temp.outcome_cohort_id = c.cohort_definition_id
   cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
   ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix,
   include_incidence = includeIncidence,
-  include_aggregate = includeAggregate
+  include_aggregate = includeAggregate,
+  ci_lookup = ciLookup
 )
 # fix backwards compatability
 cg$subsetParent[is.na(cg$isSubset)] <- cg$cohortDefinitionId
