@@ -2,7 +2,11 @@ Package: OhdsiShinyModules
 Type: Package
 Title: Repository of Shiny Modules for OHDSI Result Viewers
 Version: 2.1.4
-Author: Jenna Reps
+Authors@R: c(
+  person("Jenna", "Reps", email = "jreps@its.jnj.com", role = c("aut", "cre")),
+  person("Nathan", "Hall", role = c("aut")),
+  person("Jamie", "Gibert", role = c("aut"))
+)
 Maintainer: Jenna Reps <reps@ohdsi.org>
 Description: Install this package to access useful shiny modules for building shiny apps to explore results using the OHDSI tools .
 License: Apache License 2.0
