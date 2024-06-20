@@ -508,8 +508,8 @@ estimationGetSccsModel <- function(
 
   WHERE scr.database_id = '@database_id'
   AND scr.analysis_id = @analysis_id
-  AND  sc.era_id = @exposure_id
-  AND scr.rr IS NOT NULL
+  --AND  sc.era_id = @exposure_id
+  --AND scr.rr IS NOT NULL
   AND scr.exposures_outcome_set_id = @exposures_outcome_set_id
   "
   
@@ -729,14 +729,30 @@ estimationGetSccsControlEstimates <- function(
 ) {
   
   sql <- "
-  SELECT ci_95_lb, ci_95_ub, log_rr, se_log_rr, calibrated_ci_95_lb, calibrated_ci_95_ub, calibrated_log_rr,
-  calibrated_se_log_rr, exposures_outcome_set_id
+  SELECT r.ci_95_lb, r.ci_95_ub, r.log_rr, r.se_log_rr, 
+  r.calibrated_ci_95_lb, r.calibrated_ci_95_ub, r.calibrated_log_rr,
+  r.calibrated_se_log_rr, r.exposures_outcome_set_id,
+  e.true_effect_size, c.exposures_outcome_set_id 
+  
   FROM 
-  (select * from @schema.@sccs_table_prefixresult 
-  WHERE database_id = '@database_id'
-  AND analysis_id = @analysis_id
-  AND covariate_id = @covariate_id
-  ) sr
+  @schema.@sccs_table_prefixresult r
+  INNER JOIN
+   @schema.@sccs_table_prefixexposure e
+   on r.exposures_outcome_set_id = e.exposures_outcome_set_id
+   
+   INNER JOIN 
+   @schema.@sccs_table_prefixcovariate c
+   on e.era_id = c.era_id 
+   and e.exposures_outcome_set_id = c.exposures_outcome_set_id
+   and c.database_id = r.database_id
+   and c.analysis_id = r.analysis_id
+   and c.covariate_id = r.covariate_id
+   
+   WHERE e.era_id = @era_id
+   AND r.database_id = '@database_id'
+   AND r.analysis_id = @analysis_id
+   AND r.covariate_id = @covariate_id
+   AND e.true_effect_size is not NULL
   ;
   "
   res <- connectionHandler$queryDb(
@@ -750,34 +766,7 @@ estimationGetSccsControlEstimates <- function(
     snakeCaseToCamelCase = TRUE
   )
   
-  sql <- "
-  select e.true_effect_size, c.exposures_outcome_set_id 
-   from 
-   @schema.@sccs_table_prefixexposure e
-   INNER JOIN 
-   @schema.@sccs_table_prefixcovariate c
-   on e.era_id = c.era_id 
-   and e.exposures_outcome_set_id = c.exposures_outcome_set_id
-   WHERE e.era_id = @era_id
-   and c.database_id = '@database_id'
-   AND c.analysis_id = @analysis_id
-   AND c.covariate_id = @covariate_id
-  ;
-  "
-  res2 <- connectionHandler$queryDb(
-    sql,
-    schema = resultDatabaseSettings$schema,
-    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-    database_id = databaseId,
-    covariate_id = covariateId,
-    analysis_id = analysisId,
-    era_id = eraId,
-    snakeCaseToCamelCase = TRUE
-  )
-  # only keep the positive or negative controls (trueEffectSize 1 or >1)
-  res2 <- res2[!is.na(res2$trueEffectSize),]
+  #allres <- merge(res, res2, by = 'exposuresOutcomeSetId')
   
-  allres <- merge(res, res2, by = 'exposuresOutcomeSetId')
-  
-  return(allres)
+  return(res)
 }
