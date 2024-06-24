@@ -54,6 +54,5 @@ Suggests:
     testthat,
     withr
 Remotes:
-    ohdsi/CirceR,
     ohdsi/ResultModelManager
 RoxygenNote: 7.3.1
