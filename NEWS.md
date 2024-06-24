@@ -1,3 +1,7 @@
+OhdsiShinyModules v2.1.5
+========================
+Fixed issue in DatabaseConnector check for pooled connections of sqlite databases on cohort diagnotiscs load
+
 OhdsiShinyModules v2.1.4
 ========================
 Fixed missing call to dplyr in CohortDiagnostics load up
