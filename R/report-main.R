@@ -926,17 +926,28 @@ getTandOs <- function(
   
   # add cohort names
   res <- merge(
-    res,cg[,c('cohortDefinitionId','cohortName')], 
-    by.x = 'tid', 
+    x = res, 
+    y = cg[,c('cohortDefinitionId','cohortName')],
+    by.x = 'tid',
     by.y = 'cohortDefinitionId'
   ) %>%
-    dplyr::rename(targetName = 'cohortName')
+    dplyr::rename(
+      targetName = 'cohortName'
+      )
+
   res <- merge(
-    res,cg[,c('cohortDefinitionId','cohortName')], 
+    x = res,
+    y = cg[,c('cohortDefinitionId','cohortName')], 
     by.x = 'oid', 
     by.y = 'cohortDefinitionId'
   ) %>%
-    dplyr::rename(outcomeName = 'cohortName')
+    dplyr::rename(
+      outcomeName = 'cohortName'
+      ) %>%
+    dplyr::arrange(
+      .data$targetName,
+      .data$outcomeName
+    )
   
   tos <- lapply(unique(res$tid), function(tid){
     data.frame(
@@ -975,6 +986,8 @@ getTandOs <- function(
           by.x = 'cohortDefinitionId',
           by.y = 'tid'
         )
+      ) %>% dplyr::arrange( # adding order to make options orders
+        .data$targetName
       )
       parents <- unique(parentChild$subsetParent)
       groupedCohorts <- lapply(1:length(parents), function(i){
@@ -1029,7 +1042,8 @@ getTandOs <- function(
       characterization = characterization,
       cohortIncidence = cohortIncidence,
       cohortMethod = cohortMethod,
-      prediction = prediction
+      prediction = prediction,
+      sccs = sccs
     )
   )
   

@@ -149,7 +149,8 @@ cohortMethodPopulationCharacteristicsServer <- function(
               digits = 2
             ),
             sortable = F
-          )
+          ),
+          label = reactable::colDef(show = T)
           
         )
       )
@@ -251,7 +252,7 @@ getCohortMethodPopChar <- function(
       .data$covariateName
     )
   
-  # remove text before covariateNames
+  # remove text before covariateNames - TODO generalize this?
   txtRms <- c(
     'age group: ', 
     'condition_era group during day -365 through 0 days relative to index: ',
@@ -260,7 +261,7 @@ getCohortMethodPopChar <- function(
   for(txtRm in txtRms){
     result$covariateName <- gsub(txtRm,'', result$covariateName)
   }
-
+  
   return(
     result
   )

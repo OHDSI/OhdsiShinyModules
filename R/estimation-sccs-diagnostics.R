@@ -165,6 +165,12 @@ estimationGetSccsDiagnosticColDefs <- function(){
         "The outcome of interest "
       )
     ),
+    indication = reactable::colDef(
+      header = withTooltip(
+        "Indication",
+        "The indication of interest "
+      )
+    ),
     summaryValue =  reactable::colDef(
       header = withTooltip(
         "Diagnostic",

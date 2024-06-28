@@ -167,7 +167,7 @@ estimationServer <- function(
       
       # Targets
       targets <- lapply(options$groupedTs, function(x) x$cohortId)
-      targets <- unlist(targets)
+      targets <- unlist(targets) 
       
       # initial outcomes for first T
       outcomeDf <- options$tos[[1]]
@@ -198,7 +198,7 @@ estimationServer <- function(
           outcomesVector <- outcomes()$outcomeId
           names(outcomesVector) <- outcomes()$outcomeName
           
-          shiny::updateSelectInput(
+          shinyWidgets::updatePickerInput(
             session = session, 
             inputId = 'outcomeId', 
             label = 'Outcome: ', 
@@ -227,15 +227,21 @@ estimationServer <- function(
                 virtualScroll = 500
               )
             ), 
-            shiny::selectInput(
+            shinyWidgets::pickerInput(
               inputId = session$ns('outcomeId'),
               label = 'Outcome: ',
               choices = initialOutcomes,
               selected = initialOutcomes[1],
               multiple = FALSE,
-              selectize = TRUE,
-              width = NULL,
-              size = NULL
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                dropupAuto = F,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 500
+              )
             ), 
             style = 'margin-left: 2%; width: 78%; display: inline-block; vertical-align: middle;'
           ),
