@@ -130,7 +130,7 @@ test_that("plotControlEstimates", {
     trueEffectSize = rep(1,100)
   )
   
-  res <- plotControlEstimates(df)
+  res <- plotControlEstimates(controlEstimates = df)
   testthat::expect_is(res, "ggplot")
 })
 

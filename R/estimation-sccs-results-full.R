@@ -436,7 +436,10 @@ estimationSccsFullResultServer <- function(
             analysisId = row$analysisId,
             eraId = row$eraId
           )
-          plotControlEstimates(controlEstimates)
+          plotControlEstimates(
+            controlEstimates = controlEstimates$plotResult,
+            ease = controlEstimates$ease
+            )
         }
       })
       
@@ -582,8 +585,13 @@ estimationGetSccsTimeToEvent <- function(
     snakeCaseToCamelCase = TRUE
   )
   
+  # if NULL set to NA so code below works
+  if(is.null(p$preExposureP)){
+    p$preExposureP <- NA
+  }
+  
   sql <- "
-  SELECT *, @p as p
+  SELECT * , @p as p
   FROM @schema.@sccs_table_prefixtime_to_event
 
   WHERE database_id = '@database_id'
@@ -600,9 +608,10 @@ estimationGetSccsTimeToEvent <- function(
     analysis_id = analysisId,
     exposures_outcome_set_id = exposuresOutcomeSetId,
     exposure_id = exposureId,
-    p = ifelse(is.null(p$preExposureP), -1, p$preExposureP),
+    p = ifelse(is.na(p$preExposureP), -1, p$preExposureP),
     snakeCaseToCamelCase = TRUE
   )
+  
   
   return(timeToEvent)
 }
@@ -739,7 +748,7 @@ estimationGetSccsControlEstimates <- function(
   INNER JOIN
    @schema.@sccs_table_prefixexposure e
    on r.exposures_outcome_set_id = e.exposures_outcome_set_id
-   
+
    INNER JOIN 
    @schema.@sccs_table_prefixcovariate c
    on e.era_id = c.era_id 
@@ -748,13 +757,14 @@ estimationGetSccsControlEstimates <- function(
    and c.analysis_id = r.analysis_id
    and c.covariate_id = r.covariate_id
    
-   WHERE e.era_id = @era_id
-   AND r.database_id = '@database_id'
+   WHERE r.database_id = '@database_id'
    AND r.analysis_id = @analysis_id
    AND r.covariate_id = @covariate_id
    AND e.true_effect_size is not NULL
+   -- AND e.era_id = @era_id
   ;
   "
+  
   res <- connectionHandler$queryDb(
     sql,
     schema = resultDatabaseSettings$schema,
@@ -766,7 +776,26 @@ estimationGetSccsControlEstimates <- function(
     snakeCaseToCamelCase = TRUE
   )
   
-  #allres <- merge(res, res2, by = 'exposuresOutcomeSetId')
+  # get ease for the plot
+  sql <- "SELECT top 1 ds.ease
+  FROM @schema.@sccs_table_prefixdiagnostics_summary ds
+  WHERE ds.database_id = '@database_id'
+  AND ds.analysis_id = @analysis_id
+  AND ds.covariate_id = @covariate_id;"
   
-  return(res)
+  ease <- connectionHandler$queryDb(
+    sql,
+    schema = resultDatabaseSettings$schema,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+    database_id = databaseId,
+    covariate_id = covariateId,
+    analysis_id = analysisId,
+    snakeCaseToCamelCase = TRUE
+  )
+
+  return(list(
+    plotResult = res,
+    ease = ease$ease
+    )
+  )
 }

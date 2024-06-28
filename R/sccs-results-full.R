@@ -412,7 +412,7 @@ sccsFullResultServer <- function(
             databaseId = row$databaseId,
             analysisId = row$analysisId
           )
-          plotControlEstimates(controlEstimates)
+          plotControlEstimates(controlEstimates = controlEstimates)
         }
       })
       

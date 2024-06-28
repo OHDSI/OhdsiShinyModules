@@ -120,7 +120,9 @@ plotTimeTrend <- function(timeTrend) {
 
 
 plotTimeToEventSccs <- function(timeToEvent) {
-  
+  if(nrow(timeToEvent) == 0){
+    shiny::validate('No Rows')
+  }
   events <- timeToEvent %>%
     dplyr::transmute(.data$week,
                      type = "Events",
@@ -300,12 +302,23 @@ drawAttritionDiagram <- function(attrition) {
 }
 
 plotEventDepObservation <- function(eventDepObservation, maxMonths = 12) {
+  if(nrow(eventDepObservation) == 0){
+    shiny::validate('No Rows')
+  }
+  
   eventDepObservation <- eventDepObservation %>%
     dplyr::filter(.data$monthsToEnd <= maxMonths) %>%
     dplyr::mutate(
       outcomes = pmax(0, .data$outcomes),
       censoring = ifelse(.data$censored == 1, "Censored", "Uncensored")
     )
+  if(nrow(eventDepObservation) == 0){
+    shiny::validate('No Rows after filtering')
+  }
+  if(is.infinite(max(eventDepObservation$monthsToEnd))){
+    shiny::validate('Infinite max')
+  }
+  
   timeBreaks <- 0:ceiling(max(eventDepObservation$monthsToEnd))
   timeLabels <- timeBreaks * 30.5
   
@@ -335,7 +348,20 @@ plotEventDepObservation <- function(eventDepObservation, maxMonths = 12) {
 }
 
 plotSpanning <- function(spanning, type = "age") {
+  
+  if(nrow(spanning) == 0){
+    shiny::validate('No rows')
+  }
+  
   if (type == "age") {
+    
+    if(is.infinite(min(spanning$ageMonth))){
+      shiny::validate('infinte min age month')
+    }
+    if(is.infinite(max(spanning$ageMonth))){
+      shiny::validate('infinte max age month')
+    }
+    
     spanning <- spanning %>%
       dplyr::mutate(x = .data$ageMonth)
     labels <- seq(ceiling(min(spanning$ageMonth) / 12), floor(max(spanning$ageMonth) / 12))
@@ -537,10 +563,16 @@ cyclicSplineDesign <- function(x, knots, ord = 4) {
   X1
 }
 
-plotControlEstimates <- function(controlEstimates) {
+plotControlEstimates <- function(
+    controlEstimates, 
+    ease = NULL
+    ) {
     if(nrow(controlEstimates) == 0){
       shiny::validate('No rows')
     } 
+  
+  titleText <- paste('Ease: ', ease)
+  
   size <- 2
   labelY <- 0.7
   d <- rbind(data.frame(yGroup = "Uncalibrated",
@@ -636,7 +668,8 @@ plotControlEstimates <- function(controlEstimates) {
                    strip.text.x = theme,
                    strip.text.y = theme,
                    strip.background = ggplot2::element_blank(),
-                   legend.position = "none")
+                   legend.position = "none") +
+    ggplot2::ggtitle(label = titleText)
   return(plot)
 }
 
