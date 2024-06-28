@@ -37,13 +37,26 @@ estimationSccsPlotsServer <- function(
 
 estimationCreateSccsPlot <- function(data) {
   data <- data()
+  if(nrow(data) == 0){
+    shiny::showNotification('No results to plot')
+    return(NULL)
+  }
   data <- data[!is.na(data$calibratedRr),]
+  if(nrow(data) == 0){
+    shiny::showNotification('No results to plot')
+    return(NULL)
+  }
   data$database <- data$databaseName
   data$type <- data$covariateName
   data$indication[is.null(data$indication)] <- 'no indication'
   data$indication[is.na(data$indication)] <- 'no indication'
   
   if(is.null(data)){
+    shiny::showNotification('No results to plot')
+    return(NULL)
+  }
+  if(nrow(data) == 0){
+    shiny::showNotification('No results to plot')
     return(NULL)
   }
   

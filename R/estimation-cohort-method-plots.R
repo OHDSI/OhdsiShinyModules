@@ -37,10 +37,19 @@ estimationCmPlotsServer <- function(
 
 estimationCreateCmPlot <- function(data) {
   data <- data()
+  if(nrow(data) == 0){
+    shiny::showNotification('No results to plot')
+    return(NULL)
+  }
   data <- data[!is.na(data$calibratedRr),]
+  if(nrow(data) == 0){
+    shiny::showNotification('No results to plot')
+    return(NULL)
+  }
   data$database <- data$cdmSourceAbbreviation
 
   if(is.null(data$comparator)){
+    shiny::showNotification('No results to plot')
     return(NULL)
   }
   
