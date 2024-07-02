@@ -683,6 +683,15 @@ on temp.outcome_cohort_id = c.cohort_definition_id
   ci_lookup = ciLookup
 )
 # fix backwards compatability
+if(!'isSubset' %in% colnames(cg)){
+  cg$isSubset <- NA
+}
+if(!'subsetParent' %in% colnames(cg)){
+  cg$subsetParent <- cg$cohortDefinitionId
+}
+if(!'subsetDefinitionId' %in% colnames(cg)){
+  cg$subsetDefinitionId <- cg$cohortDefinitionId
+}
 cg$subsetParent[is.na(cg$isSubset)] <- cg$cohortDefinitionId
 cg$subsetDefinitionId[is.na(cg$isSubset)] <- cg$cohortDefinitionId
 cg$isSubset[is.na(cg$isSubset)] <- 0

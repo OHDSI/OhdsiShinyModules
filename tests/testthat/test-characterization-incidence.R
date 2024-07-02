@@ -1,29 +1,87 @@
 context("characterization-incidence")
 
+options <- characterizationGetOptions(
+  connectionHandler = connectionHandlerCharacterization,
+  resultDatabaseSettings = resultDatabaseSettingsCharacterization,
+  includeAggregate = T,
+  includeIncidence = T
+)
+parents <- characterizationGetParents(options)
+
+
 shiny::testServer(
   app = characterizationIncidenceServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization,
-    resultDatabaseSettings = resultDatabaseSettingsCharacterization
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization,
+    options = options,
+    parents = parents,
+    parentIndex = shiny::reactive(1), # reactive
+    outcomes = shiny::reactive(3), # reactive
+    targetIds = shiny::reactive(1) # reactive
   ), 
   expr = {
     
-    # make sure options is a list
-    testthat::expect_true(class(options) == 'list')
-    testthat::expect_true(!is.null(options$targetIds))
-    testthat::expect_true(!is.null(options$outcomeIds))
-    
     # check input$generate does not crash app
     # need to test generate in ns("input-selection")
-    session$setInputs(`input-selection_generate` = 1)
+    session$setInputs(
+      outcomeIds = outcomes()[1],
+      databaseSelector = databases,
+      ageIds = ages,
+      sexIds = sex,
+      startYears = startYear[1],
+      tars = sortedTars[1]
+      )
+    
+    # before generation the reactives should be NULL
+    testthat::expect_true(is.null(incidenceRateTarFilter()))
+    testthat::expect_true(is.null(incidenceRateCalendarFilter()))
+    testthat::expect_true(is.null(incidenceRateAgeFilter()))
+    testthat::expect_true(is.null(incidenceRateGenderFilter()))
+    testthat::expect_true(is.null(incidenceRateDbFilter()))
+    testthat::expect_true(is.null(outcomeIds()))
+    
+    session$setInputs(generate = T)
+    
+    # when generate is true the reactives should be populated
+    testthat::expect_true(!is.null(incidenceRateTarFilter()))
+    testthat::expect_true(!is.null(incidenceRateCalendarFilter()))
+    testthat::expect_true(!is.null(incidenceRateAgeFilter()))
+    testthat::expect_true(!is.null(incidenceRateGenderFilter()))
+    testthat::expect_true(!is.null(incidenceRateDbFilter()))
+    testthat::expect_true(!is.null(outcomeIds()))
+    
+    testthat::expect_true(outcomeIds() == outcomes()[1])
+    
+    testthat::expect_true(inherits(options, 'list'))
+    
+    # should have results after generate
+    testthat::expect_true(!is.null(extractedData()))
+    
     
     idata <- getIncidenceData(
-      targetIds = options$targetIds[1],
-      outcomeIds = options$outcomeIds[1],
+      targetIds = targetIds(),
+      outcomeIds = outcomes()[1],
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings
     )
     testthat::expect_is(idata, 'data.frame')
+    
+    idata <- getIncidenceData(
+      targetIds = NULL,
+      outcomeIds = outcomes()[1],
+      connectionHandler = connectionHandler,
+      resultDatabaseSettings = resultDatabaseSettings
+    )
+    testthat::expect_is(idata, 'NULL')
+    
+    idata <- getIncidenceData(
+      targetIds = 1,
+      outcomeIds = NULL,
+      connectionHandler = connectionHandler,
+      resultDatabaseSettings = resultDatabaseSettings
+    )
+    testthat::expect_is(idata, 'NULL')
     
   })
 

@@ -1,4 +1,4 @@
-context("characterization-cohorts")
+context("characterization-database")
 
 options <- characterizationGetOptions(
   connectionHandler = connectionHandlerCharacterization,
@@ -10,7 +10,7 @@ parents <- characterizationGetParents(options)
 
 
 shiny::testServer(
-  app = characterizationCohortComparisonServer, 
+  app = characterizationDatabaseComparisonServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
@@ -34,37 +34,33 @@ shiny::testServer(
     
     # set inputs
     session$setInputs(
-      comparatorGroup = parents[2],
-      comparatorId = comparatorOptions[1],
-      databaseId = inputVals()$databaseIds[1]
+      databaseIds = inputVals()$databaseIds,
+      minThreshold = 0.02
     )
-    testthat::expect_true(comparatorIndex() == 2)
-    testthat::expect_true(comparatorGroups() == characterizationGetChildren(options, comparatorIndex()))
-    
-    session$setInputs(
-      comparatorId = comparatorGroups()[1]
-    )
+
     session$setInputs(
       generate = T
     )
     
     testthat::expect_true(inherits(selected(),'data.frame'))
     
-    resultTable <- characterizatonGetCohortData(
+    resultTable <- characterizatonGetDatabaseComparisonData(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
-      targetIds = c(1,2),
-      databaseIds = input$databaseId,
-      minThreshold = 0.01,
-      addSMD = T
+      targetIds = c(1),
+      databaseIds = input$databaseIds,
+      minThreshold = 0.02
     )
-    testthat::expect_true(nrow(resultTable) > 0)
+    testthat::expect_true(inherits(resultTable$table , 'data.frame'))
+    testthat::expect_true(nrow(resultTable$table ) > 0)
+    testthat::expect_true(inherits(resultTable$databaseNames , 'data.frame'))
+    testthat::expect_true(nrow(resultTable$databaseNames ) > 0)
     
     countTable <- characterizatonGetCohortCounts(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
-      targetIds = c(1,2),
-      databaseIds = input$databaseId
+      targetIds = c(1),
+      databaseIds = input$databaseIds
     )
     testthat::expect_true(nrow(countTable) > 0)
     
@@ -72,33 +68,18 @@ shiny::testServer(
     continuousTable <- characterizatonGetCohortComparisonDataContinuous(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
-      targetIds = c(1,2),
-      databaseIds = input$databaseId
+      targetIds = c(1),
+      databaseIds = input$databaseIds,
+      pivot = F
     )
     testthat::expect_true(nrow(continuousTable) > 0)
     
   
   })
 
-test_that("Test characterizationTable ui", {
+test_that("Test characterizationDatabaseComparison ui", {
   # Test ui
-  ui <- characterizationCohortComparisonViewer(id = 'viewer')
+  ui <- characterizationDatabaseComparisonViewer(id = 'viewer')
   checkmate::expect_list(ui)
-})
-
-
-test_that("Test characterizationCohortsColumns", {
-  cols <- characterizationCohortsColumns()
-  testthat::expect_true(inherits(cols, 'list'))
-})
-
-test_that("Test characteriationCountTableColDefs", {
-  cols <- characteriationCountTableColDefs()
-  testthat::expect_true(inherits(cols, 'list'))
-})
-
-test_that("Test characterizationCohortsColumnsContinuous", {
-  cols <- characterizationCohortsColumnsContinuous()
-  testthat::expect_true(inherits(cols, 'list'))
 })
 

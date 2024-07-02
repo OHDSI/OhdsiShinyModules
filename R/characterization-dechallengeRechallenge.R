@@ -466,14 +466,20 @@ isCohortUniquePeople <- function(
   FROM @schema.@cg_table_prefixCOHORT_COUNT cc
   where cc.cohort_id = @cohort_id
   ;"
-  res <- connectionHandler$queryDb(
+  res <- tryCatch({connectionHandler$queryDb(
       sql = sql,
       schema = resultDatabaseSettings$schema,
       cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
       cohort_id = cohortId
-    )
+  )}, error = function(e){return(NULL)}
+  )
   
-  return(sum(res$cohortEntries == res$cohortSubjects) == nrow(res))
+  # if table is missing the warning will not happen
+  if(is.null(res)){
+    return(T)
+  }else{
+    return(sum(res$cohortEntries == res$cohortSubjects) == nrow(res))
+  }
 }
 
 plotDechalRechal <- function(

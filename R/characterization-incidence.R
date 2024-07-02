@@ -245,7 +245,7 @@ characterizationIncidenceServer <- function(
     id, 
     connectionHandler,
     resultDatabaseSettings,
-    options,
+    options, # this gets overwritten in code below - why here?
     parents,
     parentIndex, # reactive
     outcomes, # reactive
@@ -276,6 +276,7 @@ characterizationIncidenceServer <- function(
       sortedTars <- tarDf$tarId
       names(sortedTars) <- cohortIncidenceFormatTar(tarDf)
       
+      # Problematic for other apps with different data!
       databases <- c("IBM MDCR",
                      "IBM MDCD",
                      "JMDC",
@@ -420,15 +421,6 @@ characterizationIncidenceServer <- function(
      
      
      options <- getIncidenceOptions()
-     
-     optionsGlobal <- shiny::reactive({
-       characterizationGetCaseSeriesOptions(
-         connectionHandler = connectionHandler,
-         resultDatabaseSettings = resultDatabaseSettings,
-         targetId = targetId(),
-         outcomeId = outcomeId()
-       )
-     })
      
         inputSelectedCustomPlot <- inputSelectionServer(
           id = "input-selection-custom-plot", 

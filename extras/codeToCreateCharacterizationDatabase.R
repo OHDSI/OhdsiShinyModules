@@ -3,7 +3,7 @@
 testDir <- tempdir()
 testDir <- '/Users/jreps/Documents/github/OhdsiShinyModules/tests/resources'
 
-library(DescriptiveStudies)
+library(Characterization)
 connectionDetails <- Eunomia::getEunomiaConnectionDetails()
 Eunomia::createCohorts(connectionDetails)
 
@@ -20,41 +20,59 @@ covSet <- FeatureExtraction::createCovariateSettings(useDemographicsGender = T,
                                                      endDays = -1
 )
 
-descSet <- DescriptiveStudies::createCharacterizationSettings(
-  timeToEventSettings = DescriptiveStudies::createTimeToEventSettings(
+charSet <- Characterization::createCharacterizationSettings(
+  timeToEventSettings = Characterization::createTimeToEventSettings(
     targetIds = targetIds, 
     outcomeIds = outcomeIds
   ) , 
-  dechallengeRechallengeSettings = DescriptiveStudies::createDechallengeRechallengeSettings(
+  dechallengeRechallengeSettings = Characterization::createDechallengeRechallengeSettings(
     targetIds = targetIds, 
     outcomeIds = outcomeIds
   ), 
-  aggregateCovariateSettings = DescriptiveStudies::createAggregateCovariateSettings(
-    targetIds = targetIds, 
+  aggregateCovariateSettings = Characterization::createAggregateCovariateSettings(
+    targetIds = targetIds, minPriorObservation = 365, outcomeWashoutDays = 90,
     outcomeIds = outcomeIds, 
     riskWindowStart = 1, riskWindowEnd = 365, 
     covariateSettings = covSet
   )
 )
 
-DescriptiveStudies::runCharacterizationAnalyses(
+Characterization::runCharacterizationAnalyses(
   connectionDetails = connectionDetails, 
   targetDatabaseSchema = "main", 
   targetTable = "cohort", 
   outcomeDatabaseSchema = "main", 
   outcomeTable = "cohort", 
   cdmDatabaseSchema = "main", 
-  characterizationSettings = descSet, 
-  saveDirectory = file.path(testDir,'descDatabase'), 
+  characterizationSettings = charSet, 
+  saveDirectory = file.path(testDir,'charDatabase'), 
   databaseId = 'eunomia', 
   tablePrefix = 'c_'
   )
 
+serverDesc <- "tests/resources/charDatabase/databaseFile.sqlite"
+connectionDetailsDesc <- DatabaseConnector::createConnectionDetails(
+  dbms = 'sqlite',
+  server = serverDesc
+)
+
+Characterization::createCharacterizationTables(
+  connectionDetails = connectionDetailsDesc, 
+  resultSchema = 'main', 
+  createTables = T
+  )
+
+Characterization::insertResultsToDatabase(
+  connectionDetails = connectionDetailsDesc, 
+  schema = 'main', 
+  resultsFolder = file.path(testDir,'charDatabase', 'results'), 
+  tablePrefix = 'c_'
+  )
 
 if(F){
 # add in rhe database_meta_data and cohort_definitions tables
 
-serverDesc <- "tests/resources/descDatabase/databaseFile.sqlite"
+serverDesc <- "tests/resources/charDatabase/databaseFile.sqlite"
 connectionDetailsDesc <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite',
   server = serverDesc
@@ -78,6 +96,9 @@ DatabaseConnector::insertTable(
     description = rep('',4),
     json = rep('{}', 4),
     sqlCommand = rep('',4)
+    #,isSubset = rep(0, 4)
+    #,subsetParent = rep(NULL, 4)
+    #,subsetDefinitionId = rep(NULL, 4)
     ), 
   createTable = T, dropTableIfExists = T,
   camelCaseToSnakeCase = T

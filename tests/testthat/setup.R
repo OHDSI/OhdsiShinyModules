@@ -57,7 +57,7 @@ resultDatabaseSettingsPlp <- list(
 
 
 # =========== characterization START
-serverCharacterization <- "../resources/characterizationDatabase/databaseFile.sqlite"
+serverCharacterization <- "../resources/cDatabase/databaseFile.sqlite"
 connectionDetailsCharacterization <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite',
   server = serverCharacterization
@@ -78,6 +78,7 @@ resultDatabaseSettingsCharacterization <- list(
   incidenceTablePrefix = 'i_',
   tempEmulationSchema = NULL
 )
+
 
 
 # =========== Characterization END
