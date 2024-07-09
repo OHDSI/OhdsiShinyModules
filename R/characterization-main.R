@@ -627,18 +627,6 @@ characterizationGetOptions <- function(
     )
   }, error = function(e){return(NULL)}))
   
-# TODO - add tte and decha rechal?
-cohorts <- connectionHandler$queryDb(
-sql = "
-
-select distinct database_id, target_cohort_id as cohort_definition_id, cohort_type
-from @schema.@c_table_prefixcohort_details
-where cohort_type = 'Target'
-
-;",
-schema = resultDatabaseSettings$schema,
-c_table_prefix = resultDatabaseSettings$cTablePrefix
-)
 
 TnOs <- connectionHandler$queryDb(
   sql = "
