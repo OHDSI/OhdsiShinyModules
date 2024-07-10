@@ -4,15 +4,15 @@ shiny::testServer(
   app = cohortMethodPopulationCharacteristicsServer, 
   args = list(
     selectedRow = shiny::reactiveVal(NULL), 
-    connectionHandler = connectionHandlerCm, 
-    resultDatabaseSettings = resultDatabaseSettingsCm
+    connectionHandler = connectionHandlerEstimation, 
+    resultDatabaseSettings = resultDatabaseSettingsEstimation
   ), 
   expr = {
     
     # make sure this runs if we pick the first row
     selectedRow(
       list(
-        databaseId = '1', 
+        databaseId = 'eunomia', 
         cdmSourceAbbreviation = 'Eunomia', 
         analysisId = 1,
         description  = 'madeup',

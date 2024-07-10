@@ -85,7 +85,8 @@ cohortMethodCovariateBalanceServer <- function(
     selectedRow, 
     connectionHandler, 
     resultDatabaseSettings,
-    metaAnalysisDbIds = NULL) {
+    metaAnalysisDbIds = NULL
+    ) {
   
   shiny::moduleServer(
     id,
@@ -95,35 +96,6 @@ cohortMethodCovariateBalanceServer <- function(
         connectionHandler,
         resultDatabaseSettings
       )
-      
-      # input selection component -- could be added later if desired
-      # inputSelectedResults <- inputSelectionServer(
-      #   id = "input-selection-results", 
-      #   inputSettingList = list(
-      #     createInputSetting(
-      #       rowNumber = 1,                           
-      #       columnWidth = 12,
-      #       varName = 'covariateAnalysisId',
-      #       uiFunction = 'shinyWidgets::pickerInput',
-      #       updateFunction = 'shinyWidgets::updatePickerInput',
-      #       uiInputs = list(
-      #         label = 'Covariate Analysis Name: ',
-      #         choices = options$covariateAnalysisId,
-      #         selected = options$covariateAnalysisId, #
-      #         multiple = T,
-      #         options = shinyWidgets::pickerOptions(
-      #           actionsBox = TRUE,
-      #           liveSearch = TRUE,
-      #           size = 10,
-      #           liveSearchStyle = "contains",
-      #           liveSearchPlaceholder = "Type here to search",
-      #           virtualScroll = 50
-      #         )
-      #       )
-      #     )
-      #   )
-      # )
-      
       
       balance <- shiny::reactive({
         row <- selectedRow()
@@ -137,9 +109,6 @@ cohortMethodCovariateBalanceServer <- function(
           targetId = row$targetId,
           comparatorId = row$comparatorId,
           databaseId = row$databaseId,
-          # covariateAnalysisId = ifelse(is.null(inputSelectedResults()$covariateAnalysisId),
-          #                              -1,
-          #                              inputSelectedResults()$covariateAnalysisId),
           analysisId = row$analysisId)},
           error = function(e){return(data.frame())}
         )
@@ -299,8 +268,8 @@ cohortMethodCovariateBalanceServer <- function(
           dbNames <- getDatabaseName(connectionHandler = connectionHandler,
                                      resultDatabaseSettings = resultDatabaseSettings)
           comb <- dplyr::inner_join(balance, dbNames) %>%
-            dplyr::relocate(cdmSourceAbbreviation, .after = databaseId) %>% 
-            dplyr::select(-c(databaseId))
+            dplyr::relocate("cdmSourceAbbreviation", .after = "databaseId") %>% 
+            dplyr::select(-c("databaseId"))
         }
       )
       
@@ -322,11 +291,6 @@ cohortMethodCovariateBalanceServer <- function(
       resultTableServer(
         id = "balanceTable",
         df = renderBalanceTable,
-        # selectedCols = c("cdmSourceAbbreviation", "targetName", "targetIdShort", "outcomeName", "outcomeIdShort",
-        #                  "ageGroupName", "genderName", "startYear", "tar", "outcomes",
-        #                  "incidenceProportionP100p", "incidenceRateP100py"),
-        # sortedCols = c("ageGroupName", "genderName", "startYear", "incidenceRateP100py"),
-        # elementId = "incidence-select",
         colDefsInput = cmBalanceColList,
         downloadedFileName = "covariateBalanceTable-"
       )

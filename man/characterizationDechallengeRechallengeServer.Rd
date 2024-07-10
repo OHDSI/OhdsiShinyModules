@@ -18,6 +18,10 @@ characterizationDechallengeRechallengeServer(
 \item{connectionHandler}{the connection to the prediction result database}
 
 \item{resultDatabaseSettings}{a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix}
+
+\item{targetId}{a reactive integer specifying the targetId of interest}
+
+\item{outcomeId}{a reactive integer specifying the outcomeId of interest}
 }
 \value{
 The server to the Dechallenge Rechallenge module

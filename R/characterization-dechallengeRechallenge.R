@@ -52,6 +52,8 @@ characterizationDechallengeRechallengeViewer <- function(id) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
+#' @param targetId a reactive integer specifying the targetId of interest
+#' @param outcomeId a reactive integer specifying the outcomeId of interest
 #' 
 #' @return
 #' The server to the Dechallenge Rechallenge module
@@ -283,7 +285,7 @@ characterizationDechallengeRechallengeServer <- function(
               )
             )
             } else{
-              showNotification("No fails to display")
+              shiny::showNotification("No fails to display")
             }
           }
         }

@@ -1,4 +1,4 @@
-context("cohort-method-systematicError")
+context("estimation-cohort-method-systematicError")
 
 # issues with this modules!
 
@@ -6,8 +6,8 @@ shiny::testServer(
   app = cohortMethodSystematicErrorServer, 
   args = list(
     selectedRow = shiny::reactiveVal(NULL), 
-    connectionHandler = connectionHandlerCm, 
-    resultDatabaseSettings = resultDatabaseSettingsCm
+    connectionHandler = connectionHandlerEstimation, 
+    resultDatabaseSettings = resultDatabaseSettingsEstimation
   ), 
   expr = {
     

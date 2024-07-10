@@ -512,7 +512,7 @@ characterizationServer <- function(
               id = 'cohortIncidenceTab',
               connectionHandler = connectionHandler, 
               resultDatabaseSettings = resultDatabaseSettings,
-              options = options,
+              #options = options,
               parents = parents,
               parentIndex = parentIndex, # reactive
               outcomes = outcomes, # reactive

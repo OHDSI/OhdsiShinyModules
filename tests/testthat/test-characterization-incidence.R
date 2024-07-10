@@ -8,13 +8,11 @@ options <- characterizationGetOptions(
 )
 parents <- characterizationGetParents(options)
 
-
 shiny::testServer(
   app = characterizationIncidenceServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-    options = options,
     parents = parents,
     parentIndex = shiny::reactive(1), # reactive
     outcomes = shiny::reactive(3), # reactive

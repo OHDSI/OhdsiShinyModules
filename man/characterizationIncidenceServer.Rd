@@ -8,7 +8,6 @@ characterizationIncidenceServer(
   id,
   connectionHandler,
   resultDatabaseSettings,
-  options,
   parents,
   parentIndex,
   outcomes,
@@ -21,6 +20,14 @@ characterizationIncidenceServer(
 \item{connectionHandler}{the connection to the prediction result database}
 
 \item{resultDatabaseSettings}{a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix}
+
+\item{parents}{a list of parent cohorts}
+
+\item{parentIndex}{an integer specifying the parent index of interest}
+
+\item{outcomes}{a reactive object specifying the outcomes of interest}
+
+\item{targetIds}{a reactive vector of integer specifying the targetIds of interest}
 }
 \value{
 The server to the prediction incidence module

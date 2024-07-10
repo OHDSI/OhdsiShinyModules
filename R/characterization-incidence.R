@@ -50,12 +50,6 @@ custom_age_sort <- function(age_categories) {
   return(custom_order)
 }
 
-base_breaks <- function(n = 10){
-  function(x) {
-    axisTicks(log10(range(x, na.rm = TRUE)), log = TRUE, n = n)
-  }
-}
-
 break_setter = function(n = 5) {
   function(lims) {pretty(x = as.numeric(lims), n = n)}
 }
@@ -236,6 +230,10 @@ characterizationIncidenceViewer <- function(id) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
+#' @param parents a list of parent cohorts
+#' @param parentIndex an integer specifying the parent index of interest
+#' @param outcomes a reactive object specifying the outcomes of interest
+#' @param targetIds a reactive vector of integer specifying the targetIds of interest
 #' 
 #' @return
 #' The server to the prediction incidence module
@@ -245,7 +243,7 @@ characterizationIncidenceServer <- function(
     id, 
     connectionHandler,
     resultDatabaseSettings,
-    options, # this gets overwritten in code below - why here?
+    #options, # this gets overwritten in code below - why here?
     parents,
     parentIndex, # reactive
     outcomes, # reactive
@@ -648,8 +646,9 @@ characterizationIncidenceServer <- function(
           extractedData() %>%
             dplyr::relocate("tar", .before = "outcomes") %>%
             dplyr::select(-c("targetName", "outcomeName")) %>%
-            dplyr::rename(targetName = targetCohortName,
-                          outcomeName = outcomeCohortName) %>%
+            dplyr::rename(targetName = "targetCohortName",
+                          outcomeName = "outcomeCohortName"
+                          ) %>%
             dplyr::mutate(incidenceProportionP100p = as.numeric(.data$incidenceProportionP100p),
                           incidenceRateP100py = as.numeric(.data$incidenceRateP100py),
                           dplyr::across(dplyr::where(is.numeric), round, 4),
@@ -742,8 +741,8 @@ characterizationIncidenceServer <- function(
           ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
           plotData <- filteredData() %>%
             dplyr::filter(.data$tar %in% incidenceRateTarFilter()) %>%
-            dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
-                          outcomeLabel = paste(outcomeIdShort, " = ", outcomeName)
+            dplyr::mutate(targetLabel = paste(.data$targetIdShort, " = ", .data$targetName),
+                          outcomeLabel = paste(.data$outcomeIdShort, " = ", .data$outcomeName)
                           ),
             shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
           )
@@ -1210,19 +1209,15 @@ characterizationIncidenceServer <- function(
           
           plotData <- plotData %>%
             dplyr::filter(#ageGroupName != "Any" & 
-                            genderName == "Any" & 
-                            startYear == "Any") %>%
-            dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
-                          outcomeLabel = paste(outcomeIdShort, " = ", outcomeName),
-                          ageGroupName = factor(ageGroupName, levels = custom_age_sort(ageGroupName), ordered = TRUE)
+                            .data$genderName == "Any" & 
+                              .data$startYear == "Any") %>%
+            dplyr::mutate(targetLabel = paste(.data$targetIdShort, " = ", .data$targetName),
+                          outcomeLabel = paste(.data$outcomeIdShort, " = ", .data$outcomeName),
+                          ageGroupName = factor(.data$ageGroupName, levels = custom_age_sort(.data$ageGroupName), ordered = TRUE)
             ) %>%
-            dplyr::rename("Target" = targetIdShort,
-                          "Outcome" = outcomeIdShort,
-                          "Age" = ageGroupName)
-          
-          # plotHeightStandardAgeSex <- shiny::reactive({
-          #   paste(sum(length(unique(plotData$targetLabel)), length(unique(plotData$Age)), -3)*100, "px", sep="")
-          # })
+            dplyr::rename("Target" = "targetIdShort",
+                          "Outcome" = "outcomeIdShort",
+                          "Age" = "ageGroupName")
           
           # Get unique target and outcome labels
           unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
@@ -1241,9 +1236,9 @@ characterizationIncidenceServer <- function(
           
           base_plot <- ggplot2::ggplot(
             data = plotData,
-            ggplot2::aes(x = Age,
-                         y = incidenceRateP100py,
-                         color = cdmSourceAbbreviation
+            ggplot2::aes(x = .data$Age,
+                         y = .data$incidenceRateP100py,
+                         color = .data$cdmSourceAbbreviation
             )
           ) + 
             ggplot2::geom_point(

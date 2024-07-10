@@ -207,6 +207,7 @@ estimationServer <- function(
           )
         }
       })
+      # end observed targetId
       
       output$targetSelection <- shiny::renderUI({
         shiny::fluidRow(
@@ -245,7 +246,7 @@ estimationServer <- function(
             ), 
             style = 'margin-left: 2%; width: 78%; display: inline-block; vertical-align: middle;'
           ),
-          div(
+          shiny::div(
             shiny::actionButton(
               inputId = session$ns('targetSelect'), 
               label = 'Select',
@@ -257,10 +258,10 @@ estimationServer <- function(
       })
 
       
-      targetSelected <- shiny::reactiveVal()
-      comparatorIds <- shiny::reactiveVal()
-      targetIds <- shiny::reactiveVal()
-      outcomeId <- shiny::reactiveVal()
+      targetSelected <- shiny::reactiveVal(NULL)
+      comparatorIds <- shiny::reactiveVal(NULL)
+      targetIds <- shiny::reactiveVal(NULL)
+      outcomeId <- shiny::reactiveVal(NULL)
       
       shiny::observeEvent(input$targetSelect, {
         
@@ -395,10 +396,17 @@ getEstimationTypes <- function(
   }
   
   # Evidence Synthesis
-  if(paste0(
+  if(
+    paste0(
     resultDatabaseSettings$esTablePrefix,
-    'result'
-  ) %in% tbls){
+    'cm_result'
+  ) %in% tbls ||
+  paste0(
+    resultDatabaseSettings$esTablePrefix,
+    'sccs_result'
+  ) %in% tbls
+  
+  ){
     results <- c(results, "Evidence Synthesis")
   }
 

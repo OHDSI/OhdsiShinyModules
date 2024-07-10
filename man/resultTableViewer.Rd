@@ -14,6 +14,8 @@ resultTableViewer(
 \item{id}{string}
 
 \item{downloadedFileName}{string, desired name of downloaded data file. can use the name from the module that is being used}
+
+\item{boxTitle}{the title added to the box}
 }
 \value{
 shiny module UI

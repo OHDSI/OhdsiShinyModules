@@ -1,23 +1,23 @@
-context("cohort-method-Power")
+context("estimation-cohort-method-Power")
 
 shiny::testServer(
   app = cohortMethodPowerServer, 
   args = list(
     selectedRow = shiny::reactiveVal(NULL), 
-    connectionHandler = connectionHandlerCm, 
-    resultDatabaseSettings = resultDatabaseSettingsCm
+    connectionHandler = connectionHandlerEstimation, 
+    resultDatabaseSettings = resultDatabaseSettingsEstimation
   ), 
   expr = {
     
     #testthat::expect_true(is.null(output$powerTable))
     
     followUp <- getCmFollowUpDist(
-      connectionHandler = connectionHandlerCm,
-      resultDatabaseSettings = resultDatabaseSettingsCm,
+      connectionHandler = connectionHandlerEstimation,
+      resultDatabaseSettings = resultDatabaseSettingsEstimation,
       targetId = 1,
       comparatorId = 2,
       outcomeId = 3,
-      databaseId = '1',
+      databaseId = 'eunomia',
       analysisId = 2
     )
     testthat::expect_true(nrow(followUp)>0)
@@ -28,7 +28,7 @@ shiny::testServer(
     # make sure this runs if we pick the first row
     selectedRow(
       data.frame(
-        databaseId = '1', 
+        databaseId = 'eunomia', 
         cdmSourceAbbreviation = 'Eunomia', 
         description  = 'madeup',
         target = 'test target',

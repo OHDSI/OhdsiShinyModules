@@ -4,8 +4,8 @@ shiny::testServer(
   app = cohortMethodPropensityModelServer, 
   args = list(
     selectedRow = shiny::reactiveVal(NULL), 
-    connectionHandler = connectionHandlerCm, 
-    resultDatabaseSettings = resultDatabaseSettingsCm
+    connectionHandler = connectionHandlerEstimation, 
+    resultDatabaseSettings = resultDatabaseSettingsEstimation
   ), 
   expr = {
     
@@ -14,7 +14,7 @@ shiny::testServer(
     # make sure this runs if we pick the first row
     selectedRow(
       list(
-        databaseId = '1', 
+        databaseId = 'eunomia', 
         cdmSourceAbbreviation = 'Eunomia', 
         description  = 'madeup',
         target = 'test target',

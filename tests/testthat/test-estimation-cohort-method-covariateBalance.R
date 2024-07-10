@@ -1,11 +1,11 @@
-context("cohort-method-CovariateBalance")
+context("estimation-cohort-method-CovariateBalance")
 
 shiny::testServer(
   app = cohortMethodCovariateBalanceServer, 
   args = list(
     selectedRow = shiny::reactiveVal(NULL), 
-    connectionHandler = connectionHandlerCm, 
-    resultDatabaseSettings = resultDatabaseSettingsCm
+    connectionHandler = connectionHandlerEstimation, 
+    resultDatabaseSettings = resultDatabaseSettingsEstimation
   ), 
   expr = {
     
@@ -15,7 +15,7 @@ shiny::testServer(
     # make sure this runs if we pick the first row
     selectedRow(
       list(
-        databaseId = '1', 
+        databaseId = 'eunomia', 
         cdmSourceAbbreviation = 'Eunomia', 
         analysisId = 2,
         description  = 'madeup',
@@ -41,12 +41,13 @@ shiny::testServer(
     
     
     balance <- getCohortMethodCovariateBalanceShared(
-      connectionHandler = connectionHandlerCm,
-      resultDatabaseSettings = resultDatabaseSettingsCm,
+      connectionHandler = connectionHandlerEstimation,
+      resultDatabaseSettings = resultDatabaseSettingsEstimation,
       targetId = 1,
       comparatorId = 2,
-      databaseId = '1',
-      analysisId = 2)
+      databaseId = 'eunomia',
+      analysisId = 2
+      )
     
     testthat::expect_true(!is.null(balance))
     testthat::expect_true(nrow(balance)>0)

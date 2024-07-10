@@ -73,6 +73,8 @@ characterizationTimeToEventViewer <- function(id) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
+#' @param targetId a reactive integer specifying the targetId of interest
+#' @param outcomeId a reactive integer specifying the outcomeId of interest
 #' 
 #' @return
 #' The server to the prediction time to event module
@@ -107,9 +109,9 @@ characterizationTimeToEventServer <- function(
         ) %>%
           dplyr::mutate(targetName = options()$targetName,
                         outcomeName = options()$outcomeName) %>%
-          dplyr::relocate(databaseName, .before = databaseId) %>%
-          dplyr::relocate(targetName, .after = databaseName) %>%
-          dplyr::relocate(outcomeName, .after = targetName)
+          dplyr::relocate("databaseName", .before = "databaseId") %>%
+          dplyr::relocate("targetName", .after = "databaseName") %>%
+          dplyr::relocate("outcomeName", .after = "targetName")
       })
         
       
@@ -248,8 +250,8 @@ characterizationTimeToEventServer <- function(
             timeToEventData = allData, # reactive
             databases = input$databases,
             times = input$times,
-            outcomeType = input$outcomeTypes,
-            targetOutcomeType = input$targetOutcomeTypes
+            outcomeTypes = input$outcomeTypes,
+            targetOutcomeTypes = input$targetOutcomeTypes
           )
         )
     
@@ -355,17 +357,8 @@ plotTimeToEvent <- function(
       )
     ) +
     ggplot2::geom_bar(
-      #position="stacked",
       stat = "identity"
       ) +
-    #ggplot2::geom_text(
-    #  ggplot2::aes(
-    #    label = .data$numEvents
-    #    ), 
-    #  vjust = 1.6, 
-    #  color = "white", 
-    #  size = 3.5
-    #  ) +
     ggplot2::facet_wrap(ncol = nDatabases ,
       .data$timeScale ~ .data$databaseName , scales = 'free'
         ) +

@@ -1,11 +1,11 @@
-context("cohort-method-KaplanMeier")
+context("estimation-cohort-method-KaplanMeier")
 
 shiny::testServer(
   app = cohortMethodKaplanMeierServer, 
   args = list(
     selectedRow = shiny::reactiveVal(NULL), 
-    connectionHandler = connectionHandlerCm, 
-    resultDatabaseSettings = resultDatabaseSettingsCm
+    connectionHandler = connectionHandlerEstimation, 
+    resultDatabaseSettings = resultDatabaseSettingsEstimation
   ), 
   expr = {
     
@@ -15,7 +15,7 @@ shiny::testServer(
     # make sure this runs if we pick the first row
     selectedRow(
       list(
-        databaseId = '1', 
+        databaseId = 'eunomia', 
         cdmSourceAbbreviation = 'Eunomia', 
         analysisId = 1,
         description  = 'madeup',

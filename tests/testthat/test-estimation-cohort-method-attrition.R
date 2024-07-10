@@ -1,4 +1,4 @@
-context("cohort-method-attrition")
+context("estimation-cohort-method-attrition")
 
 shiny::testServer(
   app = cohortMethodAttritionServer, 
@@ -6,8 +6,8 @@ shiny::testServer(
     selectedRow = shiny::reactiveVal(
       NULL
     ), 
-    connectionHandler = connectionHandlerCm, 
-    resultDatabaseSettings = resultDatabaseSettingsCm
+    connectionHandler = connectionHandlerEstimation, 
+    resultDatabaseSettings = resultDatabaseSettingsEstimation
   ), 
   expr = {
     
@@ -17,7 +17,7 @@ shiny::testServer(
     # make sure this runs if we pick the first row
     selectedRow(
       list(
-        databaseId = '1', 
+        databaseId = 'eunomia', 
         cdmSourceAbbreviation = 'Eunomia', 
         analysisId = 2,
         description  = 'madeup',
@@ -32,3 +32,15 @@ shiny::testServer(
     testthat::expect_true(!is.null(attritionPlot()))
     
   })
+
+
+test_that("Test cohortMethodAttritionViewer ui", {
+  # Test ui
+  ui <- cohortMethodAttritionViewer(id = 'cohortMethodAttritionViewer')
+  checkmate::expect_list(ui)
+})
+
+# getCohortMethodAttrition
+#drawCohortMethodAttritionDiagram(
+#    attrition
+#) 

@@ -1,17 +1,18 @@
-context("cohort-method-full-result")
+context("estimation-cohort-method-full-result")
 
 shiny::testServer(
-  app = cohortMethodFullResultServer, 
+  app = estimationCmFullResultServer, 
   args = list(
-    connectionHandler = connectionHandlerCm,
-    resultDatabaseSettings = resultDatabaseSettingsCm,
-    selectedRow = shiny::reactiveVal(NULL)
+    connectionHandler = connectionHandlerEstimation,
+    resultDatabaseSettings = resultDatabaseSettingsEstimation,
+    selectedRow = shiny::reactiveVal(NULL),
+    actionCount = shiny::reactiveVal(NULL)
   ), 
   expr = {
     
     selectedRow(
-      list(
-        databaseId = '1', 
+      data.frame(
+        databaseId = 'eunomia', 
         cdmSourceAbbreviation = 'Eunomia', 
         analysisId = 2,
         description  = 'madeup',
@@ -23,12 +24,14 @@ shiny::testServer(
         outcome = 'test outcome'
       )
     )
+    
+    testthat::expect_true(nrow(modifiedRow()) > 0)
 
   })
 
 
 test_that("Test full ui", {
   # Test ui
-  ui <- cohortMethodFullResultViewer('test')
+  ui <- estimationCmFullResultViewer('test')
   checkmate::expect_list(ui)
 })

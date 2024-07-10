@@ -468,3 +468,29 @@ estimationGetCMMetaEstimation <- function(
 
   return(unique(result))
 }
+
+
+# Function to format results
+# used by both cm and sccs
+computeTraditionalP <- function(
+    logRr, 
+    seLogRr, 
+    twoSided = TRUE, 
+    upper = TRUE
+) 
+{
+  z <- logRr/seLogRr
+  
+  pUpperBound <- 1 - stats::pnorm(z)
+  pLowerBound <- stats::pnorm(z)
+  
+  if (twoSided) {
+    return(2 * pmin(pUpperBound, pLowerBound))
+  }
+  else if (upper) {
+    return(pUpperBound)
+  }
+  else {
+    return(pLowerBound)
+  }
+}

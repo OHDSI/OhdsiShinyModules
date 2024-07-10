@@ -293,11 +293,11 @@ getModelDesignPerformanceSummary <- function(
         on c.cohort_definition_id = cd.cohort_definition_id
         ) AS outcomes ON results.outcome_id = outcomes.cohort_id
         LEFT JOIN (select dd.database_id, md.cdm_source_abbreviation database_acronym 
-                   from @schema.@database_table_prefixdatabase_meta_data md inner join 
+                   from @schema.@database_table_prefix@database_table md inner join 
                    @schema.@plp_table_prefixdatabase_details dd 
                    on md.database_id = dd.database_meta_data_id) AS d ON results.development_database_id = d.database_id 
                    LEFT JOIN (select dd.database_id, md.cdm_source_abbreviation database_acronym 
-                   from @schema.@database_table_prefixdatabase_meta_data md inner join 
+                   from @schema.@database_table_prefix@database_table md inner join 
                    @schema.@plp_table_prefixdatabase_details dd 
                    on md.database_id = dd.database_meta_data_id) AS v ON results.validation_database_id = v.database_id 
         LEFT JOIN @schema.@plp_table_prefixtars AS tars ON results.tar_id = tars.tar_id
@@ -314,6 +314,7 @@ getModelDesignPerformanceSummary <- function(
     plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
     model_design_id = modelDesignId(),
     database_table_prefix = resultDatabaseSettings$databaseTablePrefix,
+    database_table = resultDatabaseSettings$databaseTable,
     cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
   
