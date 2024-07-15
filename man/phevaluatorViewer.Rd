@@ -15,3 +15,9 @@ The user interface to the phevaluator results viewer
 \description{
 The viewer of the phevaluator module
 }
+\seealso{
+Other {PheValuator}: 
+\code{\link{phevaluatorHelperFile}()},
+\code{\link{phevaluatorServer}()}
+}
+\concept{{PheValuator}}

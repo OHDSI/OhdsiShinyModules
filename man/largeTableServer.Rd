@@ -30,3 +30,9 @@ must return data.frame compatable instance}
 \description{
 Display large data tables in a consistent way - server side pagination for reactable objects
 }
+\seealso{
+Other {LargeTables}: 
+\code{\link{createLargeSqlQueryDt}()},
+\code{\link{largeTableView}()}
+}
+\concept{{LargeTables}}

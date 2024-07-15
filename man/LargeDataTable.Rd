@@ -18,6 +18,8 @@ If subclassing use inheritance and treat this class as an interface to implement
 
  get
 }
+\concept{{LargeTables}
+initialize}
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
 \describe{
@@ -26,8 +28,7 @@ If subclassing use inheritance and treat this class as an interface to implement
 \item{\code{countQuery}}{count query string (should match query). Can be auto generated with sub query (default) but
 this will likely result in slow results}
 
-\item{\code{connectionHandler}}{ResultModelManager connection handler to execute query inside
-initialize}
+\item{\code{connectionHandler}}{ResultModelManager connection handler to execute query inside}
 }
 \if{html}{\out{</div>}}
 }
