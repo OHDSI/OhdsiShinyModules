@@ -47,15 +47,7 @@ datasourcesViewer <- function(id) {
     width = "100%",
     title =  shiny::span(shiny::icon("database"), "Data Sources"),
     solidHeader = TRUE,
-    
-    shinydashboard::box(
-      collapsible = TRUE,
-      collapsed = FALSE,
-      title = shiny::span( shiny::icon("circle-question"), "Help & Information"),
-      width = "100%",
-      shiny::htmlTemplate(system.file("datasources-www", "datasources.html", package = utils::packageName()))
-    ),
-      
+
       shiny::tabsetPanel(
         type = 'pills',
         id = ns('mainPanel'),

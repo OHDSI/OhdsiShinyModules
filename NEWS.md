@@ -1,6 +1,7 @@
 OhdsiShinyModules v2.1.5
 ========================
-Fixed issue in DatabaseConnector check for pooled connections of sqlite databases on cohort diagnotiscs load
+Fixed bug of orphan concepts report not displaying
+Fixed bug in orphan concepts where negative database ids were causing dynamic sql queries to crash
 
 OhdsiShinyModules v2.1.4
 ========================

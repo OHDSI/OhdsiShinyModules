@@ -1,0 +1,27 @@
+context("home-main")
+
+test_that("Test home ui", {
+  # Test ui
+  ui <- homeViewer()
+  checkmate::expect_list(ui)
+})
+
+test_that('home helper file works',{
+  help <- homeHelperFile()
+  testthat::expect_true(help != '')
+})
+
+# check the home module server
+shiny::testServer(
+  app = homeServer, 
+  args = list(
+    connectionHandler = connectionHandlerCharacterization ,
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
+  ), 
+  expr = {
+    
+    # check setting and generating works
+    session$setInputs(n = 30) 
+    testthat::expect_true(input$n == 30)
+  })
+

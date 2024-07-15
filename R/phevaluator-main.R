@@ -49,14 +49,7 @@ phevaluatorViewer <- function(id) {
     width = "100%",
     title =  shiny::span(shiny::icon("gauge"), "PheValuator"),
     solidHeader = TRUE,
-    
-    shinydashboard::box(
-      collapsible = TRUE,
-      collapsed = FALSE,
-      title = shiny::span( shiny::icon("circle-question"), "Help & Information"),
-      width = "100%",
-      shiny::htmlTemplate(system.file("phevaluator-www", "phevaluator.html", package = utils::packageName()))
-    ),
+
     
     shinydashboard::box(
       collapsible = TRUE,

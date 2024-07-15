@@ -1,2 +1,14 @@
 <h3>Self Controlled Case Series</h3>
-  <p> Information </p>
+  <p> SelfControlledCaseSeries is an R package for performing Self-Controlled Case Series (SCCS) analyses in an observational database in the OMOP Common Data Model. This module:</p>
+
+<ul>
+<li> Extracts the necessary data from a database in OMOP Common Data Model format. </li> 
+<li> Optionally adds seasonality, age, and/or calendar time using spline functions.</li>   
+<li> Optionally corrects for event-dependent censoring of the observation period.</li>   
+<li> Optionally add many covariates in one analysis (e.g. all drugs). </li> 
+<li> Has options for constructing different types of covariates and risk windows, including pre-exposure windows (to capture contra-indications).</li>   
+<li> Optionally uses regularization on all covariates except the outcome of interest.</li>   
+<li> Provides the self-controlled risk interval design as a special case of the SCCS.</li>   
+</ul>
+
+<p> For more information, please visit https://github.com/OHDSI/SelfControlledCaseSeries </p>

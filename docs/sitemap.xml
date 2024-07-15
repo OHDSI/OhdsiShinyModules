@@ -7,7 +7,31 @@
     <loc>/articles/AddingShinyModules.html</loc>
   </url>
   <url>
+    <loc>/articles/Characterization.html</loc>
+  </url>
+  <url>
+    <loc>/articles/CohortDiagnostics.html</loc>
+  </url>
+  <url>
+    <loc>/articles/CohortMethod.html</loc>
+  </url>
+  <url>
+    <loc>/articles/Cohorts.html</loc>
+  </url>
+  <url>
+    <loc>/articles/DataSources.html</loc>
+  </url>
+  <url>
+    <loc>/articles/EvidenceSynthesis.html</loc>
+  </url>
+  <url>
     <loc>/articles/index.html</loc>
+  </url>
+  <url>
+    <loc>/articles/Prediction.html</loc>
+  </url>
+  <url>
+    <loc>/articles/SelfControlledCaseSeries.html</loc>
   </url>
   <url>
     <loc>/authors.html</loc>
@@ -17,12 +41,6 @@
   </url>
   <url>
     <loc>/news/index.html</loc>
-  </url>
-  <url>
-    <loc>/reference/LargeDataTable.html</loc>
-  </url>
-  <url>
-    <loc>/reference/OhdsiShinyModules.html</loc>
   </url>
   <url>
     <loc>/reference/aboutHelperFile.html</loc>
@@ -199,6 +217,9 @@
     <loc>/reference/createLargeSqlQueryDt.html</loc>
   </url>
   <url>
+    <loc>/reference/databaseInformationView.html</loc>
+  </url>
+  <url>
     <loc>/reference/dataDiagnosticDrillServer.html</loc>
   </url>
   <url>
@@ -218,9 +239,6 @@
   </url>
   <url>
     <loc>/reference/dataDiagnosticViewer.html</loc>
-  </url>
-  <url>
-    <loc>/reference/databaseInformationView.html</loc>
   </url>
   <url>
     <loc>/reference/datasourcesHelperFile.html</loc>
@@ -376,6 +394,15 @@
     <loc>/reference/getLogoImage.html</loc>
   </url>
   <url>
+    <loc>/reference/homeHelperFile.html</loc>
+  </url>
+  <url>
+    <loc>/reference/homeServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/homeViewer.html</loc>
+  </url>
+  <url>
     <loc>/reference/incidenceRatesView.html</loc>
   </url>
   <url>
@@ -388,6 +415,9 @@
     <loc>/reference/indexEventBreakdownView.html</loc>
   </url>
   <url>
+    <loc>/reference/LargeDataTable.html</loc>
+  </url>
+  <url>
     <loc>/reference/largeTableServer.html</loc>
   </url>
   <url>
@@ -395,6 +425,9 @@
   </url>
   <url>
     <loc>/reference/makeButtonLabel.html</loc>
+  </url>
+  <url>
+    <loc>/reference/OhdsiShinyModules.html</loc>
   </url>
   <url>
     <loc>/reference/orpahanConceptsView.html</loc>
@@ -548,6 +581,15 @@
   </url>
   <url>
     <loc>/reference/predictionViewer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/reportHelperFile.html</loc>
+  </url>
+  <url>
+    <loc>/reference/reportServer.html</loc>
+  </url>
+  <url>
+    <loc>/reference/reportViewer.html</loc>
   </url>
   <url>
     <loc>/reference/resultTableServer.html</loc>

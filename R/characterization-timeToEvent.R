@@ -32,11 +32,7 @@ characterizationTimeToEventViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    infoHelperViewer(
-      id = "helper",
-      helpLocation= system.file("characterization-www", "help-timeToEvent.html", package = utils::packageName())
-    ),
-    
+
     # input component module
     inputSelectionViewer(id = ns('input-selection')),
     

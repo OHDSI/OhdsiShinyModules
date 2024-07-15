@@ -264,7 +264,13 @@ patientLevelPredictionServer <- function(
             file.remove(file.path(protocolOutputLoc, 'main.html'))
           }
           tryCatch(
-            {createPredictionProtocol( 
+            {
+              shiny::showNotification(
+                ui = 'Generating protocol - takes some time',
+                type = 'message' 
+              )
+              
+              createPredictionProtocol( 
               connectionHandler = connectionHandler, 
               resultDatabaseSettings = resultDatabaseSettings,
               modelDesignId = designSummary$reportId(),
