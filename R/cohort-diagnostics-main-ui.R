@@ -145,7 +145,7 @@ cdUiControls <- function(ns) {
 #'
 #' @return
 #' string location of the description helper file
-#'
+#' @family {CohortDiagnostics}
 #' @export
 cohortDiagnosticsHelperFile <- function() {
   fileLoc <- system.file('cohort-diagnostics-www', "cohort-diagnostics.html", package = utils::packageName())

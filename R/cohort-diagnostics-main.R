@@ -412,6 +412,8 @@ getResultsTemporalTimeRef <- function(dataSource) {
 #' @param connectionHandler             ResultModelManager ConnectionHander instance
 #' @param resultDatabaseSettings        results database settings
 #' @param dataSource                    dataSource optionally created with createCdDatabaseDataSource
+#'
+#' @family {CohortDiagnostics}
 #' @export
 cohortDiagnosticsServer <- function(id,
                                     connectionHandler,
