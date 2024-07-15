@@ -25,3 +25,9 @@ Componenet for results sets with many thousands of rows
 More limited than other table components in terms of automatic handling of search and
 filtering but will allow responsive apps
 }
+\seealso{
+Other {LargeTables}: 
+\code{\link{createLargeSqlQueryDt}()},
+\code{\link{largeTableServer}()}
+}
+\concept{{LargeTables}}

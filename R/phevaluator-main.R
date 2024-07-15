@@ -25,7 +25,7 @@
 #' @return String location of the phevaluator helper file
 #' 
 #' @export 
-#'
+#' @family {PheValuator}
 phevaluatorHelperFile <- function() {
   fileLoc <-
     system.file('phevaluator-www', "phevaluator.html", package = "OhdsiShinyModules")
@@ -40,7 +40,7 @@ phevaluatorHelperFile <- function() {
 #' @return The user interface to the phevaluator results viewer
 #' 
 #' @export
-#'
+#' @family {PheValuator}
 phevaluatorViewer <- function(id) {
   ns <- shiny::NS(id)
   
@@ -134,8 +134,7 @@ phevaluatorViewer <- function(id) {
 #' @return The phevaluator main module server
 #' 
 #' @export
-#'
-
+#' @family {PheValuator}
 phevaluatorServer <- function(
   id, 
   connectionHandler, 

@@ -13,7 +13,7 @@
 #'
 #' @return A named list of reactable::colDef objects
 #' @export 
-#' 
+#' @family {Utils}
 createCustomColDefList <- function(rawColNames, niceColNames = NULL,
                                    tooltipText = NULL, case = NULL,
                                    customColDefOptions = NULL) {
@@ -105,7 +105,7 @@ createCustomColDefList <- function(rawColNames, niceColNames = NULL,
 #'
 #' @return html code to make a button label
 #' @export
-#'
+#' @family {Utils}
 makeButtonLabel <- function(label) {
   as.character(htmltools::tags$div(htmltools::tags$button(paste(label))))
 }

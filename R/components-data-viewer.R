@@ -11,7 +11,7 @@
 #' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #'
 #' @return shiny module UI
-#'
+#' @family {Utils}
 resultTableViewer <- function(
     id = "result-table",
     downloadedFileName = NULL
@@ -158,7 +158,7 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param groupBy The columns to group by 
 #'
 #' @return shiny module server
-#'
+#' @family {Utils}
 resultTableServer <- function(
     id, #string
     df, #data.frame

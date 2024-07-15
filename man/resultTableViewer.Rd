@@ -17,3 +17,13 @@ shiny module UI
 \description{
 Result Table Viewer
 }
+\seealso{
+Other {Utils}: 
+\code{\link{createCustomColDefList}()},
+\code{\link{datasourcesHelperFile}()},
+\code{\link{datasourcesServer}()},
+\code{\link{datasourcesViewer}()},
+\code{\link{makeButtonLabel}()},
+\code{\link{resultTableServer}()}
+}
+\concept{{Utils}}
