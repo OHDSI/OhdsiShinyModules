@@ -23,3 +23,9 @@ cohortDiagnosticsServer(
 \description{
 Cohort Diagnostics Explorer main module
 }
+\seealso{
+Other {CohortDiagnostics}: 
+\code{\link{cohortDiagnosticsHelperFile}()},
+\code{\link{orpahanConceptsView}()}
+}
+\concept{{CohortDiagnostics}}

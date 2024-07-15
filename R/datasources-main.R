@@ -23,7 +23,7 @@
 #'
 #' @return The helper html file for the datasources module
 #' @export
-#'
+#' @family {Utils}
 datasourcesHelperFile <- function() {
   fileLoc <-
     system.file('datasources-www', "datasources.html", package = "OhdsiShinyModules")
@@ -38,7 +38,7 @@ datasourcesHelperFile <- function() {
 #'
 #' @return The UI for the datasources module
 #' @export
-#'
+#' @family {Utils}
 datasourcesViewer <- function(id) {
   ns <- shiny::NS(id)
   
@@ -80,7 +80,7 @@ datasourcesViewer <- function(id) {
 #'
 #' @return The server for the datasources module
 #' @export
-#'
+#' @family {Utils}
 datasourcesServer <- function(
   id, 
   connectionHandler, 

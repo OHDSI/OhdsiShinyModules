@@ -110,12 +110,12 @@ reference:
       - cohortMethodServer
       - cohortMethodAttritionViewer
       - cohortMethodAttritionServer
+      - cohortMethodResultSummaryViewer
+      - cohortMethodResultSummaryServer
       - cohortMethodCovariateBalanceViewer
       - cohortMethodCovariateBalanceServer
       - cohortMethodDiagnosticsSummaryViewer
       - cohortMethodDiagnosticsSummaryServer
-      - cohortMethodForestPlotViewer
-      - cohortMethodForestPlotServer
       - cohortMethodKaplanMeierViewer
       - cohortMethodKaplanMeierServer
       - cohortMethodPopulationCharacteristicsViewer
@@ -126,14 +126,14 @@ reference:
       - cohortMethodPropensityModelServer
       - cohortMethodPropensityScoreDistViewer
       - cohortMethodPropensityScoreDistServer
-      - cohortMethodResultsTableViewer
-      - cohortMethodResultsTableServer
-      - cohortMethodSubgroupsViewer
-      - cohortMethodSubgroupsServer
       - cohortMethodSystematicErrorViewer
       - cohortMethodSystematicErrorServer
-      - cohortMethodTitlePanelViewer
-      - cohortMethodTitlePanelServer
+      - evidenceSynthesisHelperFile
+      - evidenceSynthesisServer
+      - evidenceSynthesisViewer
+      - sccsHelperFile
+      - sccsServer
+      - sccsView
   - title: "Data diagnostics module"
     desc: >
       Modules for the DataDiagnostics package.
@@ -149,7 +149,7 @@ reference:
     desc: >
       Modules for the CohortDiagnostics package.
     contents:
-      - cohortDiagnosticsSever 
+      - cohortDiagnosticsServer
       - cohortDiagnosticsView
       - cohortDiagnosticsHelperFile      
       - cohortDiagCharacterizationView
@@ -170,4 +170,15 @@ reference:
       - timeDistributionsView
       - visitContextView
       - inclusionRulesView
-      
+  - title: Cohort Diagnostics
+    desc: "Run cohort diagnostics, deploy shiny"
+    contents: has_concept("CohortDiagnostics")
+  - title: "PheValuator module"
+    desc: "PheValuator module"
+    contents: has_concept("PheValuator")
+  - title: Large Table
+    desc: "Utilities for tables that contain large amounts of rows"
+    contents: has_concept("LargeTables")
+  - title: Utils
+    desc: "Shared usable utility functions"
+    contents: has_concept("Utils")

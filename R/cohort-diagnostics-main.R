@@ -20,14 +20,16 @@
     tables <- connectionHandler$queryDb(sql, schema = schema) |>
       dplyr::pull("tableName") |>
       tolower()
-    return(tables)
-  }
-
-  return(
-    DatabaseConnector::getTableNames(connectionHandler$getConnection(),
+    
+  } else if (connectionHandler$dbms() != "sqlite") {
+    tables <- DatabaseConnector::getTableNames(connectionHandler$getConnection(),
                                      databaseSchema = schema) |>
       tolower()
-  )
+  } else {
+    tables <- DatabaseConnector::getTableNames(connectionHandler$getConnection()) |>
+      tolower()
+  }
+  return(tables)
 }
 
 
@@ -410,6 +412,8 @@ getResultsTemporalTimeRef <- function(dataSource) {
 #' @param connectionHandler             ResultModelManager ConnectionHander instance
 #' @param resultDatabaseSettings        results database settings
 #' @param dataSource                    dataSource optionally created with createCdDatabaseDataSource
+#'
+#' @family {CohortDiagnostics}
 #' @export
 cohortDiagnosticsServer <- function(id,
                                     connectionHandler,

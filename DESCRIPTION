@@ -1,7 +1,7 @@
 Package: OhdsiShinyModules
 Type: Package
 Title: Repository of Shiny Modules for OHDSI Result Viewers
-Version: 2.1.4
+Version: 2.1.5
 Author: Jenna Reps
 Maintainer: Jenna Reps <reps@ohdsi.org>
 Description: Install this package to access useful shiny modules for building shiny apps to explore results using the OHDSI tools .
@@ -54,6 +54,5 @@ Suggests:
     testthat,
     withr
 Remotes:
-    ohdsi/CirceR,
     ohdsi/ResultModelManager
 RoxygenNote: 7.3.1
