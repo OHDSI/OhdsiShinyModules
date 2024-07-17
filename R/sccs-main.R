@@ -48,7 +48,6 @@ sccsView <- function(id = "sccs-module") {
 
   # Migration_2-v5_1_0.sql
   useNestingIndications <- migrations %>% migrationPresent(2)
-
   if (useNestingIndications) {
     # Requires migration in 5.1.0 of cohort generator
     expIndicationsTbl <- sccsGetExposureIndications(
@@ -66,7 +65,8 @@ sccsView <- function(id = "sccs-module") {
 
  expIndicationsTbl <- expIndicationsTbl %>%
       dplyr::mutate(exposureIndicationId = paste(.data$exposureId,
-                                                 .data$indicationId))
+                                                 .data$indicationId,
+                                                 .data$exposuresOutcomeSetId))
 
   exposureChoices <- expIndicationsTbl %>%
       shinyWidgets::prepare_choices(label = .data$indicationName,

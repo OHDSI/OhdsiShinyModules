@@ -89,7 +89,8 @@ sccsResultsServer <- function(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
       selectedRow = selectedRow,
-      actionCount = resultTableOutputs$actionCount
+      actionCount = resultTableOutputs$actionCount,
+      inputSelected
     )
     
     

@@ -16,8 +16,6 @@ sccsGetOutcomes <- function(
    inner join
    @schema.@sccs_table_prefixexposure as e
    on e.exposures_outcome_set_id = eos.exposures_outcome_set_id
-   
-   --where e.true_effect_size != 1
    ;
   "
   outcomes <- connectionHandler$queryDb(
@@ -41,8 +39,9 @@ sccsGetExposureIndications <- function(connectionHandler,
   sql <- "SELECT
       e.era_id AS exposure_id,
       c2.cohort_name as exposure_name,
+      e.exposures_outcome_set_id,
       coalesce(c.cohort_definition_id, -1) as indication_id,
-      coalesce(c.cohort_name, 'No indication') as indication_name
+      coalesce(c.cohort_name, CONCAT(c2.cohort_name, ' - No indication')) as indication_name
 
    FROM @schema.@sccs_table_prefixexposures_outcome_set eos
    LEFT JOIN @schema.@cg_table_prefixcohort_definition c on eos.nesting_cohort_id = c.cohort_definition_id
@@ -55,6 +54,7 @@ sccsGetExposureIndications <- function(connectionHandler,
         AND cov.era_id = e.era_id
 
    INNER JOIN @schema.@cg_table_prefixcohort_definition c2 on e.era_id = c2.cohort_definition_id
+   WHERE true_effect_size IS NULL
    GROUP BY c.cohort_definition_id,  c.cohort_name, e.era_id, c2.cohort_name
   "
   result <- connectionHandler$queryDb(
@@ -308,15 +308,14 @@ getSccsTimeToEvent <- function(connectionHandler,
     p = ifelse(is.null(p$preExposureP), -1, p$preExposureP),
     snakeCaseToCamelCase = TRUE
   )
-    
+
     return(timeToEvent)
 }
 
 
-
 getSccsAttrition <- function(connectionHandler,
                              resultDatabaseSettings,
-                             #exposuresId,
+                             exposuresOutcomeSetId,
                              outcomeId,
                              databaseId,
                              analysisId,
@@ -324,23 +323,25 @@ getSccsAttrition <- function(connectionHandler,
   sql <- "
   SELECT a.*
   FROM @schema.@sccs_table_prefixattrition a
-  inner join
-  @schema.@sccs_table_prefixexposures_outcome_set eos
+  inner join @schema.@sccs_table_prefixexposures_outcome_set eos
   on a.exposures_outcome_set_id = eos.exposures_outcome_set_id
-  
+
   WHERE a.database_id = '@database_id'
+  AND eos.exposures_outcome_set_id = @exposures_outcome_set_id
   AND a.analysis_id = @analysis_id
   AND eos.outcome_id = @outcome_id
   AND a.covariate_id = @covariate_id
   "
-  connectionHandler$queryDb(sql,
-                            schema = resultDatabaseSettings$schema,
-                            sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-                            database_id = databaseId,
-                            analysis_id = analysisId,
-                            outcome_id = outcomeId,
-                            covariate_id = covariateId,
-                            snakeCaseToCamelCase = TRUE)
+  res <- connectionHandler$queryDb(sql,
+                                      schema = resultDatabaseSettings$schema,
+                                      sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
+                                      exposures_outcome_set_id = exposuresOutcomeSetId,
+                                      database_id = databaseId,
+                                      analysis_id = analysisId,
+                                      outcome_id = outcomeId,
+                                      covariate_id = covariateId,
+                                      snakeCaseToCamelCase = TRUE)
+  return(res)
 }
 
 getSccsEventDepObservation <- function(connectionHandler,
@@ -471,6 +472,7 @@ getSccsControlEstimates <- function(connectionHandler,
   WHERE sr.database_id = '@database_id'
   AND sr.analysis_id = @analysis_id
   AND sr.covariate_id = @covariate_id
+  AND true_effect_size is not NULL
   "
   connectionHandler$queryDb(sql,
                             schema = resultDatabaseSettings$schema,
@@ -517,7 +519,7 @@ getSccsDiagnosticsSummary <- function(connectionHandler,
                             outcome_id = outcomeId,
                             exposure_id = exposureId,
                             snakeCaseToCamelCase = TRUE)
-  
+
 }
 
 
