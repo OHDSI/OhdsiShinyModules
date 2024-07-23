@@ -243,7 +243,7 @@ characterizationIncidenceServer <- function(
     id, 
     connectionHandler,
     resultDatabaseSettings,
-    #options, # this gets overwritten in code below - why here?
+    options, # this gets overwritten in code below - why here?
     parents,
     parentIndex, # reactive
     outcomes, # reactive
@@ -254,390 +254,355 @@ characterizationIncidenceServer <- function(
     function(input, output, session) {
       
       ##  ns <- session$ns
-      
-      ages <- c(2:12, 'Any')
-      names(ages) <- c(sapply(2:12, function(i) paste0((i-2)*10,' - ',(i-1)*10-1)), 'Any')
-      
-      sex <- c(8507, 8532 , 'Any')
-      names(sex) <- c('Male', 'Female', 'Any')
-      
-      startYear <- c('Any', format(Sys.Date(), "%Y"):1990)
-      names(startYear) <- c('Any', format(Sys.Date(), "%Y"):1990)
-      
-      # get tar and then call cohortIncidenceFormatTar()
-      
-      tarDf <- characterizationGetCiTars(
-        connectionHandler,
-        resultDatabaseSettings
-      )
-      
-      sortedTars <- tarDf$tarId
-      names(sortedTars) <- cohortIncidenceFormatTar(tarDf)
-      
-      # Problematic for other apps with different data!
-      databases <- c("IBM MDCR",
-                     "IBM MDCD",
-                     "JMDC",
-                     "France DA",
-                     "LPDAU",
-                     "Optum EHR",
-                     "IBM CCAE",
-                     "PharMetrics",
-                     "OPTUM Extended SES",
-                     "German DA")
-      
-     output$inputOptions <- shiny::renderUI({
-         shinydashboard::box(
-           collapsible = TRUE,
-           title = "Options",
-           width = "100%",
-           
-           shiny::div(
-             "Select Your Results",
-             style = "font-weight: bold; font-size: 20px; text-align: center; margin-bottom: 20px;"
-           ),
-           
-           
-           shiny::selectInput(
-             inputId = session$ns('outcomeIds'),
-             label = 'Outcome: ',
-             choices = outcomes(),
-             selected = 1,
-             multiple = T,
-             selectize = TRUE,
-             width = NULL,
-             size = NULL
-           ),
-           
-           shinyWidgets::pickerInput(
-             inputId = session$ns('databaseSelector'),
-             label = 'Filter By Database: ',
-             choices = databases,
-             selected = databases,
-             multiple = T,
-             options = shinyWidgets::pickerOptions(
-               actionsBox = TRUE,
-               liveSearch = TRUE,
-               size = 10,
-               dropupAuto = TRUE,
-               liveSearchStyle = "contains",
-               liveSearchPlaceholder = "Type here to search",
-               virtualScroll = 50
-             )
-           ),
-           
-           shinyWidgets::pickerInput(
-             inputId = session$ns('ageIds'),
-             label = 'Filter By Age Group: ',
-             choices = ages,
-             selected = ages,
-             multiple = T,
-             options = shinyWidgets::pickerOptions(
-               actionsBox = TRUE,
-               liveSearch = TRUE,
-               size = 10,
-               dropupAuto = TRUE,
-               liveSearchStyle = "contains",
-               liveSearchPlaceholder = "Type here to search",
-               virtualScroll = 50
-             )
-           ),
-           
-           shinyWidgets::pickerInput(
-             inputId = session$ns('sexIds'),
-             label = 'Filter By Sex: ',
-             choices = sex,
-             selected = sex,
-             multiple = T,
-             options = shinyWidgets::pickerOptions(
-               actionsBox = TRUE,
-               liveSearch = TRUE,
-               size = 10,
-               dropupAuto = TRUE,
-               liveSearchStyle = "contains",
-               liveSearchPlaceholder = "Type here to search",
-               virtualScroll = 50
-             )
-           ),
-           
-           shinyWidgets::pickerInput(
-             inputId = session$ns('startYears'),
-             label = 'Filter By Start Year: ',
-             choices = startYear,
-             selected = startYear,
-             multiple = T,
-             options = shinyWidgets::pickerOptions(
-               actionsBox = TRUE,
-               liveSearch = TRUE,
-               size = 10,
-               dropupAuto = TRUE,
-               liveSearchStyle = "contains",
-               liveSearchPlaceholder = "Type here to search",
-               virtualScroll = 50
-             )
-           ),
-           
-           shinyWidgets::pickerInput(
-             inputId = session$ns('tars'),
-             label = 'Select Time at risk (TAR)',
-             choices = sortedTars,
-             selected = sortedTars[1],
-             multiple = F,
-             options = shinyWidgets::pickerOptions(
-               actionsBox = TRUE,
-               liveSearch = TRUE,
-               size = 10,
-               dropupAuto = TRUE,
-               liveSearchStyle = "contains",
-               liveSearchPlaceholder = "Type here to search",
-               virtualScroll = 50
-             )
-           ),
-           
-           shiny::actionButton(
-             inputId = session$ns('generate'), 
-             label = 'Generate',
-             icon = shiny::icon('redo') 
-           )
-         )
-       })
-     
-     outcomeIds <- shiny::reactiveVal(NULL)
-     incidenceRateTarFilter <- shiny::reactiveVal(NULL)
-     incidenceRateCalendarFilter <- shiny::reactiveVal(NULL)
-     incidenceRateAgeFilter <- shiny::reactiveVal(NULL)
-     incidenceRateGenderFilter <- shiny::reactiveVal(NULL)
-     incidenceRateDbFilter <- shiny::reactiveVal(NULL)
-     shiny::observeEvent(input$generate,{
-       incidenceRateTarFilter(names(sortedTars)[sortedTars == input$tars]) # filter needs actual value
-       incidenceRateCalendarFilter(input$startYears)
-       incidenceRateAgeFilter(input$ageIds)
-       incidenceRateGenderFilter(input$sexIds)
-       incidenceRateDbFilter(input$databaseSelector)
-       outcomeIds(input$outcomeIds)
-     })
-     
-     
-     options <- getIncidenceOptions()
-     
-        inputSelectedCustomPlot <- inputSelectionServer(
-          id = "input-selection-custom-plot", 
-          inputSettingList = list(
-            createInputSetting(
-              rowNumber = 4,                           
-              columnWidth = 12,
-              varName = 'secondtext',
-              inputReturn = T,
-              uiFunction = 'shiny::div',
-              uiInputs = list(
-                "Configure Your Plot",
-                style = "font-weight: bold; font-size: 20px; text-align: center; margin-bottom: 20px; margin-top: 20px; "
-              )
-            ),
-            
-            # plotting settings 5th row
-            
-            createInputSetting(
-              rowNumber = 5,                           
-              columnWidth = 3,
-              varName = 'plotYAxis',
-              uiFunction = 'shinyWidgets::pickerInput',
-              updateFunction = 'shinyWidgets::updatePickerInput',
-              uiInputs = list(
-                label = 'Y Axis (Numeric) ',
-                choices = options$irPlotNumericChoices,
-                selected = "incidenceRateP100py",
-                multiple = F,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  dropupAuto = TRUE,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            
-            createInputSetting(
-              rowNumber = 5,                           
-              columnWidth = 3,
-              varName = 'plotXAxis',
-              uiFunction = 'shinyWidgets::pickerInput',
-              updateFunction = 'shinyWidgets::updatePickerInput',
-              uiInputs = list(
-                label = 'X Axis (Categorical) ',
-                choices = options$irPlotCategoricalChoices,
-                selected = "startYear",
-                multiple = F,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  dropupAuto = TRUE,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            
-            createInputSetting(
-              rowNumber = 5,                           
-              columnWidth = 3,
-              varName = 'plotXTrellis',
-              uiFunction = 'shinyWidgets::pickerInput',
-              updateFunction = 'shinyWidgets::updatePickerInput',
-              uiInputs = list(
-                label = 'Row Trellis (Categorical) ',
-                choices = options$irPlotCategoricalChoices,
-                selected = "targetName",
-                multiple = F,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  dropupAuto = TRUE,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            
-            createInputSetting(
-              rowNumber = 5,                           
-              columnWidth = 3,
-              varName = 'plotYTrellis',
-              uiFunction = 'shinyWidgets::pickerInput',
-              updateFunction = 'shinyWidgets::updatePickerInput',
-              uiInputs = list(
-                label = 'Column Trellis (Categorical)',
-                choices = options$irPlotCategoricalChoices,
-                selected = "outcomeName",
-                multiple = F,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  dropupAuto = TRUE,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            
-            # row 6
-            
-            createInputSetting(
-              rowNumber = 6,                           
-              columnWidth = 3,
-              varName = 'plotColor',
-              uiFunction = 'shinyWidgets::pickerInput',
-              updateFunction = 'shinyWidgets::updatePickerInput',
-              uiInputs = list(
-                label = 'Color (Categorical)',
-                choices = options$irPlotCategoricalChoices,
-                selected = "cdmSourceAbbreviation",
-                multiple = F,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  dropupAuto = TRUE,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            createInputSetting(
-              rowNumber = 6,                           
-              columnWidth = 3,
-              varName = 'plotSize',
-              uiFunction = 'shinyWidgets::pickerInput',
-              updateFunction = 'shinyWidgets::updatePickerInput',
-              uiInputs = list(
-                label = 'Plot Point Size (Numeric)',
-                choices = options$irPlotNumericChoices,
-                selected = "outcomes",
-                multiple = F,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  dropupAuto = TRUE,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
-            createInputSetting(
-              rowNumber = 6,                           
-              columnWidth = 3,
-              varName = 'plotShape',
-              uiFunction = 'shinyWidgets::pickerInput',
-              updateFunction = 'shinyWidgets::updatePickerInput',
-              uiInputs = list(
-                label = 'Plot Point Shape (Categorical)',
-                choices = options$irPlotCategoricalChoices,
-                selected = "genderName",
-                multiple = F,
-                options = shinyWidgets::pickerOptions(
-                  actionsBox = TRUE,
-                  liveSearch = TRUE,
-                  size = 10,
-                  dropupAuto = TRUE,
-                  liveSearchStyle = "contains",
-                  liveSearchPlaceholder = "Type here to search",
-                  virtualScroll = 50
-                )
-              )
-            ),
 
-            createInputSetting(
-              rowNumber = 6,                           
-              columnWidth = 3,
-              varName = 'irYscaleFixed',
-              uiFunction = 'shiny::checkboxInput',
-              uiInputs = list(
-                label = "Use same y-axis scale across plots?"
-                )
-            )
+      ciOptions <- getIncidenceOptions(connectionHandler, resultDatabaseSettings)
 
+      output$inputOptions <- shiny::renderUI({
+        shinydashboard::box(
+          collapsible = TRUE,
+          title = "Options",
+          width = "100%",
           
-            
+          shiny::div(
+            "Select Your Results",
+            style = "font-weight: bold; font-size: 20px; text-align: center; margin-bottom: 20px;"
+          ),
+          
+          shiny::selectInput(
+            inputId = session$ns('outcomeIds'),
+            label = 'Outcome: ',
+            choices = outcomes(),
+            selected = 1,
+            multiple = T,
+            selectize = TRUE,
+            width = NULL,
+            size = NULL
+          ),
+          
+          shinyWidgets::pickerInput(
+            inputId = session$ns('databaseSelector'),
+            label = 'Filter By Database: ',
+            choices = ciOptions$databases,
+            selected = ciOptions$databases,
+            multiple = T,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              dropupAuto = TRUE,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
             )
+          ),
+          
+          shinyWidgets::pickerInput(
+            inputId = session$ns('ageIds'),
+            label = 'Filter By Age Group: ',
+            choices = ciOptions$ageGroup,
+            selected = ciOptions$ageGroup,
+            multiple = T,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              dropupAuto = TRUE,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
+          ),
+          
+          shinyWidgets::pickerInput(
+            inputId = session$ns('sexIds'),
+            label = 'Filter By Sex: ',
+            choices = ciOptions$sex,
+            selected = ciOptions$sex,
+            multiple = T,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              dropupAuto = TRUE,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
+          ),
+          
+          shinyWidgets::pickerInput(
+            inputId = session$ns('startYears'),
+            label = 'Filter By Start Year: ',
+            choices = ciOptions$startYear,
+            selected = ciOptions$startYear,
+            multiple = T,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              dropupAuto = TRUE,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
+          ),
+          
+          shinyWidgets::pickerInput(
+            inputId = session$ns('tars'),
+            label = 'Select Time at risk (TAR)',
+            choices = ciOptions$tar,
+            selected = ciOptions$tar[1],
+            multiple = F,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              dropupAuto = TRUE,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
+          ),
+          
+          shiny::actionButton(
+            inputId = session$ns('generate'), 
+            label = 'Generate',
+            icon = shiny::icon('redo') 
+          )
         )
+      })
+      
+      outcomeIds <- shiny::reactiveVal(NULL)
+      incidenceRateTarFilter <- shiny::reactiveVal(NULL)
+      incidenceRateCalendarFilter <- shiny::reactiveVal(NULL)
+      incidenceRateAgeFilter <- shiny::reactiveVal(NULL)
+      incidenceRateGenderFilter <- shiny::reactiveVal(NULL)
+      incidenceRateDbFilter <- shiny::reactiveVal(NULL)
+      shiny::observeEvent(input$generate,{
+        incidenceRateTarFilter(names(ciOptions$tar)[(ciOptions$tar == input$tars)]) # filter needs actual value
+        incidenceRateCalendarFilter(input$startYears)
+        incidenceRateAgeFilter(input$ageIds)
+        incidenceRateGenderFilter(input$sexIds)
+        incidenceRateDbFilter(input$databaseSelector)
+        outcomeIds(input$outcomeIds)
+      })
+      
+      
+      inputSelectedCustomPlot <- inputSelectionServer(
+        id = "input-selection-custom-plot", 
+        inputSettingList = list(
+          createInputSetting(
+            rowNumber = 4,                           
+            columnWidth = 12,
+            varName = 'secondtext',
+            inputReturn = T,
+            uiFunction = 'shiny::div',
+            uiInputs = list(
+              "Configure Your Plot",
+              style = "font-weight: bold; font-size: 20px; text-align: center; margin-bottom: 20px; margin-top: 20px; "
+            )
+          ),
+          
+          # plotting settings 5th row
+          
+          createInputSetting(
+            rowNumber = 5,                           
+            columnWidth = 3,
+            varName = 'plotYAxis',
+            uiFunction = 'shinyWidgets::pickerInput',
+            updateFunction = 'shinyWidgets::updatePickerInput',
+            uiInputs = list(
+              label = 'Y Axis (Numeric) ',
+              choices = ciOptions$irPlotNumericChoices,
+              selected = "incidenceRateP100py",
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                dropupAuto = TRUE,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          
+          createInputSetting(
+            rowNumber = 5,                           
+            columnWidth = 3,
+            varName = 'plotXAxis',
+            uiFunction = 'shinyWidgets::pickerInput',
+            updateFunction = 'shinyWidgets::updatePickerInput',
+            uiInputs = list(
+              label = 'X Axis (Categorical) ',
+              choices = ciOptions$irPlotCategoricalChoices,
+              selected = "startYear",
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                dropupAuto = TRUE,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          
+          createInputSetting(
+            rowNumber = 5,                           
+            columnWidth = 3,
+            varName = 'plotXTrellis',
+            uiFunction = 'shinyWidgets::pickerInput',
+            updateFunction = 'shinyWidgets::updatePickerInput',
+            uiInputs = list(
+              label = 'Row Trellis (Categorical) ',
+              choices = ciOptions$irPlotCategoricalChoices,
+              selected = "targetName",
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                dropupAuto = TRUE,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          
+          createInputSetting(
+            rowNumber = 5,                           
+            columnWidth = 3,
+            varName = 'plotYTrellis',
+            uiFunction = 'shinyWidgets::pickerInput',
+            updateFunction = 'shinyWidgets::updatePickerInput',
+            uiInputs = list(
+              label = 'Column Trellis (Categorical)',
+              choices = ciOptions$irPlotCategoricalChoices,
+              selected = "outcomeName",
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                dropupAuto = TRUE,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          
+          # row 6
+          
+          createInputSetting(
+            rowNumber = 6,                           
+            columnWidth = 3,
+            varName = 'plotColor',
+            uiFunction = 'shinyWidgets::pickerInput',
+            updateFunction = 'shinyWidgets::updatePickerInput',
+            uiInputs = list(
+              label = 'Color (Categorical)',
+              choices = ciOptions$irPlotCategoricalChoices,
+              selected = "cdmSourceAbbreviation",
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                dropupAuto = TRUE,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          createInputSetting(
+            rowNumber = 6,                           
+            columnWidth = 3,
+            varName = 'plotSize',
+            uiFunction = 'shinyWidgets::pickerInput',
+            updateFunction = 'shinyWidgets::updatePickerInput',
+            uiInputs = list(
+              label = 'Plot Point Size (Numeric)',
+              choices = ciOptions$irPlotNumericChoices,
+              selected = "outcomes",
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                dropupAuto = TRUE,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          createInputSetting(
+            rowNumber = 6,                           
+            columnWidth = 3,
+            varName = 'plotShape',
+            uiFunction = 'shinyWidgets::pickerInput',
+            updateFunction = 'shinyWidgets::updatePickerInput',
+            uiInputs = list(
+              label = 'Plot Point Shape (Categorical)',
+              choices = ciOptions$irPlotCategoricalChoices,
+              selected = "genderName",
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                dropupAuto = TRUE,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
+            )
+          ),
+          
+          createInputSetting(
+            rowNumber = 6,                           
+            columnWidth = 3,
+            varName = 'irYscaleFixed',
+            uiFunction = 'shiny::checkboxInput',
+            uiInputs = list(
+              label = "Use same y-axis scale across plots?"
+            )
+          )
+        )
+      )
       
       
       extractedData <- shiny::reactiveVal()
       shiny::observeEvent(input$generate ,      
-        {
-          if (is.null(targetIds()) |
-              is.null(outcomeIds())
-              ) {
-            shiny::validate("Please wait...")
-          }
-          
-          else if(targetIds()[1] == outcomeIds()[1] &&
-                   length(targetIds())==1 && length(outcomeIds())==1
-          ){
-            shiny::validate("Target and outcome cohorts must differ from each other. Make a different selection.")
-          }
-          
-          else {
-            result <- getIncidenceData(targetIds = targetIds(),
-                           outcomeIds = outcomeIds(),
-                           connectionHandler = connectionHandler,
-                           resultDatabaseSettings = resultDatabaseSettings
-          )
-            extractedData(result)
-          }
-        }
+                          {
+                            if (is.null(targetIds()) |
+                                is.null(outcomeIds())
+                            ) {
+                              shiny::validate("Please wait...")
+                            }
+                            
+                            else if(targetIds()[1] == outcomeIds()[1] &&
+                                    length(targetIds())==1 && length(outcomeIds())==1
+                            ){
+                              shiny::validate("Target and outcome cohorts must differ from each other. Make a different selection.")
+                            }
+                            
+                            else {
+                              result <- getIncidenceData(targetIds = targetIds(),
+                                                         outcomeIds = outcomeIds(),
+                                                         connectionHandler = connectionHandler,
+                                                         resultDatabaseSettings = resultDatabaseSettings
+                              )
+                              extractedData(result)
+                            }
+                          }
       )
       
       filteredData <- shiny::reactive({
@@ -645,16 +610,12 @@ characterizationIncidenceServer <- function(
         if(nrow(extractedData()) > 0){
           extractedData() %>%
             dplyr::relocate("tar", .before = "outcomes") %>%
-            dplyr::select(-c("targetName", "outcomeName")) %>%
-            dplyr::rename(targetName = "targetCohortName",
-                          outcomeName = "outcomeCohortName"
-                          ) %>%
             dplyr::mutate(incidenceProportionP100p = as.numeric(.data$incidenceProportionP100p),
                           incidenceRateP100py = as.numeric(.data$incidenceRateP100py),
                           dplyr::across(dplyr::where(is.numeric), round, 4),
                           targetIdShort = paste("C", .data$targetCohortDefinitionId, sep = "-"),
                           outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
-            dplyr::filter(.data$ageId %in% !! incidenceRateAgeFilter() & 
+            dplyr::filter(.data$ageGroupId %in% !! incidenceRateAgeFilter() & 
                             .data$genderId %in% !! incidenceRateGenderFilter() & 
                             .data$startYear %in% !! incidenceRateCalendarFilter() & 
                             .data$tar %in% incidenceRateTarFilter() &
@@ -681,8 +642,8 @@ characterizationIncidenceServer <- function(
         }
       })
       
-
-
+      
+      
       incidenceColList <- ParallelLogger::loadSettingsFromJson(
         system.file("components-columnInformation",
                     "characterization-incidence-colDefs.json",
@@ -699,18 +660,18 @@ characterizationIncidenceServer <- function(
       #  }
       # )
       
-       resultTableServer(
-          id = "incidenceRateTable",
-          df = filteredData, #renderIrTable,
-          selectedCols = c("cdmSourceAbbreviation", "targetName", "targetIdShort", "outcomeName", "outcomeIdShort",
-                           "ageGroupName", "genderName", "startYear", "tar", "outcomes",
-                           "incidenceProportionP100p", "incidenceRateP100py"),
-          sortedCols = c("ageGroupName", "genderName", "startYear", "incidenceRateP100py"),
-          elementId = "incidence-select",
-          colDefsInput = incidenceColList,
-          downloadedFileName = "incidenceRateTable-"
-        ) 
-        
+      resultTableServer(
+        id = "incidenceRateTable",
+        df = filteredData, #renderIrTable,
+        selectedCols = c("cdmSourceAbbreviation", "targetName", "targetIdShort", "outcomeName", "outcomeIdShort",
+                         "ageGroupName", "genderName", "startYear", "tar", "outcomes",
+                         "incidenceProportionP100p", "incidenceRateP100py"),
+        sortedCols = c("ageGroupName", "genderName", "startYear", "incidenceRateP100py"),
+        elementId = "incidence-select",
+        colDefsInput = incidenceColList,
+        downloadedFileName = "incidenceRateTable-"
+      ) 
+      
       
       # resultTableServer(
       #   id = "incidenceRateTable",
@@ -725,7 +686,7 @@ characterizationIncidenceServer <- function(
       # )
       
       '%!in%' <- function(x,y)!('%in%'(x,y))
-    
+      
       
       #ir plots
       irPlotCustom <- shiny::reactive( # observeEvent generate instead?
@@ -739,14 +700,14 @@ characterizationIncidenceServer <- function(
           }
           
           ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
-          plotData <- filteredData() %>%
-            dplyr::filter(.data$tar %in% incidenceRateTarFilter()) %>%
-            dplyr::mutate(targetLabel = paste(.data$targetIdShort, " = ", .data$targetName),
-                          outcomeLabel = paste(.data$outcomeIdShort, " = ", .data$outcomeName)
-                          ),
-            shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
+                 plotData <- filteredData() %>%
+                   dplyr::filter(.data$tar %in% incidenceRateTarFilter()) %>%
+                   dplyr::mutate(targetLabel = paste(.data$targetIdShort, " = ", .data$targetName),
+                                 outcomeLabel = paste(.data$outcomeIdShort, " = ", .data$outcomeName)
+                   ),
+                 shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
           )
-
+          
           # Take the specific tar value you want to plot
           tar_value <- unique(plotData$tar)[1]
           
@@ -768,7 +729,7 @@ characterizationIncidenceServer <- function(
             "Outcomes:", outcomes
           ))
           
-        
+          
           # Check if color, size, shape, and trellis variables are selected, and set aesthetics accordingly
           color_aesthetic <- NULL
           size_aesthetic <- NULL
@@ -1013,11 +974,11 @@ characterizationIncidenceServer <- function(
             # Rest of your ggplot code remains the same
             base_plot <- base_plot + ggplot2::labs(
               title = paste("Incidence Rate for TAR:", tar_value),
-              x = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelectedCustomPlot()$plotXAxis]),
-              y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% inputSelectedCustomPlot()$plotYAxis]),
-              color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelectedCustomPlot()$plotColor]),
-              size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% inputSelectedCustomPlot()$plotSize]),
-              shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% inputSelectedCustomPlot()$plotShape]),
+              x = names(ciOptions$irPlotCategoricalChoices[ciOptions$irPlotCategoricalChoices %in% inputSelectedCustomPlot()$plotXAxis]),
+              y = names(ciOptions$irPlotNumericChoices[ciOptions$irPlotNumericChoices %in% inputSelectedCustomPlot()$plotYAxis]),
+              color = names(ciOptions$irPlotCategoricalChoices[ciOptions$irPlotCategoricalChoices %in% inputSelectedCustomPlot()$plotColor]),
+              size = names(ciOptions$irPlotNumericChoices[ciOptions$irPlotNumericChoices %in% inputSelectedCustomPlot()$plotSize]),
+              shape = names(ciOptions$irPlotCategoricalChoices[ciOptions$irPlotCategoricalChoices %in% inputSelectedCustomPlot()$plotShape]),
               caption = caption_text
             ) +
               ggplot2::scale_y_log10(breaks = scales::breaks_log(n=6)) +
@@ -1033,7 +994,7 @@ characterizationIncidenceServer <- function(
                 legend.box.spacing = ggplot2::unit(3, "pt"),
                 legend.text = ggplot2::element_text(size=10),
                 legend.title = ggplot2::element_text(size=16, face = "bold"),
-                 panel.spacing = ggplot2::unit(2, "lines"),
+                panel.spacing = ggplot2::unit(2, "lines"),
                 strip.text = ggplot2::element_text(face="bold", size = 14),
                 plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
                                                      margin = ggplot2::margin(t = 20))
@@ -1066,46 +1027,46 @@ characterizationIncidenceServer <- function(
           }
           
           else {
-          plotData <- filteredData() %>%
-            dplyr::filter(.data$tar %in% incidenceRateTarFilter())
-          
-          # Get the number of facets in both rows and columns
-          num_rows <- length(unique(plotData[[inputSelectedCustomPlot()$plotXTrellis]]))
-          num_cols <- length(unique(plotData[[inputSelectedCustomPlot()$plotYTrellis]]))
-          
-          max_length <- max(nchar(unique(inputSelectedCustomPlot()$plotXAxis)))
-          
-          base_plot <- irPlotCustom()
-          
-          p <- base_plot +
-            ggplot2::guides(shape = FALSE, color = FALSE, size = FALSE)
-          
-          # Convert the ggplot to a plotly object
-          p <- plotly::ggplotly(p, tooltip = "text")
-          
-          # Center the main plot title
-          p <- p %>% plotly::layout(title = list(x = 0.5, xanchor = "center"),
-                                    margin = list(t = 75, b = 150, l = 125, r = 25),
-                                    #add several xaxis placeholders in case row trellis has several distinct values (this is a workaround)
-                                    xaxis =  list(tickangle = 45),
-                                    xaxis2 =  list(tickangle = 45),
-                                    xaxis3 =  list(tickangle = 45),
-                                    xaxis4 =  list(tickangle = 45),
-                                    xaxis5 =  list(tickangle = 45),
-                                    xaxis6 =  list(tickangle = 45),
-                                    xaxis7 =  list(tickangle = 45),
-                                    xaxis8 =  list(tickangle = 45),
-                                    xaxis9 =  list(tickangle = 45),
-                                    xaxis10 =  list(tickangle = 45),
-                                    xaxis11 =  list(tickangle = 45),
-                                    xaxis12 =  list(tickangle = 45),
-                                    xaxis13 =  list(tickangle = 45),
-                                    xaxis14 =  list(tickangle = 45),
-                                    xaxis15 =  list(tickangle = 45)
-          ) 
-          
-          return(p)
-          
+            plotData <- filteredData() %>%
+              dplyr::filter(.data$tar %in% incidenceRateTarFilter())
+            
+            # Get the number of facets in both rows and columns
+            num_rows <- length(unique(plotData[[inputSelectedCustomPlot()$plotXTrellis]]))
+            num_cols <- length(unique(plotData[[inputSelectedCustomPlot()$plotYTrellis]]))
+            
+            max_length <- max(nchar(unique(inputSelectedCustomPlot()$plotXAxis)))
+            
+            base_plot <- irPlotCustom()
+            
+            p <- base_plot +
+              ggplot2::guides(shape = FALSE, color = FALSE, size = FALSE)
+            
+            # Convert the ggplot to a plotly object
+            p <- plotly::ggplotly(p, tooltip = "text")
+            
+            # Center the main plot title
+            p <- p %>% plotly::layout(title = list(x = 0.5, xanchor = "center"),
+                                      margin = list(t = 75, b = 150, l = 125, r = 25),
+                                      #add several xaxis placeholders in case row trellis has several distinct values (this is a workaround)
+                                      xaxis =  list(tickangle = 45),
+                                      xaxis2 =  list(tickangle = 45),
+                                      xaxis3 =  list(tickangle = 45),
+                                      xaxis4 =  list(tickangle = 45),
+                                      xaxis5 =  list(tickangle = 45),
+                                      xaxis6 =  list(tickangle = 45),
+                                      xaxis7 =  list(tickangle = 45),
+                                      xaxis8 =  list(tickangle = 45),
+                                      xaxis9 =  list(tickangle = 45),
+                                      xaxis10 =  list(tickangle = 45),
+                                      xaxis11 =  list(tickangle = 45),
+                                      xaxis12 =  list(tickangle = 45),
+                                      xaxis13 =  list(tickangle = 45),
+                                      xaxis14 =  list(tickangle = 45),
+                                      xaxis15 =  list(tickangle = 45)
+            ) 
+            
+            return(p)
+            
           }
           
         }
@@ -1178,125 +1139,124 @@ characterizationIncidenceServer <- function(
       
       #by age
       
-      renderIrPlotStandardAge <- shiny::reactive(
-        {
-          
-          if (is.null(targetIds()) |
-              is.null(outcomeIds())) {
-            return(data.frame())
-          }
-          if(nrow(filteredData()) == 0){
-            shiny::validate("No results.")
-          }
-          
-          ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
-                 plotData <- filteredData() %>%
-                   dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
-                 shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
-          )
-          
-          #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
-          ifelse(length(targetIds()) * length(outcomeIds()) <= 10,
-                 plotData <- filteredData(),
-                 shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
-          )
-          
-          #add check to make sure "> 1 distinct age is selected for by age plot"any" is in selection for year and sex
-          ifelse("Any" %in% incidenceRateCalendarFilter() & "Any" %in% incidenceRateGenderFilter(),
-                 plotData <- filteredData(),
-                 shiny::validate("This standard plot is designed to show results aggregated over all (`Any`) year and sex categories. Please make sure you have selected `Any` in the `Select your results` section above for these variables.")
-          )
-          
-          plotData <- plotData %>%
-            dplyr::filter(#ageGroupName != "Any" & 
-                            .data$genderName == "Any" & 
-                              .data$startYear == "Any") %>%
-            dplyr::mutate(targetLabel = paste(.data$targetIdShort, " = ", .data$targetName),
-                          outcomeLabel = paste(.data$outcomeIdShort, " = ", .data$outcomeName),
-                          ageGroupName = factor(.data$ageGroupName, levels = custom_age_sort(.data$ageGroupName), ordered = TRUE)
-            ) %>%
-            dplyr::rename("Target" = "targetIdShort",
-                          "Outcome" = "outcomeIdShort",
-                          "Age" = "ageGroupName")
-          
-          # Get unique target and outcome labels
-          unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
-          unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
-          
-          # Combine all unique values into a final vector
-          final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
-          
-          # Create the caption text with line breaks
-          caption_text <- paste(final_unique_values, collapse = "\n")
-          
-          
-          # Take the specific tar value you want to plot
-          tar_value <- unique(plotData$tar)[1]
-          
-          
-          base_plot <- ggplot2::ggplot(
-            data = plotData,
-            ggplot2::aes(x = .data$Age,
-                         y = .data$incidenceRateP100py,
-                         color = .data$cdmSourceAbbreviation
-            )
-          ) + 
-            ggplot2::geom_point(
-              ggplot2::aes(size = 3)
-            ) + 
-            #geom_jitter() +
-            #scale_size_continuous(range = c(5,15)) +
-            ggplot2::scale_colour_brewer(palette = "Paired") +
-            ggplot2::facet_wrap(
-              Target~Outcome,
-              labeller = "label_both",
-              scales = "free_x",
-              nrow = 2,
-              ncol = 5
-              #,
-              #strip.position = "right"
-            ) + 
-            ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
-                                        n.breaks = 4)
-          
-          base_plot <- base_plot + ggplot2::labs(
-            title = paste("Incidence Rate for Time at Risk:", tar_value),
-            x = paste(names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "ageGroupName"]), "\n"),
-            y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]),
-            color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
-            #size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "outcomes"]),
-            #shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
-            caption = caption_text
-          ) +
-            ggplot2::guides(alpha = "none", size = "none") + # Remove the alpha and size legend
-            ggplot2::theme_bw() +
-            ggplot2::theme(
-              plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
-              plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
-              axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
-              axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
-              axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
-              axis.text.y = ggplot2::element_text(size = 14),
-              legend.position = "bottom",
-              legend.box.spacing = ggplot2::unit(3, "pt"),
-              legend.text = ggplot2::element_text(size=10),
-              legend.title = ggplot2::element_text(size=16, face = "bold"),
-              legend.title.align = 0.5,
-              plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
-                                                   margin = ggplot2::margin(t = 20)),
-              panel.spacing = ggplot2::unit(2, "lines"),
-              strip.text = ggplot2::element_text(face="bold", size = 14),
-              strip.background = ggplot2::element_blank(),
-              strip.clip = "off"
-            ) + 
-            ggplot2::guides(#shape = ggplot2::guide_legend(override.aes = list(size = 6)),
-                            color = ggplot2::guide_legend(override.aes = list(size = 6))
-            )
-          
-          return(base_plot)
-          
+      renderIrPlotStandardAge <- shiny::reactive({
+        
+        
+        if (is.null(targetIds()) |
+            is.null(outcomeIds())) {
+          return(data.frame())
         }
-      )
+        if(nrow(filteredData()) == 0){
+          shiny::validate("No results.")
+        }
+        
+        ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
+               plotData <- filteredData() %>%
+                 dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
+               shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
+        )
+        
+        #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
+        ifelse(length(targetIds()) * length(outcomeIds()) <= 10,
+               plotData <- filteredData(),
+               shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
+        )
+        
+        #add check to make sure "> 1 distinct age is selected for by age plot"any" is in selection for year and sex
+        ifelse("Any" %in% incidenceRateCalendarFilter() & "Any" %in% incidenceRateGenderFilter(),
+               plotData <- filteredData(),
+               shiny::validate("This standard plot is designed to show results aggregated over all (`Any`) year and sex categories. Please make sure you have selected `Any` in the `Select your results` section above for these variables.")
+        )
+        
+        plotData <- plotData %>%
+          dplyr::filter(#ageGroupName != "Any" & 
+            .data$genderName == "Any" & 
+              .data$startYear == "Any") %>%
+          dplyr::mutate(targetLabel = paste(.data$targetIdShort, " = ", .data$targetName),
+                        outcomeLabel = paste(.data$outcomeIdShort, " = ", .data$outcomeName),
+                        ageGroupName = factor(.data$ageGroupName, levels = custom_age_sort(.data$ageGroupName), ordered = TRUE)
+          ) %>%
+          dplyr::rename("Target" = "targetIdShort",
+                        "Outcome" = "outcomeIdShort",
+                        "Age" = "ageGroupName")
+        
+        # Get unique target and outcome labels
+        unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
+        unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
+        
+        # Combine all unique values into a final vector
+        final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
+        
+        # Create the caption text with line breaks
+        caption_text <- paste(final_unique_values, collapse = "\n")
+        
+        
+        # Take the specific tar value you want to plot
+        tar_value <- unique(plotData$tar)[1]
+        
+        
+        base_plot <- ggplot2::ggplot(
+          data = plotData,
+          ggplot2::aes(x = .data$Age,
+                       y = .data$incidenceRateP100py,
+                       color = .data$cdmSourceAbbreviation
+          )
+        ) + 
+          ggplot2::geom_point(
+            ggplot2::aes(size = 3)
+          ) + 
+          #geom_jitter() +
+          #scale_size_continuous(range = c(5,15)) +
+          ggplot2::scale_colour_brewer(palette = "Paired") +
+          ggplot2::facet_wrap(
+            Target~Outcome,
+            labeller = "label_both",
+            scales = "free_x",
+            nrow = 2,
+            ncol = 5
+            #,
+            #strip.position = "right"
+          ) + 
+          ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                                      n.breaks = 4)
+        
+        base_plot <- base_plot + ggplot2::labs(
+          title = paste("Incidence Rate for Time at Risk:", tar_value),
+          x = paste(names(ciOptions$irPlotCategoricalChoices[ciOptions$irPlotCategoricalChoices %in% "ageGroupName"]), "\n"),
+          y = names(ciOptions$irPlotNumericChoices[ciOptions$irPlotNumericChoices %in% "incidenceRateP100py"]),
+          color = names(ciOptions$irPlotCategoricalChoices[ciOptions$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
+          #size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "outcomes"]),
+          #shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
+          caption = caption_text
+        ) +
+          ggplot2::guides(alpha = "none", size = "none") + # Remove the alpha and size legend
+          ggplot2::theme_bw() +
+          ggplot2::theme(
+            plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
+            plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
+            axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
+            axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
+            axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
+            axis.text.y = ggplot2::element_text(size = 14),
+            legend.position = "bottom",
+            legend.box.spacing = ggplot2::unit(3, "pt"),
+            legend.text = ggplot2::element_text(size=10),
+            legend.title = ggplot2::element_text(size=16, face = "bold"),
+            legend.title.align = 0.5,
+            plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
+                                                 margin = ggplot2::margin(t = 20)),
+            panel.spacing = ggplot2::unit(2, "lines"),
+            strip.text = ggplot2::element_text(face="bold", size = 14),
+            strip.background = ggplot2::element_blank(),
+            strip.clip = "off"
+          ) + 
+          ggplot2::guides(#shape = ggplot2::guide_legend(override.aes = list(size = 6)),
+            color = ggplot2::guide_legend(override.aes = list(size = 6))
+          )
+        
+        return(base_plot)
+        
+      })
       
       output$incidencePlotStandardAge<-  
         shiny::renderPlot({
@@ -1313,485 +1273,457 @@ characterizationIncidenceServer <- function(
           cowplot::save_plot(file, plot = renderIrPlotStandardAge(), base_height = 12)
         }
       )
-      
-      
-    
-      
+
       #by age and sex 
-
-renderIrPlotStandardAgeSex <- shiny::reactive(
-  {
-    
-    if (is.null(targetIds()) |
-        is.null(outcomeIds())) {
-      return(data.frame())
-    }
-    if(nrow(filteredData()) == 0){
-      return(data.frame())
-    }
-    
-    ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
-           plotData <- filteredData() %>%
-             dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
-           shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
-    )
-    
-    #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
-    ifelse(length(targetIds()) * length(outcomeIds()) <= 10,
-           plotData <- filteredData(),
-           shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
-    )
-    
-    #add check to make sure "Any" is in the year filter
-    ifelse("Any" %in% incidenceRateCalendarFilter(),
-           plotData <- filteredData(),
-           shiny::validate("This standard plot is designed to show results aggregated over all (`Any`) year categories. Please make sure you have selected `Any` in the `Select your results` section above for this variable.")
-    )
-    
-    #add check to make sure males and females are included
-    ifelse(8507 %in% incidenceRateGenderFilter() & 8532 %in% incidenceRateGenderFilter(),
-           plotData <- filteredData(),
-           shiny::validate("This standard plot is designed to show results stratified by male and female biological sex. Please make sure you have both `Male` and `Female` selected above and try again.")
-    )
-    
-    plotData <- plotData %>%
-      dplyr::filter( #ageGroupName != "Any" & 
-                      genderName != "Any" & 
-                      startYear == "Any") %>%
-      dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
-                    outcomeLabel = paste(outcomeIdShort, " = ", outcomeName),
-                    ageGroupName = factor(ageGroupName, levels = custom_age_sort(ageGroupName), ordered = TRUE)
-                    ) %>%
-      dplyr::rename("Target" = targetIdShort,
-             "Outcome" = outcomeIdShort,
-             "Age" = ageGroupName)
-    
-    # plotHeightStandardAgeSex <- shiny::reactive({
-    #   paste(sum(length(unique(plotData$targetLabel)), length(unique(plotData$Age)), -3)*100, "px", sep="")
-    # })
-    
-    # Get unique target and outcome labels
-    unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
-    unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
-    
-    # Combine all unique values into a final vector
-    final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
-    
-    # Create the caption text with line breaks
-    caption_text <- paste(final_unique_values, collapse = "\n")
-    
-    
-    # Take the specific tar value you want to plot
-    tar_value <- unique(plotData$tar)[1]
-    
-    base_plot <- ggplot2::ggplot(
-      data = plotData,
-      ggplot2::aes(x = Age,
-                   y = incidenceRateP100py,
-                   shape = genderName,
-                   color = cdmSourceAbbreviation
-      )
-    ) + 
-      ggplot2::geom_point(
-        ggplot2::aes(size = 3)
-      ) + 
-      #geom_jitter() +
-      #scale_size_continuous(range = c(5,15)) +
-      ggplot2::scale_colour_brewer(palette = "Paired") +
-      ggplot2::facet_wrap(
-        Target~Outcome,
-        labeller = "label_both",
-        scales = "free_x",
-        nrow = 2,
-        ncol = 5
-        #,
-        #strip.position = "right"
-      ) + 
-      ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
-                                  n.breaks = 4)
-    
-    base_plot <- base_plot + ggplot2::labs(
-      title = paste("Incidence Rate for Time at Risk:", tar_value),
-      x = paste(names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "ageGroupName"]), "\n"),
-      y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]),
-      color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
-      #size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "outcomes"]),
-      shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
-      caption = caption_text
-    ) +
-      ggplot2::guides(alpha = "none", size = "none") + # Remove the alpha and size legend
-      ggplot2::theme_bw() +
-      ggplot2::theme(
-        plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
-        plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
-        axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
-        axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
-        axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
-        axis.text.y = ggplot2::element_text(size = 14),
-        legend.position = "bottom",
-        legend.box.spacing = ggplot2::unit(3, "pt"),
-        legend.text = ggplot2::element_text(size=10),
-        legend.title = ggplot2::element_text(size=16, face = "bold"),
-        legend.title.align = 0.5,
-        plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
-                                             margin = ggplot2::margin(t = 20)),
-        panel.spacing = ggplot2::unit(2, "lines"),
-        strip.text = ggplot2::element_text(face="bold", size = 14),
-        strip.background = ggplot2::element_blank(),
-        strip.clip = "off"
-      ) + 
-      ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
-                      color = ggplot2::guide_legend(override.aes = list(size = 6))
-                      )
-    
-    return(base_plot)
-
-  }
-)
       
-output$incidencePlotStandardAgeSex<-  
-  shiny::renderPlot({
-    renderIrPlotStandardAgeSex()
-  })
-
-
-# Define a function to save the plot as an image
-output$downloadPlotStandardAgeSex <- shiny::downloadHandler(
-  filename = function() {
-    paste("standard-age-sex-ir-plot-", Sys.Date(), ".png", sep = "")
-  },
-  content = function(file) {
-    cowplot::save_plot(file, plot = renderIrPlotStandardAgeSex(), base_height = 12)
-  }
-)
-
-
-
-# by calendar year
-renderIrPlotStandardYear <- shiny::reactive(
-  {
-    
-    if (is.null(targetIds()) |
-        is.null(outcomeIds())) {
-      return(data.frame())
-    }
-    if(nrow(filteredData()) == 0){
-      return(data.frame())
-    }
-    
-    ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
-           plotData <- filteredData() %>%
-             dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
-           shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
-    )
-    
-    ifelse(length(incidenceRateTarFilter() %in% filteredData()$tar) == 1,
-           plotData <- filteredData() %>%
-             dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
-           shiny::validate("Please select only one TAR at a time to view yearly plots.")
-    )
-    
-    ifelse((length(targetIds()) == 1) & 
-             (length(outcomeIds()) == 1), 
-           plotData <- plotData,
-           shiny::validate("Please select only one Target and Outcome at a time to view yearly plots.")
-    )
-    
-    ifelse((length(incidenceRateCalendarFilter()) == 1) & 
-             (incidenceRateCalendarFilter() == "Any"), 
-           shiny::validate("Please select at least one start year besides `Any`. This plot depicts calendar trends over time on the x-axis, so at least one distinct year is required."),
-           plotData <- plotData
-    )
-    
-    
-    
-    plotData <- plotData %>%
-      dplyr::filter(genderName != "Any" & 
-                      startYear != "Any") %>%
-      dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
-                    outcomeLabel = paste(outcomeIdShort, " = ", outcomeName),
-                    ageGroupName = factor(ageGroupName, levels = custom_age_sort(ageGroupName), ordered = TRUE)
-      ) %>%
-      dplyr::rename("Target" = targetIdShort,
-                    "Outcome" = outcomeIdShort,
-                    "Age" = ageGroupName)
-    
-    #get unique shorthand cohort name
-    unique_target <- unique(plotData$Target)
-    unique_outcome <- unique(plotData$Outcome)
-    
-    
-    # Get unique target and outcome labels
-    unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
-    unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
-    
-    # Combine all unique values into a final vector
-    final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
-    
-    # Create the caption text with line breaks
-    caption_text <- paste(final_unique_values, collapse = "\n")
-    
-    
-    # Take the specific tar value you want to plot
-    tar_value <- unique(plotData$tar)[1]
-    
-    plotData <- plotData %>%
-      dplyr::filter("Any" %!in% startYear) %>%
-      dplyr::mutate(startYear = as.Date(paste0(startYear, "-01-01"))
-                    )
-    
-    base_plot <- ggplot2::ggplot(
-      data = plotData,
-      ggplot2::aes(x = startYear,
-                   y = incidenceRateP100py,
-                   shape = genderName,
-                   color = cdmSourceAbbreviation,
-                   group = interaction(cdmSourceAbbreviation, genderName)
+      renderIrPlotStandardAgeSex <- shiny::reactive({
+        
+        if (is.null(targetIds()) |
+            is.null(outcomeIds())) {
+          return(data.frame())
+        }
+        if(nrow(filteredData()) == 0){
+          return(data.frame())
+        }
+        
+        ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
+               plotData <- filteredData() %>%
+                 dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
+               shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
+        )
+        
+        #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
+        ifelse(length(targetIds()) * length(outcomeIds()) <= 10,
+               plotData <- filteredData(),
+               shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
+        )
+        
+        #add check to make sure "Any" is in the year filter
+        ifelse("Any" %in% incidenceRateCalendarFilter(),
+               plotData <- filteredData(),
+               shiny::validate("This standard plot is designed to show results aggregated over all (`Any`) year categories. Please make sure you have selected `Any` in the `Select your results` section above for this variable.")
+        )
+        
+        #add check to make sure males and females are included
+        ifelse(8507 %in% incidenceRateGenderFilter() & 8532 %in% incidenceRateGenderFilter(),
+               plotData <- filteredData(),
+               shiny::validate("This standard plot is designed to show results stratified by male and female biological sex. Please make sure you have both `Male` and `Female` selected above and try again.")
+        )
+        
+        plotData <- plotData %>%
+          dplyr::filter( #ageGroupName != "Any" & 
+            genderName != "Any" & 
+              startYear == "Any") %>%
+          dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
+                        outcomeLabel = paste(outcomeIdShort, " = ", outcomeName),
+                        ageGroupName = factor(ageGroupName, levels = custom_age_sort(ageGroupName), ordered = TRUE)
+          ) %>%
+          dplyr::rename("Target" = targetIdShort,
+                        "Outcome" = outcomeIdShort,
+                        "Age" = ageGroupName)
+        
+        # plotHeightStandardAgeSex <- shiny::reactive({
+        #   paste(sum(length(unique(plotData$targetLabel)), length(unique(plotData$Age)), -3)*100, "px", sep="")
+        # })
+        
+        # Get unique target and outcome labels
+        unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
+        unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
+        
+        # Combine all unique values into a final vector
+        final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
+        
+        # Create the caption text with line breaks
+        caption_text <- paste(final_unique_values, collapse = "\n")
+        
+        
+        # Take the specific tar value you want to plot
+        tar_value <- unique(plotData$tar)[1]
+        
+        base_plot <- ggplot2::ggplot(
+          data = plotData,
+          ggplot2::aes(x = Age,
+                       y = incidenceRateP100py,
+                       shape = genderName,
+                       color = cdmSourceAbbreviation
+          )
+        ) + 
+          ggplot2::geom_point(
+            ggplot2::aes(size = 3)
+          ) + 
+          #geom_jitter() +
+          #scale_size_continuous(range = c(5,15)) +
+          ggplot2::scale_colour_brewer(palette = "Paired") +
+          ggplot2::facet_wrap(
+            Target~Outcome,
+            labeller = "label_both",
+            scales = "free_x",
+            nrow = 2,
+            ncol = 5
+            #,
+            #strip.position = "right"
+          ) + 
+          ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                                      n.breaks = 4)
+        
+        base_plot <- base_plot + ggplot2::labs(
+          title = paste("Incidence Rate for Time at Risk:", tar_value),
+          x = paste(names(ciOptions$irPlotCategoricalChoices[ciOptions$irPlotCategoricalChoices %in% "ageGroupName"]), "\n"),
+          y = names(ciOptions$irPlotNumericChoices[ciOptions$irPlotNumericChoices %in% "incidenceRateP100py"]),
+          color = names(ciOptions$irPlotCategoricalChoices[ciOptions$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
+          #size = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "outcomes"]),
+          shape = names(ciOptions$irPlotCategoricalChoices[ciOptions$irPlotCategoricalChoices %in% "genderName"]),
+          caption = caption_text
+        ) +
+          ggplot2::guides(alpha = "none", size = "none") + # Remove the alpha and size legend
+          ggplot2::theme_bw() +
+          ggplot2::theme(
+            plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
+            plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
+            axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
+            axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
+            axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
+            axis.text.y = ggplot2::element_text(size = 14),
+            legend.position = "bottom",
+            legend.box.spacing = ggplot2::unit(3, "pt"),
+            legend.text = ggplot2::element_text(size=10),
+            legend.title = ggplot2::element_text(size=16, face = "bold"),
+            legend.title.align = 0.5,
+            plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
+                                                 margin = ggplot2::margin(t = 20)),
+            panel.spacing = ggplot2::unit(2, "lines"),
+            strip.text = ggplot2::element_text(face="bold", size = 14),
+            strip.background = ggplot2::element_blank(),
+            strip.clip = "off"
+          ) + 
+          ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
+                          color = ggplot2::guide_legend(override.aes = list(size = 6))
+          )
+        
+        return(base_plot)
+        
+      })
+      
+      output$incidencePlotStandardAgeSex<-  
+        shiny::renderPlot({
+          renderIrPlotStandardAgeSex()
+        })
+      
+      
+      # Define a function to save the plot as an image
+      output$downloadPlotStandardAgeSex <- shiny::downloadHandler(
+        filename = function() {
+          paste("standard-age-sex-ir-plot-", Sys.Date(), ".png", sep = "")
+        },
+        content = function(file) {
+          cowplot::save_plot(file, plot = renderIrPlotStandardAgeSex(), base_height = 12)
+        }
       )
-    ) + 
-      ggplot2::geom_point(
-        ggplot2::aes(size = 2.5)
-      ) + 
-      ggplot2::geom_line(ggplot2::aes(linetype = genderName)) +
-      ggplot2::scale_colour_brewer(palette = "Paired") +
-      ggplot2::facet_wrap(
-        ~Age,
-        labeller = "label_both",
-        scales = "free_x",
-        nrow = 2
-      ) +
-      ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
-                                  n.breaks = 3) +
-      ggplot2::scale_x_date(breaks= seq(min(plotData$startYear), max(plotData$startYear), by = "3 years"),
-                            date_labels = "%Y",
-                            limits = c(min(plotData$startYear),
-                                     max(plotData$startYear))
-                            )
-    
-    base_plot <- base_plot + ggplot2::labs(
-      title = paste("Incidence Rate for Time at Risk:", tar_value),
-      subtitle = paste("Target = ", unique_target, "; Outcome = ", unique_outcome, sep = ""),
-      x = paste(names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "startYear"]), "\n"),
-      y = paste(names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]), " (log10 scale)"),
-      color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
-      shape = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "genderName"]),
-      caption = caption_text
-    ) +
-      ggplot2::guides(alpha = "none", size = "none", linetype = "none") + # Remove the alpha and size legend
-      ggplot2::theme_bw() +
-      ggplot2::theme(
-        plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
-        plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
-        axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
-        axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
-        axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
-        axis.text.y = ggplot2::element_text(size = 14),
-        legend.position = "bottom",
-        legend.box.spacing = ggplot2::unit(3, "pt"),
-        legend.text = ggplot2::element_text(size=10),
-        legend.title = ggplot2::element_text(size=16, face = "bold"),
-        legend.title.align = 0.5,
-        plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
-                                             margin = ggplot2::margin(t = 20)),
-         panel.spacing = ggplot2::unit(2, "lines"),
-        strip.text = ggplot2::element_text(face="bold", size = 14),
-        strip.background = ggplot2::element_blank(),
-        strip.clip = "off"
-      ) + 
-      ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
-                      color = ggplot2::guide_legend(override.aes = list(size = 6))
+      
+      
+      
+      # by calendar year
+      renderIrPlotStandardYear <- shiny::reactive({
+        
+        if (is.null(targetIds()) |
+            is.null(outcomeIds())) {
+          return(data.frame())
+        }
+        if(nrow(filteredData()) == 0){
+          return(data.frame())
+        }
+        
+        ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
+               plotData <- filteredData() %>%
+                 dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
+               shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
+        )
+        
+        ifelse(length(incidenceRateTarFilter() %in% filteredData()$tar) == 1,
+               plotData <- filteredData() %>%
+                 dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
+               shiny::validate("Please select only one TAR at a time to view yearly plots.")
+        )
+        
+        ifelse((length(targetIds()) == 1) & 
+                 (length(outcomeIds()) == 1), 
+               plotData <- plotData,
+               shiny::validate("Please select only one Target and Outcome at a time to view yearly plots.")
+        )
+        
+        ifelse((length(incidenceRateCalendarFilter()) == 1) & 
+                 (incidenceRateCalendarFilter() == "Any"), 
+               shiny::validate("Please select at least one start year besides `Any`. This plot depicts calendar trends over time on the x-axis, so at least one distinct year is required."),
+               plotData <- plotData
+        )
+        
+        
+        
+        plotData <- plotData %>%
+          dplyr::filter(genderName != "Any" & 
+                          startYear != "Any") %>%
+          dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
+                        outcomeLabel = paste(outcomeIdShort, " = ", outcomeName),
+                        ageGroupName = factor(ageGroupName, levels = custom_age_sort(ageGroupName), ordered = TRUE)
+          ) %>%
+          dplyr::rename("Target" = targetIdShort,
+                        "Outcome" = outcomeIdShort,
+                        "Age" = ageGroupName)
+        
+        #get unique shorthand cohort name
+        unique_target <- unique(plotData$Target)
+        unique_outcome <- unique(plotData$Outcome)
+        
+        
+        # Get unique target and outcome labels
+        unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
+        unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
+        
+        # Combine all unique values into a final vector
+        final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
+        
+        # Create the caption text with line breaks
+        caption_text <- paste(final_unique_values, collapse = "\n")
+        
+        
+        # Take the specific tar value you want to plot
+        tar_value <- unique(plotData$tar)[1]
+        
+        plotData <- plotData %>%
+          dplyr::filter("Any" %!in% startYear) %>%
+          dplyr::mutate(startYear = as.Date(paste0(startYear, "-01-01"))
+          )
+        
+        base_plot <- ggplot2::ggplot(
+          data = plotData,
+          ggplot2::aes(x = startYear,
+                       y = incidenceRateP100py,
+                       shape = genderName,
+                       color = cdmSourceAbbreviation,
+                       group = interaction(cdmSourceAbbreviation, genderName)
+          )
+        ) + 
+          ggplot2::geom_point(
+            ggplot2::aes(size = 2.5)
+          ) + 
+          ggplot2::geom_line(ggplot2::aes(linetype = genderName)) +
+          ggplot2::scale_colour_brewer(palette = "Paired") +
+          ggplot2::facet_wrap(
+            ~Age,
+            labeller = "label_both",
+            scales = "free_x",
+            nrow = 2
+          ) +
+          ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                                      n.breaks = 3) +
+          ggplot2::scale_x_date(breaks= seq(min(plotData$startYear), max(plotData$startYear), by = "3 years"),
+                                date_labels = "%Y",
+                                limits = c(min(plotData$startYear),
+                                           max(plotData$startYear))
+          )
+        
+        base_plot <- base_plot + ggplot2::labs(
+          title = paste("Incidence Rate for Time at Risk:", tar_value),
+          subtitle = paste("Target = ", unique_target, "; Outcome = ", unique_outcome, sep = ""),
+          x = paste(names(ciOptions$irPlotCategoricalChoices[ciOptions$irPlotCategoricalChoices %in% "startYear"]), "\n"),
+          y = paste(names(ciOptions$irPlotNumericChoices[ciOptions$irPlotNumericChoices %in% "incidenceRateP100py"]), " (log10 scale)"),
+          color = names(ciOptions$irPlotCategoricalChoices[ciOptions$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
+          shape = names(ciOptions$irPlotCategoricalChoices[ciOptions$irPlotCategoricalChoices %in% "genderName"]),
+          caption = caption_text
+        ) +
+          ggplot2::guides(alpha = "none", size = "none", linetype = "none") + # Remove the alpha and size legend
+          ggplot2::theme_bw() +
+          ggplot2::theme(
+            plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
+            plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
+            axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
+            axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
+            axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
+            axis.text.y = ggplot2::element_text(size = 14),
+            legend.position = "bottom",
+            legend.box.spacing = ggplot2::unit(3, "pt"),
+            legend.text = ggplot2::element_text(size=10),
+            legend.title = ggplot2::element_text(size=16, face = "bold"),
+            legend.title.align = 0.5,
+            plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
+                                                 margin = ggplot2::margin(t = 20)),
+            panel.spacing = ggplot2::unit(2, "lines"),
+            strip.text = ggplot2::element_text(face="bold", size = 14),
+            strip.background = ggplot2::element_blank(),
+            strip.clip = "off"
+          ) + 
+          ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
+                          color = ggplot2::guide_legend(override.aes = list(size = 6))
+          )
+        
+        return(base_plot)
+        
+      })
+      
+      output$incidencePlotStandardYear<-  
+        shiny::renderPlot({
+          renderIrPlotStandardYear()
+        })
+      
+      
+      # Define a function to save the plot as an image
+      output$downloadPlotStandardYear <- shiny::downloadHandler(
+        filename = function() {
+          paste("standard-yearly-ir-plot-", Sys.Date(), ".png", sep = "")
+        },
+        content = function(file) {
+          cowplot::save_plot(file, plot = renderIrPlotStandardYear(), base_height = 24)
+        }
       )
-    
-    return(base_plot)
-    
-  }
-)
+      
 
-output$incidencePlotStandardYear<-  
-  shiny::renderPlot({
-    renderIrPlotStandardYear()
-  })
-
-
-# Define a function to save the plot as an image
-output$downloadPlotStandardYear <- shiny::downloadHandler(
-  filename = function() {
-    paste("standard-yearly-ir-plot-", Sys.Date(), ".png", sep = "")
-  },
-  content = function(file) {
-    cowplot::save_plot(file, plot = renderIrPlotStandardYear(), base_height = 24)
-  }
-)
-
-
-
-
-
-
-
-
-#aggregate (unstratified)
-
-renderIrPlotStandardAggregate <- shiny::reactive(
-  {
-    
-    if (is.null(targetIds()) |
-        is.null(outcomeIds())) {
-      return(data.frame())
-    }
-    if(nrow(filteredData()) == 0){
-      return(data.frame())
-    }
-    
-    ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
-           plotData <- filteredDataAggregateForPlot() %>%
-             dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
-           shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
-    )
-    
-    #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
-    ifelse(length(targetIds()) * length(outcomeIds()) <= 10,
-           plotData <- filteredData(),
-           shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
-    )
-    
-    ifelse("Any" %in% incidenceRateAgeFilter() & 
-             "Any" %in% incidenceRateGenderFilter() & 
-             "Any" %in% incidenceRateCalendarFilter(),
-           plotData <- filteredData(),
-           shiny::validate("This plot requires the `Any` category to be selected to aggregate over all ages, sexes, and years. Please ensure `Any` is selected in each of these inputs above and try again.")
-    )
-    
-    plotData <- plotData %>%
-      dplyr::filter(ageGroupName == "Any" & 
-                      genderName == "Any") %>%
-      dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
-                    outcomeLabel = paste(outcomeIdShort, " = ", outcomeName)
-      ) %>%
-      dplyr::rename("Target" = targetIdShort,
-                    "Outcome" = outcomeIdShort,
-                    "Age" = ageGroupName)
-    
-    # Get unique target and outcome labels
-    unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
-    unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
-    
-    # Combine all unique values into a final vector
-    final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
-    
-    # Create the caption text with line breaks
-    caption_text <- paste(final_unique_values, collapse = "\n")
-    
-    
-    # Take the specific tar value you want to plot
-    tar_value <- unique(plotData$tar)[1]
-    
-    base_plot <- ggplot2::ggplot(
-      data = plotData,
-      ggplot2::aes(x = startYear,
-                   y = incidenceRateP100py,
-                   #shape = genderName,
-                   color = cdmSourceAbbreviation
+      #aggregate (unstratified)
+      
+      renderIrPlotStandardAggregate <- shiny::reactive({
+        
+        if (is.null(targetIds()) |
+            is.null(outcomeIds())) {
+          return(data.frame())
+        }
+        if(nrow(filteredData()) == 0){
+          return(data.frame())
+        }
+        
+        ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
+               plotData <- filteredDataAggregateForPlot() %>%
+                 dplyr::filter(.data$tar %in% incidenceRateTarFilter()),
+               shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
+        )
+        
+        #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
+        ifelse(length(targetIds()) * length(outcomeIds()) <= 10,
+               plotData <- filteredData(),
+               shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
+        )
+        
+        ifelse("Any" %in% incidenceRateAgeFilter() & 
+                 "Any" %in% incidenceRateGenderFilter() & 
+                 "Any" %in% incidenceRateCalendarFilter(),
+               plotData <- filteredData(),
+               shiny::validate("This plot requires the `Any` category to be selected to aggregate over all ages, sexes, and years. Please ensure `Any` is selected in each of these inputs above and try again.")
+        )
+        
+        plotData <- plotData %>%
+          dplyr::filter(ageGroupName == "Any" & 
+                          genderName == "Any") %>%
+          dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
+                        outcomeLabel = paste(outcomeIdShort, " = ", outcomeName)
+          ) %>%
+          dplyr::rename("Target" = targetIdShort,
+                        "Outcome" = outcomeIdShort,
+                        "Age" = ageGroupName)
+        
+        # Get unique target and outcome labels
+        unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
+        unique_outcome_labels <- strwrap(unique(plotData$outcomeLabel), width = 300)
+        
+        # Combine all unique values into a final vector
+        final_unique_values <- unique(c(unique_target_labels, unique_outcome_labels))
+        
+        # Create the caption text with line breaks
+        caption_text <- paste(final_unique_values, collapse = "\n")
+        
+        
+        # Take the specific tar value you want to plot
+        tar_value <- unique(plotData$tar)[1]
+        
+        base_plot <- ggplot2::ggplot(
+          data = plotData,
+          ggplot2::aes(x = startYear,
+                       y = incidenceRateP100py,
+                       #shape = genderName,
+                       color = cdmSourceAbbreviation
+          )
+        ) + 
+          ggplot2::geom_point(
+            ggplot2::aes(size = 3)
+          ) + 
+          #ggplot2::geom_jitter() +
+          #scale_size_continuous(range = c(5,15)) +
+          ggplot2::scale_colour_brewer(palette = "Paired") +
+          ggplot2::facet_wrap(
+            Target~Outcome,
+            labeller = "label_both",
+            scales = "free_x",
+            nrow = 2,
+            ncol = 5
+            #,
+            #strip.position = "right"
+          ) + 
+          ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                                      n.breaks = 4)
+        
+        base_plot <- base_plot + ggplot2::labs(
+          title = paste("Incidence Rate for Time at Risk:", tar_value),
+          x = paste(names(ciOptions$irPlotCategoricalChoices[ciOptions$irPlotCategoricalChoices %in% "startYear"]), "\n"),
+          y = names(ciOptions$irPlotNumericChoices[ciOptions$irPlotNumericChoices %in% "incidenceRateP100py"]),
+          color = names(ciOptions$irPlotCategoricalChoices[ciOptions$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
+          caption = caption_text
+        ) +
+          ggplot2::guides(alpha = "none", size = "none") + # Remove the alpha and size legend
+          ggplot2::theme_bw() +
+          ggplot2::theme(
+            plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
+            plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
+            axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
+            axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
+            axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
+            axis.text.y = ggplot2::element_text(size = 14),
+            legend.position = "bottom",
+            legend.box.spacing = ggplot2::unit(3, "pt"),
+            legend.text = ggplot2::element_text(size=10),
+            legend.title = ggplot2::element_text(size=16, face = "bold"),
+            legend.title.align = 0.5,
+            plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
+                                                 margin = ggplot2::margin(t = 20)),
+            panel.spacing = ggplot2::unit(2, "lines"),
+            strip.text = ggplot2::element_text(face="bold", size = 14),
+            strip.background = ggplot2::element_blank(),
+            strip.clip = "off"
+          ) + 
+          ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
+                          color = ggplot2::guide_legend(override.aes = list(size = 6)))
+        
+        return(base_plot)
+        
+      })
+      
+      output$incidencePlotStandardAggregate <-  
+        shiny::renderPlot({
+          renderIrPlotStandardAggregate()
+        })
+      
+      
+      # Define a function to save the plot as an image
+      output$downloadPlotStandardAggregate <- shiny::downloadHandler(
+        filename = function() {
+          paste("standard-aggregate-ir-plot-", Sys.Date(), ".png", sep = "")
+        },
+        content = function(file) {
+          cowplot::save_plot(file, plot = renderIrPlotStandardAggregate(), base_height = 12)
+        }
       )
-    ) + 
-      ggplot2::geom_point(
-        ggplot2::aes(size = 3)
-      ) + 
-      #ggplot2::geom_jitter() +
-      #scale_size_continuous(range = c(5,15)) +
-      ggplot2::scale_colour_brewer(palette = "Paired") +
-      ggplot2::facet_wrap(
-        Target~Outcome,
-        labeller = "label_both",
-        scales = "free_x",
-        nrow = 2,
-        ncol = 5
-        #,
-        #strip.position = "right"
-      ) + 
-      ggplot2::scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
-                                  n.breaks = 4)
-    
-    base_plot <- base_plot + ggplot2::labs(
-      title = paste("Incidence Rate for Time at Risk:", tar_value),
-      x = paste(names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "startYear"]), "\n"),
-      y = names(options$irPlotNumericChoices[options$irPlotNumericChoices %in% "incidenceRateP100py"]),
-      color = names(options$irPlotCategoricalChoices[options$irPlotCategoricalChoices %in% "cdmSourceAbbreviation"]),
-      caption = caption_text
-    ) +
-      ggplot2::guides(alpha = "none", size = "none") + # Remove the alpha and size legend
-      ggplot2::theme_bw() +
-      ggplot2::theme(
-        plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
-        plot.subtitle = ggplot2::element_text(margin = ggplot2::margin(b = 20), hjust = 0.5, size = 16),
-        axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 25), size = 18),
-        axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 25), size = 18),
-        axis.text.x = ggplot2::element_text(size = 14, angle = 45, hjust = 0.5, vjust = 0.25),
-        axis.text.y = ggplot2::element_text(size = 14),
-        legend.position = "bottom",
-        legend.box.spacing = ggplot2::unit(3, "pt"),
-        legend.text = ggplot2::element_text(size=10),
-        legend.title = ggplot2::element_text(size=16, face = "bold"),
-        legend.title.align = 0.5,
-        plot.caption = ggplot2::element_text(hjust = 0, face = "italic", size = 12,
-                                             margin = ggplot2::margin(t = 20)),
-        panel.spacing = ggplot2::unit(2, "lines"),
-        strip.text = ggplot2::element_text(face="bold", size = 14),
-        strip.background = ggplot2::element_blank(),
-        strip.clip = "off"
-      ) + 
-      ggplot2::guides(shape = ggplot2::guide_legend(override.aes = list(size = 6)),
-                      color = ggplot2::guide_legend(override.aes = list(size = 6)))
-    
-    return(base_plot)
-    
-  }
-)
-
-output$incidencePlotStandardAggregate <-  
-  shiny::renderPlot({
-    renderIrPlotStandardAggregate()
-  })
-
-
-# Define a function to save the plot as an image
-output$downloadPlotStandardAggregate <- shiny::downloadHandler(
-  filename = function() {
-    paste("standard-aggregate-ir-plot-", Sys.Date(), ".png", sep = "")
-  },
-  content = function(file) {
-    cowplot::save_plot(file, plot = renderIrPlotStandardAggregate(), base_height = 12)
-  }
-)
-
-
-
+      
       return(invisible(NULL)) ############# end of server
       
     })
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
+#------------
 #------------ Fetching data functions  
-  
+#------------
+
 getIncidenceData <- function(
     targetIds,
     outcomeIds,
     connectionHandler,
     resultDatabaseSettings
 ){
-  
   if(!is.null(targetIds) & !is.null(outcomeIds)){
     
     print(targetIds)
@@ -1799,8 +1731,21 @@ getIncidenceData <- function(
     
     shiny::withProgress(message = 'Getting incidence data', value = 0, {
     
-    sql <- 'select d.cdm_source_abbreviation, i.*, ct1.cohort_name as target_cohort_name, ct2.cohort_name as outcome_cohort_name
-from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
+    sql <- 'select d.cdm_source_abbreviation, i.*, ct1.cohort_name as target_name, ct2.cohort_name as outcome_name
+from (
+  select od.outcome_cohort_definition_id, od.clean_window, agd.age_group_name, 
+    tad.tar_start_with, tad.tar_start_offset, tad.tar_end_with, tad.tar_end_offset,
+    sd.subgroup_name, i.*
+  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
+  join @result_schema.@incidence_table_prefixOUTCOME_DEF od on i.outcome_id = od.outcome_id
+    and i.ref_id = od.ref_id
+  join @result_schema.@incidence_table_prefixTAR_DEF tad on i.tar_id = tad.tar_id
+    and i.ref_id = tad.ref_id
+  join @result_schema.@incidence_table_prefixSUBGROUP_DEF sd on i.subgroup_id = sd.subgroup_id
+    and i.ref_id = sd.ref_id
+  left join @result_schema.@incidence_table_prefixAGE_GROUP_DEF agd on i.age_group_id = agd.age_group_id
+    and i.ref_id = agd.ref_id
+) i
 inner join @result_schema.@database_table_name d
     on d.database_id = i.database_id
 inner join @result_schema.@cg_table_prefixcohort_definition ct1
@@ -1851,113 +1796,52 @@ cohortIncidenceFormatTar <- function(x){
   return(result)
 }
 
-getIncidenceOptionsOld <- function(
-    connectionHandler,
-    resultDatabaseSettings
-){
-  
-  # shiny::withProgress(message = 'Getting incidence inputs', value = 0, {
-  
-  sql <- 'select distinct i.target_cohort_definition_id, ct1.cohort_name 
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
-  
-  inner join
-          @result_schema.@cg_table_prefixcohort_definition ct1
-          on 
-          ct1.cohort_definition_id = i.target_cohort_definition_id
-  
-  ;'
-  
-  #shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
-  
-  targets <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix,
-    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
-  )
-  targetIds <- targets$targetCohortDefinitionId
-  names(targetIds) <- targets$cohortName
-  
-  sql <- 'select distinct i.outcome_cohort_definition_id, ct1.cohort_name 
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY i
-  
-  inner join
-          @result_schema.@cg_table_prefixcohort_definition ct1
-          on 
-          ct1.cohort_definition_id = i.outcome_cohort_definition_id
-  
-  ;'
-  
-  #shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
-  
-  outcomes <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix,
-    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
-  )
-  outcomeIds <- outcomes$outcomeCohortDefinitionId
-  names(outcomeIds) <- outcomes$cohortName
-  
-  sql <- 'select distinct tar_id, tar_start_with, tar_start_offset, tar_end_with, tar_end_offset
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  
-  #shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
-  
-  tars <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-  )
-  tar <- paste0('(',tars$tarStartWith, " + ", tars$tarStartOffset, ') - (', tars$tarEndWith, " + ", tars$tarEndOffset, ')')
-  #tar <- tars$tarId
-  names(tar) <- paste0('(',tars$tarStartWith, " + ", tars$tarStartOffset, ') - (', tars$tarEndWith, " + ", tars$tarEndOffset, ')')
-  
-  sql <- 'select distinct age_group_name
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  
-  result <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-  )
-  
-  ageGroupName <- result$ageGroupName
-  ageGroupName[is.na(ageGroupName)] <- 'Any'
-  ageGroupName <- sort(ageGroupName)
-  
-  sql <- 'select distinct gender_name
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  
-  result <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-  )
-  
-  genderName <- result$genderName
-  genderName[is.na(genderName)] <- 'Any'
-  genderName <- sort(genderName)
-  
-  sql <- 'select distinct start_year
-  from @result_schema.@incidence_table_prefixINCIDENCE_SUMMARY;'
-  
-  result <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-  )
-  
-  startYear <- result$startYear
-  startYear[is.na(startYear)] <- 'Any'
-  startYear <- sort(startYear)
-  
-  # shiny::incProgress(3/3, detail = paste("Done"))
-  # })
-}
+getIncidenceOptions <- function(connectionHandler,
+                                resultDatabaseSettings){
 
-getIncidenceOptions <- function(){  
+  # database options
+  databaseDf <- connectionHandler$queryDb(
+    sql = 'select database_id, cdm_source_abbreviation from @result_schema.@database_table_name;', 
+    result_schema = resultDatabaseSettings$schema,
+    database_table_name = resultDatabaseSettings$databaseTable
+  )
+  databases <- databaseDf$cdmSourceAbbreviation
+
+  # Age Gruop Options
+  ageGroupDf <- connectionHandler$queryDb(
+    sql = 'select age_group_id, age_group_name from @result_schema.@incidence_table_prefixAGE_GROUP_DEF;', 
+    result_schema = resultDatabaseSettings$schema,
+    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+  )
+  ageGroupDf <- rbind(data.frame(ageGroupId = 'Any', ageGroupName = 'Any'), ageGroupDf)
+  ageGroup <- ageGroupDf$ageGroupId
+  names(ageGroup) <- ageGroupDf$ageGroupName
+  
+  sex <- c(8507, 8532 , 'Any')
+  names(sex) <- c('Male', 'Female', 'Any')
+  
+  startYear <- c('Any', format(Sys.Date(), "%Y"):1990)
+  names(startYear) <- c('Any', format(Sys.Date(), "%Y"):1990)
+  
+  # get tar and then call cohortIncidenceFormatTar()
+  
+  tarDf <- characterizationGetCiTars(connectionHandler,resultDatabaseSettings)
+  
+  tar <- tarDf$tarId
+  names(tar) <- cohortIncidenceFormatTar(tarDf)
+  
+  sql <- '
+select outcome_id, outcome_name 
+from @result_schema.@incidence_table_prefixOUTCOME_DEF
+'
+  outcomeDf <- connectionHandler$queryDb(
+    sql = sql, 
+    result_schema = resultDatabaseSettings$schema,
+    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+  )
+  outcomes <- outcomeDf$outcomeId
+  names(outcomes) <- outcomeDf$outcomeName
+  
   irPlotCategoricalChoices <- list(
     "cdmSourceAbbreviation",
     "ageGroupName",
@@ -2010,61 +1894,29 @@ getIncidenceOptions <- function(){
   
   return(
     list(
-      #targetIds = targetIds,
-      #outcomeIds = outcomeIds,
-      #tar = tar,
+      databases = databases,
+      ageGroup = ageGroup,
+      sex = sex,
+      startYear = startYear,
+      tar = tar,
+      outcomes = outcomes,
       irPlotNumericChoices = irPlotNumericChoices,
       irPlotCategoricalChoices = irPlotCategoricalChoices
-      #ageGroupName = ageGroupName,
-      #genderName = genderName,
-      #startYear = startYear 
     )
   )
   
 }
 
-
-
-characterizationGetCiTars <- function(
-  connectionHandler,
-  resultDatabaseSettings
-){
-  
-  useLookup <- tryCatch(
-    {
-    connectionHandler$queryDb(
-      sql = "SELECT *
-          from
-          @schema.@ci_table_prefixtar_lookup limit 1;", 
-      schema = resultDatabaseSettings$schema,
-      ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-    )
-      },  
-    error = function(e) return(c())
-  )
-  
-  if(length(useLookup)>0){
-  sql <- "SELECT distinct *
-          from
-          @schema.@ci_table_prefixtar_lookup;"
-  
+characterizationGetCiTars <- function(connectionHandler,
+                                      resultDatabaseSettings){
+  sql <- "SELECT TAR_ID, TAR_START_WITH, TAR_START_OFFSET,
+          TAR_END_WITH, TAR_END_OFFSET
+          from @schema.@ci_table_prefixtar_def;"
   tars <- connectionHandler$queryDb(
     sql = sql, 
     schema = resultDatabaseSettings$schema,
     ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix
   )
-  } else{
-    sql <- "SELECT distinct TAR_ID, TAR_START_WITH, TAR_START_OFFSET,
-            TAR_END_WITH, TAR_END_OFFSET
-            from
-            @schema.@ci_table_prefixincidence_summary;"
-    
-    tars <- connectionHandler$queryDb(
-      sql = sql, 
-      schema = resultDatabaseSettings$schema,
-      ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-    )
-  }
   return(tars)
 }
 

@@ -617,92 +617,65 @@ characterizationGetOptions <- function(
     schema = resultDatabaseSettings$schema,
     cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
-  
-  # check whether lookup table in CI exists
-  ciLookup <- !is.null(tryCatch({
-    connectionHandler$queryDb(
-      sql = 'select * from @schema.@ci_table_prefixcohorts_lookup limit 1;',
-      schema = resultDatabaseSettings$schema,
-      ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-    )
-  }, error = function(e){return(NULL)}))
-  
 
-TnOs <- connectionHandler$queryDb(
-  sql = "
+# TODO: CohortIncidence does not caputre specific T-O pairs, will need to implement
+# if this function requires it.
+  TnOsSql = "
 select distinct temp.*, c.cohort_name 
-
-from 
-(
+from (
 {@include_aggregate} ? {
-select distinct  
-target_cohort_id,
-outcome_cohort_id
-from @schema.@c_table_prefixcohort_details
-where cohort_type = 'TnO'
-
-{@include_incidence} ? {
-union
-}
-}
-
-{@include_incidence} ? {
-{@ci_lookup} ?
-{select * from @schema.@ci_table_prefixcohorts_lookup} : {
-select distinct target_cohort_definition_id as target_cohort_id, 
-outcome_cohort_definition_id as outcome_cohort_id
-from
-@schema.@ci_table_prefixincidence_summary
-}
-
-}
+  select distinct  target_cohort_id, outcome_cohort_id
+  from @schema.@c_table_prefixcohort_details
+  where cohort_type = 'TnO'
+  {@include_incidence} ? {union}
+} {@include_incidence} ? {
+    select target_cohort_definition_id as target_cohort_id, outcome_cohort_definition_id as outcome_cohort_id
+    from @schema.@ci_table_prefixtarget_def, @ci_table_prefixoutcome_def }
 ) temp
-inner join 
-@schema.@cg_table_prefixcohort_definition c
-on temp.outcome_cohort_id = c.cohort_definition_id
-
-;",
-  schema = resultDatabaseSettings$schema,
-  c_table_prefix = resultDatabaseSettings$cTablePrefix,
-  cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-  ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix,
-  include_incidence = includeIncidence,
-  include_aggregate = includeAggregate,
-  ci_lookup = ciLookup
-)
-# fix backwards compatability
-if(!'isSubset' %in% colnames(cg)){
-  cg$isSubset <- NA
-}
-if(!'subsetParent' %in% colnames(cg)){
-  cg$subsetParent <- cg$cohortDefinitionId
-}
-if(!'subsetDefinitionId' %in% colnames(cg)){
-  cg$subsetDefinitionId <- cg$cohortDefinitionId
-}
-cg$subsetParent[is.na(cg$isSubset)] <- cg$cohortDefinitionId
-cg$subsetDefinitionId[is.na(cg$isSubset)] <- cg$cohortDefinitionId
-cg$isSubset[is.na(cg$isSubset)] <- 0
-
-parents <- unique(cg$cohortDefinitionId[cg$isSubset == 0])
-results <- lapply(parents, function(id){
-  list(
-    cohortName = cg$cohortName[cg$cohortDefinitionId == id],
-    cohortId = id,
-    children = lapply(cg$cohortDefinitionId[cg$subsetParent == id], function(sid){
-      list(
-        subsetName = cg$cohortName[cg$cohortDefinitionId == sid],
-        subsetId = sid,
-        outcomeIds = unique(TnOs$outcomeCohortId[TnOs$targetCohortId == sid]),
-        outcomeNames = unique(TnOs$cohortName[TnOs$targetCohortId == sid])
-        # add outcomes from case exposures
-      )
-    }
-    )
+inner join @schema.@cg_table_prefixcohort_definition c on temp.outcome_cohort_id = c.cohort_definition_id
+;"
+  TnOs <- connectionHandler$queryDb(
+    sql = TnOsSql,
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix,
+    include_incidence = includeIncidence,
+    include_aggregate = includeAggregate
   )
-})
-
-return(results)
+  # fix backwards compatability
+  if(!'isSubset' %in% colnames(cg)){
+    cg$isSubset <- NA
+  }
+  if(!'subsetParent' %in% colnames(cg)){
+    cg$subsetParent <- cg$cohortDefinitionId
+  }
+  if(!'subsetDefinitionId' %in% colnames(cg)){
+    cg$subsetDefinitionId <- cg$cohortDefinitionId
+  }
+  cg$subsetParent[is.na(cg$isSubset)] <- cg$cohortDefinitionId
+  cg$subsetDefinitionId[is.na(cg$isSubset)] <- cg$cohortDefinitionId
+  cg$isSubset[is.na(cg$isSubset)] <- 0
+  
+  parents <- unique(cg$cohortDefinitionId[cg$isSubset == 0])
+  results <- lapply(parents, function(id){
+    list(
+      cohortName = cg$cohortName[cg$cohortDefinitionId == id],
+      cohortId = id,
+      children = lapply(cg$cohortDefinitionId[cg$subsetParent == id], function(sid){
+        list(
+          subsetName = cg$cohortName[cg$cohortDefinitionId == sid],
+          subsetId = sid,
+          outcomeIds = unique(TnOs$outcomeCohortId[TnOs$targetCohortId == sid]),
+          outcomeNames = unique(TnOs$cohortName[TnOs$targetCohortId == sid])
+          # add outcomes from case exposures
+        )
+      }
+      )
+    )
+  })
+  
+  return(results)
 
 }
 
