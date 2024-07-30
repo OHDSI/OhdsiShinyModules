@@ -55,7 +55,7 @@ createCustomColDefList <- function(rawColNames, niceColNames = NULL,
     
     result[[i]] <- do.call(reactable::colDef, colDefOptions)
   }
-  
+
   names(result) <- rawColNames
   
   return(result)

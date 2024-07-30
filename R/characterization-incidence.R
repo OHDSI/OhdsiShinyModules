@@ -613,8 +613,8 @@ characterizationIncidenceServer <- function(
             dplyr::mutate(incidenceProportionP100p = as.numeric(.data$incidenceProportionP100p),
                           incidenceRateP100py = as.numeric(.data$incidenceRateP100py),
                           dplyr::across(dplyr::where(is.numeric), round, 4),
-                          targetIdShort = paste("C", .data$targetCohortDefinitionId, sep = "-"),
-                          outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
+                          targetNameShort = paste("C", .data$targetCohortDefinitionId, sep = "-"),
+                          outcomeNameShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
             dplyr::filter(.data$ageGroupId %in% !! incidenceRateAgeFilter() & 
                             .data$genderId %in% !! incidenceRateGenderFilter() & 
                             .data$startYear %in% !! incidenceRateCalendarFilter() & 
@@ -623,8 +623,8 @@ characterizationIncidenceServer <- function(
             ) %>%
             dplyr::relocate("targetName", .after = "cdmSourceAbbreviation") %>%
             dplyr::relocate("outcomeName", .after = "targetName") %>%
-            dplyr::relocate("targetIdShort", .after = "targetName") %>%
-            dplyr::relocate("outcomeIdShort", .after = "outcomeName")
+            dplyr::relocate("targetNameShort", .after = "targetName") %>%
+            dplyr::relocate("outcomeNameShort", .after = "outcomeName")
         }
       })
       
@@ -635,35 +635,31 @@ characterizationIncidenceServer <- function(
             dplyr::mutate(incidenceProportionP100p = as.numeric(.data$incidenceProportionP100p),
                           incidenceRateP100py = as.numeric(.data$incidenceRateP100py),
                           dplyr::across(dplyr::where(is.numeric), round, 4),
-                          targetIdShort = paste("C", .data$targetCohortDefinitionId, sep = "-"),
-                          outcomeIdShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
-            dplyr::relocate("targetIdShort", .after = "targetName") %>%
-            dplyr::relocate("outcomeIdShort", .after = "outcomeName")
+                          targetNameShort = paste("C", .data$targetCohortDefinitionId, sep = "-"),
+                          outcomeNameShort = paste("C", .data$outcomeCohortDefinitionId, sep = "-")) %>%
+            dplyr::relocate("targetNameShort", .after = "targetName") %>%
+            dplyr::relocate("outcomeNameShort", .after = "outcomeName")
         }
       })
       
+      # TODO Just call createCustomColDefList()
+      incidenceColList <- .createCiColDefList()
       
       
-      incidenceColList <- ParallelLogger::loadSettingsFromJson(
-        system.file("components-columnInformation",
-                    "characterization-incidence-colDefs.json",
-                    package = "OhdsiShinyModules"
-        )
-      )
+      # incidenceColList <- ParallelLogger::loadSettingsFromJson(
+      #   system.file("components-columnInformation",
+      #               "characterization-incidence-colDefs.json",
+      #               package = "OhdsiShinyModules"
+      #   )
+      # )
       
       ## CHECK - caused error for me but it is in Nate's latest code
-      class(incidenceColList$genderName$filterMethod) <- "JS_EVAL"
-      
-      # renderIrTable <- shiny::reactive(
-      #  {
-      #    filteredData()
-      #  }
-      # )
+      #class(incidenceColList$genderName$filterMethod) <- "JS_EVAL"
       
       resultTableServer(
         id = "incidenceRateTable",
-        df = filteredData, #renderIrTable,
-        selectedCols = c("cdmSourceAbbreviation", "targetName", "targetIdShort", "outcomeName", "outcomeIdShort",
+        df = filteredData,
+        selectedCols = c("cdmSourceAbbreviation", "targetName", "targetNameShort", "outcomeName", "outcomeNameShort",
                          "ageGroupName", "genderName", "startYear", "tar", "outcomes",
                          "incidenceProportionP100p", "incidenceRateP100py"),
         sortedCols = c("ageGroupName", "genderName", "startYear", "incidenceRateP100py"),
@@ -671,23 +667,9 @@ characterizationIncidenceServer <- function(
         colDefsInput = incidenceColList,
         downloadedFileName = "incidenceRateTable-"
       ) 
-      
-      
-      # resultTableServer(
-      #   id = "incidenceRateTable",
-      #   df = filteredData, #renderIrTable,
-      #   selectedCols = c("cdmSourceAbbreviation", "targetName", "targetIdShort", "outcomeName", "outcomeIdShort",
-      #                    "ageGroupName", "genderName", "startYear", "tar", "outcomes",
-      #                    "incidenceProportionP100p", "incidenceRateP100py"),
-      #   sortedCols = c("ageGroupName", "genderName", "startYear", "incidenceRateP100py"),
-      #   elementId = "incidence-select",
-      #   colDefsInput = incidenceColList,
-      #   downloadedFileName = "incidenceRateTable-"
-      # )
-      
+
       '%!in%' <- function(x,y)!('%in%'(x,y))
-      
-      
+
       #ir plots
       irPlotCustom <- shiny::reactive( # observeEvent generate instead?
         {
@@ -702,8 +684,8 @@ characterizationIncidenceServer <- function(
           ifelse(incidenceRateTarFilter() %in% filteredData()$tar,
                  plotData <- filteredData() %>%
                    dplyr::filter(.data$tar %in% incidenceRateTarFilter()) %>%
-                   dplyr::mutate(targetLabel = paste(.data$targetIdShort, " = ", .data$targetName),
-                                 outcomeLabel = paste(.data$outcomeIdShort, " = ", .data$outcomeName)
+                   dplyr::mutate(targetLabel = paste(.data$targetNameShort, " = ", .data$targetName),
+                                 outcomeLabel = paste(.data$outcomeNameShort, " = ", .data$outcomeName)
                    ),
                  shiny::validate("Selected TAR is not found in your result data. Revise input selections or select a different TAR.")
           )
@@ -715,9 +697,9 @@ characterizationIncidenceServer <- function(
           plotData$tooltip <- with(plotData, paste(
             "Incidence Rate:", incidenceRateP100py, "<br>",
             "Incidence Proportion:", incidenceProportionP100p, "<br>",
-            "Outcome ID:", outcomeIdShort, "<br>",
+            "Outcome ID:", outcomeNameShort, "<br>",
             "Outcome Name:", outcomeName, "<br>",
-            "Target ID:", targetIdShort, "<br>",
+            "Target ID:", targetNameShort, "<br>",
             "Target Name:", targetName, "<br>",
             "Data Source:", cdmSourceAbbreviation, "<br>",
             "Calendar Year:", startYear, "<br>",
@@ -749,17 +731,17 @@ characterizationIncidenceServer <- function(
           
           if (inputSelectedCustomPlot()$plotColor == "Target Cohort" | inputSelectedCustomPlot()$plotColor == "Outcome Cohort") {
             color_aesthetic <- if (inputSelectedCustomPlot()$plotColor == "Target Cohort") {
-              dplyr::vars(.data$targetIdShort)
+              dplyr::vars(.data$targetNameShort)
             } else if (inputSelectedCustomPlot()$plotColor == "Outcome Cohort") {
-              dplyr::vars(.data$outcomeIdShort)
+              dplyr::vars(.data$outcomeNameShort)
             }
           }
           
           if (inputSelectedCustomPlot()$plotShape == "Target Cohort" | inputSelectedCustomPlot()$plotShape == "Outcome Cohort") {
             shape_aesthetic <- if (inputSelectedCustomPlot()$plotShape == "Target Cohort") {
-              dplyr::vars(.data$targetIdShort)
+              dplyr::vars(.data$targetNameShort)
             } else if (inputSelectedCustomPlot()$plotShape == "Outcome Cohort") {
-              dplyr::vars(.data$outcomeIdShort)
+              dplyr::vars(.data$outcomeNameShort)
             }
           }
           
@@ -806,7 +788,7 @@ characterizationIncidenceServer <- function(
             else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis=="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
                      inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data$targetIdShort),
+                rows = dplyr::vars(.data$targetNameShort),
                 cols = dplyr::vars(.data[[inputSelectedCustomPlot()$plotYTrellis]]),
                 scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
@@ -817,7 +799,7 @@ characterizationIncidenceServer <- function(
             else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis=="outcomeName" & 
                      inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data$outcomeIdShort),
+                rows = dplyr::vars(.data$outcomeNameShort),
                 cols = dplyr::vars(.data[[inputSelectedCustomPlot()$plotYTrellis]]),
                 scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
@@ -829,7 +811,7 @@ characterizationIncidenceServer <- function(
                      inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis=="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data[[inputSelectedCustomPlot()$plotXTrellis]]),
-                cols = dplyr::vars(.data$targetIdShort),
+                cols = dplyr::vars(.data$targetNameShort),
                 scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -840,7 +822,7 @@ characterizationIncidenceServer <- function(
                      inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = dplyr::vars(.data[[inputSelectedCustomPlot()$plotXTrellis]]),
-                cols = dplyr::vars(.data$outcomeIdShort),
+                cols = dplyr::vars(.data$outcomeNameShort),
                 scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -850,8 +832,8 @@ characterizationIncidenceServer <- function(
             else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis=="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
                      inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis=="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data$targetIdShort),
-                cols = dplyr::vars(.data$targetIdShort),
+                rows = dplyr::vars(.data$targetNameShort),
+                cols = dplyr::vars(.data$targetNameShort),
                 scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -861,8 +843,8 @@ characterizationIncidenceServer <- function(
             else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis=="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
                      inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data$targetIdShort),
-                cols = dplyr::vars(.data$outcomeIdShort),
+                rows = dplyr::vars(.data$targetNameShort),
+                cols = dplyr::vars(.data$outcomeNameShort),
                 scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -872,8 +854,8 @@ characterizationIncidenceServer <- function(
             else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis=="outcomeName" & 
                      inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis=="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data$outcomeIdShort),
-                cols = dplyr::vars(.data$targetIdShort),
+                rows = dplyr::vars(.data$outcomeNameShort),
+                cols = dplyr::vars(.data$targetNameShort),
                 scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -883,8 +865,8 @@ characterizationIncidenceServer <- function(
             else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis=="outcomeName" & 
                      inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data$outcomeIdShort),
-                cols = dplyr::vars(.data$outcomeIdShort),
+                rows = dplyr::vars(.data$outcomeNameShort),
+                cols = dplyr::vars(.data$outcomeNameShort),
                 scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -895,7 +877,7 @@ characterizationIncidenceServer <- function(
                      inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis=="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = NULL,
-                cols = dplyr::vars(.data$outcomeIdShort),
+                cols = dplyr::vars(.data$outcomeNameShort),
                 scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -906,7 +888,7 @@ characterizationIncidenceServer <- function(
                      inputSelectedCustomPlot()$plotYTrellis!="(None)" & inputSelectedCustomPlot()$plotYTrellis=="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
                 rows = NULL,
-                cols = dplyr::vars(.data$targetIdShort),
+                cols = dplyr::vars(.data$targetNameShort),
                 scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
                 ggplot2::theme(strip.background = ggplot2::element_blank(), 
@@ -938,7 +920,7 @@ characterizationIncidenceServer <- function(
             else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis=="targetName" & inputSelectedCustomPlot()$plotXTrellis!="outcomeName" & 
                      inputSelectedCustomPlot()$plotYTrellis=="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data$targetIdShort),
+                rows = dplyr::vars(.data$targetNameShort),
                 cols = NULL,
                 scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
@@ -949,7 +931,7 @@ characterizationIncidenceServer <- function(
             else if (inputSelectedCustomPlot()$plotXTrellis!="(None)" & inputSelectedCustomPlot()$plotXTrellis!="targetName" & inputSelectedCustomPlot()$plotXTrellis=="outcomeName" & 
                      inputSelectedCustomPlot()$plotYTrellis=="(None)" & inputSelectedCustomPlot()$plotYTrellis!="targetName" & inputSelectedCustomPlot()$plotYTrellis!="outcomeName") {
               base_plot <- base_plot + ggplot2::facet_grid(
-                rows = dplyr::vars(.data$outcomeIdShort),
+                rows = dplyr::vars(.data$outcomeNameShort),
                 cols = NULL,
                 scales = if (inputSelectedCustomPlot()$irYscaleFixed) "fixed" else "free_y"
               ) +
@@ -1172,12 +1154,12 @@ characterizationIncidenceServer <- function(
           dplyr::filter(#ageGroupName != "Any" & 
             .data$genderName == "Any" & 
               .data$startYear == "Any") %>%
-          dplyr::mutate(targetLabel = paste(.data$targetIdShort, " = ", .data$targetName),
-                        outcomeLabel = paste(.data$outcomeIdShort, " = ", .data$outcomeName),
+          dplyr::mutate(targetLabel = paste(.data$targetNameShort, " = ", .data$targetName),
+                        outcomeLabel = paste(.data$outcomeNameShort, " = ", .data$outcomeName),
                         ageGroupName = factor(.data$ageGroupName, levels = custom_age_sort(.data$ageGroupName), ordered = TRUE)
           ) %>%
-          dplyr::rename("Target" = "targetIdShort",
-                        "Outcome" = "outcomeIdShort",
+          dplyr::rename("Target" = "targetNameShort",
+                        "Outcome" = "outcomeNameShort",
                         "Age" = "ageGroupName")
         
         # Get unique target and outcome labels
@@ -1314,12 +1296,12 @@ characterizationIncidenceServer <- function(
           dplyr::filter( #ageGroupName != "Any" & 
             genderName != "Any" & 
               startYear == "Any") %>%
-          dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
-                        outcomeLabel = paste(outcomeIdShort, " = ", outcomeName),
+          dplyr::mutate(targetLabel = paste(targetNameShort, " = ", targetName),
+                        outcomeLabel = paste(outcomeNameShort, " = ", outcomeName),
                         ageGroupName = factor(ageGroupName, levels = custom_age_sort(ageGroupName), ordered = TRUE)
           ) %>%
-          dplyr::rename("Target" = targetIdShort,
-                        "Outcome" = outcomeIdShort,
+          dplyr::rename("Target" = targetNameShort,
+                        "Outcome" = outcomeNameShort,
                         "Age" = ageGroupName)
         
         # plotHeightStandardAgeSex <- shiny::reactive({
@@ -1462,12 +1444,12 @@ characterizationIncidenceServer <- function(
         plotData <- plotData %>%
           dplyr::filter(genderName != "Any" & 
                           startYear != "Any") %>%
-          dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
-                        outcomeLabel = paste(outcomeIdShort, " = ", outcomeName),
+          dplyr::mutate(targetLabel = paste(targetNameShort, " = ", targetName),
+                        outcomeLabel = paste(outcomeNameShort, " = ", outcomeName),
                         ageGroupName = factor(ageGroupName, levels = custom_age_sort(ageGroupName), ordered = TRUE)
           ) %>%
-          dplyr::rename("Target" = targetIdShort,
-                        "Outcome" = outcomeIdShort,
+          dplyr::rename("Target" = targetNameShort,
+                        "Outcome" = outcomeNameShort,
                         "Age" = ageGroupName)
         
         #get unique shorthand cohort name
@@ -1611,11 +1593,11 @@ characterizationIncidenceServer <- function(
         plotData <- plotData %>%
           dplyr::filter(ageGroupName == "Any" & 
                           genderName == "Any") %>%
-          dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
-                        outcomeLabel = paste(outcomeIdShort, " = ", outcomeName)
+          dplyr::mutate(targetLabel = paste(targetNameShort, " = ", targetName),
+                        outcomeLabel = paste(outcomeNameShort, " = ", outcomeName)
           ) %>%
-          dplyr::rename("Target" = targetIdShort,
-                        "Outcome" = outcomeIdShort,
+          dplyr::rename("Target" = targetNameShort,
+                        "Outcome" = outcomeNameShort,
                         "Age" = ageGroupName)
         
         # Get unique target and outcome labels
@@ -1783,7 +1765,6 @@ where i.target_cohort_definition_id in (@target_ids)
       resultTable[is.na(resultTable)] <- 'Any'
       resultTable <- unique(resultTable)
     }
-    
     return(resultTable)
   } else{
     return(NULL)
@@ -1920,3 +1901,23 @@ characterizationGetCiTars <- function(connectionHandler,
   return(tars)
 }
 
+# [1] "cdmSourceAbbreviation"     "outcomeCohortDefinitionId" "cleanWindow"               "ageGroupName"             
+# [5] "refId"                     "databaseId"                "sourceName"                "targetCohortDefinitionId" 
+# [9] "subgroupId"                "outcomeId"                 "ageGroupId"                "genderId"                 
+# [13] "genderName"                "startYear"                 "personsAtRiskPe"           "personsAtRisk"            
+# [17] "personDaysPe"              "personDays"                "personOutcomesPe"          "personOutcomes"           
+# [21] "outcomesPe"                "outcomes"                  "incidenceProportionP100p"  "incidenceRateP100py"      
+# [25] "targetName"                "outcomeName"               "tar"    
+
+.createCiColDefList <- function() {
+  colDefCsv <- readr::read_csv(system.file("components-columnInformation",
+                           "characterization-incidence-colDefs.csv",
+                           package = "OhdsiShinyModules"),
+                           show_col_types = FALSE)
+  
+  createCustomColDefList(
+      rawColNames = colDefCsv$colName,
+      niceColNames = colDefCsv$niceName,
+      tooltipText = colDefCsv$toolTip
+    )
+}
