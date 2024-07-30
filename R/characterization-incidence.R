@@ -642,19 +642,7 @@ characterizationIncidenceServer <- function(
         }
       })
       
-      # TODO Just call createCustomColDefList()
       incidenceColList <- .createCiColDefList()
-      
-      
-      # incidenceColList <- ParallelLogger::loadSettingsFromJson(
-      #   system.file("components-columnInformation",
-      #               "characterization-incidence-colDefs.json",
-      #               package = "OhdsiShinyModules"
-      #   )
-      # )
-      
-      ## CHECK - caused error for me but it is in Nate's latest code
-      #class(incidenceColList$genderName$filterMethod) <- "JS_EVAL"
       
       resultTableServer(
         id = "incidenceRateTable",
@@ -1900,14 +1888,6 @@ characterizationGetCiTars <- function(connectionHandler,
   )
   return(tars)
 }
-
-# [1] "cdmSourceAbbreviation"     "outcomeCohortDefinitionId" "cleanWindow"               "ageGroupName"             
-# [5] "refId"                     "databaseId"                "sourceName"                "targetCohortDefinitionId" 
-# [9] "subgroupId"                "outcomeId"                 "ageGroupId"                "genderId"                 
-# [13] "genderName"                "startYear"                 "personsAtRiskPe"           "personsAtRisk"            
-# [17] "personDaysPe"              "personDays"                "personOutcomesPe"          "personOutcomes"           
-# [21] "outcomesPe"                "outcomes"                  "incidenceProportionP100p"  "incidenceRateP100py"      
-# [25] "targetName"                "outcomeName"               "tar"    
 
 .createCiColDefList <- function() {
   colDefCsv <- readr::read_csv(system.file("components-columnInformation",
