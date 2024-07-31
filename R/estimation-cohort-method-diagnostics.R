@@ -127,7 +127,7 @@ estimationGetCmDiagnostics <- function(
   
   # add summaryValue after outcome
   result <- result %>% 
-    dplyr::relocate(.data$summaryValue, .after = .data$outcome)
+    dplyr::relocate("summaryValue", .after = "outcome")
   
   return(
     result

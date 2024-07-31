@@ -639,7 +639,7 @@ select distinct
 target_cohort_id,
 outcome_cohort_id
 from @schema.@c_table_prefixcohort_details
-where cohort_type = 'TnO'
+where cohort_type = 'Cases'
 
 {@include_incidence} ? {
 union

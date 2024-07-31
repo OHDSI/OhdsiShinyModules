@@ -1215,9 +1215,9 @@ characterizationIncidenceServer <- function(
                           outcomeLabel = paste(.data$outcomeIdShort, " = ", .data$outcomeName),
                           ageGroupName = factor(.data$ageGroupName, levels = custom_age_sort(.data$ageGroupName), ordered = TRUE)
             ) %>%
-            dplyr::rename("Target" = "targetIdShort",
-                          "Outcome" = "outcomeIdShort",
-                          "Age" = "ageGroupName")
+            dplyr::rename(Target = "targetIdShort",
+                          Outcome = "outcomeIdShort",
+                          Age = "ageGroupName")
           
           # Get unique target and outcome labels
           unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
@@ -1362,9 +1362,9 @@ renderIrPlotStandardAgeSex <- shiny::reactive(
                     outcomeLabel = paste(outcomeIdShort, " = ", outcomeName),
                     ageGroupName = factor(ageGroupName, levels = custom_age_sort(ageGroupName), ordered = TRUE)
                     ) %>%
-      dplyr::rename("Target" = targetIdShort,
-             "Outcome" = outcomeIdShort,
-             "Age" = ageGroupName)
+      dplyr::rename(Target = "targetIdShort",
+             Outcome = "outcomeIdShort",
+             Age = "ageGroupName")
     
     # plotHeightStandardAgeSex <- shiny::reactive({
     #   paste(sum(length(unique(plotData$targetLabel)), length(unique(plotData$Age)), -3)*100, "px", sep="")
@@ -1512,9 +1512,9 @@ renderIrPlotStandardYear <- shiny::reactive(
                     outcomeLabel = paste(outcomeIdShort, " = ", outcomeName),
                     ageGroupName = factor(ageGroupName, levels = custom_age_sort(ageGroupName), ordered = TRUE)
       ) %>%
-      dplyr::rename("Target" = targetIdShort,
-                    "Outcome" = outcomeIdShort,
-                    "Age" = ageGroupName)
+      dplyr::rename(Target = "targetIdShort",
+                    Outcome = "outcomeIdShort",
+                    Age = "ageGroupName")
     
     #get unique shorthand cohort name
     unique_target <- unique(plotData$Target)
@@ -1668,9 +1668,9 @@ renderIrPlotStandardAggregate <- shiny::reactive(
       dplyr::mutate(targetLabel = paste(targetIdShort, " = ", targetName),
                     outcomeLabel = paste(outcomeIdShort, " = ", outcomeName)
       ) %>%
-      dplyr::rename("Target" = targetIdShort,
-                    "Outcome" = outcomeIdShort,
-                    "Age" = ageGroupName)
+      dplyr::rename(Target = "targetIdShort",
+                    Outcome = "outcomeIdShort",
+                    Age = "ageGroupName")
     
     # Get unique target and outcome labels
     unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
