@@ -276,12 +276,7 @@ getModelDesignPerformanceSummary <- function(
   
     inner join @schema.@plp_table_prefixmodel_designs as model_designs
     on model_designs.model_design_id = results.model_design_id
-    -- and results.target_id = model_designs.target_id 
-             -- and results.outcome_id = model_designs.outcome_id and 
-             -- results.tar_id = model_designs.tar_id and
-             -- results.population_setting_id = model_designs.population_setting_id
-             -- and results.plp_data_setting_id = model_designs.plp_data_setting_id
-             
+
         LEFT JOIN 
         (SELECT c.cohort_id, cd.cohort_name FROM @schema.@plp_table_prefixcohorts c
         inner join @schema.@cg_table_prefixcohort_definition cd
