@@ -190,7 +190,7 @@ characterizationGetCaseSeriesOptions <- function(
           and s.database_id = cd.database_id
           and cd.target_cohort_id = @target_id
           and cd.outcome_cohort_id = @outcome_id
-          and cd.cohort_type = 'TnO'
+          and cd.cohort_type = 'Cases'
           
           inner join
           @schema.@cg_table_prefixcohort_definition ct1
@@ -256,9 +256,9 @@ characterizationGetCaseSeriesData <- function(
     
   sql <- "SELECT 
   case 
-  when cov.cohort_type = 'TnO' then 'Before'
-  when cov.cohort_type = 'TnObetween' then 'During'
-  when cov.cohort_type = 'OnT' then 'After'
+  when cov.cohort_type = 'CasesBefore' then 'Before'
+  when cov.cohort_type = 'CasesBetween' then 'During'
+  when cov.cohort_type = 'CaseAfter' then 'After'
   end as type, 
   cr.covariate_name, 
   s.min_prior_observation, s.outcome_washout_days,
@@ -277,7 +277,7 @@ characterizationGetCaseSeriesData <- function(
 
           where cov.target_cohort_id = @target_id
           and cov.outcome_cohort_id = @outcome_id
-          and cov.cohort_type in ('TnObetween','OnT','TnO')
+          and cov.cohort_type in ('CasesBetween','CasesAfter','CasesBefore')
           --and cov.setting_id = @setting_id
           and s.risk_window_start = @risk_window_start
           and s.risk_window_end = @risk_window_end
@@ -309,9 +309,9 @@ characterizationGetCaseSeriesData <- function(
 
   sql <- "SELECT
     case 
-  when cov.cohort_type = 'TnO' then 'Before'
-  when cov.cohort_type = 'TnObetween' then 'During'
-  when cov.cohort_type = 'OnT' then 'After'
+  when cov.cohort_type = 'CasesBefore' then 'Before'
+  when cov.cohort_type = 'CasesBetween' then 'During'
+  when cov.cohort_type = 'CasesAfter' then 'After'
   end as type, 
   cr.covariate_name, 
     s.min_prior_observation, s.outcome_washout_days, 
@@ -333,7 +333,7 @@ characterizationGetCaseSeriesData <- function(
           
           where cov.target_cohort_id = @target_id
           and cov.outcome_cohort_id = @outcome_id
-          and cov.cohort_type in ('TnObetween','OnT','TnO')
+          and cov.cohort_type in ('CasesBetween','CasesAfter','CasesBefore')
           and s.risk_window_start = @risk_window_start
           and s.risk_window_end = @risk_window_end
           and s.start_anchor = '@start_anchor'

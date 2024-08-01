@@ -145,10 +145,10 @@ estimationSccsFullResultServer <- function(
             "databaseName"
           ) %>%
           dplyr::rename(
-            'Indication' = .data$indication,
-            'Outcome' = .data$outcome,
-            'Analysis' = .data$description,
-            'Database' = .data$databaseName
+            Indication = "indication",
+            Outcome = "outcome",
+            Analysis = "description",
+            Database = "databaseName"
           )
       })
       

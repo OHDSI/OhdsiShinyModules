@@ -624,13 +624,22 @@ characterizationGetOptions <- function(
 select distinct temp.*, c.cohort_name 
 from (
 {@include_aggregate} ? {
-  select distinct  target_cohort_id, outcome_cohort_id
-  from @schema.@c_table_prefixcohort_details
-  where cohort_type = 'TnO'
-  {@include_incidence} ? {union}
-} {@include_incidence} ? {
-    select target_cohort_definition_id as target_cohort_id, outcome_cohort_definition_id as outcome_cohort_id
-    from @schema.@ci_table_prefixtarget_def, @ci_table_prefixoutcome_def }
+select distinct  
+target_cohort_id,
+outcome_cohort_id
+from @schema.@c_table_prefixcohort_details
+where cohort_type = 'Cases'
+
+{@include_incidence} ? {
+union
+}
+}
+
+{@include_incidence} ? {
+select target_cohort_definition_id as target_cohort_id, outcome_cohort_definition_id as outcome_cohort_id
+    from @schema.@ci_table_prefixtarget_def, @ci_table_prefixoutcome_def 
+}
+
 ) temp
 inner join @schema.@cg_table_prefixcohort_definition c on temp.outcome_cohort_id = c.cohort_definition_id
 ;"

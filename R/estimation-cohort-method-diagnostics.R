@@ -92,6 +92,7 @@ estimationGetCmDiagnostics <- function(
       {@use_analyses}?{and cma.analysis_id in (@analyses)}
       ;
   "
+  print(comparatorIds)
   
   result <- connectionHandler$queryDb(
     sql = sql,
@@ -104,7 +105,7 @@ estimationGetCmDiagnostics <- function(
     comparators = paste0(comparatorIds, collapse = ','),
     outcomes = paste0(outcomeId, collapse = ','),
     
-    use_comparators = T,
+    use_comparators = ifelse(is.null(comparatorIds), F, T),
     use_analyses = F
   )
   
@@ -126,7 +127,7 @@ estimationGetCmDiagnostics <- function(
   
   # add summaryValue after outcome
   result <- result %>% 
-    dplyr::relocate(.data$summaryValue, .after = .data$outcome)
+    dplyr::relocate("summaryValue", .after = "outcome")
   
   return(
     result
