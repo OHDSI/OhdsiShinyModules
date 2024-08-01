@@ -175,24 +175,21 @@ plotTimeToEventSccs <- function(timeToEvent) {
 
 drawAttritionDiagram <- function(attrition) {
   
-  formatNumber <- function(x) {
-    return(formatC(x, big.mark = ","))
-  }
-  
+
   addStep <- function(data, attrition, row) {
     data$leftBoxText[length(data$leftBoxText) + 1] <- paste(attrition$description[row],
                                                             "\n",
                                                             "Cases: ",
-                                                            formatNumber(attrition$outcomeSubjects[row]),
+                                                            format(attrition$outcomeSubjects[row], scientific = FALSE),
                                                             "\n",
                                                             "Outcomes: ",
-                                                            formatNumber(attrition$outcomeEvents[row]),
+                                                            format(attrition$outcomeEvents[row], scientific = FALSE),
                                                             sep = "")
     data$rightBoxText[length(data$rightBoxText) + 1] <- paste("Cases: ",
-                                                              formatNumber(data$currentCases - attrition$outcomeSubjects[row]),
+                                                              format(data$currentCases - attrition$outcomeSubjects[row], scientific = FALSE),
                                                               "\n",
                                                               "Outcomes: ",
-                                                              formatNumber(data$currentOutcomes - attrition$outcomeEvents[row]),
+                                                              format(data$currentOutcomes - attrition$outcomeEvents[row], scientific = FALSE),
                                                               sep = "")
     data$currentCases <- attrition$outcomeSubjects[row]
     data$currentOutcomes <- attrition$outcomeEvents[row]
@@ -201,10 +198,10 @@ drawAttritionDiagram <- function(attrition) {
   
   data <- list(leftBoxText = c(paste("All outcomes occurrences:\n",
                                      "Cases: ",
-                                     formatNumber(attrition$outcomeSubjects[1]),
+                                     format(attrition$outcomeSubjects[1], scientific = FALSE),
                                      "\n",
                                      "Outcomes: ",
-                                     formatNumber(attrition$outcomeEvents[1]),
+                                     format(attrition$outcomeEvents[1], scientific = FALSE),
                                      sep = "")),
                rightBoxText = c(""),
                currentCases = attrition$outcomeSubjects[1],

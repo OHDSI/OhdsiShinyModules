@@ -1,0 +1,30 @@
+colName,niceName,toolTip
+cdmSourceAbbreviation,CDM Source,The CDM source
+refId,Ref ID,Reference Id
+databaseId,Database ID,The database ID
+sourceName,Source Name,The source name
+targetCohortDefinitionId,Target ID,The cohort definition ID of the target
+targetName,Target Name,The name of the target cohort
+subgroupId,Subgroup ID,The ID of the subgroup
+outcomeId,Outcome ID,The outcome ID
+outcomeCohortDefinitionId,Outcome Cohort ID,The cohort definition ID of the outcome
+outcomeName,Outcome Name,The name of the outcome cohort
+cleanWindow,Clean Window,The clean window (in days)
+ageGroupId,Age ID,The age group ID
+ageGroupName,Age Group,The age group category
+genderId,Gender ID,The gender ID
+genderName,Gender,The gender category
+startYear,Start Year,The year of Time At Risk start
+personsAtRiskPe,Persons At Risk PE,The distinct persons at risk before removing excluded time
+personsAtRisk,Persons At Risk,The distinct persons at risk
+personDaysPe,Person Days PE,The total time at risk before removing excluded time (days)
+personDays,Person Days,The total time at risk (days)
+personOutcomesPe,Person Outcomes PE,The distinct persons with outcomes before removing excluded time
+personOutcomes,Person Outcomes,The distinct persons with outcomes
+outcomesPe,Outcomes PE,The number of outcomes before removing excluded time
+outcomes,Outcomes,The number of ouctomes
+incidenceProportionP100p,IP per 100P,The incidence proportion (per 100 people) = 100 *  personOutcomes/personsAtRisk
+incidenceRateP100py,IR per 100P,The incidence rate (per 100 person years) = 100 * outcomes/personDays/365.25
+tar,Time-At-Risk,The time-at-risk window (in days)
+targetNameShort,Target Short Name,The short name of the target
+outcomeNameShort,Outcome Short Name,The short name of the outcome

@@ -932,7 +932,7 @@ getTandOs <- function(
     by.y = 'cohortDefinitionId'
   ) %>%
     dplyr::rename(
-      targetName = 'cohortName'
+      targetName = "cohortName"
       )
 
   res <- merge(
@@ -942,7 +942,7 @@ getTandOs <- function(
     by.y = 'cohortDefinitionId'
   ) %>%
     dplyr::rename(
-      outcomeName = 'cohortName'
+      outcomeName = "cohortName"
       ) %>%
     dplyr::arrange(
       .data$targetName,
@@ -1021,7 +1021,7 @@ getTandOs <- function(
       by.x = 'comparatorId', 
       by.y = 'cohortDefinitionId'
     ) %>%
-      dplyr::rename(comparatorName = 'cohortName')
+      dplyr::rename(comparatorName = "cohortName")
     
     cs <- lapply(unique(comps$targetId), function(tid){
       data.frame(

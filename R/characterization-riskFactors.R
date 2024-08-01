@@ -222,7 +222,7 @@ characterizationGetRiskFactorData <- function(
           where 
           cov.target_cohort_id = @target_id
           and cov.outcome_cohort_id in (0,@outcome_id)
-          and cov.cohort_type in ('Target','TnO', 'TnOprior')
+          and cov.cohort_type in ('Target','Cases', 'Exclude')
           and cov.database_id = '@database_id'
           and cov.setting_id in (@setting_ids)
           and cr.analysis_id not in (109, 110, 217, 218, 305, 417, 418, 505, 605, 713, 805, 926, 927)
@@ -264,7 +264,7 @@ characterizationGetRiskFactorData <- function(
           
           where cov.target_cohort_id = @target_id
           and cov.outcome_cohort_id in (0,@outcome_id)
-          and cov.cohort_type in ('Target','TnO', 'TnOprior')
+          and cov.cohort_type in ('Target','Cases', 'Exclude')
           and cov.database_id = '@database_id'
           and cov.setting_id in (@setting_ids)
           and cr.analysis_id not in (109, 110, 217, 218, 305, 417, 418, 505, 605, 713, 805, 926, 927)
@@ -354,7 +354,7 @@ riskFactorTable <- function(
     
   caseData <- data %>% 
     dplyr::filter(
-      .data$cohortType == 'TnO' &
+      .data$cohortType == 'Cases' &
       .data$outcomeWashoutDays == !!outcomeWashoutDay
         ) %>%
     dplyr::select(-"cohortType")
@@ -367,7 +367,7 @@ riskFactorTable <- function(
   
   excludeData <- data %>% 
     dplyr::filter(
-      .data$cohortType == 'TnOprior' & 
+      .data$cohortType == 'Exclude' & 
         .data$outcomeWashoutDays == !!outcomeWashoutDay
       ) %>%
     dplyr::select(-"cohortType")
@@ -417,6 +417,13 @@ riskFactorTable <- function(
       })
     }
     
+  } else{
+    # if no excludes we need to add N for the target
+    allData <- allData %>% 
+      dplyr::inner_join( # add N per washout/min obs
+        allcounts, 
+        by = c('minPriorObservation')
+      ) 
     }
 
   if(nrow(caseData) > 0){
@@ -487,8 +494,8 @@ riskFactorTable <- function(
       dplyr::mutate(
         outcomeWashoutDays = !!outcomeWashoutDay
       ) %>%
-      dplyr::relocate(.data$outcomeWashoutDays, 
-                      .after = .data$minPriorObservation)
+      dplyr::relocate("outcomeWashoutDays", 
+                      .after = "minPriorObservation")
     
     completeData <- rbind(allData, completeData)
 
@@ -522,7 +529,7 @@ riskFactorContinuousTable <- function(
   data <- unique(data)
   
   caseData <- data %>% 
-    dplyr::filter(.data$cohortType == 'TnO') %>%
+    dplyr::filter(.data$cohortType == 'Cases') %>%
     dplyr::select(-"cohortType")
   
   allData <- data %>% 

@@ -497,8 +497,8 @@ plotCohortMethodCovariateBalanceSummary <- function(balanceSummary,
                                                 upper = .data$upper,
                                                 ymax = .data$ymax,
                                                 group = .data$databaseId)) +
-    ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$ymin, ymax = .data$ymin), size = 1) +
-    ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$ymax, ymax = .data$ymax), size = 1) +
+    ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$ymin, ymax = .data$ymin), linewidth = 1) +
+    ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$ymax, ymax = .data$ymax), linewidth = 1) +
     ggplot2::geom_boxplot(stat = "identity", fill = grDevices::rgb(0, 0, 0.8, alpha = 0.25), size = 1) +
     ggplot2::geom_hline(yintercept = 0) +
     ggplot2::scale_x_continuous(limits = c(0.5, max(vizData$x) + 1.75)) +

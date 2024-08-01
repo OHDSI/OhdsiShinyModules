@@ -76,11 +76,11 @@ estimationCmFullResultServer <- function(
             "cdmSourceAbbreviation"
           ) %>%
           dplyr::rename(
-            'Target' = .data$target,
-            'Comparator' = .data$comparator,
-            'Outcome' = .data$outcome,
-            'Analysis' = .data$description,
-            'Database' = .data$cdmSourceAbbreviation
+            Target = "target",
+            Comparator = "comparator",
+            Outcome = "outcome",
+            Analysis = "description",
+            Database = "cdmSourceAbbreviation"
           )
       })
       

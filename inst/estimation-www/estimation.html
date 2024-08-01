@@ -1,0 +1,28 @@
+<h3>Description</h3>
+  <p> CohortMethod is an R package for performing new-user cohort studies in an observational database in the OMOP Common Data Model. This module:
+  
+  <ul>
+<li> Uses a large set of covariates for both the propensity and outcome model, including for example all drugs, diagnoses, procedures, as well as age, comorbidity indexes, etc. </li> 
+<li> Performs large scale regularized regression to fit the propensity and outcome models.</li>   
+<li> Includes function for trimming, stratifying, matching, and weighting on propensity scores.</li>   
+<li> Includes diagnostic functions, including propensity score distribution plots and plots showing covariate balance before and after matching and/or trimming.</li>   
+<li> Supports the following outcome models: (conditional) logistic regression, (conditional) Poisson regression, and (conditional) Cox regression.</li>  
+</ul>
+
+<p> For more information, please visit https://github.com/OHDSI/CohortMethod </p>
+  
+
+<h3>Self Controlled Case Series</h3>
+  <p> SelfControlledCaseSeries is an R package for performing Self-Controlled Case Series (SCCS) analyses in an observational database in the OMOP Common Data Model. This module:</p>
+
+<ul>
+<li> Extracts the necessary data from a database in OMOP Common Data Model format. </li> 
+<li> Optionally adds seasonality, age, and/or calendar time using spline functions.</li>   
+<li> Optionally corrects for event-dependent censoring of the observation period.</li>   
+<li> Optionally add many covariates in one analysis (e.g. all drugs). </li> 
+<li> Has options for constructing different types of covariates and risk windows, including pre-exposure windows (to capture contra-indications).</li>   
+<li> Optionally uses regularization on all covariates except the outcome of interest.</li>   
+<li> Provides the self-controlled risk interval design as a special case of the SCCS.</li>   
+</ul>
+
+<p> For more information, please visit https://github.com/OHDSI/SelfControlledCaseSeries </p>

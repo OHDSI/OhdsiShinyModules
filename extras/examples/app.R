@@ -25,16 +25,6 @@ schema <- "main"
 #Sys.unsetenv('RESULTS_PASSWORD')
 #Sys.setenv(RESULTS_DBMS = "sqlite")
 
-est <- ShinyAppBuilder::createModuleConfig(
-  moduleId = 'estimation', 
-  tabName = 'Estimation', 
-  shinyModulePackage = 'OhdsiShinyModules', 
-  moduleUiFunction = 'estimationViewer', 
-  moduleServerFunction = 'estimationServer', 
-  moduleInfoBoxFile = 'esimationHelperFile()', 
-  moduleIcon = 'list'
-    )
-
 # Specify the config - create a new one and then add 
 # each shiny module you want to include
 config <- initializeModuleConfig() %>%
@@ -78,4 +68,3 @@ ShinyAppBuilder::createShinyApp(
   title = 'Testing OhdsiShinyModules with ShinyAppBuilder',
   protocolLink = 'http://ohdsi.org'
 )
-

@@ -44,29 +44,44 @@ Characterization::runCharacterizationAnalyses(
   outcomeDatabaseSchema = "main", 
   outcomeTable = "cohort", 
   cdmDatabaseSchema = "main", 
-  characterizationSettings = charSet, 
-  saveDirectory = file.path(testDir,'charDatabase'), 
+  characterizationSettings = charSet, incremental = F,
+  executionPath = file.path(testDir,'charDatabase','execution'),
+  outputDirectory =  file.path(testDir,'charDatabase', 'results'), 
   databaseId = 'eunomia', 
-  tablePrefix = 'c_'
+  csvFilePrefix =  'c_'
   )
 
+#serverDesc <- file.path(getwd(),
+#                        'inst/extdata/results.sqlite')
 serverDesc <- "tests/resources/charDatabase/databaseFile.sqlite"
 connectionDetailsDesc <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite',
   server = serverDesc
 )
 
+if(F){
+for(table in c('c_time_to_event', 'c_dechallenge_rechallenge',
+               'c_analysis_ref', 'c_covariate_ref', 'c_covariates',
+               'c_covariates_continuous', 'c_settings', 
+               'c_cohort_details', 'c_cohort_counts')){
+  sql <- "UPDATE main.@tbl SET database_id = '85642205.0';"
+  sql <- SqlRender::render(sql, tbl = table)
+  DatabaseConnector::executeSql(con, sql)
+}
+}
+
 Characterization::createCharacterizationTables(
   connectionDetails = connectionDetailsDesc, 
   resultSchema = 'main', 
-  createTables = T
+  createTables = T, 
+  deleteExistingTables = T
   )
 
 Characterization::insertResultsToDatabase(
   connectionDetails = connectionDetailsDesc, 
   schema = 'main', 
   resultsFolder = file.path(testDir,'charDatabase', 'results'), 
-  tablePrefix = 'c_'
+  csvTablePrefix =  'c_'
   )
 
 if(F){

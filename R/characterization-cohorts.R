@@ -968,7 +968,7 @@ characterizatonGetCohortComparisonDataContinuous <- function(
       res <- res %>% dplyr::select(-"cohortDefinitionId", -"databaseId", -"type",
                                    -"settingId", -"targetCohortId", -"outcomeCohortId", 
                                    -"cohortType") %>%
-        dplyr::relocate(.data$databaseName, .after = .data$covariateName)
+        dplyr::relocate("databaseName", .after = "covariateName")
     }
     
     shiny::incProgress(4/4, detail = paste("Done"))
