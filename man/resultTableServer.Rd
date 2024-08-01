@@ -45,3 +45,11 @@ shiny module server
 \description{
 Result Table Server
 }
+\seealso{
+Other {Utils}: 
+\code{\link{datasourcesHelperFile}()},
+\code{\link{datasourcesServer}()},
+\code{\link{datasourcesViewer}()},
+\code{\link{resultTableViewer}()}
+}
+\concept{{Utils}}

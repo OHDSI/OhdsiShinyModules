@@ -1,3 +1,7 @@
+OhdsiShinyModules v2.2.1
+========================
+- Fixed issue in DatabaseConnector check for pooled connections of sqlite databases on cohort diagnotiscs load (from main hotfix)
+
 OhdsiShinyModules v2.2.0
 ========================
 - Combined cohort method, sccs and evidence synthesis into one estimation module with shared target and outcome ids

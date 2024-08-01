@@ -15,3 +15,10 @@ The location of the description module helper file
 \details{
 Returns the location of the description helper file
 }
+\seealso{
+Other {CohortDiagnostics}: 
+\code{\link{cohortDiagnosticsServer}()},
+\code{\link{cohortDiagnosticsView}()},
+\code{\link{orpahanConceptsView}()}
+}
+\concept{{CohortDiagnostics}}

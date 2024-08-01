@@ -22,6 +22,7 @@
 #' Define the helper file for the module
 #'
 #' @return The helper html file for the datasources module
+#' @family {Utils}
 #' @export
 #'
 datasourcesHelperFile <- function() {
@@ -37,6 +38,7 @@ datasourcesHelperFile <- function() {
 #' @param id The unique id for the datasources viewer namespace
 #'
 #' @return The UI for the datasources module
+#' @family {Utils}
 #' @export
 #'
 datasourcesViewer <- function(id) {
@@ -71,6 +73,7 @@ datasourcesViewer <- function(id) {
 #' @param resultDatabaseSettings A named list containing the cohort generator results database details (schema, table prefix)
 #'
 #' @return The server for the datasources module
+#' @family {Utils}
 #' @export
 #'
 datasourcesServer <- function(

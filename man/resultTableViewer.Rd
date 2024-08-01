@@ -23,3 +23,11 @@ shiny module UI
 \description{
 Result Table Viewer
 }
+\seealso{
+Other {Utils}: 
+\code{\link{datasourcesHelperFile}()},
+\code{\link{datasourcesServer}()},
+\code{\link{datasourcesViewer}()},
+\code{\link{resultTableServer}()}
+}
+\concept{{Utils}}

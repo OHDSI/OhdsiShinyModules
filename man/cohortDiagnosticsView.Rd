@@ -18,3 +18,10 @@ View for cohort diagnostics module
 \details{
 The user specifies the id for the module
 }
+\seealso{
+Other {CohortDiagnostics}: 
+\code{\link{cohortDiagnosticsHelperFile}()},
+\code{\link{cohortDiagnosticsServer}()},
+\code{\link{orpahanConceptsView}()}
+}
+\concept{{CohortDiagnostics}}

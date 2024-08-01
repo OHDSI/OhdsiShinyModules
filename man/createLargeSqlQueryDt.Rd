@@ -27,3 +27,9 @@ Construct an instance of a LargeDataTable R6 instance for use inside largeTableS
 This should pass a parameterized sql query that can be used to iteratively return data from a table
 rather than returning the entire object.
 }
+\seealso{
+Other {LargeTables}: 
+\code{\link{largeTableServer}()},
+\code{\link{largeTableView}()}
+}
+\concept{{LargeTables}}

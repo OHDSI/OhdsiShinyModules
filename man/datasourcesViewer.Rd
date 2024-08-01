@@ -15,3 +15,11 @@ The UI for the datasources module
 \description{
 The viewer function for hte datasources module
 }
+\seealso{
+Other {Utils}: 
+\code{\link{datasourcesHelperFile}()},
+\code{\link{datasourcesServer}()},
+\code{\link{resultTableServer}()},
+\code{\link{resultTableViewer}()}
+}
+\concept{{Utils}}

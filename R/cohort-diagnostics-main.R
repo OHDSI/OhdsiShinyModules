@@ -20,14 +20,16 @@
     tables <- connectionHandler$queryDb(sql, schema = schema) |>
       dplyr::pull("tableName") |>
       tolower()
-    return(tables)
-  }
-
-  return(
-    DatabaseConnector::getTableNames(connectionHandler$getConnection(),
-                                     databaseSchema = schema) |>
+    
+  } else if (connectionHandler$dbms() != "sqlite") {
+    tables <- DatabaseConnector::getTableNames(connectionHandler$getConnection(),
+                                               databaseSchema = schema) |>
       tolower()
-  )
+  } else {
+    tables <- DatabaseConnector::getTableNames(connectionHandler$getConnection()) |>
+      tolower()
+  }
+  return(tables)
 }
 
 
@@ -37,18 +39,18 @@ loadResultsTable <- function(dataSource, tableName, required = FALSE, cdTablePre
   selectTableName <- paste0(cdTablePrefix, tableName)
   resultsTablesOnServer <-
     tolower(.availableTables(dataSource$connectionHandler, dataSource$schema))
-
+  
   if (required || selectTableName %in% resultsTablesOnServer) {
     if (tableIsEmpty(dataSource, selectTableName)) {
       return(data.frame())
     }
-
+    
     tryCatch(
-    {
-      table <- dataSource$connectionHandler$queryDb("SELECT * FROM @schema.@table",
-                                                    schema = dataSource$schema,
-                                                    table = selectTableName)
-    },
+      {
+        table <- dataSource$connectionHandler$queryDb("SELECT * FROM @schema.@table",
+                                                      schema = dataSource$schema,
+                                                      table = selectTableName)
+      },
       error = function(err) {
         stop(
           "Error reading from ",
@@ -58,10 +60,10 @@ loadResultsTable <- function(dataSource, tableName, required = FALSE, cdTablePre
         )
       }
     )
-
+    
     return(table)
   }
-
+  
   return(data.frame())
 }
 
@@ -75,16 +77,16 @@ tableIsEmpty <- function(dataSource, tableName) {
       schema = dataSource$schema,
       table = tableName
     )
-
+    
   }, error = function(...) {
     message("Table not found: ", tableName)
   })
-
+  
   return(nrow(row) == 0)
 }
 
 postgresEnabledReports <- function(connectionHandler, schema, tbls) {
-
+  
   sql <- "
     select c.relname as table_name
   from pg_class c
@@ -94,7 +96,7 @@ postgresEnabledReports <- function(connectionHandler, schema, tbls) {
         and c.reltuples != 0
         and n.nspname = '@schema'
         "
-
+  
   return(connectionHandler$queryDb(sql, schema = schema) %>% dplyr::pull("tableName"))
 }
 
@@ -102,7 +104,7 @@ postgresEnabledReports <- function(connectionHandler, schema, tbls) {
 #' @param dataSource     Cohort diagnostics data source
 #' @export
 getEnabledCdReports <- function(dataSource) {
-
+  
   if (dataSource$connectionHandler$dbms() == "postgresql") {
     tbls <- dataSource$dataModelSpecifications$tableName %>% unique()
     possible <- paste0(dataSource$cdTablePrefix, tbls)
@@ -112,10 +114,10 @@ getEnabledCdReports <- function(dataSource) {
       SqlRender::snakeCaseToCamelCase()
     return(enabledReports)
   }
-
+  
   enabledReports <- c()
   resultsTables <- .availableTables(dataSource$connectionHandler, schema = dataSource$schema)
-
+  
   for (table in dataSource$dataModelSpecifications$tableName %>% unique()) {
     if (dataSource$prefixTable(table) %in% resultsTables) {
       if (!tableIsEmpty(dataSource, dataSource$prefixTable(table))) {
@@ -124,7 +126,7 @@ getEnabledCdReports <- function(dataSource) {
     }
   }
   enabledReports <- c(enabledReports, "cohort", "database")
-
+  
   return(enabledReports)
 }
 
@@ -153,7 +155,7 @@ createCdDatabaseDataSource <- function(
                                     package = utils::packageName()),
     displayProgress = FALSE
 ) {
-
+  
   checkmate::assertR6(connectionHandler, "ConnectionHandler")
   checkmate::assertString(resultDatabaseSettings$schema)
   checkmate::assertString(resultDatabaseSettings$vocabularyDatabaseSchema, null.ok = TRUE)
@@ -163,7 +165,7 @@ createCdDatabaseDataSource <- function(
   checkmate::assertString(resultDatabaseSettings$databaseTablePrefix, null.ok = TRUE)
   checkmate::assertFileExists(dataModelSpecificationsPath)
   checkmate::assertFileExists(dataMigrationsRef)
-
+  
   if (is.null(resultDatabaseSettings$vocabularyDatabaseSchema)) {
     resultDatabaseSettings$vocabularyDatabaseSchema <- resultDatabaseSettings$schema
   }
@@ -182,7 +184,7 @@ createCdDatabaseDataSource <- function(
   if (is.null(resultDatabaseSettings$databaseTablePrefix)) {
     resultDatabaseSettings$databaseTablePrefix <- resultDatabaseSettings$cdTablePrefix
   }
-
+  
   if (displayProgress) {
     shiny::setProgress(value = 0.05, message = "Getting settings")
   }
@@ -200,7 +202,7 @@ createCdDatabaseDataSource <- function(
                               type = "error")
     }
   })
-
+  
   dataMigrationsExpected <- utils::read.csv(dataMigrationsRef)
   for (m in dataMigrationsExpected$migrationFile) {
     if (!m %in% migrations$migrationFile) {
@@ -210,10 +212,10 @@ createCdDatabaseDataSource <- function(
       }
     }
   }
-
+  
   modelSpec <- utils::read.csv(dataModelSpecificationsPath)
   colnames(modelSpec) <- SqlRender::snakeCaseToCamelCase(colnames(modelSpec))
-
+  
   dataSource <- list(
     connectionHandler = connectionHandler,
     schema = resultDatabaseSettings$schema,
@@ -226,7 +228,7 @@ createCdDatabaseDataSource <- function(
       # don't prexfix table if we us a dedicated vocabulary schema
       if (resultDatabaseSettings$vocabularyDatabaseSchema == resultDatabaseSettings$schema)
         return(paste0(resultDatabaseSettings$cdTablePrefix, tableName))
-
+      
       return(tableName)
     },
     cgTable = resultDatabaseSettings$cgTable,
@@ -236,53 +238,53 @@ createCdDatabaseDataSource <- function(
     databaseTablePrefix = "cd_",
     dataModelSpecifications = modelSpec
   )
-
+  
   if (displayProgress)
     shiny::setProgress(value = 0.05, message = "Getting enabled reports")
-
+  
   dataSource$enabledReports <- getEnabledCdReports(dataSource)
-
+  
   if (displayProgress)
     shiny::setProgress(value = 0.1, message = "Getting database information")
   dataSource$dbTable <- getDatabaseTable(dataSource)
-
+  
   if (displayProgress)
     shiny::setProgress(value = 0.2, message = "Getting cohorts")
-
-
+  
+  
   dataSource$cohortTableName <- paste0(dataSource$cdTablePrefix, "cohort")
-
+  
   dataSource$cohortTable <- getCohortTable(dataSource)
-
+  
   if (displayProgress)
     shiny::setProgress(value = 0.6, message = "Getting concept sets")
-
+  
   dataSource$conceptSets <- loadResultsTable(dataSource, "concept_sets", cdTablePrefix = dataSource$cdTablePrefix)
-
+  
   if (displayProgress)
     shiny::setProgress(value = 0.7, message = "Getting counts")
-
+  
   dataSource$cohortCountTable <- loadResultsTable(dataSource, "cohort_count", required = TRUE, cdTablePrefix = dataSource$cdTablePrefix)
-
+  
   dataSource$enabledReports <- dataSource$enabledReports
-
+  
   if (displayProgress)
     shiny::setProgress(value = 0.7, message = "Getting Temporal References")
-
+  
   dataSource$temporalAnalysisRef <- loadResultsTable(dataSource, "temporal_analysis_ref", cdTablePrefix = dataSource$cdTablePrefix)
-
+  
   dataSource$temporalChoices <- getResultsTemporalTimeRef(dataSource = dataSource)
-
+  
   if (hasData(dataSource$temporalChoices)) {
     dataSource$temporalCharacterizationTimeIdChoices <- dataSource$temporalChoices %>%
       dplyr::arrange(.data$sequence)
-
+    
     dataSource$characterizationTimeIdChoices <- dataSource$temporalChoices %>%
       dplyr::filter(.data$isTemporal == 0) %>%
       dplyr::filter(.data$primaryTimeId == 1) %>%
       dplyr::arrange(.data$sequence)
   }
-
+  
   if (!is.null(dataSource$temporalAnalysisRef)) {
     dataSource$temporalAnalysisRef <- dplyr::bind_rows(
       dataSource$temporalAnalysisRef,
@@ -294,20 +296,20 @@ createCdDatabaseDataSource <- function(
         missingMeansZero = "Y"
       )
     )
-
+    
     dataSource$domainIdOptions <- dataSource$temporalAnalysisRef %>%
       dplyr::select("domainId") %>%
       dplyr::pull("domainId") %>%
       unique() %>%
       sort()
-
+    
     dataSource$analysisNameOptions <- dataSource$temporalAnalysisRef %>%
       dplyr::select("analysisName") %>%
       dplyr::pull("analysisName") %>%
       unique() %>%
       sort()
   }
-
+  
   class(dataSource) <- "CdDataSource"
   return(dataSource)
 }
@@ -315,13 +317,13 @@ createCdDatabaseDataSource <- function(
 getDatabaseTable <- function(dataSource) {
   databaseTable <- loadResultsTable(dataSource, dataSource$prefixTable(dataSource$databaseTable), required = TRUE)
   if (nrow(databaseTable) > 0 &
-    "vocabularyVersion" %in% colnames(databaseTable)) {
+      "vocabularyVersion" %in% colnames(databaseTable)) {
     databaseTable <- databaseTable %>%
       dplyr::mutate(
         databaseIdWithVocabularyVersion = paste0(.data$databaseId, " (", .data$vocabularyVersion, ")")
       )
   }
-
+  
   databaseTable
 }
 
@@ -332,12 +334,12 @@ getCohortTable <- function(dataSource) {
     schema = dataSource$schema,
     cd_table_prefix = dataSource$cdTablePrefix
   )
-
+  
   cohortTable <- cohortTable %>%
     dplyr::arrange(.data$cohortId) %>%
     dplyr::mutate(shortName = paste0("C", .data$cohortId)) %>%
     dplyr::mutate(compoundName = paste0(.data$shortName, ": ", .data$cohortName))
-
+  
   cohortTable
 }
 
@@ -350,11 +352,11 @@ getResultsTemporalTimeRef <- function(dataSource) {
       schema = dataSource$schema,
       table_name = dataSource$prefixTable("temporal_time_ref")
     )
-
+  
   if (nrow(temporalTimeRef) == 0) {
     return(NULL)
   }
-
+  
   temporalChoices <- temporalTimeRef %>%
     dplyr::mutate(temporalChoices = paste0("T (", .data$startDay, "d to ", .data$endDay, "d)")) %>%
     dplyr::arrange(.data$startDay, .data$endDay) %>%
@@ -388,7 +390,7 @@ getResultsTemporalTimeRef <- function(dataSource) {
       false = 1
     )) %>%
     dplyr::arrange(.data$startDay, .data$timeId, .data$endDay)
-
+  
   temporalChoices <- dplyr::bind_rows(
     temporalChoices %>% dplyr::slice(0),
     dplyr::tibble(
@@ -400,7 +402,7 @@ getResultsTemporalTimeRef <- function(dataSource) {
     temporalChoices
   ) %>%
     dplyr::mutate(sequence = dplyr::row_number())
-
+  
   return(temporalChoices)
 }
 
@@ -410,13 +412,15 @@ getResultsTemporalTimeRef <- function(dataSource) {
 #' @param connectionHandler             ResultModelManager ConnectionHander instance
 #' @param resultDatabaseSettings        results database settings
 #' @param dataSource                    dataSource optionally created with createCdDatabaseDataSource
+#'
+#' @family {CohortDiagnostics}
 #' @export
 cohortDiagnosticsServer <- function(id,
                                     connectionHandler,
                                     resultDatabaseSettings,
                                     dataSource = NULL) {
   ns <- shiny::NS(id)
-
+  
   checkmate::assertClass(dataSource, "CdDataSource", null.ok = TRUE)
   if (is.null(dataSource)) {
     checkmate::assertR6(connectionHandler, "ConnectionHandler", null.ok = FALSE)
@@ -427,7 +431,7 @@ cohortDiagnosticsServer <- function(id,
         displayProgress = TRUE
       )
   }
-
+  
   shiny::moduleServer(id, function(input, output, session) {
     databaseTable <- dataSource$dbTable
     cohortTable <- dataSource$cohortTable
@@ -436,46 +440,46 @@ cohortDiagnosticsServer <- function(id,
     enabledReports <- dataSource$enabledReports
     temporalChoices <- dataSource$temporalChoices
     temporalCharacterizationTimeIdChoices <- dataSource$temporalCharacterizationTimeIdChoices
-
+    
     shiny::observe({
-
+      
       selection <- c(
         "Cohort Definitions" = "cohortDefinitions",
         "Database Information" = "databaseInformation"
       )
       if ("cohortCount" %in% dataSource$enabledReports)
         selection["Cohort Counts"] <- "cohortCounts"
-
+      
       if ("indexEvents" %in% dataSource$enabledReports)
         selection["Index Events"] <- "indexEvents"
-
+      
       if ("temporalCovariateValue" %in% dataSource$enabledReports) {
         selection["Cohort Characterization"] <- "characterization"
         selection["Compare Cohort Characterization"] <- "compareCohortCharacterization"
         selection["Time Distributions"] <- "timeDistribution"
       }
-
+      
       if ("relationship" %in% dataSource$enabledReports)
         selection["Cohort Overlap"] <- "cohortOverlap"
-
+      
       if ("cohortInclusion" %in% dataSource$enabledReports)
         selection["Inclusion Rule Statistics"] <- "inclusionRules"
-
+      
       if ("incidenceRate" %in% dataSource$enabledReports)
         selection["Incidence"] <- "incidenceRates"
-
+      
       if ("visitContext" %in% dataSource$enabledReports)
         selection["Visit Context"] <- "visitContext"
-
+      
       if ("includedSourceConcept" %in% dataSource$enabledReports)
         selection["Concepts In Data Source"] <- "conceptsInDataSource"
-
-      if ("orphanConcept" %in% dataSource$enabledReports)
+      
+      if ("orphanConcepts" %in% dataSource$enabledReports)
         selection["Orphan Concepts"] <- "orphanConcepts"
-
+      
       if ("indexEventBreakdown" %in% dataSource$enabledReports)
         selection["Index Event Breakdown"] <- "indexEvents"
-
+      
       shiny::updateSelectInput(
         inputId = "tabs",
         label = "Select Report",
@@ -483,7 +487,7 @@ cohortDiagnosticsServer <- function(id,
         selected = c("cohortDefinitions")
       )
     })
-
+    
     # Reacive: targetCohortId
     targetCohortId <- shiny::reactive({
       return(cohortTable$cohortId[cohortTable$compoundName == input$targetCohort])
@@ -495,11 +499,11 @@ cohortDiagnosticsServer <- function(id,
         dplyr::select("cohortId") %>%
         dplyr::pull()
     })
-
+    
     selectedConceptSets <- shiny::reactive({
       input$conceptSetsSelected
     })
-
+    
     # conceptSetIds ----
     conceptSetIds <- shiny::reactive(x = {
       conceptSetsFiltered <- conceptSets %>%
@@ -510,10 +514,10 @@ cohortDiagnosticsServer <- function(id,
         unique()
       return(conceptSetsFiltered)
     })
-
+    
     databaseChoices <- databaseTable$databaseId
     names(databaseChoices) <- databaseTable$databaseName
-
+    
     ## ReactiveValue: selectedDatabaseIds ----
     selectedDatabaseIds <- shiny::reactive({
       if (!is.null(input$tabs)) {
@@ -529,8 +533,8 @@ cohortDiagnosticsServer <- function(id,
         }
       }
     })
-
-
+    
+    
     shiny::observe({
       shinyWidgets::updatePickerInput(session = session,
                                       inputId = "database",
@@ -543,7 +547,7 @@ cohortDiagnosticsServer <- function(id,
                                       selected = databaseChoices[[1]],
       )
     })
-
+    
     ## ReactiveValue: selectedTemporalTimeIds ----
     selectedTemporalTimeIds <- shiny::reactiveVal(NULL)
     shiny::observeEvent(eventExpr = {
@@ -554,7 +558,7 @@ cohortDiagnosticsServer <- function(id,
       )
     }, handlerExpr = {
       if (isFALSE(input$timeIdChoices_open) ||
-        !is.null(input$tabs) & !is.null(temporalCharacterizationTimeIdChoices)) {
+          !is.null(input$tabs) & !is.null(temporalCharacterizationTimeIdChoices)) {
         selectedTemporalTimeIds(
           temporalCharacterizationTimeIdChoices %>%
             dplyr::filter(.data$temporalChoices %in% input$timeIdChoices) %>%
@@ -564,12 +568,12 @@ cohortDiagnosticsServer <- function(id,
         )
       }
     })
-
+    
     cohortSubset <- shiny::reactive({
       return(cohortTable %>%
                dplyr::arrange(.data$cohortId))
     })
-
+    
     shiny::observe({
       subset <- cohortSubset()$compoundName
       shinyWidgets::updatePickerInput(
@@ -579,7 +583,7 @@ cohortDiagnosticsServer <- function(id,
         choices = subset
       )
     })
-
+    
     shiny::observe({
       subset <- cohortSubset()$compoundName
       shinyWidgets::updatePickerInput(
@@ -590,7 +594,7 @@ cohortDiagnosticsServer <- function(id,
         selected = c(subset[1], subset[2])
       )
     })
-
+    
     # Characterization (Shared across) -------------------------------------------------
     ## Reactive objects ----
     ### getConceptSetNameForFilter ----
@@ -602,9 +606,9 @@ cohortDiagnosticsServer <- function(id,
         dplyr::filter(.data$cohortId == targetCohortId()) %>%
         dplyr::mutate(name = .data$conceptSetName) %>%
         dplyr::select("name")
-
+      
     })
-
+    
     shiny::observe({
       subset <- getConceptSetNameForFilter()$name %>%
         sort() %>%
@@ -616,7 +620,7 @@ cohortDiagnosticsServer <- function(id,
         choices = subset
       )
     })
-
+    
     selectedCohorts <- shiny::reactive({
       cohorts <- cohortSubset() %>%
         dplyr::filter(.data$cohortId %in% cohortIds()) %>%
@@ -626,17 +630,17 @@ cohortDiagnosticsServer <- function(id,
         shiny::tags$tr(lapply(x, shiny::tags$td))
       }))
     })
-
+    
     selectedCohort <- shiny::reactive({
       return(input$targetCohort)
     })
-
+    
     if ("cohort" %in% enabledReports) {
       cohortDefinitionsModule(id = "cohortDefinitions",
                               dataSource = dataSource,
                               cohortDefinitions = cohortSubset)
     }
-
+    
     if ("includedSourceConcept" %in% enabledReports) {
       conceptsInDataSourceModule(id = "conceptsInDataSource",
                                  dataSource = dataSource,
@@ -646,7 +650,7 @@ cohortDiagnosticsServer <- function(id,
                                  selectedConceptSets = selectedConceptSets,
                                  databaseTable = databaseTable)
     }
-
+    
     if ("orphanConcept" %in% enabledReports) {
       orphanConceptsModule("orphanConcepts",
                            dataSource = dataSource,
@@ -657,7 +661,7 @@ cohortDiagnosticsServer <- function(id,
                            selectedConceptSets = selectedConceptSets,
                            conceptSetIds = conceptSetIds)
     }
-
+    
     if ("cohortCount" %in% enabledReports) {
       cohortCountsModule(id = "cohortCounts",
                          dataSource = dataSource,
@@ -667,7 +671,7 @@ cohortDiagnosticsServer <- function(id,
                          selectedDatabaseIds = selectedDatabaseIds,
                          cohortIds = cohortIds)
     }
-
+    
     if ("indexEventBreakdown" %in% enabledReports) {
       indexEventBreakdownModule(id = "indexEvents",
                                 dataSource = dataSource,
@@ -676,7 +680,7 @@ cohortDiagnosticsServer <- function(id,
                                 cohortCountTable = cohortCountTable,
                                 selectedDatabaseIds = selectedDatabaseIds)
     }
-
+    
     if ("visitContext" %in% enabledReports) {
       visitContextModule(id = "visitContext",
                          dataSource = dataSource,
@@ -686,7 +690,7 @@ cohortDiagnosticsServer <- function(id,
                          cohortCountTable = cohortCountTable,
                          databaseTable = databaseTable)
     }
-
+    
     if ("relationship" %in% enabledReports) {
       cohortOverlapModule(id = "cohortOverlap",
                           dataSource = dataSource,
@@ -696,21 +700,21 @@ cohortDiagnosticsServer <- function(id,
                           cohortIds = cohortIds,
                           cohortTable = cohortTable)
     }
-
+    
     if ("temporalCovariateValue" %in% enabledReports) {
       timeDistributionsModule(id = "timeDistributions",
                               dataSource = dataSource,
                               selectedCohorts = selectedCohorts,
                               cohortIds = cohortIds,
                               selectedDatabaseIds = selectedDatabaseIds)
-
+      
       cohortDiagCharacterizationModule(id = "characterization",
                                        dataSource = dataSource)
-
+      
       compareCohortCharacterizationModule(id = "compareCohortCharacterization",
                                           dataSource = dataSource)
     }
-
+    
     if ("incidenceRate" %in% enabledReports) {
       incidenceRatesModule(id = "incidenceRates",
                            dataSource = dataSource,
@@ -720,7 +724,7 @@ cohortDiagnosticsServer <- function(id,
                            databaseTable = databaseTable,
                            cohortTable = cohortTable)
     }
-
+    
     if ("cohortInclusion" %in% enabledReports) {
       inclusionRulesModule(id = "inclusionRules",
                            dataSource = dataSource,
@@ -728,15 +732,15 @@ cohortDiagnosticsServer <- function(id,
                            selectedCohort = selectedCohort,
                            targetCohortId = targetCohortId,
                            selectedDatabaseIds = selectedDatabaseIds)
-
+      
     }
     databaseInformationModule(id = "databaseInformation",
                               dataSource = dataSource,
                               selectedDatabaseIds = selectedDatabaseIds,
                               databaseTable = databaseTable)
-
+    
   }
-
+  
   )
-
+  
 }

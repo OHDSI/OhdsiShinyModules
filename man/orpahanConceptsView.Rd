@@ -12,3 +12,10 @@ orpahanConceptsView(id)
 \description{
 Use for customizing UI
 }
+\seealso{
+Other {CohortDiagnostics}: 
+\code{\link{cohortDiagnosticsHelperFile}()},
+\code{\link{cohortDiagnosticsServer}()},
+\code{\link{cohortDiagnosticsView}()}
+}
+\concept{{CohortDiagnostics}}

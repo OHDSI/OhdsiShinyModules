@@ -55,7 +55,8 @@ config <- initializeModuleConfig() %>%
 
 # create result schema settings
 resultDatabaseSettings <- createDefaultResultDatabaseSettings(
-  schema = schema 
+  schema = schema, 
+  incidenceTablePrefix = 'i_'
 )
 
 # now create the shiny app based on the config file and view the results
