@@ -174,18 +174,7 @@ connectionDetailsDesc <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite',
   server = serverDesc
 )
-ddlPrefix <- SqlRender::render(
-  sql = CohortIncidence::getResultsDdl(), 
-  "schemaName.incidence_summary" = "main.i_incidence_summary",
-  "schemaName.target_def" = 'main.i_target_def',
-  "schemaName.outcome_def" = 'main.i_outcome_def',
-  "schemaName.tar_def" = 'main.i_tar_def',
-  "schemaName.subgroup_def" = 'main.i_subgroup_def',
-  "schemaName.age_group_def" = 'main.i_age_group_def'
-  )
-con <- DatabaseConnector::connect(connectionDetailsDesc)
-DatabaseConnector::executeSql(con, sql = ddlPrefix)
-DatabaseConnector::disconnect(con)
+con <- DatabaseConnector::connect(connectionDetails = connectionDetailsDesc)
 
 t1 <- CohortIncidence::createCohortRef(id=1, name="Target cohort 1")
 
@@ -229,42 +218,43 @@ executeResults <- CohortIncidence::executeAnalysis(connectionDetails = connectio
                                                    buildOptions = buildOptions)
 
 # adding database
+#executeResults$incidence_summary$database_id <- '85642205'
 executeResults$incidence_summary$database_id <- 'eunomia'
 # insert results
 DatabaseConnector::insertTable(
   connection = con, 
   databaseSchema = 'main', 
-  tableName = 'i_incidence_summary', 
+  tableName = 'ci_incidence_summary', 
   data = executeResults$incidence_summary
   )
 DatabaseConnector::insertTable(
   connection = con, 
   databaseSchema = 'main', 
-  tableName = 'i_target_def', 
+  tableName = 'ci_target_def', 
   data = executeResults$target_def
 )
 DatabaseConnector::insertTable(
   connection = con, 
   databaseSchema = 'main', 
-  tableName = 'i_outcome_def', 
+  tableName = 'ci_outcome_def', 
   data = executeResults$outcome_def
 )
 DatabaseConnector::insertTable(
   connection = con, 
   databaseSchema = 'main', 
-  tableName = 'i_tar_def', 
+  tableName = 'ci_tar_def', 
   data = executeResults$tar_def
 )
 DatabaseConnector::insertTable(
   connection = con, 
   databaseSchema = 'main', 
-  tableName = 'i_age_group_def', 
+  tableName = 'ci_age_group_def', 
   data = executeResults$age_group_def
 )
 DatabaseConnector::insertTable(
   connection = con, 
   databaseSchema = 'main', 
-  tableName = 'i_subgroup_def', 
+  tableName = 'ci_subgroup_def', 
   data = executeResults$subgroup_def
 )
 
