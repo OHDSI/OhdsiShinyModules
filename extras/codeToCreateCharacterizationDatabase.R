@@ -64,7 +64,7 @@ for(table in c('c_time_to_event', 'c_dechallenge_rechallenge',
                'c_analysis_ref', 'c_covariate_ref', 'c_covariates',
                'c_covariates_continuous', 'c_settings', 
                'c_cohort_details', 'c_cohort_counts')){
-  sql <- "UPDATE main.@tbl SET database_id = '85642205.0';"
+  sql <- "UPDATE main.@tbl SET database_id = '85642205';"
   sql <- SqlRender::render(sql, tbl = table)
   DatabaseConnector::executeSql(con, sql)
 }
@@ -87,7 +87,7 @@ Characterization::insertResultsToDatabase(
 if(F){
 # add in rhe database_meta_data and cohort_definitions tables
 
-serverDesc <- "tests/resources/charDatabase/databaseFile.sqlite"
+serverDesc <- "tests/resources/cDatabase/databaseFile.sqlite"
 connectionDetailsDesc <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite',
   server = serverDesc
@@ -164,48 +164,107 @@ createTable = T,
 camelCaseToSnakeCase = F
 )
 
+}
 
-# add results to i_INCIDENCE_SUMMARY
+
+# adding cohort incidence
+##remotes::install_github('ohdsi/CohortIncidence')
+serverDesc <- "tests/resources/cDatabase/databaseFile.sqlite"
+connectionDetailsDesc <- DatabaseConnector::createConnectionDetails(
+  dbms = 'sqlite',
+  server = serverDesc
+)
+ddlPrefix <- SqlRender::render(
+  sql = CohortIncidence::getResultsDdl(), 
+  "schemaName.incidence_summary" = "main.i_incidence_summary",
+  "schemaName.target_def" = 'main.i_target_def',
+  "schemaName.outcome_def" = 'main.i_outcome_def',
+  "schemaName.tar_def" = 'main.i_tar_def',
+  "schemaName.subgroup_def" = 'main.i_subgroup_def',
+  "schemaName.age_group_def" = 'main.i_age_group_def'
+  )
+con <- DatabaseConnector::connect(connectionDetailsDesc)
+DatabaseConnector::executeSql(con, sql = ddlPrefix)
+DatabaseConnector::disconnect(con)
+
+t1 <- CohortIncidence::createCohortRef(id=1, name="Target cohort 1")
+
+o1 <- CohortIncidence::createOutcomeDef(id=1,name="Outcome 3, 30d Clean", 
+                                        cohortId =3,
+                                        cleanWindow =30)
+
+tar1 <- CohortIncidence::createTimeAtRiskDef(id=1, 
+                                             startWith="start", 
+                                             endWith="end", 
+                                             endOffset=30)
+
+# Note: c() is used when dealing with an array of numbers, 
+# later we use list() when dealing with an array of objects
+analysis1 <- CohortIncidence::createIncidenceAnalysis(targets = c(t1$id),
+                                                      outcomes = c(o1$id),
+                                                      tars = c(tar1$id))
+
+subgroup1 <- CohortIncidence::createCohortSubgroup(
+  id=1, 
+  name="Subgroup 1", 
+  cohortRef = CohortIncidence::createCohortRef(id=300)
+  )
+
+
+# Create Design (note use of list() here):
+irDesign <- CohortIncidence::createIncidenceDesign(targetDefs = list(t1),
+                                                   outcomeDefs = list(o1),
+                                                   tars=list(tar1),
+                                                   analysisList = list(analysis1),
+                                                   subgroups = list(subgroup1))
+
+buildOptions <- CohortIncidence::buildOptions(cohortTable = "main.cohort",
+                                              cdmDatabaseSchema = "main",
+                                              sourceName = "eunomia",
+                                              refId = 1)
+
+
+executeResults <- CohortIncidence::executeAnalysis(connectionDetails = connectionDetails,
+                                                   incidenceDesign = irDesign,
+                                                   buildOptions = buildOptions)
+
+# adding database
+executeResults$incidence_summary$database_id <- 'eunomia'
+# insert results
 DatabaseConnector::insertTable(
-  connection = connectionDesc, 
+  connection = con, 
   databaseSchema = 'main', 
-  tableName = 'i_INCIDENCE_SUMMARY', 
-  data.frame(
-    ref_id = 1,
-    DATABASE_ID = 'eunomia',
-    source_name = '',
-    target_cohort_definition_id = 1,
-    target_name = 'target 1',
-    tar_id = 1,
-    tar_start_with = 'start',
-    tar_start_offset = 0,
-    tar_end_with = 'end',
-    tar_end_offset = 0,
-    subgroup_id = 1,
-    subgroup_name = '',
-    outcome_id = 3,
-    outcome_cohort_definition_id = 3,
-    outcome_name = 'outcome 3',
-    clean_window = 0,
-    age_id = 1,
-    age_group_name = '',
-    gender_id = 1,
-    gender_name = '',
-    start_year = 1,
-    persons_at_risk_pe = 1,
-    persons_at_risk = 1,
-    person_days_pe = 1,
-    person_days = 1,
-    person_outcomes_pe = 1,
-    person_outcomes = 1,
-    outcomes_pe = 1,
-    outcomes = 1,
-    incidence_proportion_p100p = 0.1,
-    incidence_rate_p100py = 0.1
-  ),
-  createTable = T, 
-  camelCaseToSnakeCase = F
+  tableName = 'i_incidence_summary', 
+  data = executeResults$incidence_summary
+  )
+DatabaseConnector::insertTable(
+  connection = con, 
+  databaseSchema = 'main', 
+  tableName = 'i_target_def', 
+  data = executeResults$target_def
+)
+DatabaseConnector::insertTable(
+  connection = con, 
+  databaseSchema = 'main', 
+  tableName = 'i_outcome_def', 
+  data = executeResults$outcome_def
+)
+DatabaseConnector::insertTable(
+  connection = con, 
+  databaseSchema = 'main', 
+  tableName = 'i_tar_def', 
+  data = executeResults$tar_def
+)
+DatabaseConnector::insertTable(
+  connection = con, 
+  databaseSchema = 'main', 
+  tableName = 'i_age_group_def', 
+  data = executeResults$age_group_def
+)
+DatabaseConnector::insertTable(
+  connection = con, 
+  databaseSchema = 'main', 
+  tableName = 'i_subgroup_def', 
+  data = executeResults$subgroup_def
 )
 
-
-}

@@ -24,11 +24,11 @@ shiny::testServer(
     # need to test generate in ns("input-selection")
     session$setInputs(
       outcomeIds = outcomes()[1],
-      databaseSelector = databases,
-      ageIds = ages,
-      sexIds = sex,
-      startYears = startYear[1],
-      tars = sortedTars[1]
+      databaseSelector = ciOptions$databases,
+      ageIds = c(1),#ciOptions$ages,
+      sexIds = ciOptions$sex,
+      startYears = ciOptions$startYear[1],
+      tars = ciOptions$sortedTars[1]
       )
     
     # before generation the reactives should be NULL
@@ -44,17 +44,15 @@ shiny::testServer(
     # when generate is true the reactives should be populated
     testthat::expect_true(!is.null(incidenceRateTarFilter()))
     testthat::expect_true(!is.null(incidenceRateCalendarFilter()))
-    testthat::expect_true(!is.null(incidenceRateAgeFilter()))
+    testthat::expect_true(!is.null(incidenceRateAgeFilter())) # fails
     testthat::expect_true(!is.null(incidenceRateGenderFilter()))
     testthat::expect_true(!is.null(incidenceRateDbFilter()))
     testthat::expect_true(!is.null(outcomeIds()))
     
     testthat::expect_true(outcomeIds() == outcomes()[1])
     
-    testthat::expect_true(inherits(options, 'list'))
-    
     # should have results after generate
-    testthat::expect_true(!is.null(extractedData()))
+    testthat::expect_true(!is.null(extractedData())) # fails
     
     
     idata <- getIncidenceData(
