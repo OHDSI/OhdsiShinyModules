@@ -243,7 +243,7 @@ characterizationIncidenceServer <- function(
     id, 
     connectionHandler,
     resultDatabaseSettings,
-    options, # this gets overwritten in code below - why here?
+    #options, # this gets overwritten in code below - why here?
     parents,
     parentIndex, # reactive
     outcomes, # reactive
@@ -1146,9 +1146,9 @@ characterizationIncidenceServer <- function(
                         outcomeLabel = paste(.data$outcomeNameShort, " = ", .data$outcomeName),
                         ageGroupName = factor(.data$ageGroupName, levels = custom_age_sort(.data$ageGroupName), ordered = TRUE)
           ) %>%
-          dplyr::rename("Target" = "targetNameShort",
-                        "Outcome" = "outcomeNameShort",
-                        "Age" = "ageGroupName")
+          dplyr::rename(Target = "targetNameShort",
+                        Outcome = "outcomeNameShort",
+                        Age = "ageGroupName")
         
         # Get unique target and outcome labels
         unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
@@ -1282,19 +1282,15 @@ characterizationIncidenceServer <- function(
         
         plotData <- plotData %>%
           dplyr::filter( #ageGroupName != "Any" & 
-            genderName != "Any" & 
-              startYear == "Any") %>%
-          dplyr::mutate(targetLabel = paste(targetNameShort, " = ", targetName),
-                        outcomeLabel = paste(outcomeNameShort, " = ", outcomeName),
-                        ageGroupName = factor(ageGroupName, levels = custom_age_sort(ageGroupName), ordered = TRUE)
+            .data$genderName != "Any" & 
+              .data$startYear == "Any") %>%
+          dplyr::mutate(targetLabel = paste(.data$targetNameShort, " = ", .data$targetName),
+                        outcomeLabel = paste(.data$outcomeNameShort, " = ", .data$outcomeName),
+                        ageGroupName = factor(.data$ageGroupName, levels = custom_age_sort(.data$ageGroupName), ordered = TRUE)
           ) %>%
-          dplyr::rename("Target" = targetNameShort,
-                        "Outcome" = outcomeNameShort,
-                        "Age" = ageGroupName)
-        
-        # plotHeightStandardAgeSex <- shiny::reactive({
-        #   paste(sum(length(unique(plotData$targetLabel)), length(unique(plotData$Age)), -3)*100, "px", sep="")
-        # })
+          dplyr::rename(Target = "targetNameShort",
+                        Outcome = "outcomeNameShort",
+                        Age = "ageGroupName")
         
         # Get unique target and outcome labels
         unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
@@ -1312,10 +1308,10 @@ characterizationIncidenceServer <- function(
         
         base_plot <- ggplot2::ggplot(
           data = plotData,
-          ggplot2::aes(x = Age,
-                       y = incidenceRateP100py,
-                       shape = genderName,
-                       color = cdmSourceAbbreviation
+          ggplot2::aes(x = .data$Age,
+                       y = .data$incidenceRateP100py,
+                       shape = .data$genderName,
+                       color = .data$cdmSourceAbbreviation
           )
         ) + 
           ggplot2::geom_point(
@@ -1430,15 +1426,15 @@ characterizationIncidenceServer <- function(
         
         
         plotData <- plotData %>%
-          dplyr::filter(genderName != "Any" & 
-                          startYear != "Any") %>%
-          dplyr::mutate(targetLabel = paste(targetNameShort, " = ", targetName),
-                        outcomeLabel = paste(outcomeNameShort, " = ", outcomeName),
-                        ageGroupName = factor(ageGroupName, levels = custom_age_sort(ageGroupName), ordered = TRUE)
+          dplyr::filter(.data$genderName != "Any" & 
+                          .data$startYear != "Any") %>%
+          dplyr::mutate(targetLabel = paste(.data$targetNameShort, " = ", .data$targetName),
+                        outcomeLabel = paste(.data$outcomeNameShort, " = ", .data$outcomeName),
+                        ageGroupName = factor(.data$ageGroupName, levels = custom_age_sort(.data$ageGroupName), ordered = TRUE)
           ) %>%
-          dplyr::rename("Target" = targetNameShort,
-                        "Outcome" = outcomeNameShort,
-                        "Age" = ageGroupName)
+          dplyr::rename(Target = "targetNameShort",
+                        Outcome = "outcomeNameShort",
+                        Age = "ageGroupName")
         
         #get unique shorthand cohort name
         unique_target <- unique(plotData$Target)
@@ -1460,23 +1456,23 @@ characterizationIncidenceServer <- function(
         tar_value <- unique(plotData$tar)[1]
         
         plotData <- plotData %>%
-          dplyr::filter("Any" %!in% startYear) %>%
-          dplyr::mutate(startYear = as.Date(paste0(startYear, "-01-01"))
+          dplyr::filter("Any" %!in% .data$startYear) %>%
+          dplyr::mutate(startYear = as.Date(paste0(.data$startYear, "-01-01"))
           )
         
         base_plot <- ggplot2::ggplot(
           data = plotData,
-          ggplot2::aes(x = startYear,
-                       y = incidenceRateP100py,
-                       shape = genderName,
-                       color = cdmSourceAbbreviation,
-                       group = interaction(cdmSourceAbbreviation, genderName)
+          ggplot2::aes(x = .data$startYear,
+                       y = .data$incidenceRateP100py,
+                       shape = .data$genderName,
+                       color = .data$cdmSourceAbbreviation,
+                       group = interaction(.data$cdmSourceAbbreviation, .data$genderName)
           )
         ) + 
           ggplot2::geom_point(
             ggplot2::aes(size = 2.5)
           ) + 
-          ggplot2::geom_line(ggplot2::aes(linetype = genderName)) +
+          ggplot2::geom_line(ggplot2::aes(linetype = .data$genderName)) +
           ggplot2::scale_colour_brewer(palette = "Paired") +
           ggplot2::facet_wrap(
             ~Age,
@@ -1579,14 +1575,14 @@ characterizationIncidenceServer <- function(
         )
         
         plotData <- plotData %>%
-          dplyr::filter(ageGroupName == "Any" & 
-                          genderName == "Any") %>%
-          dplyr::mutate(targetLabel = paste(targetNameShort, " = ", targetName),
-                        outcomeLabel = paste(outcomeNameShort, " = ", outcomeName)
+          dplyr::filter(.data$ageGroupName == "Any" & 
+                          .data$genderName == "Any") %>%
+          dplyr::mutate(targetLabel = paste(.data$targetNameShort, " = ", .data$targetName),
+                        outcomeLabel = paste(.data$outcomeNameShort, " = ", .data$outcomeName)
           ) %>%
-          dplyr::rename("Target" = targetNameShort,
-                        "Outcome" = outcomeNameShort,
-                        "Age" = ageGroupName)
+          dplyr::rename(Target = "targetNameShort",
+                        Outcome = "outcomeNameShort",
+                        Age = "ageGroupName")
         
         # Get unique target and outcome labels
         unique_target_labels <- strwrap(unique(plotData$targetLabel), width = 300)
@@ -1604,10 +1600,9 @@ characterizationIncidenceServer <- function(
         
         base_plot <- ggplot2::ggplot(
           data = plotData,
-          ggplot2::aes(x = startYear,
-                       y = incidenceRateP100py,
-                       #shape = genderName,
-                       color = cdmSourceAbbreviation
+          ggplot2::aes(x = .data$startYear,
+                       y = .data$incidenceRateP100py,
+                       color = .data$cdmSourceAbbreviation
           )
         ) + 
           ggplot2::geom_point(

@@ -358,7 +358,7 @@ getResultsCohortOverlap <- function(dataSource,
     dplyr::inner_join(
       cohortCounts %>%
         dplyr::select(-"cohortEntries") %>%
-        dplyr::rename("targetCohortSubjects" = "cohortSubjects"),
+        dplyr::rename(targetCohortSubjects = "cohortSubjects"),
       by = c("databaseId", "cohortId")
     ) %>%
     dplyr::mutate(tOnlySubjects = .data$targetCohortSubjects - .data$subjects) %>%
@@ -366,8 +366,8 @@ getResultsCohortOverlap <- function(dataSource,
       cohortCounts %>%
         dplyr::select(-"cohortEntries") %>%
         dplyr::rename(
-          "comparatorCohortSubjects" = "cohortSubjects",
-          "comparatorCohortId" = "cohortId"
+          comparatorCohortSubjects = "cohortSubjects",
+          comparatorCohortId = "cohortId"
         ),
       by = c("databaseId", "comparatorCohortId")
     ) %>%
