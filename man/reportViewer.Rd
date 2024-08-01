@@ -18,3 +18,9 @@ The module viewer for the shiny app report module
 \details{
 The user specifies the id for the module
 }
+\seealso{
+Other {Report}: 
+\code{\link{reportHelperFile}()},
+\code{\link{reportServer}()}
+}
+\concept{{Report}}

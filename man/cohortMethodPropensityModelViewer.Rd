@@ -15,3 +15,25 @@ The user interface to the cohort method propensity score model covariates/coeffi
 \description{
 The module viewer for rendering the PLE propensity score model covariates/coefficients
 }
+\seealso{
+Other {Estimation}: 
+\code{\link{cohortMethodAttritionServer}()},
+\code{\link{cohortMethodAttritionViewer}()},
+\code{\link{cohortMethodCovariateBalanceServer}()},
+\code{\link{cohortMethodCovariateBalanceViewer}()},
+\code{\link{cohortMethodKaplanMeierServer}()},
+\code{\link{cohortMethodKaplanMeierViewer}()},
+\code{\link{cohortMethodPopulationCharacteristicsServer}()},
+\code{\link{cohortMethodPopulationCharacteristicsViewer}()},
+\code{\link{cohortMethodPowerServer}()},
+\code{\link{cohortMethodPowerViewer}()},
+\code{\link{cohortMethodPropensityModelServer}()},
+\code{\link{cohortMethodPropensityScoreDistServer}()},
+\code{\link{cohortMethodPropensityScoreDistViewer}()},
+\code{\link{cohortMethodSystematicErrorServer}()},
+\code{\link{cohortMethodSystematicErrorViewer}()},
+\code{\link{estimationHelperFile}()},
+\code{\link{estimationServer}()},
+\code{\link{estimationViewer}()}
+}
+\concept{{Estimation}}

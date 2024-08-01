@@ -2,7 +2,7 @@
 #'
 #' @details
 #' Returns the location of the home helper file
-#' 
+#' @family {Home}
 #' @return
 #' string location of the home helper file
 #'
@@ -16,7 +16,7 @@ homeHelperFile <- function(){
 #'
 #' @details
 #' The user specifies the id for the module
-#'
+#' @family {Home}
 #' @param id  the unique reference id for the module
 #' 
 #' @return
@@ -74,7 +74,7 @@ homeViewer <- function(id=1) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler a connection to the database with the results
 #' @param resultDatabaseSettings a list containing the prediction result schema and connection details
-#' 
+#' @family {Home}
 #' @return
 #' The server for the home module
 #'

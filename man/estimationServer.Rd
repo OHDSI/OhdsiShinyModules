@@ -26,3 +26,25 @@ The module server for exploring estimation studies
 \details{
 The user specifies the id for the module
 }
+\seealso{
+Other {Estimation}: 
+\code{\link{cohortMethodAttritionServer}()},
+\code{\link{cohortMethodAttritionViewer}()},
+\code{\link{cohortMethodCovariateBalanceServer}()},
+\code{\link{cohortMethodCovariateBalanceViewer}()},
+\code{\link{cohortMethodKaplanMeierServer}()},
+\code{\link{cohortMethodKaplanMeierViewer}()},
+\code{\link{cohortMethodPopulationCharacteristicsServer}()},
+\code{\link{cohortMethodPopulationCharacteristicsViewer}()},
+\code{\link{cohortMethodPowerServer}()},
+\code{\link{cohortMethodPowerViewer}()},
+\code{\link{cohortMethodPropensityModelServer}()},
+\code{\link{cohortMethodPropensityModelViewer}()},
+\code{\link{cohortMethodPropensityScoreDistServer}()},
+\code{\link{cohortMethodPropensityScoreDistViewer}()},
+\code{\link{cohortMethodSystematicErrorServer}()},
+\code{\link{cohortMethodSystematicErrorViewer}()},
+\code{\link{estimationHelperFile}()},
+\code{\link{estimationViewer}()}
+}
+\concept{{Estimation}}

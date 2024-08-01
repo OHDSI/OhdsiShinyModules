@@ -26,3 +26,25 @@ the PLE systematic error content server
 \description{
 The module server for rendering the systematic error objects
 }
+\seealso{
+Other {Estimation}: 
+\code{\link{cohortMethodAttritionServer}()},
+\code{\link{cohortMethodAttritionViewer}()},
+\code{\link{cohortMethodCovariateBalanceServer}()},
+\code{\link{cohortMethodCovariateBalanceViewer}()},
+\code{\link{cohortMethodKaplanMeierServer}()},
+\code{\link{cohortMethodKaplanMeierViewer}()},
+\code{\link{cohortMethodPopulationCharacteristicsServer}()},
+\code{\link{cohortMethodPopulationCharacteristicsViewer}()},
+\code{\link{cohortMethodPowerServer}()},
+\code{\link{cohortMethodPowerViewer}()},
+\code{\link{cohortMethodPropensityModelServer}()},
+\code{\link{cohortMethodPropensityModelViewer}()},
+\code{\link{cohortMethodPropensityScoreDistServer}()},
+\code{\link{cohortMethodPropensityScoreDistViewer}()},
+\code{\link{cohortMethodSystematicErrorViewer}()},
+\code{\link{estimationHelperFile}()},
+\code{\link{estimationServer}()},
+\code{\link{estimationViewer}()}
+}
+\concept{{Estimation}}

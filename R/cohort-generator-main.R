@@ -21,7 +21,7 @@
 #'
 #' @details
 #' Returns the location of the cohort-generator helper file
-#' 
+#' @family {CohortGenerator}
 #' @return
 #' string location of the cohort-generator helper file
 #'
@@ -34,7 +34,7 @@ cohortGeneratorHelperFile <- function(){
 #' The viewer of the main cohort generator module
 #'
 #' @param id the unique reference id for the module
-#'
+#' @family {CohortGenerator}
 #' @return
 #' The user interface to the cohort generator results viewer
 #' 
@@ -199,7 +199,7 @@ cohortGeneratorViewer <- function(id) {
 #' @param id the unique reference id for the module
 #' @param connectionHandler a connection to the database with the results
 #' @param resultDatabaseSettings a named list containing the cohort generator results database details (schema, table prefix)
-#'
+#' @family {CohortGenerator}
 #' @return
 #' the cohort generator results viewer main module server
 #' 

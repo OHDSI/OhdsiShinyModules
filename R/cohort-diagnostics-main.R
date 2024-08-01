@@ -102,6 +102,7 @@ postgresEnabledReports <- function(connectionHandler, schema, tbls) {
 
 #' Get enable cd reports from available data
 #' @param dataSource     Cohort diagnostics data source
+#' @family {CohortDiagnostics}
 #' @export
 getEnabledCdReports <- function(dataSource) {
   
@@ -142,7 +143,7 @@ getEnabledCdReports <- function(dataSource) {
 #' @param displayProgress display a progress messaage (can only be used inside a shiny reactive context)
 #' @param dataMigrationsRef The path to a file listing all migrations for the data model that should have been applied
 #' @return An object of class `CdDataSource`.
-#'
+#' @family {CohortDiagnostics}
 #' @export
 createCdDatabaseDataSource <- function(
     connectionHandler,
@@ -196,7 +197,7 @@ createCdDatabaseDataSource <- function(
                                             schema = resultDatabaseSettings$schema,
                                             cd_table_prefix = resultDatabaseSettings$cdTablePrefix)
   }, error = function(...) {
-    warning("CohortDiagnotics schema does not contain migrations table. Schema was likely created incorrectly")
+    warning("CohortDiagnostics schema does not contain migrations table. Schema was likely created incorrectly")
     if (displayProgress) {
       shiny::showNotification(paste("CohortDiagnostics data model does not have migrations table. Schema was likely created incorrectly"),
                               type = "error")

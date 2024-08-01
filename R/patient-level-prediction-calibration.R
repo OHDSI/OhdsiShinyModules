@@ -26,7 +26,7 @@
 #' 
 #' @return
 #' The user interface to the prediction model calibration module
-#'
+#' @family {PatientLevelPrediction}
 #' @export
 patientLevelPredictionCalibrationViewer <- function(id) {
   ns <- shiny::NS(id)
@@ -79,7 +79,7 @@ patientLevelPredictionCalibrationViewer <- function(id) {
 #' @param connectionHandler the connection to the prediction result database
 #' @param inputSingleView the current tab 
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
-#' 
+#' @family {PatientLevelPrediction}
 #' @return
 #' The server to the prediction calibration module
 #'

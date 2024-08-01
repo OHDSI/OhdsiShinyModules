@@ -62,7 +62,7 @@ break_setter = function(n = 5) {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' 
+#' @family {Characterization}
 #' @return
 #' The user interface to the description incidence module
 #'
@@ -234,7 +234,7 @@ characterizationIncidenceViewer <- function(id) {
 #' @param parentIndex an integer specifying the parent index of interest
 #' @param outcomes a reactive object specifying the outcomes of interest
 #' @param targetIds a reactive vector of integer specifying the targetIds of interest
-#' 
+#' @family {Characterization}
 #' @return
 #' The server to the prediction incidence module
 #'

@@ -15,3 +15,13 @@ The location of the data-diagnostic module helper file
 \details{
 Returns the location of the data-diagnostic helper file
 }
+\seealso{
+Other {DataDiagnostics}: 
+\code{\link{dataDiagnosticDrillServer}()},
+\code{\link{dataDiagnosticDrillViewer}()},
+\code{\link{dataDiagnosticServer}()},
+\code{\link{dataDiagnosticSummaryServer}()},
+\code{\link{dataDiagnosticSummaryViewer}()},
+\code{\link{dataDiagnosticViewer}()}
+}
+\concept{{DataDiagnostics}}

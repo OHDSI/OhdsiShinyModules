@@ -17,17 +17,6 @@
 # limitations under the License.
 
 
-#' The module viewer for exploring time to event results 
-#'
-#' @details
-#' The user specifies the id for the module
-#'
-#' @param id  the unique reference id for the module
-#' 
-#' @return
-#' The user interface to the characterization time to event module
-#'
-#' @export
 characterizationTimeToEventViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
@@ -65,21 +54,6 @@ characterizationTimeToEventViewer <- function(id) {
 }
 
 
-#' The module server for exploring time to event results 
-#'
-#' @details
-#' The user specifies the id for the module
-#'
-#' @param id  the unique reference id for the module
-#' @param connectionHandler the connection to the prediction result database
-#' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
-#' @param targetId a reactive integer specifying the targetId of interest
-#' @param outcomeId a reactive integer specifying the outcomeId of interest
-#' 
-#' @return
-#' The server to the prediction time to event module
-#'
-#' @export
 characterizationTimeToEventServer <- function(
   id, 
   connectionHandler,

@@ -10,7 +10,7 @@
 #' whatever raw column names are passed in
 #' @param customColDefOptions A list of lists, where the inner lists are any custom options from
 #' reactable::colDef for each column 
-#'
+#' @family {Utils}
 #' @return A named list of reactable::colDef objects
 #' @export 
 #' 
@@ -102,7 +102,7 @@ createCustomColDefList <- function(rawColNames, niceColNames = NULL,
 #' Make a label for an html button
 #'
 #' @param label The desired label for hte button
-#'
+#' @family {Utils}
 #' @return html code to make a button label
 #' @export
 #'

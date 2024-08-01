@@ -15,3 +15,25 @@ The user interface to the cohort method attrition
 \description{
 The module viewer for rendering the PLE attrition results
 }
+\seealso{
+Other {Estimation}: 
+\code{\link{cohortMethodAttritionServer}()},
+\code{\link{cohortMethodCovariateBalanceServer}()},
+\code{\link{cohortMethodCovariateBalanceViewer}()},
+\code{\link{cohortMethodKaplanMeierServer}()},
+\code{\link{cohortMethodKaplanMeierViewer}()},
+\code{\link{cohortMethodPopulationCharacteristicsServer}()},
+\code{\link{cohortMethodPopulationCharacteristicsViewer}()},
+\code{\link{cohortMethodPowerServer}()},
+\code{\link{cohortMethodPowerViewer}()},
+\code{\link{cohortMethodPropensityModelServer}()},
+\code{\link{cohortMethodPropensityModelViewer}()},
+\code{\link{cohortMethodPropensityScoreDistServer}()},
+\code{\link{cohortMethodPropensityScoreDistViewer}()},
+\code{\link{cohortMethodSystematicErrorServer}()},
+\code{\link{cohortMethodSystematicErrorViewer}()},
+\code{\link{estimationHelperFile}()},
+\code{\link{estimationServer}()},
+\code{\link{estimationViewer}()}
+}
+\concept{{Estimation}}
