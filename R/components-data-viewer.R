@@ -57,11 +57,17 @@ resultTableViewer <- function(
           shinycssloaders::withSpinner(
             reactable::reactableOutput(
               outputId = ns("resultData"),
-              width = "100%")
+              width = "100%"),
+            type = 3, size = 3, color.background = "#f19119", color = "#003142",
+            caption = shiny::div(
+              shiny::strong("Loading", style = "font-size: 20px; color: #333333; display: block; margin-bottom: 1px;"),
+              shiny::em("Please wait, results may take a few minutes...",
+                        style = "font-size: 16px; color: #666666; display: block; margin-top: 0px;")
             )
-        )
+          )
       )
     ))
+  )
 }
 
 

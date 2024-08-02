@@ -213,13 +213,13 @@ characterizationDechallengeRechallengeServer <- function(
           ),
           pctDechallengeSuccess = reactable::colDef(
             header = withTooltip("% of Dechallenge Success",
-                                 "Among people with challenge outcomes, the percent of people with outcomes during dechallengeEvaluationWindow"),
+                                 "Among people with challenge outcomes, the percent of people without outcomes during the dechallengeEvaluationWindow"),
             filterable = T,
             format = reactable::colFormat(digits = 2, percent = T)
           ),
           pctDechallengeFail = reactable::colDef(
             header = withTooltip("% of Dechallenge Fail",
-                                 "Among people with challenge outcomes, the percent of people without outcomes during the dechallengeEvaluationWindow"),
+                                 "Among people with challenge outcomes, the percent of people with outcomes during dechallengeEvaluationWindow"),
             filterable = T,
             format = reactable::colFormat(digits = 2, percent = T)
           ),
@@ -231,13 +231,13 @@ characterizationDechallengeRechallengeServer <- function(
           ),
           pctRechallengeSuccess = reactable::colDef(
             header = withTooltip("% of Rechallenge Success",
-                                 "Percent of people with a new exposure era during which an outcome occurred, after the occurrence of an outcome during a prior exposure era"),
+                                 "Percent of people with a new exposure era during which an outcome did not occur, after the occurrence of an outcome during a prior exposure era"),
             filterable = T,
             format = reactable::colFormat(digits = 2, percent = T)
           ),
           pctRechallengeFail = reactable::colDef(
             header = withTooltip("% of Rechallenge Fail",
-                                 "Percent of people with a new exposure era during which an outcome did not occur, after the occurrence of an outcome during a prior exposure era"),
+                                 "Percent of people with a new exposure era during which an outcome occurred, after the occurrence of an outcome during a prior exposure era"),
             filterable = T,
             format = reactable::colFormat(digits = 2, percent = T)
           )
