@@ -36,7 +36,7 @@ Imports:
     rmarkdown,
     scales,
     shiny, 
-    shinycssloaders,
+    shinycssloaders (>= 1.1.0),
     shinydashboard,
     shinyglide,
     shinyWidgets,

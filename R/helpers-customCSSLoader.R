@@ -32,7 +32,7 @@ buildSpinnerCustom <- function(
   }
   
   if (is.null(id)) {
-    id <- paste0("spinner-", digest::digest(ui_element))
+    id <- paste0("spinner-", sample(10000000,1)) # removed digest since not in dep
   }
   
   css_rules_tag <- get_spinner_css_tag(type, color, size, color.background, custom.css, id, image, caption, output_spinner)
@@ -158,8 +158,8 @@ withSpinnerCustom <- function(
     stop("`ui_element` must be a Shiny tag", call. = FALSE)
   }
   
-  spinner <- shinycssloaders::buildSpinner(
-    spinner_type = "output",
+  spinner <- shinycssloaders::withSpinner(
+    #spinner_type = "output",
     ui_element = ui_element,
     type = type,
     color = color,
@@ -171,8 +171,8 @@ withSpinnerCustom <- function(
     image = image,
     image.width = image.width,
     image.height = image.height,
-    hide.ui = hide.ui,
-    caption = caption
+    hide.ui = hide.ui#,
+    #caption = caption
   )
   
   htmltools::attachDependencies(spinner, getDependencies())
