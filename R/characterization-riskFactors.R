@@ -351,6 +351,10 @@ riskFactorTable <- function(
   
   completeData <- c()
   for(outcomeWashoutDay in outcomeWashoutDays){
+    # need to reset the allData for each washout
+    allData <- data %>% 
+      dplyr::filter(.data$cohortType == 'Target') %>%
+      dplyr::select(-"cohortType", -"outcomeWashoutDays")
     
   caseData <- data %>% 
     dplyr::filter(
