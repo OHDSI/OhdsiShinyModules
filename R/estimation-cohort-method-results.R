@@ -145,7 +145,12 @@ estimationGetCmResultSummaryTableColDef <- function(){
       )
     ),
     
-    targetId = reactable::colDef(show = F),
+    targetId = reactable::colDef(header = withTooltip(
+      "Target ID",
+      "The ID of the target cohort of interest"
+      )
+    ),
+    
     target = reactable::colDef(
       header = withTooltip(
         "Target",
@@ -154,7 +159,12 @@ estimationGetCmResultSummaryTableColDef <- function(){
       minWidth = 300
     ),
     
-    comparatorId = reactable::colDef(show = F),
+    comparatorId = reactable::colDef(header = withTooltip(
+      "Comparator ID",
+      "The ID of the comparator cohort of interest"
+      )
+    ),
+    
     comparator = reactable::colDef(
       header = withTooltip(
         "Comparator",
@@ -163,7 +173,12 @@ estimationGetCmResultSummaryTableColDef <- function(){
       minWidth = 300
     ),
     
-    outcomeId = reactable::colDef(show = F),
+    outcomeId = reactable::colDef(header = withTooltip(
+      "Outcome ID",
+      "The ID of the outcome of interest"
+      )
+    ),
+    
     outcome = reactable::colDef(
       header = withTooltip(
         "Outcome",
