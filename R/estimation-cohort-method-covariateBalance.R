@@ -454,7 +454,7 @@ plotCohortMethodCovariateBalanceScatterPlotNew <- function(
       x1 = limits[2], 
       xref = "paper",
       y0 = 0, 
-      y1 = limits[2], 
+      y1 = limits[2],
       line = list(color = color, dash = 'dash')
     )
   }
@@ -468,7 +468,17 @@ plotCohortMethodCovariateBalanceScatterPlotNew <- function(
     colors = colors
   ) %>%
     plotly::layout(
-      shapes = list(xyline(limits)),
+      #shapes = list(xyline(limits)),
+      shapes = list(list(
+        type = "line", 
+        x0 = 0, 
+        x1 = ~max(absBeforeMatchingStdDiff, absAfterMatchingStdDiff), 
+        xref = "x",
+        y0 = 0, 
+        y1 = ~max(absBeforeMatchingStdDiff, absAfterMatchingStdDiff),
+        yref = "y",
+        line = list(color = "grey", dash = "dash")
+      )),
       plot_bgcolor = "#e5ecf6",
       xaxis = list(title = beforeLabel, range = limits), 
       yaxis = list(title = afterLabel, range = limits)
