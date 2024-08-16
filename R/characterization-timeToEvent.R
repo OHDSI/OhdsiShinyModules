@@ -142,7 +142,11 @@ characterizationTimeToEventServer <- function(
           numEvents = reactable::colDef(
             header = withTooltip("# of Events",
                                  "The number of events that occurred"),
-            filterable = T
+            filterable = T,
+            cell = function(value) {
+              # Add < if cencored
+              if (value < 0 ) paste("<", abs(value)) else value
+            }
           ),
           timeScale = reactable::colDef(
             header = withTooltip("Time Scale",
@@ -304,11 +308,15 @@ plotTimeToEvent <- function(
     return(NULL)
   }
   
+  # remove censored data
   timeToEventData <- timeToEventData %>% 
     dplyr::filter(
       .data$outcomeType %in% outcomeTypes &
-      .data$targetOutcomeType %in% targetOutcomeTypes
+      .data$targetOutcomeType %in% targetOutcomeTypes &
+      .data$numEvents > 0
       )
+  
+  # TODO plot censored as black?
   
   if(nrow(timeToEventData) == 0){
     shiny::showNotification('No results for selection')
@@ -322,7 +330,10 @@ plotTimeToEvent <- function(
   shiny::incProgress(1/2, detail = paste("Generating plot"))
   
   plot <- ggplot2::ggplot(
-    data = timeToEventData %>% dplyr::mutate(fillGroup = paste0(.data$outcomeType, '-', .data$targetOutcomeType)), 
+    data = timeToEventData %>% 
+      dplyr::mutate(
+        fillGroup = paste0(.data$outcomeType, '-', .data$targetOutcomeType)
+        ), 
     ggplot2::aes(
       x = .data$timeToEvent, 
       y = .data$numEvents,

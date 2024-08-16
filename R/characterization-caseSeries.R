@@ -377,18 +377,26 @@ caseSeriesTable <- function(
   # Before Index Cases
   beforeData <- data %>% 
     dplyr::filter(.data$type == 'Before') 
-  Nbefore <- beforeData$sumValue[1]/beforeData$averageValue[1]
-  
+  Nbefore <- getCountFromFE(
+    sumValue = beforeData$sumValue, 
+    averageValue = beforeData$averageValue
+    )
+
   # After Index Cases
   afterData <- data %>% 
     dplyr::filter(.data$type == 'After') 
-  Nafter <- afterData$sumValue[1]/afterData$averageValue[1]
+  Nafter <- getCountFromFE(
+    sumValue = afterData$sumValue, 
+    averageValue = afterData$averageValue
+  )
   
   # During Index Cases
   duringData <- data %>% 
     dplyr::filter(.data$type == 'During') 
-  Nduring <- duringData$sumValue[1]/duringData$averageValue[1]
-  
+  Nduring <- getCountFromFE(
+    sumValue = duringData$sumValue, 
+    averageValue = duringData$averageValue
+  )
   
   beforeData <- beforeData %>%
     dplyr::mutate(
@@ -489,7 +497,7 @@ colDefsBinary <- function(
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
         if(is.na(value)){return('< min threshold')}
-        if (value != -1) value else '< min threshold'
+        if (value >= 0) value else paste0('<', abs(value))
       }
     ), 
     averageValueBefore = reactable::colDef(
@@ -506,7 +514,7 @@ colDefsBinary <- function(
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
         if(is.na(value)){return('< min threshold')}
-        if (value != -1) value else '< min threshold'
+        if (value >= 0) value else paste0('<', abs(value))
       }
     ), 
     averageValueDuring = reactable::colDef(
@@ -516,14 +524,14 @@ colDefsBinary <- function(
       format = reactable::colFormat(digits = 2, percent = T)
     ), 
     sumValueAfter = reactable::colDef(
-      header = withTooltip("# of Cases with Feautre Post-outcome",
+      header = withTooltip("# of Cases with Feature Post-outcome",
                            "Number of cases with the covariate after the outcome"),
       filterable = T,
       format = reactable::colFormat(digits = 2, percent = F),
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
         if(is.na(value)){return('< min threshold')}
-        if (value != -1) value else '< min threshold'
+        if (value >= 0) value else paste0('<', abs(value))
       }
     ), 
     averageValueAfter = reactable::colDef(
@@ -653,7 +661,11 @@ colDefsContinuous <- function(
       header = withTooltip("# Cases with Feature",
                            "Number of cases with the covariate"),
       filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+      format = reactable::colFormat(digits = 2, percent = F),
+      cell = function(value) {
+        # Add < if cencored
+        if (value < 0 ) paste("<", abs(value)) else abs(value)
+      }
     ), 
     minValue = reactable::colDef(
       header = withTooltip("Min Value",
@@ -713,3 +725,19 @@ colDefsContinuous <- function(
   return(result)
 }
 
+
+
+getCountFromFE <- function(
+  sumValue, 
+  averageValue
+){
+  
+  Ns <- sumValue/averageValue
+  if(sum(is.finite(Ns)) > 0 ){
+    maxN <- max(Ns[is.finite(Ns)])
+  } else{
+    message('Issue calculating N')
+    maxN <- 0
+  }
+  return(maxN)
+}

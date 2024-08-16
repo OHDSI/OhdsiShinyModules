@@ -32,6 +32,13 @@ characterizationRiskFactorViewer <- function(id) {
       
       inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
       
+      shinydashboard::box(
+        title = 'Counts', 
+        width = "100%", 
+        collapsible = T, 
+        resultTableViewer(ns('countTable'))
+      ),
+      
       shinydashboard::tabBox(
         width = "100%",
         # Title can include an icon
@@ -117,6 +124,33 @@ characterizationRiskFactorServer <- function(
           ncol = 1
         )
         
+        counts <- characterizationGetRiskFactorCounts(
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          targetId = targetId(),
+          outcomeId = outcomeId(),
+          databaseId = input$databaseId,
+          tar = options()$tarList[[which(options()$tarInds == input$tarInd)]]
+        )
+        
+        countTableOutput <- resultTableServer(
+          id = "countTable", 
+          df = counts,
+          details = data.frame(
+            target = options()$targetName,
+            outcome = options()$outcomeName,
+            Database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
+            TimeAtRisk = options()$tarList[[which(options()$tarInds == input$tarInd)]],
+            Analysis = 'Counts - Risk Factor'
+          ),
+          downloadedFileName = 'risk_factor_counts',
+          colDefsInput = characteriationCountsColDefs(
+            elementId = session$ns('count-table-filter')
+          ),
+          addActions = NULL,
+          elementId = session$ns('count-table-filter')
+        )
+        
         allData <- characterizationGetRiskFactorData(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
@@ -161,6 +195,51 @@ characterizationRiskFactorServer <- function(
   )
 }
 
+
+characterizationGetRiskFactorCounts <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    targetId,
+    outcomeId,
+    databaseId,
+    tar
+){
+  
+  sql <- "SELECT 
+          cohort_type,
+          min_prior_observation,	
+          outcome_washout_days,
+          row_count,
+          person_count 
+          
+          from
+          @schema.@c_table_prefixcohort_counts
+          where database_id = '@database_id'
+          and target_cohort_id = @target_id
+          and outcome_cohort_id in (@outcome_id, 0)
+          and (risk_window_start = @risk_window_start OR risk_window_start is NULL)
+          and (risk_window_end = @risk_window_end OR risk_window_end is NULL)
+          and (start_anchor = '@start_anchor' OR start_anchor is NULL)
+          and (end_anchor = '@end_anchor' OR end_anchor is NULL)
+          and cohort_type in ('Cases','Exclude','Target')
+  ;"
+  
+  counts <- connectionHandler$queryDb(
+    sql = sql, 
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
+    database_id = databaseId,
+    target_id = targetId,
+    outcome_id = outcomeId,
+    risk_window_start = tar$riskWindowStart,
+    start_anchor = tar$startAnchor,
+    risk_window_end = tar$riskWindowEnd,
+    end_anchor = tar$endAnchor
+  )
+  
+  return(counts)
+  
+}
 
 characterizationGetRiskFactorData <- function(
   connectionHandler,
@@ -333,158 +412,151 @@ riskFactorTable <- function(
     return(data)
   }
   
-  allData <- data %>% 
+  targetData <- data %>% 
     dplyr::filter(.data$cohortType == 'Target') %>%
-    dplyr::select(-"cohortType", -"outcomeWashoutDays")
+    dplyr::mutate(
+      sumValue_Target = .data$sumValue,
+      averageValue_Target = .data$averageValue
+    ) %>%    
+    dplyr::select(
+      -"cohortType", 
+      -"outcomeWashoutDays",
+      -"sumValue",
+      -"averageValue"
+      ) 
   
-  allcounts <- allData %>% 
-    dplyr::mutate(N = .data$sumValue/.data$averageValue) %>%
-    dplyr::select('minPriorObservation', 'N') %>%
+  targetN <- targetData %>% 
+    dplyr::mutate(N_Target = .data$sumValue_Target/.data$averageValue_Target) %>%
+    dplyr::select('minPriorObservation', 'N_Target') %>%
     dplyr::group_by(.data$minPriorObservation) %>%
-    dplyr::summarise(N = round(max(.data$N)))
-  
-  getN <- function(priorObs){
-    sapply(priorObs, function(x){
-      allcounts$N[allcounts$minPriorObservation == x]
-    })
-  }
+    dplyr::summarise(N_Target = round(max(.data$N_Target, na.rm = T)))
   
   completeData <- c()
   for(outcomeWashoutDay in outcomeWashoutDays){
-    # need to reset the allData for each washout
-    allData <- data %>% 
-      dplyr::filter(.data$cohortType == 'Target') %>%
-      dplyr::select(-"cohortType", -"outcomeWashoutDays")
     
-  caseData <- data %>% 
-    dplyr::filter(
-      .data$cohortType == 'Cases' &
-      .data$outcomeWashoutDays == !!outcomeWashoutDay
+    # add dummy Cases and Exclude to data so columns always exist
+    data <- rbind(data, data.frame(
+      cohortType = c('Cases','Exclude'),
+      covariateName = rep('NA', 2),
+      minPriorObservation = rep(unique(data$minPriorObservation)[1], 2),
+      outcomeWashoutDays = rep(outcomeWashoutDay, 2),
+      covariateId = rep(-1, 2),
+      sumValue = rep(0,2),
+      averageValue = rep(0,2)
+    )[colnames(data)])
+    
+    #filter data to outcomeWashoutDays
+    otherData <- data %>%
+      dplyr::filter(
+        .data$cohortType != 'Target' &
+        .data$outcomeWashoutDays == !!outcomeWashoutDay 
         ) %>%
-    dplyr::select(-"cohortType")
-  
-  casecounts <- caseData %>% 
-    dplyr::mutate(N = .data$sumValue/.data$averageValue) %>%
-    dplyr::select('minPriorObservation', 'N') %>%
-    dplyr::group_by(.data$minPriorObservation) %>%
-    dplyr::summarise(caseN = round(max(.data$N)))
-  
-  excludeData <- data %>% 
-    dplyr::filter(
-      .data$cohortType == 'Exclude' & 
-        .data$outcomeWashoutDays == !!outcomeWashoutDay
-      ) %>%
-    dplyr::select(-"cohortType")
-  
-  excludecounts <- excludeData %>% 
-    dplyr::mutate(N = .data$sumValue/.data$averageValue) %>%
-    dplyr::select('minPriorObservation', 'N') %>%
-    dplyr::group_by(.data$minPriorObservation) %>%
-    dplyr::summarise(exclude_N = round(max(.data$N, na.rm = T)))
-  
-
-  if(nrow(excludeData) > 0 ){
-    colnamesInclude <- !colnames(excludeData) %in% c('covariateId', 'covariateName', 'minPriorObservation')
-    colnames(excludeData)[colnamesInclude] <- paste0('exclude_',colnames(excludeData)[colnamesInclude])
-    
-    # if prior Os then exclude from T
-    allData <- allData %>% 
-      dplyr::left_join(
-        excludeData, 
-        by = c('covariateId', 'covariateName', 'minPriorObservation')) %>%
-      dplyr::inner_join( # add N per washout/min obs
-        allcounts, 
-        by = c('minPriorObservation')
-      )  %>%
-      dplyr::inner_join( # add N per washout/min obs
-        excludecounts, 
-        by = c('minPriorObservation')
-      ) %>%
-      dplyr::mutate_if(is.numeric,dplyr::coalesce,0) %>%
-      dplyr::mutate( # add exclude N per washout/min obs
-        sumValue = .data$sumValue - .data$exclude_sumValue,
-        averageValue = (.data$sumValue - .data$exclude_sumValue)/(.data$N-.data$exclude_N)
-      ) %>%
-      dplyr::mutate(
-        N = .data$N-.data$exclude_N
-      ) %>%
-      dplyr::select("covariateId","covariateName","sumValue","averageValue", "N", 'minPriorObservation')
-    
-    allcounts <- allData %>% 
-      dplyr::select('minPriorObservation', 'N') %>%
-      dplyr::group_by(.data$minPriorObservation) %>%
-      dplyr::summarise(N = round(max(.data$N)))
-    
-    getN <- function(priorObs){
-      sapply(priorObs, function(x){
-        allcounts$N[allcounts$minPriorObservation == x]
-      })
-    }
-    
-  } else{
-    # if no excludes we need to add N for the target
-    allData <- allData %>% 
-      dplyr::inner_join( # add N per washout/min obs
-        allcounts, 
-        by = c('minPriorObservation')
+      tidyr::pivot_wider(
+        id_cols = c(
+          "minPriorObservation",
+          "covariateId",
+          "covariateName"
+        ),
+        names_from = "cohortType",
+        values_from = c("sumValue","averageValue")
       ) 
-    }
-
-  if(nrow(caseData) > 0){
-    caseData <- caseData %>%
-      dplyr::mutate(
-      caseSumValue = .data$sumValue,
-      caseAverageValue = .data$averageValue
-    ) %>%
-      dplyr::select("covariateId","covariateName","caseSumValue","caseAverageValue", 'minPriorObservation')
     
-    # join with cases
-    allData <- allData %>% 
-      dplyr::full_join(caseData, 
-                       by = c('covariateId', 'covariateName', 'minPriorObservation')) %>%
-      dplyr::left_join(
-        casecounts, 
-        by = c('minPriorObservation')
-      ) %>%
+    otherN <- otherData %>%
       dplyr::mutate(
-        N = ifelse(
-          is.na(.data$N),
-          getN(.data$minPriorObservation),
-          .data$N
+        N_Cases = .data$sumValue_Cases/.data$averageValue_Cases,
+        N_Exclude = .data$sumValue_Exclude/.data$averageValue_Exclude
+      ) %>%
+      dplyr::group_by(.data$minPriorObservation) %>%
+      dplyr::summarise(
+        N_Cases = max(.data$N_Cases, na.rm = T),
+        N_Exclude = max(.data$N_Exclude, na.rm = T)
+      )
+
+    if(length(is.infinite(otherN$N_Cases))>0){
+      otherN$N_Cases[is.infinite(otherN$N_Cases)] <- 0
+    }
+    if(length(is.infinite(otherN$N_Exclude))>0){
+      otherN$N_Exclude[is.infinite(otherN$N_Exclude)] <- 0
+    }
+    
+    # get all counts
+    counts <- targetN %>%
+      dplyr::left_join(otherN, by = c('minPriorObservation'))
+    
+    # get final data for minPriorObs
+    finalData <- targetData %>%
+      dplyr::left_join(
+        otherData,
+        by = c(
+          "minPriorObservation",
+          "covariateId",
+          "covariateName"
         )
       ) %>%
-      dplyr::mutate_if(is.numeric,dplyr::coalesce,0) %>%
+      dplyr::inner_join(
+        counts ,
+        by = c(
+          "minPriorObservation"
+        )
+      )
+    if(length(is.na(finalData$sumValue_Cases))>0){
+      finalData$sumValue_Cases[is.na(finalData$sumValue_Cases)] <- 0
+    }
+    if(length(is.na(finalData$sumValue_Target))>0){
+      finalData$sumValue_Target[is.na(finalData$sumValue_Target)] <- 0
+    }
+    if(length(is.na(finalData$sumValue_Exclude))>0){
+      finalData$sumValue_Exclude[is.na(finalData$sumValue_Exclude)] <- 0
+    }
+    if(length(is.na(finalData$N_Target))>0){
+      finalData$N_Target[is.na(finalData$N_Target)] <- 0
+    }
+    if(length(is.na(finalData$N_Cases))>0){
+      finalData$N_Cases[is.na(finalData$N_Cases)] <- 0
+    }
+    if(length(is.na(finalData$N_Exclude))>0){
+      finalData$N_Exclude[is.na(finalData$N_Exclude)] <- 0
+    }
+    if(length(is.na(finalData$averageValue_Cases))>0){
+      finalData$averageValue_Cases[is.na(finalData$averageValue_Cases)] <- 0
+    }
+    
+    # removing censored counts as dont want to add due to negative
+    if(length(finalData$N_Exclude < 0) > 0 ){
+      finalData$N_Exclude[finalData$N_Exclude < 0] <- 0 
+    }
+    finalData$N_Cases_exclude <- finalData$N_Cases
+    if(length(finalData$N_Cases_exclude < 0) > 0 ){
+      finalData$N_Cases_exclude[finalData$N_Cases_exclude < 0] <- 0 
+    }
+    if(length(finalData$sumValue_Exclude < 0) > 0 ){
+      finalData$sumValue_Exclude[finalData$sumValue_Exclude < 0] <- 0 
+    }
+    finalData$sumValue_Cases_exclude <- finalData$sumValue_Cases
+    if(length(finalData$sumValue_Cases_exclude < 0) > 0 ){
+      finalData$sumValue_Cases_exclude[finalData$sumValue_Cases_exclude < 0] <- 0 
+    }
+    
+    finalData <- finalData %>%
       dplyr::mutate(
-        nonCaseSumValue = ifelse(
-          .data$sumValue > 0,
-          .data$sumValue - .data$caseSumValue,
-          0
-          )
-        ,
-        nonCaseAverageValue = ifelse(
-          .data$sumValue > 0,
-          (.data$sumValue - .data$caseSumValue)/(.data$N-.data$caseN),
-          0
-          )
-      ) %>%
-      dplyr::mutate(
-        nonCaseN = .data$N-.data$caseN
+        nonCaseN = round(.data$N_Target-.data$N_Exclude-.data$N_Cases_exclude),
+        caseN = .data$N_Cases,
+        N = .data$N_Target,
+        nonCaseSumValue = .data$sumValue_Target-.data$sumValue_Exclude-.data$sumValue_Cases_exclude,
+        caseSumValue = .data$sumValue_Cases, 
+        nonCaseAverageValue = (.data$sumValue_Target-.data$sumValue_Exclude-.data$sumValue_Cases_exclude)/(.data$N_Target-.data$N_Exclude-.data$N_Cases_exclude),
+        caseAverageValue = .data$averageValue_Cases
       ) %>%
       dplyr::select(
-        "covariateId","covariateName",
-        'minPriorObservation',
+        "covariateId", "covariateName", "minPriorObservation",
         "caseSumValue","caseAverageValue", 
-        "nonCaseSumValue","nonCaseAverageValue"
-        ,"nonCaseN", "caseN", "N"
-        )
-    
-
-    # add abs smd
-    allData <- allData %>% 
+        "nonCaseSumValue","nonCaseAverageValue",
+        "nonCaseN", "caseN", "N"
+      ) %>% 
       dplyr::mutate(
         meanDiff = .data$caseAverageValue - .data$nonCaseAverageValue,
-        std1 =  sqrt(((1-.data$caseAverageValue)^2*.data$caseSumValue + (-.data$caseAverageValue)^2*(.data$caseN - .data$caseSumValue))/.data$caseN),
-        std2 =  sqrt(((1-.data$nonCaseAverageValue)^2*.data$nonCaseSumValue + (-.data$nonCaseAverageValue)^2*(.data$nonCaseN - .data$nonCaseSumValue))/.data$nonCaseN)
+        std1 =  ifelse(.data$caseN == 0, 0 ,sqrt(((1-.data$caseAverageValue)^2*.data$caseSumValue + (-.data$caseAverageValue)^2*(.data$caseN - .data$caseSumValue))/.data$caseN)),
+        std2 =  ifelse(.data$nonCaseN == 0, 0, sqrt(((1-.data$nonCaseAverageValue)^2*.data$nonCaseSumValue + (-.data$nonCaseAverageValue)^2*(.data$nonCaseN - .data$nonCaseSumValue))/.data$nonCaseN))
       ) %>% 
       dplyr::mutate(
         SMD = .data$meanDiff/sqrt((.data$std1^2 + .data$std2^2)/2),
@@ -494,21 +566,21 @@ riskFactorTable <- function(
   
 
     # add outcomewashout back here
-    allData <- allData %>% 
+    finalData <- finalData %>% 
       dplyr::mutate(
         outcomeWashoutDays = !!outcomeWashoutDay
       ) %>%
       dplyr::relocate("outcomeWashoutDays", 
                       .after = "minPriorObservation")
     
-    completeData <- rbind(allData, completeData)
+    completeData <- rbind(finalData, completeData)
 
-  } 
-  
   } # end outcomeWashoutDays loop
   
   if(nrow(completeData) == 0){
-    completeData <- allData %>% 
+    completeData <- data %>% 
+      dplyr::filter(.data$cohortType == 'Target') %>%
+      dplyr::select(-"cohortType", -"outcomeWashoutDays") %>% 
       dplyr::mutate(
         nonCaseSumValue = .data$sumValue,
         nonCaseAverageValue = .data$averageValue
@@ -520,7 +592,6 @@ riskFactorTable <- function(
       )
   }
   
-
   return(unique(completeData))
 }
 
@@ -603,6 +674,38 @@ riskFactorContinuousTable <- function(
   
 }
 
+characteriationCountsColDefs <- function(
+    elementId
+){
+  result <- list(
+    cohortType = reactable::colDef(
+      header = withTooltip("Cohort Type",
+                           "The target popualtion, exclusions from target or cases"),
+      filterable = T
+    ),
+    
+    rowCount = reactable::colDef(
+      header = withTooltip("# rows",
+                           "Number of exposures in the cohort (people can be in more than once)"),
+      cell = function(value) {
+        if(is.null(value)){return('< min threshold')}
+        if(is.na(value)){return('< min threshold')}
+        if (value >= 0) value else paste0('< ', abs(value))
+      }
+    ), 
+    personCount = reactable::colDef(
+      header = withTooltip("# persons",
+                           "Number of distinct people in the cohort"),
+      cell = function(value) {
+        if(is.null(value)){return('< min threshold')}
+        if(is.na(value)){return('< min threshold')}
+        if (value >= 0) value else paste0('< ', abs(value))
+      }
+    )
+  )
+  return(result)
+}
+
 characteriationRiskFactorColDefs <- function(
     elementId
     ){
@@ -659,7 +762,7 @@ characteriationRiskFactorColDefs <- function(
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
         if(is.na(value)){return('< min threshold')}
-        if (value != -1) value else '< min threshold'
+        if (value >= 0) value else paste0('< ', abs(value))
       }
     ), 
     caseSumValue = reactable::colDef(
@@ -673,7 +776,7 @@ characteriationRiskFactorColDefs <- function(
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
         if(is.na(value)){return('< min threshold')}
-        if (value != -1) value else '< min threshold'
+        if (value >= 0) value else paste0('< ', abs(value))
       }
     ), 
     nonCaseAverageValue = reactable::colDef(
@@ -770,9 +873,9 @@ characteriationRiskFactorContColDefs <- function(
         )
       }
     ),
-    targetCountValue = reactable::colDef(
-        header = withTooltip("# of Target with Feature",
-                             "Number of the target population with feature"),
+    countValue = reactable::colDef(
+        header = withTooltip("# with Feature",
+                             "Number with feature"),
         filterable = T
       , 
       format = reactable::colFormat(
@@ -782,136 +885,64 @@ characteriationRiskFactorContColDefs <- function(
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
         if(is.na(value)){return('< min threshold')}
-        if (value != -1) value else '< min threshold'
+        if (value >=0) value else paste0('< ', abs(value))
       }
-    ), 
-    caseCountValue = reactable::colDef(
-      header = withTooltip("# of Cases with Feature",
-                           "Number of the cases in the target population with feature"), 
-      filterable = T,
-      format = reactable::colFormat(
-        separators = TRUE, 
-        percent = F
-      ),
-      cell = function(value) {
-        if(is.null(value)){return('< min threshold')}
-        if(is.na(value)){return('< min threshold')}
-        if (value != -1) value else '< min threshold'
-      }
-    ), 
-    targetAverageValue = reactable::colDef(
-      header = withTooltip("Target Mean Feature Value",
-                           "Mean value of the feature in the target population"), 
+    ),
+    averageValue = reactable::colDef(
+      header = withTooltip("Mean Feature Value",
+                           "Mean value of the feature in the population"), 
       filterable = T,
       format = reactable::colFormat(digits = 2, percent = F)
     ), 
-    caseAverageValue = reactable::colDef(
-      header = withTooltip("Cases Mean Feature Value",
-                           "Mean value of the feature in the cases"), 
+    standardDeviation = reactable::colDef(
+      header = withTooltip("SD Feature Value",
+                           "Standard deviation of the feature value in the population"), 
       filterable = T,
       format = reactable::colFormat(digits = 2, percent = F)
     ), 
-    
-    targetStandardDeviation = reactable::colDef(
-      header = withTooltip("Target SD Feature Value",
-                           "Standard deviation of the feature value in the target population"), 
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
-    ), 
-    caseStandardDeviation  = reactable::colDef(
-      header = withTooltip("Cases SD Feature Value",
-                           "Standard deviation of the feature value in the cases"), 
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
-    ), 
-    caseMedianValue  = reactable::colDef(
-      header = withTooltip("Cases Median Feature Value",
-                           "Median of the feature value in the cases"), 
+    medianValue  = reactable::colDef(
+      header = withTooltip("Median Feature Value",
+                           "Median of the feature value"), 
       filterable = T, 
       format = reactable::colFormat(digits = 2, percent = F)
     ),
-    caseP10Value  = reactable::colDef(
-      header = withTooltip("Cases 10th %ile Feature Value",
-                           "10th percentile of the feature value in the cases"), 
+    p10Value  = reactable::colDef(
+      header = withTooltip("10th %ile Feature Value",
+                           "10th percentile of the feature value"), 
       filterable = T, 
       format = reactable::colFormat(digits = 2, percent = F)
     ),
-    caseP25Value  = reactable::colDef(
-      header = withTooltip("Cases 25th %tile Feature Value",
-                           "25th percentile of the feature value in the cases"), 
+    p25Value  = reactable::colDef(
+      header = withTooltip("25th %tile Feature Value",
+                           "25th percentile of the feature value"), 
       filterable = T, 
       format = reactable::colFormat(digits = 2, percent = F)
     ),
-    caseP75Value  = reactable::colDef(
-      header = withTooltip("Cases 75th %tile Feature Value",
-                           "75th percentile of the feature value in the cases"), 
+    p75Value  = reactable::colDef(
+      header = withTooltip("75th %tile Feature Value",
+                           "75th percentile of the feature value"), 
       filterable = T, 
       format = reactable::colFormat(digits = 2, percent = F)
     ),
-    caseP90Value  = reactable::colDef(
-      header = withTooltip("Cases 90th %tile Feature Value",
-                           "90th percentile of the feature value in the cases"), 
+    p90Value  = reactable::colDef(
+      header = withTooltip("90th %tile Feature Value",
+                           "90th percentile of the feature value"), 
       filterable = T, 
       format = reactable::colFormat(digits = 2, percent = F)
     ),
-    caseMaxValue  = reactable::colDef(
-      header = withTooltip("Cases Max Feature Value",
-                           "Maximum of the feature value in the cases"), 
+    maxValue  = reactable::colDef(
+      header = withTooltip("Max Feature Value",
+                           "Maximum of the feature value"), 
       filterable = T, 
       format = reactable::colFormat(digits = 2, percent = F)
     ),
-    caseMinValue  = reactable::colDef(
-      header = withTooltip("Cases Min Feature Value",
-                           "Minimum of the feature value in the cases"), 
+    minValue  = reactable::colDef(
+      header = withTooltip("Min Feature Value",
+                           "Minimum of the feature value"), 
       filterable = T, 
       format = reactable::colFormat(digits = 2, percent = F)
     ),
-    targetMedianValue  = reactable::colDef(
-      header = withTooltip("Target Median Feature Value",
-                           "Median of the feature value in the target population"), 
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
-    ),
-    targetP10Value  = reactable::colDef(
-      header = withTooltip("Target 10th %ile Feature Value",
-                           "10th percentile of the feature value in the target population"), 
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
-    ),
-    targetP25Value  = reactable::colDef(
-      header = withTooltip("Target 25th %tile Feature Value",
-                           "25th percentile of the feature value in the target population"), 
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
-    ),
-    targetP75Value  = reactable::colDef(
-      header = withTooltip("Target 75th %tile Feature Value",
-                           "75th percentile of the feature value in the target population"), 
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
-    ),
-    targetP90Value  = reactable::colDef(
-      header = withTooltip("Target 90th %tile Feature Value",
-                           "90th percentile of the feature value in the target population"), 
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
-    ),
-    targetMaxValue  = reactable::colDef(
-      header = withTooltip("Target Max Feature Value",
-                           "Maximum of the feature value in the target population"), 
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
-    ),
-    targetMinValue  = reactable::colDef(
-      header = withTooltip("Target Min Feature Value",
-                           "Minimum of the feature value in the target population"), 
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
-    ),
-    targetBoxPlot = reactable::colDef(
-      show = F
-    ),
-    caseBoxPlot = reactable::colDef(
+    boxPlot = reactable::colDef(
       show = F
     ),
     #targetBoxPlot = reactable::colDef(cell = function(value, index) {
