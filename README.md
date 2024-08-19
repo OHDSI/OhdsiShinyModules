@@ -12,8 +12,12 @@ The OHDSI tools often provide shiny interfaces for viewing and exploring results
 
 Current Modules
 ========
-- about module: this contains information about the shiny viewer and the types of OHDSI analyses
-- prediction module: a module for exploring patient-level prediction results that were developed usign the OHDSI PatientLevelPrediction package
+- about module: this contains information about the shiny viewer and the types of OHDSI analyses.
+- cohort diagnostics module: a module for exploring CohortDiagnostics results.
+- characterization module: a module for exploring Characterization and CohortIncidence results.
+- estimation module: a module for exploring CohortMethod, SelfControlledCaseSeries and EvidenceSynthesis results.
+- prediction module: a module for exploring patient-level prediction results that were developed usign the OHDSI PatientLevelPrediction package.
+- report module: a module that uses ReportGenerator to create a report based on user specified inputs.
 
 
 Technology
@@ -39,10 +43,6 @@ remotes::install_github('ohdsi/OhdsiShinyModules')
 User Documentation
 ==================
 Documentation can be found on the [package website](https://ohdsi.github.io/OhdsiShinyModules/).
-
-PDF versions of the documentation are also available:
-Vignette: [AddingShinyModules.pdf](https://github.com/OHDSI/OhdsiShinyModules/blob/main/inst/doc/AddingShinyModules.pdf)
-* Package manual: [OhdsiShinyModules manual](https://raw.githubusercontent.com/OHDSI/OhdsiShinyModules/main/extras/OhdsiShinyModules.pdf) 
 
 Support
 =======
