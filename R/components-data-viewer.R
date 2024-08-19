@@ -336,6 +336,19 @@ function filterMinValue(rows, columnId, filterValue) {
   });
 }
 "
+#use fuzzy text matching for global table search
+fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
+
+  // Create a case-insensitive RegEx pattern that performs a fuzzy search.
+  const pattern = new RegExp(filterValue, "i");
+  
+  return rows.filter(function(row) {
+    return columnIds.some(function(columnId) {
+      return pattern.test(row.values[columnId]);
+    });
+  });
+}')
+
       output$resultData <- reactable::renderReactable({
           if (is.null(input$dataCols)) {
             data = newdf()
@@ -351,31 +364,36 @@ function filterMinValue(rows, columnId, filterValue) {
         } else{
           height <- NULL
         }
-          
-          reactable::reactable(
-            data,
-            columns = colDefs(),
-            onClick = onClick,
-            groupBy = groupBy,
-            #these can be turned on/off and will overwrite colDef args
-            sortable = TRUE,
-            resizable = TRUE,
-            filterable = TRUE,
-            searchable = TRUE,
-            showPageSizeOptions = TRUE,
-            outlined = TRUE,
-            showSortIcon = TRUE,
-            striped = TRUE,
-            highlight = TRUE,
-            #defaultColDef = reactable::colDef(align = "left"),
-            defaultSorted = sortedColumns(),
-            rowStyle = list(
-              height = height
-              ),
-            elementId = elementIdName()
-            #, experimental
-            #theme = ohdsiReactableTheme
-          )
+          # htmltools::browsable(
+          #   tagList(
+          #     matchSorterDep,
+                reactable::reactable(
+                  data,
+                  columns = colDefs(),
+                  onClick = onClick,
+                  groupBy = groupBy,
+                  #these can be turned on/off and will overwrite colDef args
+                  sortable = TRUE,
+                  resizable = TRUE,
+                  filterable = TRUE,
+                  searchable = TRUE,
+                  searchMethod = fuzzySearch,
+                  showPageSizeOptions = TRUE,
+                  outlined = TRUE,
+                  showSortIcon = TRUE,
+                  striped = TRUE,
+                  highlight = TRUE,
+                  #defaultColDef = reactable::colDef(align = "left"),
+                  defaultSorted = sortedColumns(),
+                  rowStyle = list(
+                    height = height
+                    ),
+                  elementId = elementIdName()
+                  #, experimental
+                  #theme = ohdsiReactableTheme
+                )
+          #   )
+          # )
         })
       
       
