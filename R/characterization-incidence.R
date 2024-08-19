@@ -274,17 +274,7 @@ characterizationIncidenceServer <- function(
       sortedTars <- tarDf$tarId
       names(sortedTars) <- cohortIncidenceFormatTar(tarDf)
       
-      # Problematic for other apps with different data!
-      databases <- c("IBM MDCR",
-                     "IBM MDCD",
-                     "JMDC",
-                     "France DA",
-                     "LPDAU",
-                     "Optum EHR",
-                     "IBM CCAE",
-                     "PharMetrics",
-                     "OPTUM Extended SES",
-                     "German DA")
+     databases <- characterizationGetCiDbs(connectionHandler, resultDatabaseSettings)
       
      output$inputOptions <- shiny::renderUI({
          shinydashboard::box(
@@ -312,8 +302,8 @@ characterizationIncidenceServer <- function(
            shinyWidgets::pickerInput(
              inputId = session$ns('databaseSelector'),
              label = 'Filter By Database: ',
-             choices = databases,
-             selected = databases,
+             choices = names(databases),
+             selected = names(databases),
              multiple = T,
              options = shinyWidgets::pickerOptions(
                actionsBox = TRUE,
@@ -2066,5 +2056,33 @@ characterizationGetCiTars <- function(
     )
   }
   return(tars)
+}
+
+characterizationGetCiDbs <- function(
+    connectionHandler,
+    resultDatabaseSettings
+){
+  
+  sql <- 'select distinct d.cdm_source_abbreviation, i.database_id 
+  from @result_schema.@database_table d
+  
+  inner join
+          @result_schema.@ci_table_prefixINCIDENCE_SUMMARY i
+          on 
+          i.database_id = d.database_id
+  
+  ;'
+  
+  databases <- connectionHandler$queryDb(
+    sql = sql, 
+    result_schema = resultDatabaseSettings$schema,
+    ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix,
+    database_table = resultDatabaseSettings$databaseTable
+  )
+  databaseIds <- databases$databaseId
+  names(databaseIds) <- databases$cdmSourceAbbreviation
+  
+  return(databaseIds)
+   
 }
 
