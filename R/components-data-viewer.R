@@ -337,7 +337,7 @@ function filterMinValue(rows, columnId, filterValue) {
 }
 "
 #use fuzzy text matching for global table search
-fuzzySearch<- htmlwidgets::JS('function(rows, columnIds, filterValue) {
+fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
 
   // Create a case-insensitive RegEx pattern that performs a fuzzy search.
   const pattern = new RegExp(filterValue, "i");
