@@ -23,5 +23,9 @@ The module server for the main phevaluator module
 Other {PheValuator}: 
 \code{\link{phevaluatorHelperFile}()},
 \code{\link{phevaluatorViewer}()}
+
+Other {PheValuator}: 
+\code{\link{phevaluatorHelperFile}()},
+\code{\link{phevaluatorViewer}()}
 }
 \concept{{PheValuator}}
