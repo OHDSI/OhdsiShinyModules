@@ -19,3 +19,13 @@ The server for the datasources module
 \description{
 The server function for the datasources module
 }
+\seealso{
+Other {Utils}: 
+\code{\link{createCustomColDefList}()},
+\code{\link{datasourcesHelperFile}()},
+\code{\link{datasourcesViewer}()},
+\code{\link{makeButtonLabel}()},
+\code{\link{resultTableServer}()},
+\code{\link{resultTableViewer}()}
+}
+\concept{{Utils}}

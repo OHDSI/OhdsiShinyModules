@@ -9,18 +9,20 @@
 #'
 #' @param id string
 #' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
-#'
+#' @param boxTitle the title added to the box 
+#' @family {Utils}
 #' @return shiny module UI
 #'
 resultTableViewer <- function(
     id = "result-table",
-    downloadedFileName = NULL
+    downloadedFileName = NULL,
+    boxTitle = 'Table'
     ) {
   ns <- shiny::NS(id)
   shiny::div(# UI
     shinydashboard::box(
       width = "100%",
-      title = shiny::span(shiny::icon("table"), "Table"),
+      title = shiny::span(shiny::icon("table"), boxTitle),
       shiny::fluidPage(
         shiny::fluidRow(
           shiny::column(
@@ -148,6 +150,7 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param id string, table id must match resultsTableViewer function
 #' @param df reactive that returns a data frame
 #' @param colDefsInput named list of reactable::colDefs
+#' @param details The details of the results such as cohort names and database names
 #' @param selectedCols string vector of columns the reactable should display to start by default. Defaults to ALL if not specified.
 #' @param sortedCols string vector of columns the reactable should sort by by default. Defaults to no sort if not specified.
 #' @param elementId optional string vector of element Id name for custom dropdown filtering if present in the customColDef list. Defaults to NULL.
@@ -156,13 +159,14 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #'                   actions must be a column in df
 #' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #' @param groupBy The columns to group by 
-#'
+#' @family {Utils}
 #' @return shiny module server
 #'
 resultTableServer <- function(
     id, #string
     df, #data.frame
     colDefsInput,
+    details = data.frame(), # details about the data.frame such as target and database name
     selectedCols = NULL,
     sortedCols = NULL,
     elementId = NULL,
@@ -173,6 +177,13 @@ resultTableServer <- function(
   shiny::moduleServer(
     id,
     function(input, output, session) {
+      
+      
+      # find the columns that are set to show=F
+      colNames <- names(colDefsInput)
+      hideCol <- unlist(lapply(colDefsInput, function(x) ifelse(is.null(x$show), F, !x$show)))
+      hideColNames <- colNames[hideCol]
+
       
       # convert a data.frame to a reactive
       if(!inherits(df, 'reactive')){
@@ -199,8 +210,8 @@ resultTableServer <- function(
         if(!is.null(selectedCols)){
           intersect(colnames(newdf()), selectedCols)
         }
-        else{
-            colnames(newdf())
+        else{ # edited to restrict to colDef - show = T columns
+          setdiff(colnames(newdf()), hideColNames)
         }
       })
       
@@ -245,12 +256,13 @@ resultTableServer <- function(
         onClick <- NULL
       }
       
+
       output$columnSelector <- shiny::renderUI({
         
         shinyWidgets::pickerInput(
           inputId = session$ns('dataCols'),
           label = 'Select Columns to Display: ',
-          choices = colnames(newdf()),
+          choices = setdiff(colnames(newdf()), hideColNames), # edited to only show columns show = T
           selected = selectedColumns(),
           choicesOpt = list(style = rep_len("color: black;", 999)),
           multiple = T,
@@ -266,6 +278,7 @@ resultTableServer <- function(
         )
         
       })
+
       
       #need to try adding browser() to all reactives to see why selected cols isnt working
       
@@ -323,7 +336,19 @@ function filterMinValue(rows, columnId, filterValue) {
   });
 }
 "
-      
+#use fuzzy text matching for global table search
+fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
+
+  // Create a case-insensitive RegEx pattern that performs a fuzzy search.
+  const pattern = new RegExp(filterValue, "i");
+  
+  return rows.filter(function(row) {
+    return columnIds.some(function(columnId) {
+      return pattern.test(row.values[columnId]);
+    });
+  });
+}')
+
       output$resultData <- reactable::renderReactable({
           if (is.null(input$dataCols)) {
             data = newdf()
@@ -339,45 +364,50 @@ function filterMinValue(rows, columnId, filterValue) {
         } else{
           height <- NULL
         }
-          
-          reactable::reactable(
-            data,
-            columns = colDefs(),
-            onClick = onClick,
-            groupBy = groupBy,
-            #these can be turned on/off and will overwrite colDef args
-            sortable = TRUE,
-            resizable = TRUE,
-            filterable = TRUE,
-            searchable = TRUE,
-            showPageSizeOptions = TRUE,
-            outlined = TRUE,
-            showSortIcon = TRUE,
-            striped = TRUE,
-            highlight = TRUE,
-            defaultColDef = reactable::colDef(align = "left"),
-            defaultSorted = sortedColumns(),
-            rowStyle = list(
-              height = height
-              ),
-            elementId = elementIdName()
-            #, experimental
-            #theme = ohdsiReactableTheme
-          )
+          # htmltools::browsable(
+          #   tagList(
+          #     matchSorterDep,
+                reactable::reactable(
+                  data,
+                  columns = colDefs(),
+                  onClick = onClick,
+                  groupBy = groupBy,
+                  #these can be turned on/off and will overwrite colDef args
+                  sortable = TRUE,
+                  resizable = TRUE,
+                  filterable = TRUE,
+                  searchable = TRUE,
+                  searchMethod = fuzzySearch,
+                  showPageSizeOptions = TRUE,
+                  outlined = TRUE,
+                  showSortIcon = TRUE,
+                  striped = TRUE,
+                  highlight = TRUE,
+                  #defaultColDef = reactable::colDef(align = "left"),
+                  defaultSorted = sortedColumns(),
+                  rowStyle = list(
+                    height = height
+                    ),
+                  elementId = elementIdName()
+                  #, experimental
+                  #theme = ohdsiReactableTheme
+                )
+          #   )
+          # )
         })
       
       
       # download full data button
       output$downloadDataFull <- shiny::downloadHandler(
         filename = function() {
-          paste('result-data-full-', downloadedFileName, Sys.Date(), '.csv', sep = '')
+          paste('result-data-full-', downloadedFileName, Sys.Date(), '.xlsx', sep = '')
         },
         content = function(con) {
-          utils::write.csv(
-            x = df(), 
-            file = con,
-            row.names = F
-          )
+          wb <- openxlsx::buildWorkbook(x = list(
+            details = details,
+            results = df()
+          ))
+          openxlsx::saveWorkbook(wb = wb, file = con)
         }
       )
       

@@ -18,3 +18,11 @@ The module viewer for exploring incidence results
 \details{
 The user specifies the id for the module
 }
+\seealso{
+Other {Characterization}: 
+\code{\link{characterizationHelperFile}()},
+\code{\link{characterizationIncidenceServer}()},
+\code{\link{characterizationServer}()},
+\code{\link{characterizationViewer}()}
+}
+\concept{{Characterization}}

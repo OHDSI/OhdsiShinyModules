@@ -34,3 +34,13 @@ A named list of reactable::colDef objects
 \description{
 Creating a list of custom column definitions for use in reactables
 }
+\seealso{
+Other {Utils}: 
+\code{\link{datasourcesHelperFile}()},
+\code{\link{datasourcesServer}()},
+\code{\link{datasourcesViewer}()},
+\code{\link{makeButtonLabel}()},
+\code{\link{resultTableServer}()},
+\code{\link{resultTableViewer}()}
+}
+\concept{{Utils}}

@@ -15,3 +15,9 @@ The location of the cohort-generator module helper file
 \details{
 Returns the location of the cohort-generator helper file
 }
+\seealso{
+Other {CohortGenerator}: 
+\code{\link{cohortGeneratorServer}()},
+\code{\link{cohortGeneratorViewer}()}
+}
+\concept{{CohortGenerator}}

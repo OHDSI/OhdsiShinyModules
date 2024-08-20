@@ -46,128 +46,49 @@ reference:
   - title: "Prediction module"
     desc: >
       Modules for prediction results.
-    contents:
-      - patientLevelPredictionHelperFile
-      - patientLevelPredictionViewer
-      - patientLevelPredictionServer
-      - patientLevelPredictionDiagnosticsServer
-      - patientLevelPredictionDiagnosticsViewer
-      - patientLevelPredictionDesignSummaryViewer
-      - patientLevelPredictionDesignSummaryServer
-      - patientLevelPredictionModelSummaryViewer
-      - patientLevelPredictionModelSummaryServer
-      - patientLevelPredictionSettingsViewer
-      - patientLevelPredictionSettingsServer
-      - patientLevelPredictionCovariateSummaryViewer
-      - patientLevelPredictionCovariateSummaryServer
-      - patientLevelPredictionCutoffViewer
-      - patientLevelPredictionCutoffServer
-      - patientLevelPredictionDiscriminationViewer
-      - patientLevelPredictionDiscriminationServer
-      - patientLevelPredictionCalibrationViewer
-      - patientLevelPredictionCalibrationServer
-      - patientLevelPredictionNbViewer
-      - patientLevelPredictionNbServer
-      - patientLevelPredictionValidationViewer
-      - patientLevelPredictionValidationServer
-  - title: "Decription module"
+    contents: has_concept("PatientLevelPrediction")
+  - title: "Characterization module"
     desc: >
-      Modules for the description analyses.
-    contents:
-      - characterizationHelperFile
-      - characterizationViewer
-      - characterizationServer
-      - characterizationAggregateFeaturesViewer
-      - characterizationAggregateFeaturesServer
-      - characterizationDechallengeRechallengeViewer
-      - characterizationDechallengeRechallengeServer
-      - characterizationIncidenceViewer
-      - characterizationIncidenceServer
-      - characterizationTableViewer
-      - characterizationTableServer
-      - characterizationTimeToEventViewer
-      - characterizationTimeToEventServer
+      Modules for the characterization analyses.
+    contents: has_concept("Characterization")
   - title: "About module"
     desc: >
       Modules for the information page.
-    contents:
-      - aboutHelperFile
-      - aboutViewer
-      - aboutServer
+    contents: has_concept("About")
   - title: "Cohort Generator module"
     desc: >
       Modules for the cohort generator package.
-    contents:
-      - cohortGeneratorHelperFile
-      - cohortGeneratorViewer
-      - cohortGeneratorServer
+    contents: has_concept("CohortGenerator")
   - title: "Estimator module"
     desc: >
-      Modules for the CohortMethod package.
-    contents:
-      - cohortMethodHelperFile
-      - cohortMethodViewer
-      - cohortMethodServer
-      - cohortMethodAttritionViewer
-      - cohortMethodAttritionServer
-      - cohortMethodCovariateBalanceViewer
-      - cohortMethodCovariateBalanceServer
-      - cohortMethodDiagnosticsSummaryViewer
-      - cohortMethodDiagnosticsSummaryServer
-      - cohortMethodForestPlotViewer
-      - cohortMethodForestPlotServer
-      - cohortMethodKaplanMeierViewer
-      - cohortMethodKaplanMeierServer
-      - cohortMethodPopulationCharacteristicsViewer
-      - cohortMethodPopulationCharacteristicsServer
-      - cohortMethodPowerViewer
-      - cohortMethodPowerServer
-      - cohortMethodPropensityModelViewer
-      - cohortMethodPropensityModelServer
-      - cohortMethodPropensityScoreDistViewer
-      - cohortMethodPropensityScoreDistServer
-      - cohortMethodResultsTableViewer
-      - cohortMethodResultsTableServer
-      - cohortMethodSubgroupsViewer
-      - cohortMethodSubgroupsServer
-      - cohortMethodSystematicErrorViewer
-      - cohortMethodSystematicErrorServer
-      - cohortMethodTitlePanelViewer
-      - cohortMethodTitlePanelServer
+      Modules for the CohortMethod, SCCS and Evidence Synthesis packages.
+    contents: has_concept("Estimation")
   - title: "Data diagnostics module"
     desc: >
       Modules for the DataDiagnostics package.
-    contents:
-      - dataDiagnosticDrillServer
-      - dataDiagnosticDrillViewer
-      - dataDiagnosticHelperFile
-      - dataDiagnosticServer
-      - dataDiagnosticSummaryServer
-      - dataDiagnosticSummaryViewer
-      - dataDiagnosticViewer
+    contents: has_concept("DataDiagnostics")
   - title: "Cohort Diagnostic module"
     desc: >
       Modules for the CohortDiagnostics package.
-    contents:
-      - cohortDiagnosticsSever 
-      - cohortDiagnosticsView
-      - cohortDiagnosticsHelperFile      
-      - cohortDiagCharacterizationView
-      - cohortCountsModule
-      - cohortCountsView
-      - cohortDefinitionsModule
-      - cohortDefinitionsView
-      - cohortOverlapView
-      - compareCohortCharacterizationView
-      - conceptsInDataSourceView
-      - createCdDatabaseDataSource
-      - databaseInformationView
-      - getCirceRenderedExpression
-      - getEnabledCdReports
-      - incidenceRatesView
-      - indexEventBreakdownView
-      - orpahanConceptsView
-      - timeDistributionsView
-      - visitContextView
-      - inclusionRulesView
-      
+    contents: has_concept("CohortDiagnostics")
+  - title: Cohort Diagnostics
+    desc: "Run cohort diagnostics, deploy shiny"
+    contents: has_concept("CohortDiagnostics")
+  - title: "Report module"
+    desc: "Report generating module"
+    contents: has_concept("Report")
+  - title: "PheValuator module"
+    desc: "PheValuator module"
+    contents: has_concept("PheValuator")
+  - title: Large Table
+    desc: "Utilities for tables that contain large amounts of rows"
+    contents: has_concept("LargeTables")
+  - title: Utils
+    desc: "Shared usable utility functions"
+    contents: has_concept("Utils")
+  - title: Example
+    desc: "Connection to example results database"
+    contents: has_concept("Example") 
+  - title: Home
+    desc: "Home module functions"
+    contents: has_concept("Home")   

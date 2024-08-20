@@ -1,0 +1,52 @@
+---
+title: "Characterization"
+author: "Nathan Hall"
+date: '`r Sys.Date()`'
+header-includes:
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyhead{}
+  - \fancyfoot[LE,RO]{\thepage}
+  - \renewcommand{\headrulewidth}{0.4pt}
+  - \renewcommand{\footrulewidth}{0.4pt}
+  - \fancyfoot[CO,CE]{OhdsiShinyModules Package Version `r  utils::packageVersion("OhdsiShinyModules")`}
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+  word_document:
+    toc: yes
+  pdf_document:
+    includes:
+      in_header: preamble.tex
+    number_sections: yes
+    toc: yes
+---
+
+```{=html}
+<!--
+%\VignetteEngine{knitr}
+%\VignetteIndexEntry{Characterization}
+-->
+```
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+Characterization, a fundamental aspect of observational health data research, serves as a cornerstone for understanding and analyzing populations based on a myriad of characteristics. The methodologies of characterization play a pivotal role in generating hypotheses about the determinants of health and disease by providing descriptive insights into population demographics, medical history, treatment patterns, and incidence rates of outcomes. There are various methods for characterization, including database-level characterization, cohort characterization, treatment pathways analysis, and incidence measurement. Each of these methods aims to describe populations relative to an event known as the index date, which anchors the analysis of baseline, pre-index, and post-index time periods. Through the lens of use-cases such as disease natural history, treatment utilization, and quality improvement, characterizing cohorts of patients empowers researchers to glean actionable insights from observational healthcare databases.
+
+# Features and Functionalities
+
+The Characterization module is dedicated to investigating these factors within and between cohorts, and it contains several useful features that allow for this exploration, including:
+
+1.  **Target Viewer**: Computes detailed results for target cohorts, offering a granular view of the cohort's demographics, conditions, drug exposures, and more. This enables a deeper understanding of the cohort's characteristics at various time points at or relative to the index date.
+2.  **Outcome Stratified**: For both target and outcome cohorts, the package calculates binary features during the designated time at risk. This analysis helps in identifying specific attributes or exposures that are present or absent in the cohort members, aiding in the differentiation/comparability between cohorts.
+3.  **Incidence Rate**: Utilizing the [CohortIncidence](https://github.com/OHDSI/CohortIncidence "CohortIncidence") R package, this set of analyses computes incidence rates for both target and outcome cohorts during the time at risk selected. This feature is essential for assessing the frequency of outcomes or conditions within the specified timeframe, providing a quantitative measure of risk or occurrence. Incidence measures are provided in both tabular and graphical form, and can be stratified across calendar year, age, and sex.
+4.  **Time to Event**: Generates plots for the number of events across different time periods (1, 30, or 365 days) for the selected target and outcome cohorts. These plots visualize the temporal distribution of events, allowing researchers to observe patterns over time and make temporal comparisons between cohorts.
+5.  **Dechallenge Rechallenge**: Offers the ability to compute dechallenge (withdrawal of a drug or treatment) and rechallenge (reintroduction) results. This analysis is critical for understanding the causality between exposures and outcomes, especially in pharmacovigilance studies and when adverse events following exposure to a drug may occur.
+
+# Utility and Application
+
+Characterization serves as a powerful tool for researchers aiming to dissect and understand the nuances of patient cohorts in observational health data. Its capabilities allow for the detailed examination of cohort attributes, the incidence of health outcomes, and the effects of treatment exposures over time. By facilitating a comprehensive analysis of target and comparator cohorts, Characterization enables researchers to draw meaningful conclusions about patient care, treatment efficacy, and health outcomes, thereby contributing to the advancement of evidence-based medicine. For more information on the Characterization R package, please see [here](https://github.com/OHDSI/Characterization "Characterization").

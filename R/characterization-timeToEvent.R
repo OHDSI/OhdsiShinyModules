@@ -17,164 +17,206 @@
 # limitations under the License.
 
 
-#' The module viewer for exploring time to event results 
-#'
-#' @details
-#' The user specifies the id for the module
-#'
-#' @param id  the unique reference id for the module
-#' 
-#' @return
-#' The user interface to the characterization time to event module
-#'
-#' @export
 characterizationTimeToEventViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    infoHelperViewer(
-      id = "helper",
-      helpLocation= system.file("characterization-www", "help-timeToEvent.html", package = utils::packageName())
-    ),
-    
-    # input component module
-    inputSelectionViewer(id = ns('input-selection')),
-    
-    shiny::conditionalPanel(
-      condition = 'input.generate != 0',
-      ns = shiny::NS(ns("input-selection")),
+    shiny::tabsetPanel(
+      type = 'pills',
+      id = ns('tteMainPanel'),
       
+      shiny::tabPanel(
+        title = "Time-to-event Plots",
+  
       shinydashboard::box(
         width = "100%",
-        title = shiny::tagList(shiny::icon("gear"), "Results"),
+        title = "",
         
-        shiny::fluidRow(
-          shiny::column(
-            width = 2,
-            shiny::uiOutput(ns('timeToEventPlotInputs'))
-          ),
-          shiny::column(
-            width = 10,
-            shinycssloaders::withSpinner(
-              shiny::plotOutput(ns('timeToEvent'))
-            )
+        shiny::uiOutput(ns('timeToEventPlotInputs')),
+        shinycssloaders::withSpinner(
+          shiny::plotOutput(ns('timeToEvent'))
           )
+        )
+      ),
+    
+    shiny::tabPanel(
+      title = "Time-to-event Table",
+      
+      shinydashboard::box(
+        status = 'info', 
+        width = '100%',
+        solidHeader = TRUE,
+        resultTableViewer(ns('tableResults'))
         )
       )
     )
-    
-    
   )
 }
 
 
-#' The module server for exploring time to event results 
-#'
-#' @details
-#' The user specifies the id for the module
-#'
-#' @param id  the unique reference id for the module
-#' @param connectionHandler the connection to the prediction result database
-#' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
-#' 
-#' @return
-#' The server to the prediction time to event module
-#'
-#' @export
 characterizationTimeToEventServer <- function(
   id, 
   connectionHandler,
-  resultDatabaseSettings
+  resultDatabaseSettings,
+  targetId,
+  outcomeId
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      # get the possible target ids
-      bothIds <- timeToEventGetIds(
-        connectionHandler,
-        resultDatabaseSettings
-      )
-
-      
-      # input selection component
-      inputSelected <- inputSelectionServer(
-        id = "input-selection", 
-        inputSettingList = list(
-          createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
-            varName = 'targetId',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Target: ',
-              choices = bothIds$targetIds,
-              #choicesOpt = list(style = rep_len("color: black;", 999)),
-              selected = bothIds$targetIds[1],
-              multiple = F,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          ),
-          
-          createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
-            varName = 'outcomeId',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Outcome: ',
-              choices = bothIds$outcomeIds,
-              #choicesOpt = list(style = rep_len("color: black;", 999)),
-              selected = bothIds$outcomeIds[1],
-              multiple = F,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          )
+      options <- shiny::reactive({
+        characterizationGetCaseSeriesOptions(
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          targetId = targetId(),
+          outcomeId = outcomeId()
         )
-      )
+      })
       
       allData <- shiny::reactive({
         getTimeToEventData(
-          targetId = inputSelected()$targetId,
-          outcomeId = inputSelected()$outcomeId,
+          targetId = targetId(),
+          outcomeId = outcomeId(),
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings
-        )
+        ) %>%
+          dplyr::mutate(targetName = options()$targetName,
+                        outcomeName = options()$outcomeName) %>%
+          dplyr::relocate("databaseName", .before = "databaseId") %>%
+          dplyr::relocate("targetName", .after = "databaseName") %>%
+          dplyr::relocate("outcomeName", .after = "targetName")
       })
+        
+      
+      characterizationTimeToEventColDefs <- function(){
+        result <- list(
+          databaseName = reactable::colDef(
+            header = withTooltip("Database",
+                                 "Name of the database"),
+            filterable = T
+          ),
+          databaseId = reactable::colDef(
+            header = withTooltip("Database ID",
+                                 "Unique ID of the database"),
+            filterable = T,
+            show = F
+          ),
+          targetCohortDefinitionId = reactable::colDef(
+            header = withTooltip("Target ID",
+                                 "Unique ID of the target cohort"),
+            filterable = T,
+            show = F
+          ),
+          targetName = reactable::colDef(
+            header = withTooltip("Target Name",
+                                 "Name of the target cohort"),
+            filterable = T
+          ),
+          outcomeCohortDefinitionId = reactable::colDef(
+            header = withTooltip("Outcome ID",
+                                 "Unique ID of the outcome cohort"),
+            filterable = T,
+            show = F
+          ),
+          outcomeName = reactable::colDef(
+            header = withTooltip("Outcome Name",
+                                 "Name of the outcome cohort"),
+            filterable = T
+          ),
+          outcomeType = reactable::colDef(
+            header = withTooltip("Outcome Type",
+                                 "Type of the outcome, either first or subsequent occurrence"),
+            filterable = T
+          ),
+          targetOutcomeType = reactable::colDef(
+            header = withTooltip("Target-Outcome Type",
+                                 "The timing of the event relative to the target era"),
+            filterable = T
+          ),
+          timeToEvent = reactable::colDef(
+            header = withTooltip("Time (in days) To Event",
+                                 "The time in days relative to target index until the event occurred"),
+            filterable = T
+          ),
+          numEvents = reactable::colDef(
+            header = withTooltip("# of Events",
+                                 "The number of events that occurred"),
+            filterable = T,
+            cell = function(value) {
+              # Add < if cencored
+              if (value < 0 ) paste("<", abs(value)) else value
+            }
+          ),
+          timeScale = reactable::colDef(
+            header = withTooltip("Time Scale",
+                                 "The time scale in which the events occurred"),
+            filterable = T
+          )
+        )
+        return(result)
+      }
+      
+      tableOutputs <- resultTableServer(
+        id = "tableResults", 
+        df = allData,
+        details = data.frame(
+          target = options()$targetName,
+          outcome = options()$outcomeName,
+          Analysis = 'Exposed Cases Summary - Time-to-event'
+        ),
+        downloadedFileName = 'time_to_event',
+        colDefsInput = characterizationTimeToEventColDefs()
+      )
       
       output$timeToEventPlotInputs <- shiny::renderUI({
         
         shiny::fluidPage(
           shiny::fluidRow(
             
-            shiny::checkboxGroupInput(
-              inputId = session$ns("databases"), 
+            shiny::selectInput(
+              inputId = session$ns("databases"),
               label = "Databases:",
-              choiceNames = unique(allData()$databaseName), 
-              choiceValues = unique(allData()$databaseName),
+              multiple = T, 
+              choices = unique(allData()$databaseName),
               selected = unique(allData()$databaseName)
-            ),
-            shiny::checkboxGroupInput(
-              inputId = session$ns("times"), 
-              label = "Timespan:",
-              choiceNames = unique(allData()$timeScale), 
-              choiceValues = unique(allData()$timeScale),
-              selected = unique(allData()$timeScale)
+              ),
+            
+            shiny::fluidRow(
+              shiny::column(
+                width = 3,
+                shiny::selectInput(
+                  inputId = session$ns("times"), 
+                  label = "Timespan:",
+                  multiple = T, 
+                  choices =  unique(allData()$timeScale),
+                  selected =  unique(allData()$timeScale)
+                )
+              ),
+              
+              shiny::column(
+                width = 3,
+                shiny::selectInput(
+                  inputId = session$ns("outcomeTypes"), 
+                  label = "Outcome occurrence type:",
+                  multiple = T, 
+                  choices =  unique(allData()$outcomeType),
+                  selected =  unique(allData()$outcomeType)
+                )
+              ),
+              
+              shiny::column(
+                width = 6,
+                shiny::selectInput(
+                  inputId = session$ns("targetOutcomeTypes"), 
+                  label = "Timing of outcome:",
+                  multiple = T, 
+                  choices =  unique(allData()$targetOutcomeType),
+                  selected =  unique(allData()$targetOutcomeType)
+                )
+              )
             )
+            
             
           )
         )
@@ -185,7 +227,9 @@ characterizationTimeToEventServer <- function(
           plotTimeToEvent(
             timeToEventData = allData, # reactive
             databases = input$databases,
-            times = input$times
+            times = input$times,
+            outcomeTypes = input$outcomeTypes,
+            targetOutcomeTypes = input$targetOutcomeTypes
           )
         )
     
@@ -193,61 +237,6 @@ characterizationTimeToEventServer <- function(
       return(invisible(NULL))
       
     }
-  )
-}
-
-timeToEventGetIds <- function(
-    connectionHandler,
-    resultDatabaseSettings
-){
-  
-  shiny::withProgress(message = 'Getting time to event T and O ids', value = 0, {
-  
-  sql <- "SELECT DISTINCT 
-     t.COHORT_NAME as target, TARGET_COHORT_DEFINITION_ID, 
-     o.COHORT_NAME as outcome, OUTCOME_COHORT_DEFINITION_ID 
-  FROM @schema.@c_table_prefixTIME_TO_EVENT tte
- inner join @schema.@cg_table_prefixCOHORT_DEFINITION t
-          on tte.TARGET_COHORT_DEFINITION_ID = t.COHORT_DEFINITION_ID
-   inner join @schema.@cg_table_prefixCOHORT_DEFINITION o
-          on tte.OUTCOME_COHORT_DEFINITION_ID = o.COHORT_DEFINITION_ID
-  ;"
-
-
-  shiny::incProgress(1/4, detail = paste("Fetching ids"))
-  
-  bothIds <- connectionHandler$queryDb(
-    sql = sql, 
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
-  )
-  
-  shiny::incProgress(3/4, detail = paste("Processing ids"))
-  
-  targetUnique <- bothIds %>% 
-    dplyr::select(c("targetCohortDefinitionId", "target")) %>%
-    dplyr::distinct()
-  
-  targetIds <- targetUnique$targetCohortDefinitionId
-  names(targetIds) <- targetUnique$target
-  
-  outcomeUnique <- bothIds %>% 
-    dplyr::select(c("outcomeCohortDefinitionId", "outcome")) %>%
-    dplyr::distinct()
-  
-  outcomeIds <- outcomeUnique$outcomeCohortDefinitionId
-  names(outcomeIds) <- outcomeUnique$outcome
-  
-  shiny::incProgress(4/4, detail = paste("Finished"))
-  
-  })
-  
-  return(
-    list(
-      targetIds = targetIds, 
-      outcomeIds = outcomeIds
-      )
   )
 }
 
@@ -286,13 +275,17 @@ getTimeToEventData <- function(
   
   })
   
+  #write.csv(data,'/Users/jreps/Documents/tte_data.csv')
+  
   return(data)
 }
 
 plotTimeToEvent <- function(
   timeToEventData,
   databases,
-  times
+  times,
+  outcomeTypes,
+  targetOutcomeTypes
 ){
   
   if(is.null(timeToEventData())){
@@ -302,14 +295,31 @@ plotTimeToEvent <- function(
   timeToEventData <- timeToEventData() %>% 
     dplyr::filter(.data$databaseName %in% databases)
   
-  if(is.null(timeToEventData)){
+  if(nrow(timeToEventData) == 0){
+    shiny::showNotification('No results for selected databases')
     return(NULL)
   }
   
   timeToEventData <- timeToEventData %>% 
     dplyr::filter(.data$timeScale %in% times)
   
-  if(is.null(timeToEventData)){
+  if(nrow(timeToEventData) == 0){
+    shiny::showNotification('No results for selected databases and times')
+    return(NULL)
+  }
+  
+  # remove censored data
+  timeToEventData <- timeToEventData %>% 
+    dplyr::filter(
+      .data$outcomeType %in% outcomeTypes &
+      .data$targetOutcomeType %in% targetOutcomeTypes &
+      .data$numEvents > 0
+      )
+  
+  # TODO plot censored as black?
+  
+  if(nrow(timeToEventData) == 0){
+    shiny::showNotification('No results for selection')
     return(NULL)
   }
   
@@ -320,7 +330,10 @@ plotTimeToEvent <- function(
   shiny::incProgress(1/2, detail = paste("Generating plot"))
   
   plot <- ggplot2::ggplot(
-    data = timeToEventData %>% dplyr::mutate(fillGroup = paste0(.data$outcomeType, '-', .data$targetOutcomeType)), 
+    data = timeToEventData %>% 
+      dplyr::mutate(
+        fillGroup = paste0(.data$outcomeType, '-', .data$targetOutcomeType)
+        ), 
     ggplot2::aes(
       x = .data$timeToEvent, 
       y = .data$numEvents,
@@ -329,21 +342,14 @@ plotTimeToEvent <- function(
       )
     ) +
     ggplot2::geom_bar(
-      #position="stacked",
       stat = "identity"
       ) +
-    #ggplot2::geom_text(
-    #  ggplot2::aes(
-    #    label = .data$numEvents
-    #    ), 
-    #  vjust = 1.6, 
-    #  color = "white", 
-    #  size = 3.5
-    #  ) +
     ggplot2::facet_wrap(ncol = nDatabases ,
       .data$timeScale ~ .data$databaseName , scales = 'free'
         ) +
-    ggplot2::theme_minimal()
+    ggplot2::theme_minimal() + 
+    ggplot2::guides(fill=ggplot2::guide_legend(title="Outcome Type")) + 
+    ggplot2::labs(y= "# of Events", x = "Time (days) to Event")
   
   shiny::incProgress(2/2, detail = paste("Finished"))
   

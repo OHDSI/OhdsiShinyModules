@@ -19,6 +19,7 @@
 #' Use for customizing UI
 #'
 #' @param id    Namespace Id - use namespaced id ns("orphanConcepts") inside diagnosticsExplorer module
+#' @family {CohortDiagnostics}
 #' @export
 orpahanConceptsView <- function(id) {
   ns <- shiny::NS(id)
@@ -122,8 +123,8 @@ orphanConceptsModule <- function(id,
     })
 
     databaseSubGrp <- ",
-    MAX(CASE WHEN oc.database_id = '@db_id_i' THEN oc.concept_count END) AS concept_count_@db_id_i,
-    MAX(CASE WHEN oc.database_id = '@db_id_i' THEN oc.concept_subjects END) AS subject_count_@db_id_i"
+    MAX(CASE WHEN oc.database_id = '@db_id_i' THEN oc.concept_count END) AS concept_count_@db_id_id,
+    MAX(CASE WHEN oc.database_id = '@db_id_i' THEN oc.concept_subjects END) AS subject_count_@db_id_id"
 
     sql <- "
     SELECT
@@ -170,11 +171,11 @@ orphanConceptsModule <- function(id,
                          "Vocabulary Id" = "c.vocabulary_id",
                          "Concept Code" = "c.concept_code")
       for (dbid in databaseIds) {
-        dbCols <- SqlRender::render(databaseSubGrp, db_id_i = dbid)
+        dbCols <- SqlRender::render(databaseSubGrp, db_id_i = dbid, db_id_id = gsub("-", "", dbid))
         dbSelectCols <- paste(dbSelectCols, dbCols)
 
-        columnIdCount <- SqlRender::snakeCaseToCamelCase(paste0("concept_count_", dbid))
-        columnIdSubject <- SqlRender::snakeCaseToCamelCase(paste0("subject_count_", dbid))
+        columnIdCount <- SqlRender::snakeCaseToCamelCase(paste0("concept_count_", gsub("-", "", dbid)))
+        columnIdSubject <- SqlRender::snakeCaseToCamelCase(paste0("subject_count_", gsub("-", "", dbid)))
 
         columnDefinitions[[columnIdCount]] <- reactable::colDef(name = "Records",
                                                                 cell = formatDataCellValueInDisplayTable(),
@@ -195,7 +196,7 @@ orphanConceptsModule <- function(id,
         )
 
         cNames <- names(sortByColumns)
-        sortByColumns <- c(sortByColumns, paste0("concept_count_", dbid), paste0("subject_count_", dbid))
+        sortByColumns <- c(sortByColumns, paste0("concept_count_", gsub("-", "", dbid)), paste0("subject_count_", gsub("-", "", dbid)))
         names(sortByColumns) <- c(cNames, paste(databaseName, "Records"), paste(databaseName, "Subjects"))
       }
 

@@ -1,7 +1,7 @@
 Package: OhdsiShinyModules
 Type: Package
 Title: Repository of Shiny Modules for OHDSI Result Viewers
-Version: 2.1.4
+Version: 3.0.0
 Authors@R: c(
   person("Jenna", "Reps", email = "jreps@its.jnj.com", role = c("aut", "cre")),
   person("Nathan", "Hall", role = c("aut")),
@@ -28,11 +28,13 @@ Imports:
     htmltools,
     lubridate,
     methods,
+    openxlsx,
     ParallelLogger,
     plotly,
     purrr,
     reactable,
     readr,
+    ReportGenerator,
     RJSONIO,
     rlang,
     rmarkdown,
@@ -40,6 +42,7 @@ Imports:
     shiny, 
     shinycssloaders,
     shinydashboard,
+    shinyglide,
     shinyWidgets,
     SqlRender,
     stringi,
@@ -58,6 +61,6 @@ Suggests:
     testthat,
     withr
 Remotes:
-    ohdsi/CirceR,
+    ohdsi/ReportGenerator,
     ohdsi/ResultModelManager
 RoxygenNote: 7.3.1

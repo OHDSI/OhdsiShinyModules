@@ -1,15 +1,15 @@
 createPredictionProtocol <- function(
     connectionHandler, 
     resultDatabaseSettings,
-  modelDesignId,
-  output,
-  intermediatesDir = file.path(tempdir(), 'plp-prot')
+    modelDesignId,
+    output,
+    intermediatesDir = file.path(tempdir(), 'plp-prot')
 ){
   
   #require('CirceR')
   # get the data
   #protocolLoc <- 'modules/prediction/documents/main.Rmd'
-  protocolLoc <- system.file('prediction-document', "main.Rmd", package = "OhdsiShinyModules")
+  protocolLoc <- system.file('patient-level-prediction-document', "main.Rmd", package = "OhdsiShinyModules")
   
   if(!dir.exists(intermediatesDir)){
     dir.create(intermediatesDir)

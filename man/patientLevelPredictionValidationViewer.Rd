@@ -18,3 +18,29 @@ The module viewer for exploring prediction validation results
 \details{
 The user specifies the id for the module
 }
+\seealso{
+Other {PatientLevelPrediction}: 
+\code{\link{patientLevelPredictionCalibrationServer}()},
+\code{\link{patientLevelPredictionCalibrationViewer}()},
+\code{\link{patientLevelPredictionCovariateSummaryServer}()},
+\code{\link{patientLevelPredictionCovariateSummaryViewer}()},
+\code{\link{patientLevelPredictionCutoffServer}()},
+\code{\link{patientLevelPredictionCutoffViewer}()},
+\code{\link{patientLevelPredictionDesignSummaryServer}()},
+\code{\link{patientLevelPredictionDesignSummaryViewer}()},
+\code{\link{patientLevelPredictionDiagnosticsServer}()},
+\code{\link{patientLevelPredictionDiagnosticsViewer}()},
+\code{\link{patientLevelPredictionDiscriminationServer}()},
+\code{\link{patientLevelPredictionDiscriminationViewer}()},
+\code{\link{patientLevelPredictionHelperFile}()},
+\code{\link{patientLevelPredictionModelSummaryServer}()},
+\code{\link{patientLevelPredictionModelSummaryViewer}()},
+\code{\link{patientLevelPredictionNbServer}()},
+\code{\link{patientLevelPredictionNbViewer}()},
+\code{\link{patientLevelPredictionServer}()},
+\code{\link{patientLevelPredictionSettingsServer}()},
+\code{\link{patientLevelPredictionSettingsViewer}()},
+\code{\link{patientLevelPredictionValidationServer}()},
+\code{\link{patientLevelPredictionViewer}()}
+}
+\concept{{PatientLevelPrediction}}

@@ -23,7 +23,7 @@
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' 
+#' @family {PatientLevelPrediction}
 #' @return
 #' The user interface to the prediction diagnostic module
 #'
@@ -62,7 +62,7 @@ patientLevelPredictionDiagnosticsViewer <- function(id) {
 #' @param modelDesignId the unique id for the model design
 #' @param connectionHandler the connection to the prediction result database
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
-#' 
+#' @family {PatientLevelPrediction}
 #' @return
 #' The server to the prediction diagnostic module
 #'

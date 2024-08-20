@@ -10,7 +10,7 @@
 #' whatever raw column names are passed in
 #' @param customColDefOptions A list of lists, where the inner lists are any custom options from
 #' reactable::colDef for each column 
-#'
+#' @family {Utils}
 #' @return A named list of reactable::colDef objects
 #' @export 
 #' 
@@ -55,7 +55,7 @@ createCustomColDefList <- function(rawColNames, niceColNames = NULL,
     
     result[[i]] <- do.call(reactable::colDef, colDefOptions)
   }
-  
+
   names(result) <- rawColNames
   
   return(result)
@@ -65,13 +65,32 @@ createCustomColDefList <- function(rawColNames, niceColNames = NULL,
 # examples
 # Define custom column definitions
 # customColDefs <- createCustomColDefList(
-#   rawColNames = mydf$raw,
-#   niceColNames = c("Name", "Age", "Country"),
-#   tooltipText = c("Person's Name", "Person's Age", "Country"),
+#   rawColNames = colnames(comb),
+#   niceColNames = c("Database Name",
+#                    "Covariate Name",
+#                    "Mean Target Before Matching", 
+#                    "Mean Comparator Before Matching",
+#                    "Abs Val StdDiff Before Matching",
+#                    "Mean Target After Matching",
+#                    "Mean Comparator After Matching", 
+#                    "Abs Val StdDiff After Matching"),
+#   tooltipText = c("The name of the database",
+#                   "The name of the covariate",
+#                   "Mean (Proportion) in Target Before Matching",
+#                   "Mean (Proportion) in Comparator Before Matching",
+#                   "Absolute Value of the Standardized Mean Difference Before Matching",
+#                   "Mean (Proportion) in Target After Matching",
+#                   "Mean (Proportion) in Comparator Before Matching",
+#                   "Absolute Value of the Standardized Mean Difference After Matching"),
 #   customColDefOptions = list(
 #     list(NULL),  # No aggregation for "Name" column
-#     list(aggregate = "mean"),  # Aggregate "Age" column using mean
-#     list(NULL)  # No aggregation for "Country" column
+#     list(NULL),  # Aggregate "Age" column using mean
+#     list(NULL),
+#     list(NULL),
+#     list(NULL),  # No aggregation for "Name" column
+#     list(NULL),  # Aggregate "Age" column using mean
+#     list(NULL),
+#     list(NULL)# No aggregation for "Country" column
 #   )
 # )
 
@@ -83,7 +102,7 @@ createCustomColDefList <- function(rawColNames, niceColNames = NULL,
 #' Make a label for an html button
 #'
 #' @param label The desired label for hte button
-#'
+#' @family {Utils}
 #' @return html code to make a button label
 #' @export
 #'

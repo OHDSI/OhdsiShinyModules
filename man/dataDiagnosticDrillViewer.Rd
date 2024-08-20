@@ -18,3 +18,13 @@ The module viewer for exploring data-diagnostic results in more detail
 \details{
 The user specifies the id for the module
 }
+\seealso{
+Other {DataDiagnostics}: 
+\code{\link{dataDiagnosticDrillServer}()},
+\code{\link{dataDiagnosticHelperFile}()},
+\code{\link{dataDiagnosticServer}()},
+\code{\link{dataDiagnosticSummaryServer}()},
+\code{\link{dataDiagnosticSummaryViewer}()},
+\code{\link{dataDiagnosticViewer}()}
+}
+\concept{{DataDiagnostics}}

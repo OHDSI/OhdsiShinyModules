@@ -120,7 +120,9 @@ plotTimeTrend <- function(timeTrend) {
 
 
 plotTimeToEventSccs <- function(timeToEvent) {
-  
+  if(nrow(timeToEvent) == 0){
+    shiny::validate('No Rows')
+  }
   events <- timeToEvent %>%
     dplyr::transmute(.data$week,
                      type = "Events",
@@ -173,24 +175,21 @@ plotTimeToEventSccs <- function(timeToEvent) {
 
 drawAttritionDiagram <- function(attrition) {
   
-  formatNumber <- function(x) {
-    return(formatC(x, big.mark = ","))
-  }
-  
+
   addStep <- function(data, attrition, row) {
     data$leftBoxText[length(data$leftBoxText) + 1] <- paste(attrition$description[row],
                                                             "\n",
                                                             "Cases: ",
-                                                            formatNumber(attrition$outcomeSubjects[row]),
+                                                            format(attrition$outcomeSubjects[row], scientific = FALSE),
                                                             "\n",
                                                             "Outcomes: ",
-                                                            formatNumber(attrition$outcomeEvents[row]),
+                                                            format(attrition$outcomeEvents[row], scientific = FALSE),
                                                             sep = "")
     data$rightBoxText[length(data$rightBoxText) + 1] <- paste("Cases: ",
-                                                              formatNumber(data$currentCases - attrition$outcomeSubjects[row]),
+                                                              format(data$currentCases - attrition$outcomeSubjects[row], scientific = FALSE),
                                                               "\n",
                                                               "Outcomes: ",
-                                                              formatNumber(data$currentOutcomes - attrition$outcomeEvents[row]),
+                                                              format(data$currentOutcomes - attrition$outcomeEvents[row], scientific = FALSE),
                                                               sep = "")
     data$currentCases <- attrition$outcomeSubjects[row]
     data$currentOutcomes <- attrition$outcomeEvents[row]
@@ -199,10 +198,10 @@ drawAttritionDiagram <- function(attrition) {
   
   data <- list(leftBoxText = c(paste("All outcomes occurrences:\n",
                                      "Cases: ",
-                                     formatNumber(attrition$outcomeSubjects[1]),
+                                     format(attrition$outcomeSubjects[1], scientific = FALSE),
                                      "\n",
                                      "Outcomes: ",
-                                     formatNumber(attrition$outcomeEvents[1]),
+                                     format(attrition$outcomeEvents[1], scientific = FALSE),
                                      sep = "")),
                rightBoxText = c(""),
                currentCases = attrition$outcomeSubjects[1],
@@ -300,12 +299,23 @@ drawAttritionDiagram <- function(attrition) {
 }
 
 plotEventDepObservation <- function(eventDepObservation, maxMonths = 12) {
+  if(nrow(eventDepObservation) == 0){
+    shiny::validate('No Rows')
+  }
+  
   eventDepObservation <- eventDepObservation %>%
     dplyr::filter(.data$monthsToEnd <= maxMonths) %>%
     dplyr::mutate(
       outcomes = pmax(0, .data$outcomes),
       censoring = ifelse(.data$censored == 1, "Censored", "Uncensored")
     )
+  if(nrow(eventDepObservation) == 0){
+    shiny::validate('No Rows after filtering')
+  }
+  if(is.infinite(max(eventDepObservation$monthsToEnd))){
+    shiny::validate('Infinite max')
+  }
+  
   timeBreaks <- 0:ceiling(max(eventDepObservation$monthsToEnd))
   timeLabels <- timeBreaks * 30.5
   
@@ -335,7 +345,20 @@ plotEventDepObservation <- function(eventDepObservation, maxMonths = 12) {
 }
 
 plotSpanning <- function(spanning, type = "age") {
+  
+  if(nrow(spanning) == 0){
+    shiny::validate('No rows')
+  }
+  
   if (type == "age") {
+    
+    if(is.infinite(min(spanning$ageMonth))){
+      shiny::validate('infinte min age month')
+    }
+    if(is.infinite(max(spanning$ageMonth))){
+      shiny::validate('infinte max age month')
+    }
+    
     spanning <- spanning %>%
       dplyr::mutate(x = .data$ageMonth)
     labels <- seq(ceiling(min(spanning$ageMonth) / 12), floor(max(spanning$ageMonth) / 12))
@@ -537,7 +560,16 @@ cyclicSplineDesign <- function(x, knots, ord = 4) {
   X1
 }
 
-plotControlEstimates <- function(controlEstimates) {
+plotControlEstimates <- function(
+    controlEstimates, 
+    ease = NULL
+    ) {
+    if(nrow(controlEstimates) == 0){
+      shiny::validate('No rows')
+    } 
+  
+  titleText <- paste('Ease: ', ease)
+  
   size <- 2
   labelY <- 0.7
   d <- rbind(data.frame(yGroup = "Uncalibrated",
@@ -556,7 +588,10 @@ plotControlEstimates <- function(controlEstimates) {
   d <- d[!is.na(d$ci95Lb),]
   d <- d[!is.na(d$ci95Ub),]
   if (nrow(d) == 0) {
-    return(NULL)
+    shiny::validate('No rows')
+  }
+  if (nrow(d) == 1) {
+    shiny::validate('Only one row so cannot aggregate')
   }
   d$Group <- as.factor(d$trueRr)
   d$Significant <- d$ci95Lb > d$trueRr | d$ci95Ub < d$trueRr
@@ -630,7 +665,8 @@ plotControlEstimates <- function(controlEstimates) {
                    strip.text.x = theme,
                    strip.text.y = theme,
                    strip.background = ggplot2::element_blank(),
-                   legend.position = "none")
+                   legend.position = "none") +
+    ggplot2::ggtitle(label = titleText)
   return(plot)
 }
 

@@ -19,3 +19,9 @@ The phevaluator main module server
 \description{
 The module server for the main phevaluator module
 }
+\seealso{
+Other {PheValuator}: 
+\code{\link{phevaluatorHelperFile}()},
+\code{\link{phevaluatorViewer}()}
+}
+\concept{{PheValuator}}
