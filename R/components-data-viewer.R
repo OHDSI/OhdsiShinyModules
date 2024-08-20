@@ -12,7 +12,7 @@
 #' @param boxTitle the title added to the box 
 #' @family {Utils}
 #' @return shiny module UI
-#'
+#' @family {Utils}
 resultTableViewer <- function(
     id = "result-table",
     downloadedFileName = NULL,
@@ -161,7 +161,7 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param groupBy The columns to group by 
 #' @family {Utils}
 #' @return shiny module server
-#'
+#' @family {Utils}
 resultTableServer <- function(
     id, #string
     df, #data.frame

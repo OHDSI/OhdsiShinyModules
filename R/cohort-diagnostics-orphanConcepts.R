@@ -17,7 +17,7 @@
 #' Orphan Concepts View
 #' @description
 #' Use for customizing UI
-#'
+#' @family {CohortDiagnostics}
 #' @param id    Namespace Id - use namespaced id ns("orphanConcepts") inside diagnosticsExplorer module
 #' @family {CohortDiagnostics}
 #' @export
