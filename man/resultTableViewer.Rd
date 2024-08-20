@@ -4,12 +4,18 @@
 \alias{resultTableViewer}
 \title{Result Table Viewer}
 \usage{
-resultTableViewer(id = "result-table", downloadedFileName = NULL)
+resultTableViewer(
+  id = "result-table",
+  downloadedFileName = NULL,
+  boxTitle = "Table"
+)
 }
 \arguments{
 \item{id}{string}
 
 \item{downloadedFileName}{string, desired name of downloaded data file. can use the name from the module that is being used}
+
+\item{boxTitle}{the title added to the box}
 }
 \value{
 shiny module UI
@@ -18,6 +24,14 @@ shiny module UI
 Result Table Viewer
 }
 \seealso{
+Other {Utils}: 
+\code{\link{createCustomColDefList}()},
+\code{\link{datasourcesHelperFile}()},
+\code{\link{datasourcesServer}()},
+\code{\link{datasourcesViewer}()},
+\code{\link{makeButtonLabel}()},
+\code{\link{resultTableServer}()}
+
 Other {Utils}: 
 \code{\link{createCustomColDefList}()},
 \code{\link{datasourcesHelperFile}()},

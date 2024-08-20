@@ -1,5 +1,5 @@
-#remotes::install_github('ohdsi/OhdsiShinyModules', ref = 'develop')
-#remotes::install_github("ohdsi/ShinyAppBuilder", ref = "develop")
+#remotes::install_github('ohdsi/OhdsiShinyModules', ref = 'estimation')
+#remotes::install_github("ohdsi/ShinyAppBuilder", ref = "estimation")
 library(dplyr)
 library(ShinyAppBuilder) # need to install if you do not have it 
 library(markdown)
@@ -20,6 +20,11 @@ if(!dir.exists('./drivers')){
 connectionDetails <- OhdsiShinyModules::getExampleConnectionDetails()
 schema <- "main"
 
+#Sys.setenv(RESULTS_SERVER = system.file("extdata", "results.sqlite", package = "OhdsiShinyModules"))
+#Sys.unsetenv('RESULTS_USER')
+#Sys.unsetenv('RESULTS_PASSWORD')
+#Sys.setenv(RESULTS_DBMS = "sqlite")
+
 # Specify the config - create a new one and then add 
 # each shiny module you want to include
 config <- initializeModuleConfig() %>%
@@ -36,27 +41,21 @@ config <- initializeModuleConfig() %>%
     createDefaultCohortDiagnosticsConfig()
   ) %>%
   addModuleConfig(
+    createDefaultEstimationConfig()
+  )  %>%
+  addModuleConfig(
     createDefaultCharacterizationConfig()
   ) %>%
   addModuleConfig(
     createDefaultPredictionConfig()
   ) %>%
   addModuleConfig(
-    createDefaultCohortMethodConfig()
-  ) %>%
-  addModuleConfig(
-    createDefaultSccsConfig()
-  ) %>%
-  #addModuleConfig(
-  #  createDefaultEvidenceSynthesisConfig()
-  #) %>%
-  addModuleConfig(
     ShinyAppBuilder::createDefaultReportConfig()
     )
 
 # create result schema settings
 resultDatabaseSettings <- createDefaultResultDatabaseSettings(
-  schema = schema 
+  schema = schema
 )
 
 # now create the shiny app based on the config file and view the results
@@ -69,5 +68,3 @@ ShinyAppBuilder::createShinyApp(
   title = 'Testing OhdsiShinyModules with ShinyAppBuilder',
   protocolLink = 'http://ohdsi.org'
 )
-
-

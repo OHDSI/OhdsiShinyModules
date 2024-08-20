@@ -17,160 +17,254 @@
 # limitations under the License.
 
 
-#' The module viewer for exploring Dechallenge Rechallenge results 
-#'
-#' @details
-#' The user specifies the id for the module
-#'
-#' @param id  the unique reference id for the module
-#' 
-#' @return
-#' The user interface to the description Dechallenge Rechallenge module
-#'
-#' @export
 characterizationDechallengeRechallengeViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-
-    
-    # input component module
-    inputSelectionViewer(id = ns('input-selection')),
-    
-    shiny::conditionalPanel(
-      condition = 'input.generate != 0',
-      ns = shiny::NS(ns("input-selection")),
-      
-      resultTableViewer(ns('tableResults'))
+        shiny::uiOutput(ns('warning')),
         
-    
-    )
+        shinydashboard::box(
+          status = 'info', 
+          width = '100%',
+          solidHeader = TRUE,
+        resultTableViewer(ns('tableResults'))
+        )
   )
 }
 
-
-#' The module server for exploring Dechallenge Rechallenge results 
-#'
-#' @details
-#' The user specifies the id for the module
-#'
-#' @param id  the unique reference id for the module
-#' @param connectionHandler the connection to the prediction result database
-#' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
-#' 
-#' @return
-#' The server to the Dechallenge Rechallenge module
-#'
-#' @export
 characterizationDechallengeRechallengeServer <- function(
   id, 
   connectionHandler,
-  resultDatabaseSettings
+  resultDatabaseSettings,
+  targetId,
+  outcomeId
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-
-      # get the possible target ids
-      bothIds <- dechalRechalGetIds(
-        connectionHandler,
-        resultDatabaseSettings
-      )
       
-      # input selection component
-      inputSelected <- inputSelectionServer(
-        id = "input-selection", 
-        inputSettingList = list(
-          createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
-            varName = 'targetId',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Target: ',
-              choices = bothIds$targetIds,
-              #choicesOpt = list(style = rep_len("color: black;", 999)),
-              selected = bothIds$targetIds[1],
-              multiple = F,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          ),
-          
-          createInputSetting(
-            rowNumber = 1,                           
-            columnWidth = 6,
-            varName = 'outcomeId',
-            uiFunction = 'shinyWidgets::pickerInput',
-            uiInputs = list(
-              label = 'Outcome: ',
-              choices = bothIds$outcomeIds,
-              #choicesOpt = list(style = rep_len("color: black;", 999)),
-              selected = bothIds$outcomeIds[1],
-              multiple = F,
-              options = shinyWidgets::pickerOptions(
-                actionsBox = TRUE,
-                liveSearch = TRUE,
-                size = 10,
-                liveSearchStyle = "contains",
-                liveSearchPlaceholder = "Type here to search",
-                virtualScroll = 50
-              )
-            )
-          )
+      options <- shiny::reactive({
+        characterizationGetCaseSeriesOptions(
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          targetId = targetId(),
+          outcomeId = outcomeId()
         )
-      )
+      })
+      
+
       
       # fetch data when targetId changes
       allData <-shiny::reactive({
         getDechalRechalInputsData(
-          targetId = inputSelected()$targetId,
-          outcomeId = inputSelected()$outcomeId,
+          targetId = targetId(),
+          outcomeId = outcomeId(),
           connectionHandler = connectionHandler,
           resultDatabaseSettings
         )
       })
+      
+      
+      # warning when not unique
+      targetUniquePeople <- shiny::reactive({
+        isCohortUniquePeople(
+          connectionHandler = connectionHandler, 
+          resultDatabaseSettings = resultDatabaseSettings,
+          cohortId = targetId()
+        )
+      })
+      
+      outcomeUniquePeople <- shiny::reactive({
+        isCohortUniquePeople(
+          connectionHandler = connectionHandler, 
+          resultDatabaseSettings = resultDatabaseSettings,
+          cohortId = outcomeId()
+        )
+      })
+      
+      output$warning <- shiny::renderUI(
+        if(targetUniquePeople() || outcomeUniquePeople()){
+            shinydashboard::box(
+              status = 'warning', 
+              width = '100%',
+              title = shiny::span( shiny::icon("triangle-exclamation"),'Warnings'),
+              solidHeader = TRUE,
+              shiny::p(
+                ifelse(targetUniquePeople(),
+                       'WARNING: The target cohort does not have multiple records per person, so observing rechallenge attempts not possible.',
+                       '') 
+              ),
+              shiny::p(
+                ifelse(outcomeUniquePeople(),
+                       'WARNING: The outcome cohort does not have multiple records per person, so observing rechallenge attempts not possible.',
+                       '') 
+              )
+            )
+        } else{
+          shiny::renderUI(shiny::div())
+        }
+      )
 
-          #databases(allData$databaseId)
-          #dechallengeStopInterval(allData$dechallengeStopInterval)
-          #dechallengeEvaluationWindow(allData$dechallengeEvaluationWindow)
+
+      characteriationDechalRechalColDefs <- function(){
+        result <- list(
+          databaseName = reactable::colDef(
+            header = withTooltip("Database",
+                                 "Name of the database"),
+            filterable = T
+          ),
+          databaseId = reactable::colDef(
+            show = F
+          ),
+          targetCohortDefinitionId = reactable::colDef(
+            show = F
+          ),
+          outcomeCohortDefinitionId = reactable::colDef(
+            show = F
+          ),
+          dechallengeStopInterval = reactable::colDef(
+            header = withTooltip("Dechallenge Stop Interval",
+                                 "An integer specifying the how much time to add to the cohort_end when determining whether the event starts during cohort and ends after"),
+            filterable = T
+          ),
+          dechallengeEvaluationWindow = reactable::colDef(
+            header = withTooltip("Dechallenge Evaluation Window",
+                                 "A period of time evaluated for outcome recurrence after discontinuation of exposure, among patients with challenge outcomes"),
+            filterable = T
+          ), 
+          numExposureEras = reactable::colDef(
+            header = withTooltip("# of Exposure Eras",
+                                 "Distinct number of exposure events (i.e. drug eras) in a given target cohort"),
+            filterable = T,
+            cell = function(value) {
+              # Add < if cencored
+              if (value < 0 ) paste("<", abs(value)) else abs(value)
+            }
+          ),
+          numPersonsExposed = reactable::colDef(
+            header = withTooltip("# of Exposed Persons",
+                                 "Distinct nuber of people exposed in target cohort. A person must have at least 1 day exposure to be included"),
+            filterable = T,
+            cell = function(value) {
+              # Add < if cencored
+              if (value < 0 ) paste("<", abs(value)) else abs(value)
+            }
+          ),
+          numCases = reactable::colDef(
+            header = withTooltip("# of Cases",
+                                 "Distinct number of persons in outcome cohort. A person must have at least 1 day of observation time to be included"),
+            filterable = T,
+            cell = function(value) {
+              # Add < if cencored
+              if (value < 0 ) paste("<", abs(value)) else abs(value)
+            }
+          ),
+          dechallengeAttempt = reactable::colDef(
+            header = withTooltip("# of Dechallenge Attempts",
+                                 "Distinct count of people with observable time after discontinuation of the exposure era during which the challenge outcome occurred"),
+            filterable = T,
+            cell = function(value) {
+              # Add < if cencored
+              if (value < 0 ) paste("<", abs(value)) else abs(value)
+            }
+          ),
+          dechallengeFail = reactable::colDef(
+            header = withTooltip("# of Dechallenge Fails",
+                                 "Among people with challenge outcomes, the distinct number of people with outcomes during dechallengeEvaluationWindow"),
+            filterable = T,
+            cell = function(value) {
+              # Add < if cencored
+              if (value < 0 ) paste("<", abs(value)) else abs(value)
+            }
+          ),
+          dechallengeSuccess = reactable::colDef(
+            header = withTooltip("# of Dechallenge Successes",
+                                 "Among people with challenge outcomes, the distinct number of people without outcomes during the dechallengeEvaluationWindow"),
+            filterable = T,
+            cell = function(value) {
+              # Add < if cencored
+              if (value < 0 ) paste("<", abs(value)) else abs(value)
+            }
+          ),
+          rechallengeAttempt = reactable::colDef(
+            header = withTooltip("# of Rechallenge Attempts",
+                                 "Number of people with a new exposure era after the occurrence of an outcome during a prior exposure era"),
+            filterable = T,
+            cell = function(value) {
+              # Add < if cencored
+              if (value < 0 ) paste("<", abs(value)) else abs(value)
+            }
+          ),
+          rechallengeFail = reactable::colDef(
+            header = withTooltip("# of Rechallenge Fails",
+                                 "Number of people with a new exposure era during which an outcome occurred, after the occurrence of an outcome during a prior exposure era"),
+            filterable = T,
+            cell = function(value) {
+              # Add < if cencored
+              if (value < 0 ) paste("<", abs(value)) else abs(value)
+            }
+          ),
+          rechallengeSuccess = reactable::colDef(
+            header = withTooltip("# of Rechallenge Successes",
+                                 "Number of people with a new exposure era during which an outcome did not occur, after the occurrence of an outcome during a prior exposure era"),
+            filterable = T,
+            cell = function(value) {
+              # Add < if cencored
+              if (value < 0 ) paste("<", abs(value)) else abs(value)
+            }
+          ),
+          pctDechallengeAttempt = reactable::colDef(
+            header = withTooltip("% of Dechallenge Attempts",
+                                 "Percent of people with observable time after discontinuation of the exposure era during which the challenge outcome occurred"),
+            filterable = T,
+            #format = reactable::colFormat(digits = 2, percent = T),
+            format = reactable::colFormat(digits = 2, percent = T)
+          ),
+          pctDechallengeSuccess = reactable::colDef(
+            header = withTooltip("% of Dechallenge Success",
+                                 "Among people with challenge outcomes, the percent of people with outcomes during dechallengeEvaluationWindow"),
+            filterable = T,
+            format = reactable::colFormat(digits = 2, percent = T)
+          ),
+          pctDechallengeFail = reactable::colDef(
+            header = withTooltip("% of Dechallenge Fail",
+                                 "Among people with challenge outcomes, the percent of people without outcomes during the dechallengeEvaluationWindow"),
+            filterable = T,
+            format = reactable::colFormat(digits = 2, percent = T)
+          ),
+          pctRechallengeAttempt = reactable::colDef(
+            header = withTooltip("% of Rechallenge Attempts",
+                                 "Percent of people with a new exposure era after the occurrence of an outcome during a prior exposure era"),
+            filterable = T,
+            format = reactable::colFormat(digits = 2, percent = T)
+          ),
+          pctRechallengeSuccess = reactable::colDef(
+            header = withTooltip("% of Rechallenge Success",
+                                 "Percent of people with a new exposure era during which an outcome occurred, after the occurrence of an outcome during a prior exposure era"),
+            filterable = T,
+            format = reactable::colFormat(digits = 2, percent = T)
+          ),
+          pctRechallengeFail = reactable::colDef(
+            header = withTooltip("% of Rechallenge Fail",
+                                 "Percent of people with a new exposure era during which an outcome did not occur, after the occurrence of an outcome during a prior exposure era"),
+            filterable = T, 
+            format = reactable::colFormat(digits = 2, percent = T)
+          )
+        )
+        return(result)
+      }
           
       tableOutputs <- resultTableServer(
         id = "tableResults", 
         df = allData,
-        colDefsInput = list(  
-          targetCohortDefinitionId = reactable::colDef(show = F),
-          databaseId = reactable::colDef(show = F),
-          outcomeCohortDefinitionId = reactable::colDef(show = F),
-          
-          databaseName = reactable::colDef(name = 'Database'),
-          
-          pctDechallengeAttempt = reactable::colDef(
-            format = reactable::colFormat(digits = 2, percent = T)
-          ),
-          pctDechallengeSuccess = reactable::colDef(
-            format = reactable::colFormat(digits = 2, percent = T)
-          ),
-          pctDechallengeFail = reactable::colDef(
-            format = reactable::colFormat(digits = 2, percent = T)
-          ),
-          pctRechallengeAttempt = reactable::colDef(
-            format = reactable::colFormat(digits = 2, percent = T)
-          ),
-          pctRechallengeSuccess = reactable::colDef(
-            format = reactable::colFormat(digits = 2, percent = T)
-          ),
-          pctRechallengeFail = reactable::colDef(
-            format = reactable::colFormat(digits = 2, percent = T)
-          )
-          ),
+        details = data.frame(
+          target = options()$targetName,
+          outcome = options()$outcomeName,
+          Analysis = 'Exposed Cases Summary - Dechallenge-Rechallenge'
+        ),
+        downloadedFileName = 'dechallege-rechallenge',
+        colDefsInput = characteriationDechalRechalColDefs(),
         addActions = c('fails')
       )
       
@@ -179,8 +273,8 @@ characterizationDechallengeRechallengeServer <- function(
         if(!is.null(tableOutputs$actionType())){
           if(tableOutputs$actionType() == 'fails'){
             result <- getDechalRechalFailData(
-              targetId = inputSelected()$targetId,
-              outcomeId = inputSelected()$outcomeId,
+              targetId = targetId(),
+              outcomeId = outcomeId(),
               databaseId = allData()$databaseId[tableOutputs$actionIndex()$index], # update?
               dechallengeStopInterval = allData()$dechallengeStopInterval[tableOutputs$actionIndex()$index],
               dechallengeEvaluationWindow = allData()$dechallengeEvaluationWindow[tableOutputs$actionIndex()$index],
@@ -201,7 +295,7 @@ characterizationDechallengeRechallengeServer <- function(
               )
             )
             } else{
-              showNotification("No fails to display")
+              shiny::showNotification("No fails to display")
             }
           }
         }
@@ -223,6 +317,7 @@ characterizationDechallengeRechallengeServer <- function(
   )
 }
 
+# can delete?
 dechalRechalGetIds <- function(
     connectionHandler,
     resultDatabaseSettings
@@ -370,6 +465,33 @@ getDechalRechalFailData <- function(
   
   return(data)
   
+}
+
+isCohortUniquePeople <- function(
+    connectionHandler, 
+    resultDatabaseSettings,
+    cohortId
+) {
+  
+  sql <- "SELECT 
+  cc.database_id, cc.cohort_id, cc.cohort_entries, cc.cohort_subjects
+  FROM @schema.@cg_table_prefixCOHORT_COUNT cc
+  where cc.cohort_id = @cohort_id
+  ;"
+  res <- tryCatch({connectionHandler$queryDb(
+      sql = sql,
+      schema = resultDatabaseSettings$schema,
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+      cohort_id = cohortId
+  )}, error = function(e){return(NULL)}
+  )
+  
+  # if table is missing the warning will not happen
+  if(is.null(res)){
+    return(T)
+  }else{
+    return(sum(res$cohortEntries == res$cohortSubjects) == nrow(res))
+  }
 }
 
 plotDechalRechal <- function(

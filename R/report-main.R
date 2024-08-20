@@ -21,7 +21,7 @@
 #'
 #' @details
 #' Returns the location of the report helper file
-#' 
+#' @family {Report}
 #' @return
 #' string location of the report helper file
 #'
@@ -37,7 +37,7 @@ reportHelperFile <- function(){
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' 
+#' @family {Report}
 #' @return
 #' The user interface to the home page module
 #'
@@ -104,7 +104,7 @@ reportViewer <- function(
 #' @param username username for the connection to the results for quarto
 #' @param password password for the connection to the results for quarto
 #' @param dbms dbms for the connection to the results for quarto
-#' 
+#' @family {Report}
 #' @return
 #' The server for the shiny app home
 #'
@@ -116,7 +116,7 @@ reportServer <- function(
     server = Sys.getenv("RESULTS_SERVER"), 
     username = Sys.getenv("RESULTS_USER"), 
     password = Sys.getenv("RESULTS_PASSWORD"), 
-    dbms = "postgresql"
+    dbms = Sys.getenv("RESULTS_DBMS")
     ) {
   shiny::moduleServer(
     id,
@@ -125,7 +125,9 @@ reportServer <- function(
       # get input options
       tnos <- getTandOs(
         connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
+        resultDatabaseSettings = resultDatabaseSettings, 
+        includeCohortIncidence = F, # turning off for speed
+        includeSccs = F # turning off for speed
       )
       
       ## update input selectors
@@ -226,8 +228,13 @@ reportServer <- function(
           }
           subsetTargets <- tnos$groupedTs[[which(unlist(lapply(tnos$groupedTs, function(x) ifelse(is.null(x$cohortId), F, x$cohortId == input$targetId))))]]$subsets
           ind <- !is.na(subsetTargets$subsetId)
-          cts <- subsetTargets$subsetId[ind]
-          names(cts) <- subsetTargets$targetName[ind]
+          if(sum(ind)>0){
+            cts <- subsetTargets$subsetId[ind]
+            names(cts) <- subsetTargets$targetName[ind]
+          } else{
+            cts <- ''
+            names(cts) <- 'No indication'
+          }
           cmTargets(cts)
         }
       )
@@ -312,10 +319,18 @@ reportServer <- function(
           if(!is.null(input$cmSubsetId) & !is.null(input$targetId)){
             if(input$cmSubsetId != ''){
               multipler <- ifelse(input$cmSubsetId == 0, 1, 1000)
-              temp <- tnos$cs[[which(names(tnos$cs) == as.double(input$targetId)*multipler + as.double(input$cmSubsetId))]]
-              comps <- temp$comparatorId
-              names(comps) <- temp$comparatorName
-              comparators(comps)
+              if(length(which(names(tnos$cs) == as.double(input$targetId)*multipler + as.double(input$cmSubsetId)))>0){
+                temp <- tnos$cs[[which(names(tnos$cs) == as.double(input$targetId)*multipler + as.double(input$cmSubsetId))]]
+                comps <- temp$comparatorId
+                names(comps) <- temp$comparatorName
+                comparators(comps)
+              } else{
+                comps <- ''
+                names(comps) <- 'No Comparator'
+                comparators(comps)
+              }
+            } else{
+              shiny::showNotification('No indication available')
             }
           }
 
@@ -415,10 +430,21 @@ reportServer <- function(
           if(is.null(input$targetId)){
             return(NULL)
           }
-          temp <- tnos$tos[[which(names(tnos$tos) == input$targetId)]]
-          os <- temp$outcomeId
-          names(os) <- temp$outcomeName
-          outcomes(os)
+          
+          multipler <- ifelse(input$cmSubsetId == 0, 1, 1000)
+          cmTargetId <- as.double(input$targetId)*multipler + as.double(input$cmSubsetId)
+            
+          if(length(which(names(tnos$tos) %in% c(input$targetId, cmTargetId) ))>0){
+            temp <- tnos$tos[[which(names(tnos$tos) %in% c(input$targetId, cmTargetId))[1] ]]
+            os <- temp$outcomeId
+            names(os) <- temp$outcomeName
+            outcomes(os)
+          } else{
+            os <- ''
+            names(os) <- 'None'
+            outcomes(os)
+            shiny::showNotification('No Outcomes')
+          }
         }
       )
       
@@ -585,7 +611,8 @@ reportServer <- function(
               width = 6,
               shiny::dateRangeInput(
                 inputId = session$ns('dateRestriction'), 
-                label = 'Study date restriction'
+                label = 'Study date restriction', 
+                start = '1990-01-01'
               )
             ),
             shiny::column(
@@ -733,49 +760,84 @@ reportServer <- function(
 
 getTandOs <- function(
     connectionHandler,
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    includeCharacterization = T,
+    includeCohortIncidence = T,
+    includeCohortMethod = T,
+    includePrediction = T,
+    includeSccs = T
 ){
   
   # get cohorts
-  sql <- 'select * from @schema.@cg_table_prefixcohort_definition;'
+  sql <- 'select distinct * from @schema.@cg_table_prefixcohort_definition order by cohort_name;'
   cg <- connectionHandler$queryDb(
     sql = sql,
     schema = resultDatabaseSettings$schema,
     cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
   
-  characterization <- tryCatch(
-    {nrow(connectionHandler$queryDb(
-      'select * from @schema.@c_table_prefixcohort_details limit 1;', 
-      schema = resultDatabaseSettings$schema,
-      c_table_prefix = resultDatabaseSettings$cTablePrefix
-    ))>=0},
-    error = function(e){return(F)}
-  )
-  cohortIncidence <- tryCatch(
-    {nrow(connectionHandler$queryDb(
-      'select * from @schema.@ci_table_prefixincidence_summary limit 1;',
-      schema = resultDatabaseSettings$schema,
-      ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix
-    ))>=0},
-    error = function(e){return(F)}
-  )
-  cohortMethod <- tryCatch(
-    {nrow(connectionHandler$queryDb(
-      'select * from @schema.@cm_table_prefixtarget_comparator_outcome limit 1;',
-      schema = resultDatabaseSettings$schema,
-      cm_table_prefix = resultDatabaseSettings$cmTablePrefix
-    ))>=0},
-    error = function(e){return(F)}
-  )
-  prediction <- tryCatch(
-    {nrow(connectionHandler$queryDb(
-      'select * from @schema.@plp_table_prefixmodel_designs limit 1;',
-      schema = resultDatabaseSettings$schema,
-      plp_table_prefix = resultDatabaseSettings$plpTablePrefix
-    ))>=0},
-    error = function(e){return(F)}
-  )
+  if(includeCharacterization){
+    characterization <- tryCatch(
+      {nrow(connectionHandler$queryDb(
+        'select * from @schema.@c_table_prefixcohort_details limit 1;', 
+        schema = resultDatabaseSettings$schema,
+        c_table_prefix = resultDatabaseSettings$cTablePrefix
+      ))>=0},
+      error = function(e){return(F)}
+    )
+  } else{
+    characterization <- F
+  }
+    
+  if(includeCohortIncidence){
+    cohortIncidence <- tryCatch(
+      {nrow(connectionHandler$queryDb(
+        'select * from @schema.@ci_table_prefixincidence_summary limit 1;',
+        schema = resultDatabaseSettings$schema,
+        ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+      ))>=0},
+      error = function(e){return(F)}
+    )
+  } else{
+    cohortIncidence <- F
+  }
+  
+  if(includeCohortMethod){
+    cohortMethod <- tryCatch(
+      {nrow(connectionHandler$queryDb(
+        'select * from @schema.@cm_table_prefixtarget_comparator_outcome limit 1;',
+        schema = resultDatabaseSettings$schema,
+        cm_table_prefix = resultDatabaseSettings$cmTablePrefix
+      ))>=0},
+      error = function(e){return(F)}
+    )
+  } else{
+    cohortMethod <- F
+  }
+  
+  if(includePrediction){
+    prediction <- tryCatch(
+      {nrow(connectionHandler$queryDb(
+        'select * from @schema.@plp_table_prefixmodel_designs limit 1;',
+        schema = resultDatabaseSettings$schema,
+        plp_table_prefix = resultDatabaseSettings$plpTablePrefix
+      ))>=0},
+      error = function(e){return(F)}
+    )} else{
+      prediction <- F
+    }
+  
+  if(includeSccs){
+    sccs <- tryCatch(
+      {nrow(connectionHandler$queryDb(
+        'select * from @schema.@sccs_table_prefixexposures_outcome_set limit 1;',
+        schema = resultDatabaseSettings$schema,
+        sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix
+      ))>=0},
+      error = function(e){return(F)}
+    )} else{
+      sccs <- F
+    }
   
   # get T and O pairs
   sql <- "select distinct tid, oid from
@@ -790,14 +852,14 @@ getTandOs <- function(
   }
   
   {@cohort_incidence} ? {
-      union
+  {@characterization}?{union}
     select distinct TARGET_COHORT_DEFINITION_ID as tid, OUTCOME_COHORT_DEFINITION_ID as oid 
     from @schema.@ci_table_prefixincidence_summary
 
   }
   
   {@cohort_method} ? {
-      union
+   {@cohort_incidence | @characterization}?{union}
     select distinct TARGET_ID as tid, OUTCOME_ID as oid 
     from @schema.@cm_table_prefixtarget_comparator_outcome 
     where OUTCOME_OF_INTEREST = 1
@@ -805,13 +867,43 @@ getTandOs <- function(
   }
   
   {@prediction} ? {
-      union
+   {@cohort_method | @cohort_incidence | @characterization}?{union}
+    
     select distinct c1.cohort_definition_id as tid, c2.cohort_definition_id as oid 
     from @schema.@plp_table_prefixmodel_designs md 
     inner join @schema.@plp_table_prefixcohorts c1 
     on c1.cohort_id = md.target_id
     inner join @schema.@plp_table_prefixcohorts c2
     on c2.cohort_id = md.outcome_id
+  }
+  
+  {@sccs} ? {
+   {@cohort_method | @cohort_incidence | @characterization | @prediction}?{union}
+    
+  SELECT distinct 
+  cov.era_id as tid,
+  eos.outcome_id as oid
+  
+  FROM @schema.@sccs_table_prefixdiagnostics_summary ds
+  
+  inner join
+  @schema.@sccs_table_prefixexposures_outcome_set eos
+  on ds.exposures_outcome_set_id = eos.exposures_outcome_set_id
+  
+  INNER JOIN
+  @schema.@sccs_table_prefixcovariate cov
+  on cov.covariate_id = ds.covariate_id and 
+  cov.exposures_outcome_set_id = ds.exposures_outcome_set_id and
+  cov.analysis_id = ds.analysis_id and
+  cov.database_id = ds.database_id
+  
+  -- adding code to remove the negative controls
+  INNER JOIN 
+  @schema.@sccs_table_prefixexposure e
+  ON e.exposures_outcome_set_id = ds.exposures_outcome_set_id
+  AND e.era_id = cov.era_id
+  where e.true_effect_size is NULL
+   
   }
   
   ) temp_t_o
@@ -824,25 +916,38 @@ getTandOs <- function(
     ci_table_prefix = resultDatabaseSettings$incidenceTablePrefix,
     cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
     plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
+    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
     characterization = characterization,
     cohort_incidence = cohortIncidence,
     cohort_method = cohortMethod,
-    prediction = prediction
+    prediction = prediction,
+    sccs = sccs
   )
   
   # add cohort names
   res <- merge(
-    res,cg[,c('cohortDefinitionId','cohortName')], 
-    by.x = 'tid', 
+    x = res, 
+    y = cg[,c('cohortDefinitionId','cohortName')],
+    by.x = 'tid',
     by.y = 'cohortDefinitionId'
   ) %>%
-    dplyr::rename(targetName = 'cohortName')
+    dplyr::rename(
+      targetName = "cohortName"
+      )
+
   res <- merge(
-    res,cg[,c('cohortDefinitionId','cohortName')], 
+    x = res,
+    y = cg[,c('cohortDefinitionId','cohortName')], 
     by.x = 'oid', 
     by.y = 'cohortDefinitionId'
   ) %>%
-    dplyr::rename(outcomeName = 'cohortName')
+    dplyr::rename(
+      outcomeName = "cohortName"
+      ) %>%
+    dplyr::arrange(
+      .data$targetName,
+      .data$outcomeName
+    )
   
   tos <- lapply(unique(res$tid), function(tid){
     data.frame(
@@ -854,7 +959,7 @@ getTandOs <- function(
   
   # get target heirarchy 
   groupedCohorts <- lapply(unique(res$tid), function(tid){
-    data.frame(
+    list(
       cohortId = tid,
       cohortName = unique(res$targetName[res$tid == tid]),
       subsets = data.frame(
@@ -873,11 +978,20 @@ getTandOs <- function(
     cg$subsetDefinitionId[is.na(cg$subsetDefinitionId)] <- 0
     
     if(sum(cg$isSubset == 0) > 0 ){
-      parents <- cg[cg$isSubset == 0,]
-      groupedCohorts <- lapply(1:nrow(parents), function(i){
-        x <- parents$cohortDefinitionId[i];
-        
-        if(x %in% unique(res$tid)){
+      # 
+      parentChild <- unique(
+        merge(
+          x = cg[, c('cohortDefinitionId','subsetParent')], 
+          y = res, 
+          by.x = 'cohortDefinitionId',
+          by.y = 'tid'
+        )
+      ) %>% dplyr::arrange( # adding order to make options orders
+        .data$targetName
+      )
+      parents <- unique(parentChild$subsetParent)
+      groupedCohorts <- lapply(1:length(parents), function(i){
+        x <- parents[i];
           list(
             cohortId = x,
             cohortName = cg$cohortName[cg$cohortDefinitionId == x],
@@ -886,15 +1000,13 @@ getTandOs <- function(
               targetName = cg$cohortName[cg$subsetParent == x],
               subsetId = cg$subsetDefinitionId[cg$subsetParent == x]
             )
-          )
-        }else{
-          return(NULL)
-        };
+          );
       })
-      names(groupedCohorts) <- parents$cohortName
+      names(groupedCohorts) <- unlist(lapply(groupedCohorts, function(x){x$cohortName}))
     }}
   
   # get comparators
+  cs <- NULL
   if(cohortMethod){
     comps <- connectionHandler$queryDb(
       'select distinct target_id, comparator_id from 
@@ -909,7 +1021,7 @@ getTandOs <- function(
       by.x = 'comparatorId', 
       by.y = 'cohortDefinitionId'
     ) %>%
-      dplyr::rename(comparatorName = 'cohortName')
+      dplyr::rename(comparatorName = "cohortName")
     
     cs <- lapply(unique(comps$targetId), function(tid){
       data.frame(
@@ -930,7 +1042,8 @@ getTandOs <- function(
       characterization = characterization,
       cohortIncidence = cohortIncidence,
       cohortMethod = cohortMethod,
-      prediction = prediction
+      prediction = prediction,
+      sccs = sccs
     )
   )
   

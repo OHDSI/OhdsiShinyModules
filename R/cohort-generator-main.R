@@ -21,7 +21,7 @@
 #'
 #' @details
 #' Returns the location of the cohort-generator helper file
-#' 
+#' @family {CohortGenerator}
 #' @return
 #' string location of the cohort-generator helper file
 #'
@@ -34,7 +34,7 @@ cohortGeneratorHelperFile <- function(){
 #' The viewer of the main cohort generator module
 #'
 #' @param id the unique reference id for the module
-#'
+#' @family {CohortGenerator}
 #' @return
 #' The user interface to the cohort generator results viewer
 #' 
@@ -119,6 +119,9 @@ cohortGeneratorViewer <- function(id) {
             title = shiny::span( shiny::icon("table"), 'Generation Table'),
             #solidHeader = TRUE,
             
+            shiny::uiOutput(ns("selectColsCohortGeneration")
+            ),
+            
             reactable::reactableOutput(
               outputId = ns("cohortGeneration")
             )  
@@ -167,7 +170,10 @@ cohortGeneratorViewer <- function(id) {
               title = shiny::span( shiny::icon("table"), 'Attrition Table'),
               #solidHeader = TRUE,
               
-              reactable::reactableOutput(ns('attritionTable'))
+              # shiny::uiOutput(ns("selectColsCohortAttrition")
+              # ),
+              
+              resultTableViewer(ns('attritionTable'))
             ),
             
             shinydashboard::box(
@@ -193,7 +199,7 @@ cohortGeneratorViewer <- function(id) {
 #' @param id the unique reference id for the module
 #' @param connectionHandler a connection to the database with the results
 #' @param resultDatabaseSettings a named list containing the cohort generator results database details (schema, table prefix)
-#'
+#' @family {CohortGenerator}
 #' @return
 #' the cohort generator results viewer main module server
 #' 
@@ -359,19 +365,65 @@ cohortGeneratorServer <- function(
         }
       )
       
-      output$cohortGeneration <- reactable::renderReactable({
-        data <- getCohortGeneratorCohortMeta(
-          connectionHandler = connectionHandler, 
-          resultDatabaseSettings = resultDatabaseSettings
-          ) %>%
-          dplyr::select("cdmSourceName",
-                        "cohortId",
-                        "cohortName",
-                        "generationStatus",
-                        "startTime",
-                        "endTime",
-                        "generationDuration")
-        reactable::reactable(data,
+      inputColsCohortGeneration <- colnames(getCohortGeneratorCohortMeta(
+        connectionHandler = connectionHandler, 
+        resultDatabaseSettings = resultDatabaseSettings
+      ) %>%
+        dplyr::select("cdmSourceName",
+                      "cohortId",
+                      "cohortName",
+                      "generationStatus",
+                      "startTime",
+                      "endTime",
+                      "generationDuration")
+      )
+      
+      names(inputColsCohortGeneration) <- c("Database Name", 
+                                        "Cohort ID",
+                                        "Cohort Name",
+                                        "Is the Cohort Generated?",
+                                        "Generation Start Time",
+                                        "Generation End Time",
+                                        "Generation Duration (mins)")
+      
+      output$selectColsCohortGeneration <- shiny::renderUI({
+        
+        shinyWidgets::pickerInput(
+          inputId = session$ns('cohortGenerationCols'), 
+          label = 'Select Columns to Display: ', 
+          choices = inputColsCohortGeneration, 
+          selected = inputColsCohortGeneration,
+          choicesOpt = list(style = rep_len("color: black;", 999)),
+          multiple = T,
+          options = shinyWidgets::pickerOptions(
+            actionsBox = TRUE,
+            liveSearch = TRUE,
+            size = 10,
+            liveSearchStyle = "contains",
+            liveSearchPlaceholder = "Type here to search",
+            virtualScroll = 50
+          ),
+          width = "50%"
+        )
+        
+      })
+      
+      dataGen <- getCohortGeneratorCohortMeta(
+        connectionHandler = connectionHandler, 
+        resultDatabaseSettings = resultDatabaseSettings
+      ) %>%
+        dplyr::select("cdmSourceName",
+                      "cohortId",
+                      "cohortName",
+                      "generationStatus",
+                      "startTime",
+                      "endTime",
+                      "generationDuration")
+      
+      cgTable <- shiny::reactive({
+        
+        reactable::reactable(dataGen %>%
+                               dplyr::select(input$cohortGenerationCols),
                              columns = list(
                                # Render a "show details" button in the last column of the table.
                                # This button won't do anything by itself, but will trigger the custom
@@ -427,6 +479,24 @@ cohortGeneratorServer <- function(
                              defaultColDef = reactable::colDef(
                                align = "left"
                              )
+        )
+      })
+      
+      output$cohortGeneration <- reactable::renderReactable({
+        
+        tryCatch({
+          cgTable()
+        },
+        
+        error = function(e){
+          shiny::showNotification(
+            paste0(
+              "Loading..."
+            )
+          ); 
+          return(NULL)
+        }
+        
         )
       })
       
@@ -579,97 +649,98 @@ cohortGeneratorServer <- function(
 
       
       data <- inputValsClean %>%
-          dplyr::filter(.data$cdmSourceName %in% input$selectedDatabaseId & 
-                          .data$cohortName %in% input$selectedCohortName &
-                          .data$modeId %in% input$selectedModeId
-          )
+        dplyr::filter(.data$cdmSourceName %in% input$selectedDatabaseId & 
+                        .data$cohortName %in% input$selectedCohortName &
+                        .data$modeId %in% input$selectedModeId
+        )
       
       reactiveData <- shiny::reactive(data)
       
       if(!is.null(data)){
-      
-      output$attritionTable <- reactable::renderReactable(
-        reactable::reactable(
-          data =  reactiveData() %>%
-            dplyr::select(c("cdmSourceName", "cohortName", "ruleName",
-                            "personCount", "dropCount",
-                            "dropPerc", "retainPerc")
+        
+        resultTableServer(
+            id = 'attritionTable',
+            df =  reactiveData() %>%
+              dplyr::select(c("cdmSourceName", "cohortName", "ruleName",
+                              "personCount", "dropCount",
+                              "dropPerc", "retainPerc")
+              )
+            
+            ,
+            # rownames = FALSE, 
+            # defaultPageSize = 5,
+            # showPageSizeOptions = T, 
+            # striped = T,
+            colDefsInput = list(
+              cdmSourceName = reactable::colDef( 
+                filterable = TRUE,
+                header = withTooltip(
+                  "Database Name", 
+                  "The name of the database"
+                )),
+              cohortName = reactable::colDef( 
+                filterable = TRUE,
+                header = withTooltip(
+                  "Cohort Name", 
+                  "The name of the cohort"
+                )),
+              ruleName = reactable::colDef( 
+                header = withTooltip(
+                  "Inclusion Rule Name", 
+                  "The name of the inclusion rule"
+                )),
+              personCount = reactable::colDef( 
+                format = reactable::colFormat(separators = TRUE),
+                header = withTooltip(
+                  "Subject/Record Count", 
+                  "The number of subjects or records (depending on your selection) remaining after the inclusion rule was applied"
+                )),
+              dropCount = reactable::colDef( 
+                format = reactable::colFormat(separators = TRUE),
+                header = withTooltip(
+                  "Number Lost", 
+                  "The number of subjects or records (depending on your selection) removed/lost after the inclusion rule was applied"
+                )),
+              dropPerc = reactable::colDef( 
+                format = reactable::colFormat(separators = TRUE),
+                header = withTooltip(
+                  "Percentage Lost", 
+                  "The percentage of subjects or records (depending on your selection) removed/lost after the inclusion rule was applied compared to the previous rule count"
+                )),
+              retainPerc = reactable::colDef( 
+                format = reactable::colFormat(separators = TRUE),
+                header = withTooltip(
+                  "Percentage Retained", 
+                  "The percentage of subjects or records (depending on your selection) retained after the inclusion rule was applied compared to the previous rule count"
+                ))
             )
-          
-          ,
-          rownames = FALSE, 
-          defaultPageSize = 5,
-          showPageSizeOptions = T, 
-          striped = T,
-          columns = list(
-            cdmSourceName = reactable::colDef( 
-              filterable = TRUE,
-              header = withTooltip(
-                "Database Name", 
-                "The name of the database"
-              )),
-            cohortName = reactable::colDef( 
-              filterable = TRUE,
-              header = withTooltip(
-                "Cohort Name", 
-                "The name of the cohort"
-              )),
-            ruleName = reactable::colDef( 
-              header = withTooltip(
-                "Inclusion Rule Name", 
-                "The name of the inclusion rule"
-              )),
-            personCount = reactable::colDef( 
-              format = reactable::colFormat(separators = TRUE),
-              header = withTooltip(
-                "Subject/Record Count", 
-                "The number of subjects or records (depending on your selection) remaining after the inclusion rule was applied"
-              )),
-            dropCount = reactable::colDef( 
-              format = reactable::colFormat(separators = TRUE),
-              header = withTooltip(
-                "Number Lost", 
-                "The number of subjects or records (depending on your selection) removed/lost after the inclusion rule was applied"
-              )),
-            dropPerc = reactable::colDef( 
-              format = reactable::colFormat(separators = TRUE),
-              header = withTooltip(
-                "Percentage Lost", 
-                "The percentage of subjects or records (depending on your selection) removed/lost after the inclusion rule was applied compared to the previous rule count"
-              )),
-            retainPerc = reactable::colDef( 
-              format = reactable::colFormat(separators = TRUE),
-              header = withTooltip(
-                "Number Retained", 
-                "The number of subjects or records (depending on your selection) retained after the inclusion rule was applied compared to the previous rule count"
-              ))
-          ),
-          
-          filterable = TRUE,
-          sortable = TRUE,
-          defaultColDef = reactable::colDef(
-            align = "left"
+            #,
+            
+            # filterable = TRUE,
+            # sortable = TRUE,
+            # defaultColDef = reactable::colDef(
+            #   align = "left"
+            # )
+          )
+        #)
+        
+        #attrition plot
+        output$attritionPlot <- plotly::renderPlotly(
+          getCohortAttritionPlot(
+            data
           )
         )
-       )
-      
-      #attrition plot
-      output$attritionPlot <- plotly::renderPlotly(
-        getCohortAttritionPlot(
-          data
+        
+        # download button
+        output$downloadAttritionTable <- shiny::downloadHandler(
+          filename = function() {
+            paste('cohort-attrition-data-', Sys.Date(), '.csv', sep='')
+          },
+          content = function(con) {
+            utils::write.csv(data()
+                             , con)
+          }
         )
-      )
-      
-      # download button
-      output$downloadAttritionTable <- shiny::downloadHandler(
-        filename = function() {
-          paste('cohort-attrition-data-', Sys.Date(), '.csv', sep='')
-        },
-        content = function(con) {
-          utils::write.csv(data()
-                           , con)
-        }
-      )
       }
       
       else{
@@ -677,20 +748,20 @@ cohortGeneratorServer <- function(
       }
       
     }
-  )
+      )
       
-    },
-      
-      error = function(e){
-        shiny::showNotification(
-          paste0(
-            "No cohort inclusion result data present."
-          )
-        ); 
-        return(NULL)
-      }
-
-  )
+        },
+    
+    error = function(e){
+      shiny::showNotification(
+        paste0(
+          "No cohort inclusion result data present."
+        )
+      ); 
+      return(NULL)
+    }
+    
+      )
       
       # end of server
       

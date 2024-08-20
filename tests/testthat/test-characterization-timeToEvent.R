@@ -4,22 +4,41 @@ shiny::testServer(
   app = characterizationTimeToEventServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization,
-    resultDatabaseSettings = resultDatabaseSettingsCharacterization
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization,
+    targetId = shiny::reactive(1),
+    outcomeId = shiny::reactive(3)
   ), 
   expr = {
     
-    # make sure bothIds returns a list
-    testthat::expect_true(class(bothIds) == 'list')
-    testthat::expect_true(!is.null(bothIds$outcomeIds) )
-
+    testthat::expect_true(inherits(options(), 'list'))
+    testthat::expect_true( nrow(allData()) > 0 )
+    testthat::expect_true(inherits(characterizationTimeToEventColDefs(), 'list'))
     
-    # checl targetId does not crash app
-    session$setInputs(targetId = names(bothIds$outcomeIds)[1])
+    # check plot works
+    session$setInputs(
+      databases = unique(allData()$databaseName)[1],
+      times = unique(allData()$timeScale)[1],
+      outcomeTypes = unique(allData()$outcomeType)[1],
+      targetOutcomeTypes = unique(allData()$targetOutcomeType)[1]
+      )
     
-    # check input$generate does not crash app
-    session$setInputs(outcomeId = 3)
-    session$setInputs(generate = T)
     
+    data <- getTimeToEventData(
+      targetId = targetId(),
+      outcomeId = outcomeId(),
+      connectionHandler = connectionHandlerCharacterization,
+      resultDatabaseSettings = resultDatabaseSettingsCharacterization
+    )
+    testthat::expect_true( nrow(data) > 0 )
+    
+    plot <- plotTimeToEvent(
+      timeToEventData = shiny::reactive(data),
+      databases = unique(allData()$databaseName)[1],
+      times = unique(allData()$timeScale)[1],
+      outcomeTypes = unique(allData()$outcomeType)[1],
+      targetOutcomeTypes = unique(allData()$targetOutcomeType)[1]
+    )
+    testthat::expect_true( inherits(plot, "ggplot") )
     
   })
 

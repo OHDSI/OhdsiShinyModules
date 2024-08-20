@@ -1,3 +1,15 @@
+OhdsiShinyModules v2.2.1
+========================
+- Fixed issue in DatabaseConnector check for pooled connections of sqlite databases on cohort diagnotiscs load (from main hotfix)
+
+OhdsiShinyModules v2.2.0
+========================
+- Combined cohort method, sccs and evidence synthesis into one estimation module with shared target and outcome ids
+- Characterizations now share the target id 
+- Updated tests to get them all working
+- Cleaned R check (but cohort incidence still has many notes)
+
+
 OhdsiShinyModules v2.1.5
 ========================
 Fixed bug of orphan concepts report not displaying

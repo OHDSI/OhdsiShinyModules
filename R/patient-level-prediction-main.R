@@ -21,7 +21,7 @@
 #'
 #' @details
 #' Returns the location of the prediction helper file
-#' 
+#' @family {PatientLevelPrediction}
 #' @return
 #' string location of the prediction helper file
 #'
@@ -37,7 +37,7 @@ patientLevelPredictionHelperFile <- function(){
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' 
+#' @family {PatientLevelPrediction}
 #' @return
 #' The user interface to the PatientLevelPrediction viewer module
 #'
@@ -117,7 +117,7 @@ patientLevelPredictionViewer <- function(id=1) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler a connection to the database with the results
 #' @param resultDatabaseSettings a list containing the prediction result schema and connection details
-#' 
+#' @family {PatientLevelPrediction}
 #' @return
 #' The server for the PatientLevelPrediction module
 #'

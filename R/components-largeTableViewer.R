@@ -103,7 +103,7 @@ LargeDataTable <- R6::R6Class(
 #' @param baseQuery                 base sql query
 #' @param countQuery                count query string (should match query). Can be auto generated with sub query
 #'                                  (default) but this will likely result in slow results
-#' @family {LargeTables}
+#' @family {LargeTables}                                 
 createLargeSqlQueryDt <- function(connectionHandler = NULL,
                                   connectionDetails = NULL,
                                   baseQuery,

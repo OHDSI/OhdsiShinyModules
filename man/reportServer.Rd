@@ -11,7 +11,7 @@ reportServer(
   server = Sys.getenv("RESULTS_SERVER"),
   username = Sys.getenv("RESULTS_USER"),
   password = Sys.getenv("RESULTS_PASSWORD"),
-  dbms = "postgresql"
+  dbms = Sys.getenv("RESULTS_DBMS")
 )
 }
 \arguments{
@@ -38,3 +38,9 @@ The module server for the shiny app report module
 \details{
 The user specifies the id for the module
 }
+\seealso{
+Other {Report}: 
+\code{\link{reportHelperFile}()},
+\code{\link{reportViewer}()}
+}
+\concept{{Report}}

@@ -27,5 +27,13 @@ Other {Utils}:
 \code{\link{makeButtonLabel}()},
 \code{\link{resultTableServer}()},
 \code{\link{resultTableViewer}()}
+
+Other {Utils}: 
+\code{\link{createCustomColDefList}()},
+\code{\link{datasourcesHelperFile}()},
+\code{\link{datasourcesViewer}()},
+\code{\link{makeButtonLabel}()},
+\code{\link{resultTableServer}()},
+\code{\link{resultTableViewer}()}
 }
 \concept{{Utils}}

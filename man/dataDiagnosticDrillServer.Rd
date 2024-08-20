@@ -22,3 +22,13 @@ The module server for exploring prediction summary results
 \details{
 The user specifies the id for the module
 }
+\seealso{
+Other {DataDiagnostics}: 
+\code{\link{dataDiagnosticDrillViewer}()},
+\code{\link{dataDiagnosticHelperFile}()},
+\code{\link{dataDiagnosticServer}()},
+\code{\link{dataDiagnosticSummaryServer}()},
+\code{\link{dataDiagnosticSummaryViewer}()},
+\code{\link{dataDiagnosticViewer}()}
+}
+\concept{{DataDiagnostics}}
