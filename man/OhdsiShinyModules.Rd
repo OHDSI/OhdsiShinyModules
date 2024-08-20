@@ -8,4 +8,14 @@
 \description{
 A selection of shiny modules for exploring standardized OHDSI results
 }
+\author{
+\strong{Maintainer}: Jenna Reps \email{jreps@its.jnj.com}
+
+Authors:
+\itemize{
+  \item Nathan Hall
+  \item Jamie Gibert
+}
+
+}
 \keyword{internal}
