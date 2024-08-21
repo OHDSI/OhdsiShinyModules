@@ -314,7 +314,7 @@ characterizationGetRiskFactorData <- function(
     target_id = targetId,
     outcome_id = outcomeId,
     database_id = databaseId,
-    setting_ids = paste0(ids$settingId, collapse=',')
+    setting_ids = paste0(paste0("'",ids$settingId, "'"), collapse=',')
   )
   message(paste0('Extracted ',nrow(binary),' binary RF rows'))
   
@@ -357,7 +357,7 @@ characterizationGetRiskFactorData <- function(
     target_id = targetId,
     outcome_id = outcomeId,
     database_id = databaseId,
-    setting_ids = paste0(ids$settingId, collapse=',')
+    setting_ids = paste0(paste0("'",ids$settingId, "'"), collapse=',')
   ) 
   
   message(paste0('Extracted ',nrow(binary),' continuous RF rows'))
