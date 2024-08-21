@@ -637,7 +637,7 @@ union
 
 {@include_incidence} ? {
 select target_cohort_definition_id as target_cohort_id, outcome_cohort_definition_id as outcome_cohort_id
-    from @schema.@ci_table_prefixtarget_def, @ci_table_prefixoutcome_def 
+    from @schema.@ci_table_prefixtarget_def, @schema.@ci_table_prefixoutcome_def 
 }
 
 ) temp
