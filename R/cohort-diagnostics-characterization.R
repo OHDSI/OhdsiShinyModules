@@ -19,6 +19,7 @@
 #' Use for customizing UI
 #'
 #' @param id    Namespace Id - use namespaced id ns("characterization") inside diagnosticsExplorer module
+#' @family {CohortDiagnostics}
 #' @export
 cohortDiagCharacterizationView <- function(id) {
   ns <- shiny::NS(id)
@@ -419,7 +420,7 @@ prepareTable1 <- function(covariates,
       "characteristic",
       "valueCount"
     ) %>%
-    dplyr::rename("count" = "valueCount") %>%
+    dplyr::rename(count = "valueCount") %>%
     dplyr::inner_join(cohort %>%
                         dplyr::select(
                           "cohortId",
@@ -739,7 +740,7 @@ cohortDiagCharacterizationModule <- function(
           "covariateName",
           "mean"
         ) %>%
-        dplyr::rename("sumValue" = "mean")
+        dplyr::rename(sumValue = "mean")
 
 
       table <- data %>%

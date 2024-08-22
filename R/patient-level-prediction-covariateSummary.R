@@ -23,7 +23,7 @@
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' 
+#' @family {PatientLevelPrediction}
 #' @return
 #' The user interface to the covariate summary module
 #'
@@ -85,7 +85,7 @@ patientLevelPredictionCovariateSummaryViewer <- function(id) {
 #' @param connectionHandler the connection to the prediction result database
 #' @param inputSingleView the current tab 
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
-#' 
+#' @family {PatientLevelPrediction}
 #' @return
 #' The server to the covariate summary module
 #'

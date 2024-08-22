@@ -19,5 +19,9 @@ The viewer of the phevaluator module
 Other {PheValuator}: 
 \code{\link{phevaluatorHelperFile}()},
 \code{\link{phevaluatorServer}()}
+
+Other {PheValuator}: 
+\code{\link{phevaluatorHelperFile}()},
+\code{\link{phevaluatorServer}()}
 }
 \concept{{PheValuator}}

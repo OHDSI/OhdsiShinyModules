@@ -2,7 +2,7 @@
 output: html_document
 ---
 
-```{r, echo=FALSE, results='asis'}
+```{r get model design, echo=FALSE, results='asis'}
 
 getModelDesign <- function(
   connectionHandler,
@@ -67,7 +67,10 @@ getModelDesign <- function(
     extract_name = ref$extractName[j]
   )
   
-res <- ParallelLogger::convertJsonToSettings(res$value)
+res <- tryCatch(
+  {ParallelLogger::convertJsonToSettings(res$value)}, 
+  error = function(e){print(e); return(list())}
+)
   return(res)
   
     })
@@ -93,7 +96,11 @@ res <- ParallelLogger::convertJsonToSettings(res$value)
     cohort_type = c('target_id','outcome_id')[tind]
   )
   
-result[[length(result)+1]] <- ParallelLogger::convertJsonToSettings(res$value)
+result[[length(result)+1]] <-
+  tryCatch(
+  {ParallelLogger::convertJsonToSettings(res$value)}, 
+  error = function(e){print(e); return(list())}
+)
     
   }
   
@@ -125,21 +132,21 @@ splitSettings <- modelDesign$splitSettings
 
 
 
-```{r echo=FALSE, results='asis'}
+```{r print model heading, echo=FALSE, results='asis'}
 cat('\n# Model ', params$modelDesignIds[i], '\n')
 ```
 
+
 ## Model Design
 
-```{r, child = "plp-participants.Rmd"}
+```{r participants, child = "plp-participants.Rmd"}
 ```
 
-```{r, child = "plp-predictors.Rmd"}
+```{r predictors, child = "plp-predictors.Rmd"}
 ```
 
-```{r, child = "plp-outcome.Rmd"}
+```{r outcome, child = "plp-outcome.Rmd"}
 ```
 
-```{r, child = "plp-analysis.Rmd"}
+```{r analysis, child = "plp-analysis.Rmd"}
 ```
-

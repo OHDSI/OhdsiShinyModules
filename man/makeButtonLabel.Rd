@@ -23,5 +23,13 @@ Other {Utils}:
 \code{\link{datasourcesViewer}()},
 \code{\link{resultTableServer}()},
 \code{\link{resultTableViewer}()}
+
+Other {Utils}: 
+\code{\link{createCustomColDefList}()},
+\code{\link{datasourcesHelperFile}()},
+\code{\link{datasourcesServer}()},
+\code{\link{datasourcesViewer}()},
+\code{\link{resultTableServer}()},
+\code{\link{resultTableViewer}()}
 }
 \concept{{Utils}}

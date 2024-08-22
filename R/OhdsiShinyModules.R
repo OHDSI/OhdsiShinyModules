@@ -19,7 +19,9 @@
 #' OhdsiShinyModules
 #' 
 #' @description A selection of shiny modules for exploring standardized OHDSI results 
+#'
 #' @name OhdsiShinyModules
+#' @keywords internal
 #' @importFrom dplyr %>%
 #' @importFrom rlang .data
 "_PACKAGE"

@@ -4,24 +4,35 @@ shiny::testServer(
   app = characterizationDechallengeRechallengeServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization,
-    resultDatabaseSettings = resultDatabaseSettingsCharacterization
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization,
+    targetId = shiny::reactive(1),
+    outcomeId = shiny::reactive(3)
   ), 
   expr = {
     
-    # make sure bothIds returns a list
-    testthat::expect_true(class(bothIds) == 'list')
-    testthat::expect_true(!is.null(bothIds$outcomeIds) )
-
-    # checl targetId does not crash app
-    ##session$setInputs(targetId = names(bothIds$outcomeIds)[1])
+    # options() is a list
+    testthat::expect_true(inherits(options(), 'list'))
     
-    # test setting inputs - not sure this works
-    session$setInputs(`input-selection_targetId` = names(bothIds$targetIds)[1])
-    session$setInputs(`input-selection_outcomeId` = names(bothIds$outcomeIds)[1])
-    session$setInputs(`input-selection_generate` = TRUE)
+    # allData nrows > 0 
+    testthat::expect_true(nrow(allData()) > 0 )
     
-    # check allData sets these reactices
-    ##testthat::expect_true(!is.null(allData()))
+    # targetUniquePeople(), outcomeUniquePeople() numbers
+    testthat::expect_true(inherits(targetUniquePeople(), "logical"))
+    testthat::expect_true(inherits(outcomeUniquePeople(), "logical"))
+    
+    # characteriationDechalRechalColDefs is a list
+    testthat::expect_true(inherits(characteriationDechalRechalColDefs(), 'list'))
+    
+    # failData NULL
+    testthat::expect_true(is.null(failData()))
+    
+    # tableOutputs$actionCount()
+    # failData not NULL
+    
+    
+    # add tests for functions with progress bar
+    
+    
     
   })
 
