@@ -282,7 +282,7 @@ characterizationIncidenceServer <- function(
           shinyWidgets::pickerInput(
             inputId = session$ns('databaseSelector'),
             label = 'Filter By Database: ',
-            choices = ciOptions$databases,
+            choices = sort(ciOptions$databases),
             selected = ciOptions$databases,
             multiple = T,
             options = shinyWidgets::pickerOptions(
