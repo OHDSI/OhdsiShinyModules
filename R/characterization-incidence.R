@@ -268,15 +268,21 @@ characterizationIncidenceServer <- function(
             style = "font-weight: bold; font-size: 20px; text-align: center; margin-bottom: 20px;"
           ),
           
-          shiny::selectInput(
+          shinyWidgets::pickerInput(
             inputId = session$ns('outcomeIds'),
             label = 'Outcome: ',
             choices = outcomes(),
-            selected = 1,
+            selected = outcomes()[1],
             multiple = T,
-            selectize = TRUE,
-            width = NULL,
-            size = NULL
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              dropupAuto = TRUE,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
           ),
           
           shinyWidgets::pickerInput(
