@@ -14,12 +14,6 @@
 #' @return shiny module UI
 #' @family {Utils}
 
-convertToDataFrame <- function(x, session, inputname) {
-  do.call("rbind.data.frame", x)
-}
-
-registerInputHandler("to_csv", convertToDataFrame, force = TRUE)
-
 filteredDownloadButton <- function(tableId, label = "Download (Filtered)", filename = "filteredData.csv", icon = shiny::icon("download")) {
   tags$div(class = "col-sm-3",
     htmltools::tags$button(
