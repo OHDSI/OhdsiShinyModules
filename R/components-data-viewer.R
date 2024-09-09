@@ -13,6 +13,24 @@
 #' @family {Utils}
 #' @return shiny module UI
 #' @family {Utils}
+
+convertToDataFrame <- function(x, session, inputname) {
+  do.call("rbind.data.frame", x)
+}
+
+registerInputHandler("to_csv", convertToDataFrame, force = TRUE)
+
+filteredDownloadButton <- function(tableId, label = "Download (Filtered)", filename = "filteredData.csv", icon = shiny::icon("download")) {
+  tags$div(class = "col-sm-3",
+    htmltools::tags$button(
+      class = "btn btn-default",
+      tags$i(class = "fas fa-download", role = "presentation", "aria-label" = "download icon"),
+      label,
+      onclick = sprintf("Reactable.downloadDataCSV('%s', '%s')", tableId, filename)
+    )
+  )
+}
+
 resultTableViewer <- function(
     id = "result-table",
     downloadedFileName = NULL,
@@ -37,32 +55,41 @@ resultTableViewer <- function(
               icon = shiny::icon("download")
             )
           ),
+          
+          # shiny::column(
+          #   width = 3,
+          #   shiny::downloadButton(
+          #     ns('downloadDataFiltered'),
+          #     label = "Download (Filtered)",
+          #     icon = shiny::icon("download"),
+          #     onClick = "Shiny.setInputValue('table_state:to_csv',
+          #     Reactable.getState('resultData').sortedData)"
+          #   )
+          # )
+          
           shiny::column(
             width = 3,
-            shiny::actionButton(
-              ns('downloadDataFiltered'),
-              label = "Download (Filtered)",
-              icon = shiny::icon("download"),
-              onclick = paste0(
-                "Reactable.downloadDataCSV('",
-                ns('resultData'),
-                "', 'result-data-filtered-",
-                downloadedFileName,
-                Sys.Date(),
-                ".csv')"
+            htmltools::browsable(
+              htmltools::tagList(
+                filteredDownloadButton("resultDataFiltered", "Download (Filtered)",
+                                       filename = paste('result-data-filtered-', downloadedFileName, Sys.Date(), '.csv', sep = ''),
               )
+             )
             )
           )
         ),
+        
         shiny::fluidRow(
           shinycssloaders::withSpinner(
             reactable::reactableOutput(
               outputId = ns("resultData"),
-              width = "100%")
+              width = "100%"
             )
-        )
+           )
+          )
       )
-    ))
+    )
+  )
 }
 
 
@@ -349,6 +376,8 @@ fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
   });
 }')
 
+      
+
       output$resultData <- reactable::renderReactable({
           if (is.null(input$dataCols)) {
             data = newdf()
@@ -388,13 +417,23 @@ fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
                   rowStyle = list(
                     height = height
                     ),
-                  elementId = elementIdName()
+                  elementId = 'resultDataFiltered'
                   #, experimental
                   #theme = ohdsiReactableTheme
                 )
           #   )
           # )
         })
+      
+      output$downloadDataFiltered <- shiny::downloadHandler(
+        filename = function() {
+          paste("result-data-filtered-", Sys.Date(), ".csv", sep = "")
+        },
+        content = function(file) {
+          data <- input$table_state
+          write.csv(data, file)
+        }
+      )
       
       
       # download full data button
