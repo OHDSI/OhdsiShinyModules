@@ -66,8 +66,21 @@ cohortMethodPropensityModelServer <- function(
           comparatorId = selectedRow()$comparatorId,
           databaseId = selectedRow()$databaseId,
           analysisId = selectedRow()$analysisId
-        )
+        ) %>%
+          dplyr::mutate(absBeta = abs(coefficient))
       })
+      
+      # ColorBrewer-inspired 3-color scale
+      Yellows <- function(x) grDevices::rgb(grDevices::colorRamp(c("#FFFFDD", "#FFFFB9", "#FFFF79"))
+                                           (x), maxColorValue = 255)
+      
+      # ColorBrewer-inspired 3-color scale
+      Blues <- function(x) grDevices::rgb(grDevices::colorRamp(c("aliceblue", "lightblue1", "skyblue2"))
+                                           (x), maxColorValue = 255)
+      
+      # ColorBrewer-inspired 3-color scale
+      Greens <- function(x) grDevices::rgb(grDevices::colorRamp(c("#E8FDCF", "yellowgreen"))
+                                          (x), maxColorValue = 255)
       
       resultTableServer(
         id = 'propensityModelTable',
@@ -77,10 +90,33 @@ cohortMethodPropensityModelServer <- function(
             show = F
             ),
           coefficient = reactable::colDef(
-            name = 'Beta', 
+            name = 'Beta',
+            cell = function(value) { 
+              if (value >= 0) paste0("+", round(value, 3)) else round(value, 3)
+              },
+            style = function(value) {
+              color <- if (value > 0) {
+                "#B0D5FE"
+              } else if (value < 0) {
+                "#FEBABA"
+              }
+              list(background = color)
+            },
             format = reactable::colFormat(
               digits = 3
             )
+          ), 
+          absBeta = reactable::colDef(
+            name = 'Beta (Absolute Value)', 
+            format = reactable::colFormat(
+              digits = 3
+            ),
+            style = function(value) {
+              if (!is.numeric(value)) return()
+              normalized <- (value - min(data()$absBeta)) / (max(data()$absBeta) - min(data()$absBeta))
+              color <- Greens(normalized)
+              list(background = color)
+            }
           ), 
           covariateName = reactable::colDef(
             name = 'Covariate'
