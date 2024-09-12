@@ -5,6 +5,22 @@
 #output: download buttons, table, and column selector
 
 
+filteredDownloadButton <- function(
+    tableId, 
+    label = "Download (Filtered)", 
+    filename = "filteredData.csv", 
+    icon = shiny::icon("download")
+    ) {
+  shiny::tags$div(class = "col-sm-3",
+    htmltools::tags$button(
+      class = "btn btn-default",
+      shiny::tags$i(class = "fas fa-download", role = "presentation", "aria-label" = "download icon"),
+      label,
+      onclick = sprintf("Reactable.downloadDataCSV('%s', '%s')", tableId, filename)
+    )
+  )
+}
+
 #' Result Table Viewer
 #'
 #' @param id string
@@ -13,18 +29,6 @@
 #' @family {Utils}
 #' @return shiny module UI
 #' @family {Utils}
-
-filteredDownloadButton <- function(tableId, label = "Download (Filtered)", filename = "filteredData.csv", icon = shiny::icon("download")) {
-  tags$div(class = "col-sm-3",
-    htmltools::tags$button(
-      class = "btn btn-default",
-      tags$i(class = "fas fa-download", role = "presentation", "aria-label" = "download icon"),
-      label,
-      onclick = sprintf("Reactable.downloadDataCSV('%s', '%s')", tableId, filename)
-    )
-  )
-}
-
 resultTableViewer <- function(
     id = "result-table",
     downloadedFileName = NULL,
@@ -425,7 +429,7 @@ fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
         },
         content = function(file) {
           data <- input$table_state
-          write.csv(data, file)
+          utils::write.csv(data, file)
         }
       )
       
