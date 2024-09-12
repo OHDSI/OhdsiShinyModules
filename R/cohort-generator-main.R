@@ -64,35 +64,41 @@ cohortGeneratorViewer <- function(id) {
             collapsible = T,
             collapsed = F,
             width = '100%',
-            title = shiny::span( shiny::icon("file-arrow-down"),'Download Data'),
-            #solidHeader = TRUE,
-            
-            shiny::downloadButton(
-              ns('downloadCohortCountsFull'),
-              label = "Download (Full)",
-              icon = shiny::icon("download")
-            ),
-            
-            shiny::actionButton(
-              ns('downloadCohortCountsFiltered'),
-              label = "Download (Filtered)",
-              icon = shiny::icon("download"),
-              onclick = paste0("Reactable.downloadDataCSV('", ns('cohortCounts'),
-                               "', 'cohort-count-data-filtered-", Sys.Date(), ".csv')")
-            )
-          ),
+          #   title = shiny::span( shiny::icon("file-arrow-down"),'Download Data'),
+          #   #solidHeader = TRUE,
+          #   
+          #   shiny::downloadButton(
+          #     ns('downloadCohortCountsFull'),
+          #     label = "Download (Full)",
+          #     icon = shiny::icon("download")
+          #   ),
+          #   
+          #   shiny::actionButton(
+          #     ns('downloadCohortCountsFiltered'),
+          #     label = "Download (Filtered)",
+          #     icon = shiny::icon("download"),
+          #     onclick = paste0("Reactable.downloadDataCSV('", ns('cohortCounts'),
+          #                      "', 'cohort-count-data-filtered-", Sys.Date(), ".csv')")
+          #   )
+          # ),
           
-          shinydashboard::box(
-            width = '100%',
-            title = shiny::span( shiny::icon("table"), 'Counts Table'),
-            #solidHeader = TRUE,
-            
-            shiny::uiOutput(ns("selectColsCohortCounts")
-            ),
-            
-            reactable::reactableOutput(
-              outputId = ns("cohortCounts")
-            )  
+          # shinydashboard::box(
+          #   width = '100%',
+          #   title = shiny::span( shiny::icon("table"), 'Counts Table'),
+          #   #solidHeader = TRUE,
+          #   
+          #   shiny::uiOutput(ns("selectColsCohortCounts")
+          #   ),
+          #   
+          #   reactable::reactableOutput(
+          #     outputId = ns("cohortCounts")
+          #   )  
+          # )
+          
+            resultTableViewer(
+              ns("cohortCounts"),
+              downloadedFileName = "cohortCountsTable-"
+            )
           )
         ),
         
@@ -103,29 +109,30 @@ cohortGeneratorViewer <- function(id) {
             collapsible = T,
             collapsed = F,
             width = '100%',
-            title = shiny::span( shiny::icon("file-arrow-down"),'Download Data'),
-            #solidHeader = TRUE,
+          #   title = shiny::span( shiny::icon("file-arrow-down"),'Download Data'),
+          #   #solidHeader = TRUE,
+          #   
+          #   shiny::downloadButton(
+          #     ns('downloadCohortGeneration'),
+          #     label = "Download",
+          #     icon = shiny::icon("download")
+          #   )
+          # ),
+          # 
+          # shinydashboard::box(
+          #   status = 'info', 
+          #   width = '100%',
+          #   title = shiny::span( shiny::icon("table"), 'Generation Table'),
+          #   #solidHeader = TRUE,
+          #   
+          #   shiny::uiOutput(ns("selectColsCohortGeneration")
+          #   ),
             
-            shiny::downloadButton(
-              ns('downloadCohortGeneration'),
-              label = "Download",
-              icon = shiny::icon("download")
-            )
-          ),
-          
-          shinydashboard::box(
-            status = 'info', 
-            width = '100%',
-            title = shiny::span( shiny::icon("table"), 'Generation Table'),
-            #solidHeader = TRUE,
-            
-            shiny::uiOutput(ns("selectColsCohortGeneration")
-            ),
-            
-            reactable::reactableOutput(
-              outputId = ns("cohortGeneration")
-            )  
+          resultTableViewer(
+            ns("cohortGeneration"),
+            downloadedFileName = "cohortGenerationTable-"
           )
+         )
         ),
         
         shiny::tabPanel(
@@ -148,20 +155,20 @@ cohortGeneratorViewer <- function(id) {
             
             shiny::uiOutput(ns("inputsText")),
             
-            shinydashboard::box(
-              collapsible = T,
-              collapsed = F,
-              width = '100%',
-              title = shiny::span( shiny::icon("file-arrow-down"),'Download Data'),
-              #solidHeader = TRUE,
-              
-              shiny::downloadButton(
-                ns('downloadAttritionTable'),
-                label = "Download",
-                icon = shiny::icon("download")
-              )
-            ),
-            
+            # shinydashboard::box(
+            #   collapsible = T,
+            #   collapsed = F,
+            #   width = '100%',
+            #   title = shiny::span( shiny::icon("file-arrow-down"),'Download Data'),
+            #   #solidHeader = TRUE,
+            #   
+            #   shiny::downloadButton(
+            #     ns('downloadAttritionTable'),
+            #     label = "Download",
+            #     icon = shiny::icon("download")
+            #   )
+            # ),
+            # 
             
             
             shinydashboard::box(
@@ -173,7 +180,8 @@ cohortGeneratorViewer <- function(id) {
               # shiny::uiOutput(ns("selectColsCohortAttrition")
               # ),
               
-              resultTableViewer(ns('attritionTable'))
+              resultTableViewer(ns('attritionTable'),
+                                downloadedFileName = "cohortAttritionTable-")
             ),
             
             shinydashboard::box(
