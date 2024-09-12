@@ -85,12 +85,21 @@ characterizationDatabaseComparisonServer <- function(
       output$inputs <- shiny::renderUI({
         
         shiny::div(
-          shiny::selectInput(
+          shinyWidgets::pickerInput(
             inputId = session$ns('databaseIds'), 
             label = 'Databases: ',
             choices = inputVals()$databaseIds,
             selected = inputVals()$databaseIds[1],
-            multiple = T
+            multiple = T,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              dropupAuto = TRUE,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
           ),
           
           shiny::sliderInput(

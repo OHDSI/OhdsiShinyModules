@@ -174,12 +174,21 @@ characterizationTimeToEventServer <- function(
         shiny::fluidPage(
           shiny::fluidRow(
             
-            shiny::selectInput(
+            shinyWidgets::pickerInput(
               inputId = session$ns("databases"),
               label = "Databases:",
               multiple = T, 
               choices = unique(allData()$databaseName),
-              selected = unique(allData()$databaseName)
+              selected = unique(allData()$databaseName),
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                dropupAuto = TRUE,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+                )
               ),
             
             shiny::fluidRow(

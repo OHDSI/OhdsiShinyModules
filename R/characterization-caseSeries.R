@@ -74,20 +74,38 @@ characterizationCaseSeriesServer <- function(
       output$inputs <- shiny::renderUI({ # need to make reactive?
         
         shiny::div(
-          shiny::selectInput(
+          shinyWidgets::pickerInput(
             inputId = session$ns('databaseId'),
             label = 'Database: ',
             choices = options()$databaseIds,
             selected = options()$databaseIds[1],
-            multiple = F
+            multiple = F,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              dropupAuto = TRUE,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
           ),
           
-          shiny::selectInput(
+          shinyWidgets::pickerInput(
             inputId = session$ns('tarInd'),
             label = 'Time-at-risk: ',
             choices = options()$tarInds,
             selected = options()$tarInds[1],
-            multiple = F
+            multiple = F,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              dropupAuto = TRUE,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
           ),
           
           shiny::actionButton(
