@@ -29,7 +29,7 @@ databaseInformationView <- function(id) {
     shinydashboard::box(
       width = NULL,
       title = "Execution meta-data",
-      shiny::tags$p("Each entry relates to execution on a given cdm. Results are merged between executions incrementally"),
+      shiny::tags$p("Each entry relates to execution on a given CDM. Results are merged between executions incrementally"),
       shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("databaseInformationTable"))),
       shiny::conditionalPanel(
         "output.databaseInformationTableIsSelected == true",
