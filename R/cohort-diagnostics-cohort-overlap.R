@@ -128,7 +128,10 @@ plotCohortOverlap <- function(data,
                                     title = "",
                                     gridcolor = 'ffff'),
                        yaxis = list(zerolinecolor = '#ffff',
-                                    title = database,
+                                    title = addTextBreaks(
+                                      text = database, 
+                                      length = 25
+                                      ),
                                     zerolinewidth = 1,
                                     gridcolor = 'ffff'))
 
