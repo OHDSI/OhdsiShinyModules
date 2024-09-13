@@ -387,9 +387,12 @@ getModelDesignInfo <- function(
   }
   
   modelType <- connectionHandler$queryDb(
-    'select distinct model_type from 
-    @schema.@plp_table_prefixmodels 
-    where model_design_id = @model_design_id;',
+    'select distinct ms.model_type from 
+    @schema.@plp_table_prefixmodel_settings ms
+    inner join 
+    @schema.@plp_table_prefixmodel_designs md
+    on ms.model_setting_id = md.model_setting_id
+    where md.model_design_id = @model_design_id;',
     schema = resultDatabaseSettings$schema,
     plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
     model_design_id = modelDesignId()
