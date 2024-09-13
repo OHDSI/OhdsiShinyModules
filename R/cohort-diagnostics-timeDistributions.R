@@ -176,7 +176,10 @@ plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
                          zerolinewidth = 2,
                          gridcolor = 'ffff'),
                        yaxis = list(
-                         title = db,
+                         title = addTextBreaks(
+                           text = db, 
+                           length = 25 # change this based on plot height?
+                         ),
                          showTitle = FALSE,
                          zerolinecolor = '#ffff',
                          zerolinewidth = 2,
