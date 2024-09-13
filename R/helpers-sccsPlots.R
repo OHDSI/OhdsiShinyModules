@@ -488,7 +488,15 @@ plotSeasonSpline <- function(seasonSpline, rrLim = c(0.1, 10)) {
 
 # unknown function?
 convertMonthToStartDate <- function(x){
-  return(as.Date(x, origin = "1950-01-01"))
+  #return(as.Date(x, origin = "1950-01-01"))
+  year <- floor(x / 12)
+  month <- floor(x %% 12) + 1
+  return(as.Date(sprintf(
+    "%s-%s-%s",
+    year,
+    month,
+    1
+  )))
 }
 # adding missing sccsModel as input
 plotCalendarTimeSpline <- function(calendarTimeSpline, rrLim = c(0.1, 10)) {
