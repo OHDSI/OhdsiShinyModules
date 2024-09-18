@@ -88,7 +88,17 @@ cohortMethodPropensityScoreDistServer <- function(
             
           comparatorName <- row$comparator
           
-          plot <- plotCohortMethodPs(ps, targetName, comparatorName)
+          equipoiseStatistic <- getCohortMethodEquipoise(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            targetId = row$targetId,
+            comparatorId = row$comparatorId,
+            outcomeId = row$outcomeId,
+            analysisId = row$analysisId,
+            databaseId = row$databaseId
+          ) 
+          
+          plot <- plotCohortMethodPs(ps, targetName, comparatorName, equipoiseStatistic)
           return(plot)
         }
       })
@@ -111,6 +121,55 @@ cohortMethodPropensityScoreDistServer <- function(
       
     }
   )
+}
+
+getCohortMethodEquipoise <- function(
+    connectionHandler, 
+    resultDatabaseSettings,
+    targetId, 
+    comparatorId, 
+    outcomeId,
+    analysisId, 
+    databaseId = NULL
+) {
+  if(is.null(targetId)){
+    return(NULL)
+  }
+  sql <- "
+    SELECT
+      database_id, target_id, comparator_id, outcome_id, analysis_id, equipoise
+    FROM
+      @schema.@cm_table_prefixdiagnostics_summary cmpsd
+    WHERE
+      cmpsd.target_id = @target_id
+      AND cmpsd.comparator_id = @comparator_id
+      AND cmpsd.analysis_id = @analysis_id 
+      AND cmpsd.outcome_id = @outcome_id 
+  "
+  if(!is.null(databaseId)) {
+    sql <- paste(sql, paste("AND cmpsd.database_id = '@database_id'"), collapse = "\n")
+  }
+  
+  
+  result <- connectionHandler$queryDb(
+    sql = sql,
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+    target_id = targetId,
+    comparator_id = comparatorId,
+    outcome_id = outcomeId,
+    analysis_id = analysisId,
+    database_id = databaseId
+  )
+  
+  
+  if (!is.null(databaseId)) {
+    result$databaseId <- NULL
+  }
+  
+  eq <- round(result$equipoise, 4)
+  
+  return(eq)
 }
 
 getCohortMethodPs <- function(
@@ -157,7 +216,7 @@ getCohortMethodPs <- function(
 }
 
 # CohortMethod-propensityScoreDist
-plotCohortMethodPs <- function(ps, targetName, comparatorName) {
+plotCohortMethodPs <- function(ps, targetName, comparatorName, equipoiseStatistic) {
   if(is.null(ps$preferenceScore)){
     return(NULL)
   }
@@ -180,13 +239,17 @@ plotCohortMethodPs <- function(ps, targetName, comparatorName) {
                                            grDevices::rgb(0, 0, 0.8, alpha = 0.5))) +
     ggplot2::scale_x_continuous("Preference score", limits = c(0, 1)) +
     ggplot2::scale_y_continuous("Density") +
+    ggplot2::ggtitle(paste0("Equipoise Statistic = ", equipoiseStatistic)) +
     ggplot2::theme(legend.title = ggplot2::element_blank(),
                    panel.grid.major = ggplot2::element_blank(),
                    panel.grid.minor = ggplot2::element_blank(),
                    legend.position = "top",
                    legend.text = theme,
                    axis.text = theme,
-                   axis.title = theme)
+                   axis.title = theme,
+                   plot.title = ggplot2::element_text(vjust = -20, face = "bold")
+                   ) + 
+    ggplot2::guides(fill = ggplot2::guide_legend(nrow = 2))
   if (!is.null(ps$databaseId)) {
     plot <- plot + ggplot2::facet_grid(databaseId~., switch = "both") +
       ggplot2::theme(legend.position = "right")
