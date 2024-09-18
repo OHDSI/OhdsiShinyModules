@@ -109,8 +109,25 @@ cohortMethodSystematicErrorServer <- function(
         return(systematicErrorPlot())
       })
       
+      picName <- shiny::reactive({
+        row <- selectedRow()
+        if (is.null(row)) {
+          return(NULL)
+        } else {
+          picName <- paste0("Target=", stringr::str_trunc(row$target, 35), "_", 
+                            "Comparator=",stringr::str_trunc(row$comparator, 35), "_",
+                            "Analysis=",row$description, "_",
+                            "DB=",row$cdmSourceAbbreviation, "_",
+                 Sys.Date())
+        }
+          
+          return(picName)
+          
+        })
+      
       output$downloadSystematicErrorPlotPng <- shiny::downloadHandler(
-        filename = "SystematicError.png",
+            
+        filename = paste0("SystematicErrorPlot_", picName(), ".png"),
         contentType = "image/png",
         content = function(file) {
           ggplot2::ggsave(file, plot = systematicErrorPlot(), width = 12, height = 5.5, dpi = 400)
@@ -118,7 +135,7 @@ cohortMethodSystematicErrorServer <- function(
       )
       
       output$downloadSystematicErrorPlotPdf <- shiny::downloadHandler(
-        filename = "SystematicError.pdf",
+        filename = paste0("SystematicErrorPlot_", picName(), ".pdf"),
         contentType = "application/pdf",
         content = function(file) {
           ggplot2::ggsave(file = file, plot = systematicErrorPlot(), width = 12, height = 5.5)
