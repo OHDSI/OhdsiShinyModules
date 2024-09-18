@@ -32,7 +32,8 @@ cohortMethodPropensityScoreDistViewer <- function(id) {
     shiny::plotOutput(outputId = ns("psDistPlot")),
     shiny::div(shiny::strong("Figure 2."),"Preference score distribution. The preference score is a transformation of the propensity score
                                                                                                          that adjusts for differences in the sizes of the two treatment groups. A higher overlap indicates subjects in the
-                                                                                                         two groups were more similar in terms of their predicted probability of receiving one treatment over the other."),
+                                                                                                         two groups were more similar in terms of their predicted probability of receiving one treatment over the other. 
+                                                                                                         The equipoise statistic is also given at the top of the figure."),
     shiny::div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
                shiny::downloadButton(outputId = ns("downloadPsDistPlotPng"),
                        label = "Download plot as PNG"),
@@ -247,7 +248,7 @@ plotCohortMethodPs <- function(ps, targetName, comparatorName, equipoiseStatisti
                    legend.text = theme,
                    axis.text = theme,
                    axis.title = theme,
-                   plot.title = ggplot2::element_text(vjust = -20, face = "bold")
+                   plot.title = ggplot2::element_text(vjust = -20)
                    ) + 
     ggplot2::guides(fill = ggplot2::guide_legend(nrow = 2))
   if (!is.null(ps$databaseId)) {

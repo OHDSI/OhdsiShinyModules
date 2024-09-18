@@ -169,7 +169,7 @@ cohortMethodCovariateBalanceServer <- function(
           row <- selectedRow()
           text <- "<strong>Figure 3.</strong> Covariate balance before and after propensity score adjustment. Each dot represents
       the standardizes difference of means for a single covariate before and after propensity score adjustment on the propensity
-      score. The maximum standardized difference of the mean (Max SDM) is given at the top of the figure. Move the mouse arrow over a dot for more details."
+      score. The maximum absolute standardized difference of the mean (Max SDM) is given at the top of the figure. Move the mouse arrow over a dot for more details."
           return(shiny::HTML(sprintf(text)))
         }
       })
@@ -498,7 +498,7 @@ plotCohortMethodCovariateBalanceScatterPlotNew <- function(
   ) %>%
     plotly::layout(
       #shapes = list(xyline(limits)),
-      title = paste0("Max SDM: ", maxSdmStatistic),
+      title = paste0("Max SDM Statistic = ", maxSdmStatistic),
       shapes = list(list(
         type = "line", 
         x0 = 0, 
