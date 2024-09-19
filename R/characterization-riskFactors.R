@@ -684,8 +684,41 @@ characteriationCountsColDefs <- function(
       filterable = T
     ),
     
+    minPriorObservation = reactable::colDef(
+      header = withTooltip("Min Prior Observation",
+                           "Minimum prior observation time (days)"),
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
+    ), 
+    outcomeWashoutDays = reactable::colDef(
+      header = withTooltip("Outcome Washout Days",
+                           "Number of days for the outcome washout"),
+      filterable = T,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(unique(values), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
+    ),
+    
     rowCount = reactable::colDef(
-      header = withTooltip("# rows",
+      header = withTooltip("# Rows",
                            "Number of exposures in the cohort (people can be in more than once)"),
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
@@ -694,7 +727,7 @@ characteriationCountsColDefs <- function(
       }
     ), 
     personCount = reactable::colDef(
-      header = withTooltip("# persons",
+      header = withTooltip("# Persons",
                            "Number of distinct people in the cohort"),
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
