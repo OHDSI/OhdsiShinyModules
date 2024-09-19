@@ -927,7 +927,7 @@ getCohortGenerationAttritionTable <- function(
     cohortRules <- rules %>% 
       dplyr::filter(.data$cohortDefinitionId==cohortId) %>%
       dplyr::select("ruleSequence", "ruleName", "cohortName") %>%
-      dplyr::arrange("ruleSequence")
+      dplyr::arrange(.data$ruleSequence)
     
     testMask = 0
     
@@ -967,6 +967,7 @@ getCohortGenerationAttritionTable <- function(
   }
   
   attritionTableDistinct <- dplyr::distinct(attritionTable)
+
   
   #adding drop counts
   attritionTableFinal <- attritionTableDistinct %>%
