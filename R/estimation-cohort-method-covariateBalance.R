@@ -456,7 +456,7 @@ plotCohortMethodCovariateBalanceScatterPlotNew <- function(
     beforeLabel = "Before propensity score adjustment",
     afterLabel = "After propensity score adjustment",
     textsearch = shiny::reactiveVal(NULL),
-    maxSdmStatistic
+    maxSdmStatistic = NULL
 ){
   
   if(is.null(textsearch())){
@@ -498,7 +498,7 @@ plotCohortMethodCovariateBalanceScatterPlotNew <- function(
   ) %>%
     plotly::layout(
       #shapes = list(xyline(limits)),
-      title = paste0("Max SDM Statistic = ", maxSdmStatistic),
+      title = ~paste0("Max SDM Statistic = ", maxSdmStatistic),
       shapes = list(list(
         type = "line", 
         x0 = 0, 

@@ -202,7 +202,7 @@ getCohortMethodControlResults <- function(
 }
 
 
-plotCohortMethodScatter <- function(controlResults, ease) {
+plotCohortMethodScatter <- function(controlResults, ease = NULL) {
   
   if(nrow(controlResults)==0){
     return(NULL)

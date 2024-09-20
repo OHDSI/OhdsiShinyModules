@@ -67,7 +67,7 @@ cohortMethodPropensityModelServer <- function(
           databaseId = selectedRow()$databaseId,
           analysisId = selectedRow()$analysisId
         ) %>%
-          dplyr::mutate(absBeta = abs(coefficient))
+          dplyr::mutate(absBeta = abs(.data$coefficient))
       })
       
       # ColorBrewer-inspired 3-color scale
