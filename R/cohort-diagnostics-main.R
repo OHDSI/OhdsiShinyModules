@@ -35,8 +35,8 @@
 
 # NOTE: here it would be nice to use dbplyr tables - this would allow lazy loading of resources
 # however, renaming the columns causes an error and its not obvious how it could be resolved
-loadResultsTable <- function(dataSource, tableName, required = FALSE, cdTablePrefix = "") {
-  selectTableName <- paste0(cdTablePrefix, tableName)
+loadResultsTable <- function(dataSource, tableName, required = FALSE, cdTablePrefix = "", databaseTablePrefix = "") {
+  selectTableName <- paste0(ifelse(!tolower(tableName) == 'database_meta_data', cdTablePrefix,databaseTablePrefix), tableName)
   resultsTablesOnServer <-
     tolower(.availableTables(dataSource$connectionHandler, dataSource$schema))
   
@@ -47,9 +47,20 @@ loadResultsTable <- function(dataSource, tableName, required = FALSE, cdTablePre
     
     tryCatch(
       {
-        table <- dataSource$connectionHandler$queryDb("SELECT * FROM @schema.@table",
-                                                      schema = dataSource$schema,
-                                                      table = selectTableName)
+        
+        if(tolower(tableName) == 'database_meta_data'){
+          table <- dataSource$connectionHandler$queryDb(
+            "SELECT *, cdm_source_name as database_name FROM @schema.@table",
+            schema = dataSource$schema,
+            table = selectTableName
+          )
+        } else{
+          table <- dataSource$connectionHandler$queryDb(
+            "SELECT * FROM @schema.@table",
+            schema = dataSource$schema,
+            table = selectTableName
+          )
+        }
       },
       error = function(err) {
         stop(
@@ -224,7 +235,13 @@ createCdDatabaseDataSource <- function(
     dbms = connectionHandler$dbms(),
     resultsTablesOnServer = .availableTables(connectionHandler, resultDatabaseSettings$schema),
     cdTablePrefix = resultDatabaseSettings$cdTablePrefix,
-    prefixTable = function(tableName) { paste0(resultDatabaseSettings$cdTablePrefix, tableName) },
+    prefixTable = function(tableName) {
+      if(tableName != resultDatabaseSettings$databaseTable){
+        return(paste0(resultDatabaseSettings$cdTablePrefix, tableName))
+      } else{
+        return(paste0(resultDatabaseSettings$databaseTablePrefix, tableName))
+      }
+      },
     prefixVocabTable = function(tableName) {
       # don't prexfix table if we us a dedicated vocabulary schema
       if (resultDatabaseSettings$vocabularyDatabaseSchema == resultDatabaseSettings$schema)
@@ -235,8 +252,8 @@ createCdDatabaseDataSource <- function(
     cgTable = resultDatabaseSettings$cgTable,
     cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
     useCgTable = FALSE,
-    databaseTable = "database",
-    databaseTablePrefix = "cd_",
+    databaseTable = resultDatabaseSettings$databaseTable,#"database",
+    databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix,#"cd_",
     dataModelSpecifications = modelSpec
   )
   
@@ -317,6 +334,7 @@ createCdDatabaseDataSource <- function(
 
 getDatabaseTable <- function(dataSource) {
   databaseTable <- loadResultsTable(dataSource, dataSource$prefixTable(dataSource$databaseTable), required = TRUE)
+  
   if (nrow(databaseTable) > 0 &
       "vocabularyVersion" %in% colnames(databaseTable)) {
     databaseTable <- databaseTable %>%
