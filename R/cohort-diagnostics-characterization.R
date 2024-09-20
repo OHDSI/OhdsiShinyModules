@@ -1015,7 +1015,7 @@ cohortDiagCharacterizationModule <- function(
           "Concept Id" = "tcr.concept_id",
           "Analysis Name" = "tar.analysis_name",
           "Covariate Name" = "tcr.covariate_name",
-          "Database" = "db.database_name"
+          "Database" = "db.cdm_source_name"
         )
 
         for (i in 1:length(timeIds)) {
@@ -1048,17 +1048,18 @@ cohortDiagCharacterizationModule <- function(
 
         shiny::updateSelectInput(inputId = "sortByRawTemporal", choices = sortChoices, selected = "mean1")
 
+        #### Testing fix for main.Database error when viewing shiny app.
         sqlt <- "
           SELECT @select_stament
 
           FROM @results_database_schema.@table_prefixtemporal_covariate_ref tcr
           INNER JOIN @results_database_schema.@table_prefixtemporal_analysis_ref tar ON tar.analysis_id = tcr.analysis_id
           INNER JOIN @results_database_schema.@table_prefixtemporal_covariate_value tcv ON tcr.covariate_id = tcv.covariate_id
-          INNER JOIN @results_database_schema.@database_table db ON db.database_id = tcv.database_id
+          INNER JOIN @results_database_schema.DATABASE_META_DATA db ON db.database_id = tcv.database_id
           WHERE tcr.covariate_id IS NOT NULL
         "
 
-        selectSt <- "db.database_name,
+        selectSt <- "db.cdm_source_name,
             tcr.covariate_name,
             tar.analysis_name,
             is_binary,
@@ -1081,8 +1082,9 @@ cohortDiagCharacterizationModule <- function(
         }
 
         tplSql <- paste(tplSql, collapse = ", \n")
+        ### Edit to resolve column name in db.
         groupClause <- SqlRender::render("
-        GROUP BY db.database_name, tcr.covariate_name, tar.analysis_name, tcr.concept_id, is_binary
+        GROUP BY db.cdm_source_name, tcr.covariate_name, tar.analysis_name, tcr.concept_id, is_binary
         HAVING @having_clasuse
         ", having_clasuse = paste(havingSql, collapse = " OR\n"))
 
