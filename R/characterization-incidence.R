@@ -1697,8 +1697,8 @@ getIncidenceData <- function(
 ){
   if(!is.null(targetIds) & !is.null(outcomeIds)){
     
-    print(targetIds)
-    print(outcomeIds)
+    #print(targetIds)
+    #print(outcomeIds)
     
     shiny::withProgress(message = 'Getting incidence data', value = 0, {
     

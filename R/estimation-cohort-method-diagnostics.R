@@ -92,7 +92,7 @@ estimationGetCmDiagnostics <- function(
       {@use_analyses}?{and cma.analysis_id in (@analyses)}
       ;
   "
-  print(comparatorIds)
+  #print(comparatorIds)
   
   result <- connectionHandler$queryDb(
     sql = sql,
