@@ -83,17 +83,10 @@ cohortGeneratorViewer <- function(id) {
           resultTableViewer(
             ns("cohortGeneration"),
             downloadedFileName = "cohortGenerationTable-"
-
-            shiny::downloadButton(
-              ns('downloadCohortGeneration'),
-              label = "Download",
-              icon = shiny::icon("download")
-            )
+          )
           ),
  
-          )
-         )
-        ),
+          ),
         
         shiny::tabPanel(
           title = "Inclusion Rules & Attrition"
