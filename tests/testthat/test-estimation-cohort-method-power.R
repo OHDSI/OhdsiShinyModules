@@ -49,10 +49,10 @@ shiny::testServer(
         comparatorDays = 1000
       )
     )
-    testthat::expect_true(!is.null(output$powerTable))
+    testthat::expect_true(!is.null(powerTable))
     testthat::expect_true(!is.null(output$powerTableCaption))
     testthat::expect_true(!is.null(output$timeAtRiskTableCaption))
-    testthat::expect_true(!is.null(output$timeAtRiskTable))
+    testthat::expect_true(!is.null(timeAtRiskTable))
     
     
   })

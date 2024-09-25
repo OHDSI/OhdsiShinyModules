@@ -1,3 +1,12 @@
+OhdsiShinyModules v3.0.1
+========================
+- Bug fixes
+
+OhdsiShinyModules v3.0.0
+========================
+- Removed CohortMethod/SCCS/EvidenceSyntheis modules as these
+are replaced with Estimation 
+
 OhdsiShinyModules v2.2.1
 ========================
 - Fixed issue in DatabaseConnector check for pooled connections of sqlite databases on cohort diagnotiscs load (from main hotfix)

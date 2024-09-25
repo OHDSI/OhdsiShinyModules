@@ -158,8 +158,8 @@ patientLevelPredictionCovariateSummaryServer <- function(
       shiny::observeEvent(
         input$showHyperparameters, {
           
-          print('TESTING hyper-param')
-          print(hyperParamSearch())
+          #print('TESTING hyper-param')
+          #print(hyperParamSearch())
           
           shiny::showModal(shiny::modalDialog(
             title = "Hyper-parameters",

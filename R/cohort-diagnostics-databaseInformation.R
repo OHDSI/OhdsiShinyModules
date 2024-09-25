@@ -29,7 +29,7 @@ databaseInformationView <- function(id) {
     shinydashboard::box(
       width = NULL,
       title = "Execution meta-data",
-      shiny::tags$p("Each entry relates to execution on a given cdm. Results are merged between executions incrementally"),
+      shiny::tags$p("Each entry relates to execution on a given CDM. Results are merged between executions incrementally"),
       shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("databaseInformationTable"))),
       shiny::conditionalPanel(
         "output.databaseInformationTableIsSelected == true",
@@ -212,7 +212,7 @@ getExecutionMetadata <- function(dataSource, databaseId) {
 
 
 getDatabaseMetadata <- function(dataSource, databaseTable) {
-  data <- loadResultsTable(dataSource, "metadata", required = TRUE, cdTablePrefix = dataSource$cdTablePrefix)
+  data <- loadResultsTable(dataSource, "metadata", required = TRUE, cdTablePrefix = dataSource$cdTablePrefix, databaseTablePrefix = dataSource$databaseTablePrefix)
   data <- data %>%
     tidyr::pivot_wider(
       id_cols = c("startTime", "databaseId"),

@@ -33,7 +33,8 @@ cohortMethodSystematicErrorViewer <- function(id) {
     shiny::div(shiny::strong("Figure 4."),"Systematic error. Effect size estimates for the negative controls (true hazard ratio = 1)
                                                                                     and positive controls (true hazard ratio > 1), before and after calibration. Estimates below the diagonal dashed
                                                                                     lines are statistically significant (alpha = 0.05) different from the true effect size. A well-calibrated
-                                                                                    estimator should have the true effect size within the 95 percent confidence interval 95 percent of times."),
+                                                                                    estimator should have the true effect size within the 95 percent confidence interval 95 percent of times. 
+                                                                                    The expected absolute systematic error (EASE) statistic is also shown at the top of the figure."),
     shiny::div(style = "display: inline-block;vertical-align: top;margin-bottom: 10px;",
                shiny::downloadButton(outputId = ns("downloadSystematicErrorPlotPng"),
                                      label = "Download plot as PNG"),
@@ -82,6 +83,15 @@ cohortMethodSystematicErrorServer <- function(
             databaseId = row$databaseId
             )
           
+          ease <- estimationGetEase(
+            connectionHandler = connectionHandler,
+            resultDatabaseSettings = resultDatabaseSettings,
+            targetId = row$targetId,
+            comparatorId = row$comparatorId,
+            analysisId = row$analysisId,
+            databaseId = row$databaseId
+          )
+          
           # remove the RR zeros that replace NAs during data upload 
           controlResults$logRr[controlResults$logRr == 0] <- NA
           controlResults$ci95Lb[controlResults$ci95Lb == 0] <- NA
@@ -90,7 +100,7 @@ cohortMethodSystematicErrorServer <- function(
           controlResults$calibratedCi95Lb[controlResults$calibratedCi95Lb == 0] <- NA
           controlResults$calibratedCi95Ub[controlResults$calibratedCi95Ub == 0] <- NA
           
-          plot <- plotCohortMethodScatter(controlResults)
+          plot <- plotCohortMethodScatter(controlResults, ease)
           return(plot)
         }
       })
@@ -99,8 +109,25 @@ cohortMethodSystematicErrorServer <- function(
         return(systematicErrorPlot())
       })
       
+      picName <- shiny::reactive({
+        row <- selectedRow()
+        if (is.null(row)) {
+          return(NULL)
+        } else {
+          picName <- paste0("Target=", stringr::str_trunc(row$target, 35), "_", 
+                            "Comparator=",stringr::str_trunc(row$comparator, 35), "_",
+                            "Analysis=",row$description, "_",
+                            "DB=",row$cdmSourceAbbreviation, "_",
+                 Sys.Date())
+        }
+          
+          return(picName)
+          
+        })
+      
       output$downloadSystematicErrorPlotPng <- shiny::downloadHandler(
-        filename = "SystematicError.png",
+            
+        filename = paste0("SystematicErrorPlot_", picName(), ".png"),
         contentType = "image/png",
         content = function(file) {
           ggplot2::ggsave(file, plot = systematicErrorPlot(), width = 12, height = 5.5, dpi = 400)
@@ -108,7 +135,7 @@ cohortMethodSystematicErrorServer <- function(
       )
       
       output$downloadSystematicErrorPlotPdf <- shiny::downloadHandler(
-        filename = "SystematicError.pdf",
+        filename = paste0("SystematicErrorPlot_", picName(), ".pdf"),
         contentType = "application/pdf",
         content = function(file) {
           ggplot2::ggsave(file = file, plot = systematicErrorPlot(), width = 12, height = 5.5)
@@ -175,7 +202,7 @@ getCohortMethodControlResults <- function(
 }
 
 
-plotCohortMethodScatter <- function(controlResults) {
+plotCohortMethodScatter <- function(controlResults, ease = NULL) {
   
   if(nrow(controlResults)==0){
     return(NULL)
@@ -262,6 +289,7 @@ plotCohortMethodScatter <- function(controlResults) {
                                 labels = breaks) +
     ggplot2::scale_y_continuous("Standard Error", limits = c(0, 1)) +
     ggplot2::facet_grid(yGroup ~ Group) +
+    ggplot2::ggtitle(paste0("EASE Statistic = ", ease)) +
     ggplot2::theme(panel.grid.minor = ggplot2::element_blank(),
                    panel.background = ggplot2::element_blank(),
                    panel.grid.major = ggplot2::element_blank(),
@@ -272,10 +300,60 @@ plotCohortMethodScatter <- function(controlResults) {
                    legend.key = ggplot2::element_blank(),
                    strip.text.x = theme,
                    strip.text.y = theme,
-                   strip.background = ggplot2::element_blank(),
-                   legend.position = "none")
+                   strip.background = ggplot2::element_blank()
+                   # ,
+                   # legend.position = "top",
+                   # legend.text = paste0("EASE = ", ease)
+                   )
   
   return(plot)
+}
+
+estimationGetEase <- function(
+    connectionHandler = connectionHandler,
+    resultDatabaseSettings = resultDatabaseSettings,
+    targetId =  targetId,
+    comparatorId = comparatorId,
+    analysisId = analysisId,
+    databaseId = databaseId
+){
+  
+  sql <- "
+    SELECT DISTINCT
+      dmd.cdm_source_abbreviation database_name,
+      cmds.analysis_id,
+      cmds.target_id,
+      cmds.comparator_id,
+      cmds.max_sdm,
+      cmds.ease
+    FROM
+      @schema.@cm_table_prefixdiagnostics_summary cmds
+      INNER JOIN @schema.@database_table dmd ON dmd.database_id = cmds.database_id
+      
+      where cmds.target_id = @target_id
+      and cmds.comparator_id = @comparator_id
+      and cmds.analysis_id = @analysis_id
+      and cmds.database_id = '@database_id'
+      ;
+  "
+  
+  result <- connectionHandler$queryDb(
+    sql = sql,
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+    database_table = resultDatabaseSettings$databaseTable,
+    target_id = targetId,
+    comparator_id = comparatorId,
+    analysis_id = analysisId,
+    database_id = databaseId
+  )
+  
+  ease <- round(result$ease, 4)
+  
+  return(
+    ease
+  )
+  
 }
 
 
