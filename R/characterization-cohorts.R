@@ -969,10 +969,9 @@ characterizatonGetCohortComparisonDataContinuous <- function(
                                    -"settingId", -"targetCohortId", -"outcomeCohortId", 
                                    -"cohortType") %>%
         dplyr::relocate("databaseName", .after = "covariateName")
-      
+
       # fill missing values with 0
       res[is.na(res)] <- 0
-      
     }
     
     shiny::incProgress(4/4, detail = paste("Done"))
