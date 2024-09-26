@@ -129,18 +129,18 @@ plotCohortOverlap <- function(data,
                                     gridcolor = 'ffff'),
                        yaxis = list(zerolinecolor = '#ffff',
                                     title = addTextBreaks(
-                                      text = database, 
+                                      text = database,
                                       length = 25
-                                      ),
+                                    ),
                                     zerolinewidth = 1,
                                     gridcolor = 'ffff'))
 
       subplots[[length(subplots) + 1]] <- plot
 
-      xTitlePos <- (j / length(targetCohorts)) - (1/length(targetCohorts)) * 0.2
+      xTitlePos <- (j / length(targetCohorts)) - (1 / length(targetCohorts)) * 0.2
       annotations[[length(annotations) + 1]] <- list(text = targetCohortName,
                                                      x = xTitlePos,
-                                                     y = i/length(databases),
+                                                     y = i / length(databases),
                                                      xref = "paper",
                                                      yref = "paper",
                                                      xanchor = "right",
@@ -216,7 +216,7 @@ cohortOverlapView <- function(id) {
               plotly::plotlyOutput(ns("overlapPlot"), width = "100%", height = "300px")
             )
           ),
-           # complicated way of setting plot height based on number of rows and selection type
+          # complicated way of setting plot height based on number of rows and selection type
           # Note that this code is only used because renderUI/ uiOutput didn't seem to update with plotly
           shiny::tags$script(sprintf("
         Shiny.addCustomMessageHandler('%s', function(height) {
@@ -249,6 +249,15 @@ cohortOverlapView <- function(id) {
           shinycssloaders::withSpinner(
             reactable::reactableOutput(ns("overlapTable"))
           )
+        ),
+        shiny::tabPanel(
+          title = "Network",
+          shiny::selectInput(inputId = ns("graphVisDb"), label = "Database", choices = c(), width = "400px"),
+
+          shinycssloaders::withSpinner(
+            shiny::div(visNetwork::visNetworkOutput(ns("graphVis")))
+          ),
+          shiny::p("Figure: Node size is proportional to cohort subjects, edge weight is propotional to overlap.")
         )
       )
     )
@@ -282,7 +291,7 @@ getResultsCohortRelationships <- function(dataSource,
   #  end_day = endDays
   #) %>%
   #  dplyr::tibble()
-  
+
   data <- dataSource$connectionHandler$queryDb(
     sql = "SELECT cr.*
              FROM @schema.@table_name cr
@@ -301,7 +310,7 @@ getResultsCohortRelationships <- function(dataSource,
     end_day = endDays
   ) %>%
     dplyr::tibble()
-  
+
   # join with dbTable (moved this outside sql)
   data <- merge(data, dataSource$dbTable, by = 'databaseId')
 
@@ -466,6 +475,18 @@ cohortOverlapModule <- function(id,
     ns <- session$ns
     output$selectedCohorts <- shiny::renderUI({ selectedCohorts() })
 
+    shiny::observe({
+      dtable <- dataSource$dbTable |>
+        dplyr::filter(databaseId %in% selectedDatabaseIds())
+
+      databaseIdSet <- dtable$databaseId
+      names(databaseIdSet) <- dtable$databaseName
+
+      shiny::updateSelectInput(inputId = "graphVisDb",
+                               choices = databaseIdSet,
+                               selected = selectedDatabaseIds()[1])
+    })
+
     # Cohort Overlap ------------------------
     cohortOverlapData <- shiny::reactive({
       shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
@@ -514,7 +535,7 @@ cohortOverlapModule <- function(id,
         paste0("No cohort overlap data for this combination.")
       ))
 
-     plotHeight <- 300 * length(selectedDatabaseIds())
+      plotHeight <- 300 * length(selectedDatabaseIds())
       session$sendCustomMessage(ns("overlapPlotHeight"), sprintf("%spx", plotHeight))
 
       plot <- plotCohortOverlap(
@@ -619,6 +640,47 @@ cohortOverlapModule <- function(id,
           rowSelectedStyle = list(backgroundColor = "#eee", boxShadow = "inset 2px 0 0 0 #ffa62d")
         )
       )
+    })
+
+    output$graphVis <- visNetwork::renderVisNetwork({
+      databaseId <- input$graphVisDb
+      data <- cohortOverlapData() |>
+        dplyr::filter(.data$databaseId == !!databaseId)
+      nCohortIds <- unique(c(data$targetCohortId, data$comparatorCohortId))
+
+      nodes <-
+        getResultsCohortCounts(
+          dataSource = dataSource,
+          cohortIds = nCohortIds,
+          databaseIds = databaseId
+        )  |>
+          dplyr::mutate(cohortSubjects = abs(.data$cohortSubjects)) |>
+          dplyr::inner_join(cohortTable, by = "cohortId") |>
+          dplyr::mutate(label = paste("c", .data$cohortId),
+                        value = log(.data$cohortSubjects)) |>
+          dplyr::rename(title = "cohortName",
+                        id = "cohortId")
+
+      edges <- data |>
+        dplyr::mutate(bothSubjects = abs(.data$bothSubjects)) |>
+        dplyr::filter(bothSubjects > 0) |>
+        dplyr::rename(from = "targetCohortId",
+                      to = "comparatorCohortId",
+                      value = "bothSubjects")
+
+
+      dbName <- dataSource$dbTable |> dplyr::filter(.data$databaseId == !!databaseId) |> dplyr::pull("databaseName")
+
+      visNetwork::visNetwork(nodes,
+                             edges,
+                             main = paste0("Cohort subject overlap for ", dbName)) |>
+        visNetwork::visIgraphLayout(layout = "layout_in_circle") |>
+        visNetwork::visOptions(highlightNearest = list(enabled = TRUE, hover = TRUE),
+                               width = "100%",
+                               clickToUse = FALSE,
+                               manipulation = FALSE,
+                               nodesIdSelection = FALSE) |>
+        visNetwork::visPhysics(enabled = FALSE)
     })
   })
 }

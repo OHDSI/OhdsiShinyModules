@@ -51,7 +51,8 @@ Imports:
     tidyselect,
     tippy,
     RColorBrewer,
-    markdown
+    markdown,
+    visNetwork
 Suggests:
     kableExtra,
     knitr,
@@ -60,6 +61,5 @@ Suggests:
     testthat,
     withr
 Remotes:
-    ohdsi/ReportGenerator,
-    ohdsi/ResultModelManager
+    ohdsi/ReportGenerator
 RoxygenNote: 7.3.2
