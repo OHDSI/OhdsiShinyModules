@@ -656,7 +656,7 @@ cohortOverlapModule <- function(id,
         )  |>
           dplyr::mutate(cohortSubjects = abs(.data$cohortSubjects)) |>
           dplyr::inner_join(cohortTable, by = "cohortId") |>
-          dplyr::mutate(label = paste("c", .data$cohortId),
+          dplyr::mutate(label = paste0("C", .data$cohortId),
                         value = log(.data$cohortSubjects)) |>
           dplyr::rename(title = "cohortName",
                         id = "cohortId")
@@ -673,13 +673,14 @@ cohortOverlapModule <- function(id,
 
       visNetwork::visNetwork(nodes,
                              edges,
-                             main = paste0("Cohort subject overlap for ", dbName)) |>
+                             main = paste0(dbName)) |>
         visNetwork::visIgraphLayout(layout = "layout_in_circle") |>
         visNetwork::visOptions(highlightNearest = list(enabled = TRUE, hover = TRUE),
                                width = "100%",
                                clickToUse = FALSE,
                                manipulation = FALSE,
                                nodesIdSelection = FALSE) |>
+        visNetwork::visEdges(color = list(opacity = 0.2)) |>
         visNetwork::visPhysics(enabled = FALSE)
     })
   })
