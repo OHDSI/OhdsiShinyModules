@@ -1,3 +1,7 @@
+OhdsiShinyModules v3.0.2
+========================
+- Fixed bug with orphan concepts not loading
+
 OhdsiShinyModules v3.0.1
 ========================
 - Bug fixes
