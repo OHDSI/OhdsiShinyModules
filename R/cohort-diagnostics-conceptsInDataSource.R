@@ -136,6 +136,7 @@ conceptsInDataSourceModule <- function(id,
                                        selectedDatabaseIds,
                                        targetCohortId,
                                        selectedConceptSets,
+                                       conceptSetIds,
                                        databaseTable = dataSource$dbTable) {
   ns <- shiny::NS(id)
   shiny::moduleServer(id, function(input, output, session) {
@@ -156,10 +157,6 @@ conceptsInDataSourceModule <- function(id,
         databaseIds = selectedDatabaseIds()
       )
       return(data)
-    })
-
-    conceptSetIds <- shiny::reactive({
-      selectedConceptSets()
     })
 
     getResolvedConcepts <- shiny::reactive({

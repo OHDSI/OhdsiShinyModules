@@ -667,6 +667,7 @@ cohortDiagnosticsServer <- function(id,
                                  selectedDatabaseIds = selectedDatabaseIds,
                                  targetCohortId = targetCohortId,
                                  selectedConceptSets = selectedConceptSets,
+                                 conceptSetIds = conceptSetIds,
                                  databaseTable = databaseTable)
     }
     
