@@ -69,7 +69,7 @@ indexEventBreakdownView <- function(id) {
             shiny::tags$td(
               shiny::checkboxInput(
                 inputId = ns("showAsPercent"),
-                label = "Show as percentage",
+                label = "Show persons as percentage",
                 value = TRUE
               )
             )
@@ -232,16 +232,19 @@ indexEventBreakdownModule <- function(id,
       if (showDataAsPercent) {
         data <- data %>%
           dplyr::rename(
-            "persons" = "subjectPercent",
-            "records" = "conceptPercent"
+            "persons" = "subjectPercent"
           )
       } else {
         data <- data %>%
           dplyr::rename(
-            "persons" = "subjectCount",
-            "records" = "conceptCount"
+            "persons" = "subjectCount"
           )
       }
+
+      data <- data %>%
+        dplyr::rename(
+          "records" = "conceptCount"
+        )
 
       data <- data %>%
         dplyr::arrange(dplyr::desc(abs(dplyr::across(
@@ -278,6 +281,7 @@ indexEventBreakdownModule <- function(id,
         countLocation = countLocation,
         dataColumns = dataColumnFields,
         showDataAsPercent = showDataAsPercent,
+        excludedColumnFromPercentage = "records",
         sort = TRUE
       )
     })
