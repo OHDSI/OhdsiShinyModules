@@ -6,7 +6,8 @@ shiny::testServer(conceptsInDataSourceModule, args = list(
   selectedCohort = shiny::reactive({ 14096 }),
   selectedDatabaseIds = shiny::reactive({"Eunomia"}),
   targetCohortId = shiny::reactive({14096}),
-  selectedConceptSets = shiny::reactive({ NULL })
+  selectedConceptSets = shiny::reactive({ NULL }),
+  conceptSetIds = shiny::reactive({ NULL })
 ), {
 
   conceptsInDataSourceReactive()
