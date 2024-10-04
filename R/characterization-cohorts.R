@@ -860,9 +860,9 @@ characterizatonGetCohortData <- function(
    return(NULL)
   }
 
-  # shiny::withProgress(message = 'characterizatonGetCohortData', value = 0, {
-  #   
-  #   shiny::incProgress(1/4, detail = paste("Setting types"))
+  shiny::withProgress(message = 'characterizatonGetCohortData', value = 0, {
+
+    shiny::incProgress(1/4, detail = paste("Setting types"))
     
     types <- data.frame(
       type = 1:(length(targetIds)*length(databaseIds)),
@@ -870,7 +870,7 @@ characterizatonGetCohortData <- function(
       databaseId = rep(databaseIds, length(targetIds))
     )
     
-  #  shiny::incProgress(2/4, detail = paste("Extracting data"))
+    shiny::incProgress(2/4, detail = paste("Extracting data"))
     
     sql <- "select  ref.covariate_name, 
           s.min_prior_observation,
@@ -904,8 +904,8 @@ characterizatonGetCohortData <- function(
       min_threshold = minThreshold
     )
     end <- Sys.time() - start 
-  #  shiny::incProgress(3/4, detail = paste("Extracted data"))
-  #  message(paste0('Extracting ', nrow(res) ,' characterization cohort rows took: ', round(end, digits = 2), ' ', units(end)))
+    shiny::incProgress(3/4, detail = paste("Extracted data"))
+    message(paste0('Extracting ', nrow(res) ,' characterization cohort rows took: ', round(end, digits = 2), ' ', units(end)))
     
     # add the first/section type
     res <- merge(res, types, by = c('cohortDefinitionId','databaseId'))
@@ -947,13 +947,14 @@ characterizatonGetCohortData <- function(
         
       } else{
         NULL
-     #   shiny::showNotification('Unable to add SMD due to missing columns')
+        shiny::showNotification('Unable to add SMD due to missing columns')
       }
-   # }
-   # shiny::incProgress(4/4, detail = paste("Done"))
-  }
+    }
+    shiny::incProgress(4/4, detail = paste("Done"))
+  })
   
-  return(result)
+    return(result)
+  
 }
 
 
