@@ -5,13 +5,13 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Self-Controlled Case Series • OhdsiShinyModules</title>
+<title>Estimation • OhdsiShinyModules</title>
 <!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- Bootstrap --><link href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.4.0/cosmo/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script><!-- bootstrap-toc --><link rel="stylesheet" href="../bootstrap-toc.css">
 <script src="../bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
-<script src="../pkgdown.js"></script><meta property="og:title" content="Self-Controlled Case Series">
+<script src="../pkgdown.js"></script><meta property="og:title" content="Estimation">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
@@ -116,14 +116,14 @@
       </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
-      <h1 data-toc-skip>Self-Controlled Case Series</h1>
+      <h1 data-toc-skip>Estimation</h1>
                         <h4 data-toc-skip class="author">Nathan
 Hall</h4>
             
             <h4 data-toc-skip class="date">2024-10-04</h4>
       
 
-      <div class="hidden name"><code>SelfControlledCaseSeries.Rmd</code></div>
+      <div class="hidden name"><code>Estimation.Rmd</code></div>
 
     </div>
 
@@ -131,11 +131,127 @@ Hall</h4>
     
 <!--
 %\VignetteEngine{knitr}
-%\VignetteIndexEntry{Self-Controlled Case Series}
+%\VignetteIndexEntry{CohortMethod}
 -->
+<div class="section level3">
+<h3 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+</h3>
+<p>Observational healthcare data, comprising administrative claims and
+electronic health records, present a rich source for generating
+real-world evidence pertinent to treatment effects that directly impact
+patient well-being. Within this realm, population-level effect
+estimation assumes a pivotal role, focusing on elucidating the average
+causal effects of exposures—such as medical interventions like drug
+exposures or procedures—on specific health outcomes of interest.
+Population-level effect estimation delves into two primary realms:
+direct effect estimation and comparative effect estimation. In direct
+effect estimation, the focus lies on discerning the effect of an
+exposure on the risk of an outcome compared to no exposure, while
+comparative effect estimation aims to delineate the effect of a target
+exposure against a comparator exposure. By contrasting factual outcomes
+with counterfactual scenarios—what happened versus what would have
+occurred under different circumstances—these estimation tasks offer
+critical insights into treatment selection, safety surveillance, and
+comparative effectiveness. Whether probing individual hypotheses or
+exploring multiple hypotheses concurrently, the overarching goal remains
+consistent: to derive high-quality estimates of causal effects from the
+intricate fabric of observational healthcare data.</p>
+</div>
 <div class="section level2">
-<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+<h2 id="cohortmethod">1. CohortMethod<a class="anchor" aria-label="anchor" href="#cohortmethod"></a>
 </h2>
+<div class="section level3">
+<h3 id="features-and-functionalities">Features and Functionalities<a class="anchor" aria-label="anchor" href="#features-and-functionalities"></a>
+</h3>
+<p>The <a href="https://ohdsi.github.io/CohortMethod/" title="CohortMethod" class="external-link">CohortMethod</a> R package, a cornerstone of
+population-level estimation within the OHDSI framework, offers a robust
+methodology for conducting comparative effectiveness research and
+pharmacoepidemiology studies. Some of the features offered by conducting
+population-level effect estimation using the CohortMethod module
+are:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Data Extraction</strong>: Extracts necessary data from
+databases structured in the OMOP Common Data Model (CDM) format,
+ensuring uniformity and compatibility across diverse healthcare
+settings.</li>
+<li>
+<strong>Covariate Selection</strong>: Utilizing a comprehensive set
+of covariates, including drugs, diagnoses, procedures, age, and
+comorbidity indexes, CohortMethod constructs propensity and outcome
+models tailored to specific research questions.</li>
+<li>
+<strong>Large-Scale Regularized Regression</strong>: Employing
+large-scale regularized regression techniques, CohortMethod fits
+propensity and outcome models with precision and efficiency,
+accommodating the complexities of real-world healthcare data.</li>
+<li>
+<strong>Propensity Score Adjustment</strong>: Facilitates propensity
+score adjustment through trimming, stratification, matching, and
+weighting, enabling researchers to address confounding and balance
+covariate distributions across treatment groups. Results are viewable
+both graphically and in tabular form to assess the model.</li>
+<li>
+<strong>Diagnostic Functions</strong>: Diagnostic functions within
+CohortMethod offer insights into propensity score distributions and
+covariate balance before and after matching or trimming, enhancing
+transparency and robustness in estimation procedures.</li>
+<li>
+<strong>Supported Outcome Models</strong>: Supported outcome models
+include (conditional) logistic regression, (conditional) Poisson
+regression, and (conditional) Cox regression, providing flexibility in
+modeling various types of outcomes in observational health data
+research.</li>
+<li>
+<strong>Power</strong>: Incorporates power analysis techniques to
+estimate the statistical power of the study design, aiding in sample
+size determination and study planning, and provides a minimum-detectable
+relative risk (MDRR) statistic.</li>
+<li>
+<strong>Attrition</strong>: Assesses attrition rates within cohorts,
+providing insights into potential biases introduced by data loss during
+the study period, and provides a visualization of attrition across
+various cohort criteria.</li>
+<li>
+<strong>Population Characteristics</strong>: Analyzes population
+characteristics to understand the demographic and clinical makeup of the
+study cohorts, informing interpretation of estimation results both
+before and after propensity score matching.</li>
+<li>
+<strong>Covariate Balance</strong>: Visually monitors covariate
+balance before and after matching or trimming, ensuring that confounding
+variables are adequately controlled for in the analysis.</li>
+<li>
+<strong>Systematic Error</strong>: Assesses effect size estimates
+for negative controls (true hazard ratio = 1) and positive controls
+(true hazard ratio &gt; 1) both before and after calibration. Estimates
+below the diagonal dashed lines are statistically significant (alpha =
+0.05) different from the true effect size. A well-calibrated estimator
+should have the true effect size within the 95 percent confidence
+interval 95 percent of times, providing researchers with confidence in
+the reliability of the estimation process and the accuracy of the
+obtained results.</li>
+</ol>
+</div>
+<div class="section level3">
+<h3 id="utility-and-application">Utility and Application<a class="anchor" aria-label="anchor" href="#utility-and-application"></a>
+</h3>
+<p><strong>Comparative Effectiveness Research</strong>: CohortMethod
+empowers researchers to conduct comparative effectiveness studies by
+estimating treatment effects while accounting for potential confounding
+factors and bias inherent in observational data.</p>
+<p><strong>Pharmacoepidemiology and Drug Safety Studies</strong>: In
+pharmacoepidemiology research, CohortMethod facilitates the evaluation
+of drug safety and effectiveness by quantifying the association between
+drug exposures and clinical outcomes in real-world populations.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="self-controlled-case-series">2. Self-Controlled Case Series<a class="anchor" aria-label="anchor" href="#self-controlled-case-series"></a>
+</h2>
+<div class="section level3">
+<h3 id="introduction-1">Introduction<a class="anchor" aria-label="anchor" href="#introduction-1"></a>
+</h3>
 <p>The Self-Controlled Case Series (SCCS) method offers a nuanced
 approach to investigating the relationship between exposures and
 outcomes within individual patients over time. SCCS designs are
@@ -173,9 +289,9 @@ outcomes that can be fatal, such as stroke. To address this, extensions
 to the SCCS model have been developed that correct for any dependency
 between the observation period end and the outcome.</p>
 </div>
-<div class="section level2">
-<h2 id="features-and-functionalities">Features and Functionalities<a class="anchor" aria-label="anchor" href="#features-and-functionalities"></a>
-</h2>
+<div class="section level3">
+<h3 id="features-and-functionalities-1">Features and Functionalities<a class="anchor" aria-label="anchor" href="#features-and-functionalities-1"></a>
+</h3>
 <p>The <a href="https://ohdsi.github.io/SelfControlledCaseSeries/" title="SCCS" class="external-link">SelfControlledCaseSeries</a> R package allows the user to
 perform SCCS analyses in an observational database in the OMOP Common
 Data Model. Some of the features offered by the SCCS module include:</p>
@@ -266,9 +382,9 @@ the reliability of the estimation process and the accuracy of the
 obtained results.</li>
 </ol>
 </div>
-<div class="section level2">
-<h2 id="utility-and-application">Utility and Application<a class="anchor" aria-label="anchor" href="#utility-and-application"></a>
-</h2>
+<div class="section level3">
+<h3 id="utility-and-application-1">Utility and Application<a class="anchor" aria-label="anchor" href="#utility-and-application-1"></a>
+</h3>
 <p>The SCCS method is particularly applicable in several key areas of
 epidemiological research and pharmacovigilance:</p>
 <p><strong>Drug Safety Surveillance</strong>: The SCCS method is widely
@@ -290,6 +406,84 @@ particularly for acute conditions.</p>
 method is used in epidemiological research to study the temporal
 relationships between exposures and outcomes, offering insights into the
 causality and mechanisms underlying health conditions and diseases.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="evidence-synthesis-meta-meta-analysis">3. Evidence Synthesis (Meta, Meta Analysis)<a class="anchor" aria-label="anchor" href="#evidence-synthesis-meta-meta-analysis"></a>
+</h2>
+<div class="section level3">
+<h3 id="introduction-2">Introduction<a class="anchor" aria-label="anchor" href="#introduction-2"></a>
+</h3>
+<p>Meta-analysis plays a pivotal role in healthcare research by enabling
+the synthesis of findings from multiple studies to draw more
+generalizable conclusions. In the context of distributed health data
+networks, where data are spread across various sites with diverse
+populations and practices, synthesizing evidence becomes both a
+challenge and a necessity. The <a href="https://github.com/OHDSI/EvidenceSynthesis" title="EvidenceSynthesis" class="external-link">EvidenceSynthesis</a> R package addresses
+these challenges head-on. It offers a suite of tools designed for
+combining causal effect estimates and study diagnostics from multiple
+data sites, all while adhering to stringent patient privacy requirements
+and navigating the complexities inherent to observational data. This
+approach enhances the robustness of meta-analytical conclusions and
+extends the utility of distributed health data for research
+purposes.</p>
+</div>
+<div class="section level3">
+<h3 id="features-and-functionalities-2">Features and Functionalities<a class="anchor" aria-label="anchor" href="#features-and-functionalities-2"></a>
+</h3>
+<p>The Meta module which utilizes the EvidenceSynthesis R package makes
+use of the following features to summarize the results of a study:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Meta-Analysis Methods</strong>: Facilitates both traditional
+fixed-effects and random-effects meta-analyses, accommodating studies
+with different degrees of between-site or between-database
+variability.</li>
+<li>
+<strong>Forest Plot Generation</strong>: Provides capabilities for
+creating forest plots, visual summaries that illustrate the effects
+estimated by individual studies, their confidence intervals, and the
+synthesized overall effect.</li>
+<li>
+<strong>Non-Normal Likelihood Approximations</strong>: Utilizes
+non-normal approximations for the per-data-site likelihood function to
+reduce bias in scenarios with small or zero counts, a frequent issue in
+distributed research environments.</li>
+</ol>
+<p>The syntheses are generated for both Cohort Method and
+Self-Controlled Case Series estimation results from the study, providing
+both information on the diagnostic results within each database and the
+visualized and tabular results of the meta analysis.</p>
+</div>
+<div class="section level3">
+<h3 id="utility-and-application-2">Utility and Application<a class="anchor" aria-label="anchor" href="#utility-and-application-2"></a>
+</h3>
+<p>The EvidenceSynthesis package is instrumental in synthesizing
+evidence from observational studies across multiple healthcare
+databases. Its significance is underscored in scenarios characterized
+by:</p>
+<p><strong>Comparative Effectiveness Research</strong>: Synthesizing
+evidence from disparate sources allows for stronger, more reliable
+comparisons of treatment outcomes, enriching the foundation for clinical
+decision-making.</p>
+<p><strong>Safety Surveillance</strong>: Aggregated safety data across
+databases enhance the detection and understanding of adverse drug
+reactions, contributing to safer patient care.</p>
+<p><strong>Policy and Clinical Guidelines Development</strong>:
+Meta-analytical findings informed by comprehensive, real-world data can
+guide policy formulation and the updating of clinical guidelines,
+ensuring they are grounded in broad-based evidence.</p>
+<p><strong>Addressing Challenges of Small Sample Sizes</strong>: The
+EvidenceSynthesis package notably advances the field by tackling the
+issue of small sample sizes and zero event counts, which traditional
+meta-analytical methods often handle poorly. Its innovative use of
+non-normal likelihood approximations enables more precise effect size
+estimation under such conditions, ensuring that the insights derived
+from meta-analyses are both accurate and meaningful. This attribute is
+particularly beneficial in distributed health data networks, where
+individual site/database data may be limited but collectively hold
+significant informational value.</p>
+</div>
 </div>
   </div>
 
