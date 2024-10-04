@@ -112,6 +112,7 @@ cohortMethodCovariateBalanceServer <- function(
           analysisId = row$analysisId)},
           error = function(e){return(data.frame())}
         )
+        
         return(balance)
       })
       
@@ -127,6 +128,22 @@ cohortMethodCovariateBalanceServer <- function(
         )
       
       balancePlot <- shiny::reactive({
+        
+        row <- selectedRow()
+        if(is.null(row$targetId)){
+          return(NULL)
+        }
+        
+        maxSdmStatistic <- estimationGetMaxSdm(
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          targetId = row$targetId,
+          comparatorId = row$comparatorId,
+          outcomeId = row$outcomeId,
+          analysisId = row$analysisId,
+          databaseId = row$databaseId
+        ) 
+        
         if (is.null(balance()) || nrow(balance()) == 0) {
           return(NULL)
         } else {
@@ -134,7 +151,8 @@ cohortMethodCovariateBalanceServer <- function(
             balance = balance(),
             beforeLabel = "Before propensity score adjustment",
             afterLabel = "After propensity score adjustment",
-            textsearch = textSearchCohortMethod
+            textsearch = textSearchCohortMethod,
+            maxSdmStatistic
           )
           return(plot)
         }
@@ -151,7 +169,7 @@ cohortMethodCovariateBalanceServer <- function(
           row <- selectedRow()
           text <- "<strong>Figure 3.</strong> Covariate balance before and after propensity score adjustment. Each dot represents
       the standardizes difference of means for a single covariate before and after propensity score adjustment on the propensity
-      score. Move the mouse arrow over a dot for more details."
+      score. The maximum absolute standardized difference of the mean (Max SDM) is given at the top of the figure. Move the mouse arrow over a dot for more details."
           return(shiny::HTML(sprintf(text)))
         }
       })
@@ -421,13 +439,24 @@ getCohortMethodCovariateBalanceSummary <- function(
   
 }
 
+cmDiagnostics <- shiny::reactive({
+  estimationGetCmDiagnostics(
+    connectionHandler = connectionHandler,
+    resultDatabaseSettings = resultDatabaseSettings,
+    targetIds =  targetIds,
+    comparatorIds = comparatorIds,
+    outcomeId = outcomeId
+  )
+})
+
 
 
 plotCohortMethodCovariateBalanceScatterPlotNew <- function(
     balance,
     beforeLabel = "Before propensity score adjustment",
     afterLabel = "After propensity score adjustment",
-    textsearch = shiny::reactiveVal(NULL)
+    textsearch = shiny::reactiveVal(NULL),
+    maxSdmStatistic = NULL
 ){
   
   if(is.null(textsearch())){
@@ -469,6 +498,7 @@ plotCohortMethodCovariateBalanceScatterPlotNew <- function(
   ) %>%
     plotly::layout(
       #shapes = list(xyline(limits)),
+      title = ~paste0("Max SDM Statistic = ", maxSdmStatistic),
       shapes = list(list(
         type = "line", 
         x0 = 0, 
@@ -585,6 +615,57 @@ getCmOptions <- function(connectionHandler,
     list(
       covariateAnalysisIds = covariateAnalysisIds
     )
+  )
+  
+}
+
+estimationGetMaxSdm <- function(
+    connectionHandler = connectionHandler,
+    resultDatabaseSettings = resultDatabaseSettings,
+    targetId =  targetId,
+    comparatorId = comparatorId,
+    outcomeId = outcomeId,
+    analysisId = analysisId,
+    databaseId = databaseId
+){
+  
+  sql <- "
+    SELECT DISTINCT
+      dmd.cdm_source_abbreviation database_name,
+      cmds.analysis_id,
+      cmds.target_id,
+      cmds.comparator_id,
+      cmds.outcome_id,
+      cmds.max_sdm,
+      cmds.ease
+    FROM
+      @schema.@cm_table_prefixdiagnostics_summary cmds
+      INNER JOIN @schema.@database_table dmd ON dmd.database_id = cmds.database_id
+      
+      where cmds.target_id = @target_id
+      and cmds.comparator_id = @comparator_id
+      and cmds.outcome_id = @outcome_id
+      and cmds.analysis_id = @analysis_id
+      and cmds.database_id = '@database_id'
+      ;
+  "
+  
+  result <- connectionHandler$queryDb(
+    sql = sql,
+    schema = resultDatabaseSettings$schema,
+    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
+    database_table = resultDatabaseSettings$databaseTable,
+    target_id = targetId,
+    comparator_id = comparatorId,
+    outcome_id = outcomeId,
+    analysis_id = analysisId,
+    database_id = databaseId
+  )
+  
+  maxSdm <- round(result$maxSdm, 4)
+  
+  return(
+    maxSdm
   )
   
 }

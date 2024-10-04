@@ -64,36 +64,6 @@ cohortGeneratorViewer <- function(id) {
             collapsible = T,
             collapsed = F,
             width = '100%',
-          #   title = shiny::span( shiny::icon("file-arrow-down"),'Download Data'),
-          #   #solidHeader = TRUE,
-          #   
-          #   shiny::downloadButton(
-          #     ns('downloadCohortCountsFull'),
-          #     label = "Download (Full)",
-          #     icon = shiny::icon("download")
-          #   ),
-          #   
-          #   shiny::actionButton(
-          #     ns('downloadCohortCountsFiltered'),
-          #     label = "Download (Filtered)",
-          #     icon = shiny::icon("download"),
-          #     onclick = paste0("Reactable.downloadDataCSV('", ns('cohortCounts'),
-          #                      "', 'cohort-count-data-filtered-", Sys.Date(), ".csv')")
-          #   )
-          # ),
-          
-          # shinydashboard::box(
-          #   width = '100%',
-          #   title = shiny::span( shiny::icon("table"), 'Counts Table'),
-          #   #solidHeader = TRUE,
-          #   
-          #   shiny::uiOutput(ns("selectColsCohortCounts")
-          #   ),
-          #   
-          #   reactable::reactableOutput(
-          #     outputId = ns("cohortCounts")
-          #   )  
-          # )
           
             resultTableViewer(
               ns("cohortCounts"),
@@ -109,31 +79,14 @@ cohortGeneratorViewer <- function(id) {
             collapsible = T,
             collapsed = F,
             width = '100%',
-          #   title = shiny::span( shiny::icon("file-arrow-down"),'Download Data'),
-          #   #solidHeader = TRUE,
-          #   
-          #   shiny::downloadButton(
-          #     ns('downloadCohortGeneration'),
-          #     label = "Download",
-          #     icon = shiny::icon("download")
-          #   )
-          # ),
-          # 
-          # shinydashboard::box(
-          #   status = 'info', 
-          #   width = '100%',
-          #   title = shiny::span( shiny::icon("table"), 'Generation Table'),
-          #   #solidHeader = TRUE,
-          #   
-          #   shiny::uiOutput(ns("selectColsCohortGeneration")
-          #   ),
             
           resultTableViewer(
             ns("cohortGeneration"),
             downloadedFileName = "cohortGenerationTable-"
           )
-         )
-        ),
+          ),
+ 
+          ),
         
         shiny::tabPanel(
           title = "Inclusion Rules & Attrition"
@@ -144,7 +97,6 @@ cohortGeneratorViewer <- function(id) {
             collapsed = F,
             width = '100%',
             title = shiny::span( shiny::icon("gear"), 'Options'),
-            #solidHeader = TRUE,
             
             shiny::uiOutput(ns('attritionTableSelect'))
           ),
@@ -154,31 +106,11 @@ cohortGeneratorViewer <- function(id) {
             ns = ns,
             
             shiny::uiOutput(ns("inputsText")),
-            
-            # shinydashboard::box(
-            #   collapsible = T,
-            #   collapsed = F,
-            #   width = '100%',
-            #   title = shiny::span( shiny::icon("file-arrow-down"),'Download Data'),
-            #   #solidHeader = TRUE,
-            #   
-            #   shiny::downloadButton(
-            #     ns('downloadAttritionTable'),
-            #     label = "Download",
-            #     icon = shiny::icon("download")
-            #   )
-            # ),
-            # 
-            
-            
+ 
             shinydashboard::box(
               status = 'info', 
               width = '100%',
               title = shiny::span( shiny::icon("table"), 'Attrition Table'),
-              #solidHeader = TRUE,
-              
-              # shiny::uiOutput(ns("selectColsCohortAttrition")
-              # ),
               
               resultTableViewer(ns('attritionTable'),
                                 downloadedFileName = "cohortAttritionTable-")
@@ -188,7 +120,6 @@ cohortGeneratorViewer <- function(id) {
               status = 'info', 
               width = '100%',
               title = shiny::span( shiny::icon("chart-area"), 'Attrition Plot'),
-              #solidHeader = TRUE,
               
               plotly::plotlyOutput(ns('attritionPlot'))
             )
@@ -286,92 +217,51 @@ cohortGeneratorServer <- function(
                       "cohortEntries")
       
       
-      rtable <- shiny::reactive({
-        reactable::reactable(
-          data %>%
-            dplyr::select(input$cohortCountsCols),
-          columns = list(
-            # Render a "show details" button in the last column of the table.
-            # This button won't do anything by itself, but will trigger the custom
-            # click action on the column.
-            cdmSourceName = reactable::colDef(
-              header = withTooltip(
-                "Database Name",
-                "The name of the database"
-              )),
-            cohortId = reactable::colDef(
-              header = withTooltip(
-                "Cohort ID",
-                "The unique numeric identifier of the cohort"
-              )),
-            cohortName = reactable::colDef(
-              header = withTooltip(
-                "Cohort Name",
-                "The name of the cohort"
-              )),
-            cohortSubjects = reactable::colDef(
-              header = withTooltip(
-                "Number of Subjects",
-                "The number of distinct subjects in the cohort"
-              ),
-              format = reactable::colFormat(separators = TRUE
-              )),
-            cohortEntries = reactable::colDef(
-              header = withTooltip(
-                "Number of Records",
-                "The number of records in the cohort"
-              ),
-              format = reactable::colFormat(separators = TRUE
-              ))
+      cohortCountsColDefs = list(
+        # Render a "show details" button in the last column of the table.
+        # This button won't do anything by itself, but will trigger the custom
+        # click action on the column.
+        cdmSourceName = reactable::colDef(
+          header = withTooltip(
+            "Database Name",
+            "The name of the database"
+          )),
+        cohortId = reactable::colDef(
+          header = withTooltip(
+            "Cohort ID",
+            "The unique numeric identifier of the cohort"
+          )),
+        cohortName = reactable::colDef(
+          header = withTooltip(
+            "Cohort Name",
+            "The name of the cohort"
+          )),
+        cohortSubjects = reactable::colDef(
+          header = withTooltip(
+            "Number of Subjects",
+            "The number of distinct subjects in the cohort"
           ),
-          filterable = TRUE,
-          sortable = TRUE,
-          resizable = T,
-          searchable = T,
-          striped = T,
-          defaultColDef = reactable::colDef(
-            align = "left"
-          )
-        )
-        
-      })
-      
-      output$cohortCounts <- reactable::renderReactable({
-        
-        tryCatch({
-          rtable()
-        },
-        
-        error = function(e){
-          shiny::showNotification(
-            paste0(
-              "Loading..."
-            )
-          ); 
-          return(NULL)
-        }
-          
-        )
-    })
-      
-      
-      # download buttons - counts
-      output$downloadCohortCountsFull <- shiny::downloadHandler(
-        filename = function() {
-          paste('cohort-count-data-full', Sys.Date(), '.csv', sep='')
-        },
-        content = function(con) {
-          utils::write.csv(getCohortGeneratorCohortCounts(
-            connectionHandler = connectionHandler, 
-            resultDatabaseSettings = resultDatabaseSettings
-          ) %>%
-            dplyr::select("cdmSourceName",
-                          "cohortId",
-                          "cohortName",
-                          "cohortSubjects",
-                          "cohortEntries"), con)
-        }
+          format = reactable::colFormat(separators = TRUE
+          )),
+        cohortEntries = reactable::colDef(
+          header = withTooltip(
+            "Number of Records",
+            "The number of records in the cohort"
+          ),
+          format = reactable::colFormat(separators = TRUE
+          ))
       )
+      
+      resultTableServer(
+        id = "cohortCounts",
+        df = data,
+        colDefsInput = cohortCountsColDefs,
+        downloadedFileName = "cohortCountsTable-"
+      )
+      
+      
+      
+     # cohort generation table
       
       inputColsCohortGeneration <- colnames(getCohortGeneratorCohortMeta(
         connectionHandler = connectionHandler, 
@@ -428,103 +318,68 @@ cohortGeneratorServer <- function(
                       "endTime",
                       "generationDuration")
       
-      cgTable <- shiny::reactive({
-        
-        reactable::reactable(dataGen %>%
-                               dplyr::select(input$cohortGenerationCols),
-                             columns = list(
-                               # Render a "show details" button in the last column of the table.
-                               # This button won't do anything by itself, but will trigger the custom
-                               # click action on the column.
-                               cdmSourceName = reactable::colDef( 
-                                 header = withTooltip(
-                                   "Database Name", 
-                                   "The name of the database"
-                                 )),
-                               cohortId = reactable::colDef( 
-                                 header = withTooltip(
-                                   "Cohort ID", 
-                                   "The unique numeric identifier of the cohort"
-                                 )),
-                               cohortName = reactable::colDef( 
-                                 header = withTooltip(
-                                   "Cohort Name", 
-                                   "The name of the cohort"
-                                 )),
-                               generationStatus = reactable::colDef( 
-                                 header = withTooltip(
-                                   "Is the Cohort Generated?", 
-                                   "Indicator of if the cohort has been generated"
-                                 ),
-                                 cell = format_yesorno
-                                 ),
-                               startTime = reactable::colDef( 
-                                 header = withTooltip(
-                                   "Generation Start Time", 
-                                   "The time and date the cohort started generating"
-                                 ),
-                                 format = reactable::colFormat(suffix = " mins"
-                                 #format = reactable::colFormat(datetime = TRUE
-                                 )),
-                               endTime = reactable::colDef( 
-                                 header = withTooltip(
-                                   "Generation End Time", 
-                                   "The time and date the cohort finished generating"
-                                 ),
-                                 format = reactable::colFormat(datetime = TRUE
-                                 )),
-                               generationDuration = reactable::colDef( 
-                                 header = withTooltip(
-                                   "Generation Duration (mins)", 
-                                   "The time it took (in minutes) to generate the cohort"
-                                 ),
-                                 format = reactable::colFormat(digits = 2)
-
-                                 )
-                             ),
-                             filterable = TRUE,
-                             sortable = TRUE,
-                             defaultColDef = reactable::colDef(
-                               align = "left"
-                             )
-        )
-      })
       
-      output$cohortGeneration <- reactable::renderReactable({
-        
-        tryCatch({
-          cgTable()
-        },
-        
-        error = function(e){
-          shiny::showNotification(
-            paste0(
-              "Loading..."
-            )
-          ); 
-          return(NULL)
-        }
-        
+      cohortGenerationColDefs <- list(
+        # Render a "show details" button in the last column of the table.
+        # This button won't do anything by itself, but will trigger the custom
+        # click action on the column.
+        cdmSourceName = reactable::colDef( 
+          header = withTooltip(
+            "Database Name", 
+            "The name of the database"
+          )),
+        cohortId = reactable::colDef( 
+          header = withTooltip(
+            "Cohort ID", 
+            "The unique numeric identifier of the cohort"
+          )),
+        cohortName = reactable::colDef( 
+          header = withTooltip(
+            "Cohort Name", 
+            "The name of the cohort"
+          )),
+        generationStatus = reactable::colDef( 
+          header = withTooltip(
+            "Is the Cohort Generated?", 
+            "Indicator of if the cohort has been generated"
+          ),
+          cell = format_yesorno
+        ),
+        startTime = reactable::colDef( 
+          header = withTooltip(
+            "Generation Start Time", 
+            "The time and date the cohort started generating"
+          ),
+          format = reactable::colFormat(suffix = " mins"
+                                        #format = reactable::colFormat(datetime = TRUE
+          )),
+        endTime = reactable::colDef( 
+          header = withTooltip(
+            "Generation End Time", 
+            "The time and date the cohort finished generating"
+          ),
+          format = reactable::colFormat(datetime = TRUE
+          )),
+        generationDuration = reactable::colDef( 
+          header = withTooltip(
+            "Generation Duration (mins)", 
+            "The time it took (in minutes) to generate the cohort"
+          ),
+          format = reactable::colFormat(digits = 2)
+          
         )
-      })
-      
-      # download button - generation
-      output$downloadCohortGeneration <- shiny::downloadHandler(
-        filename = function() {
-          paste('cohort-generation-data-', Sys.Date(), '.csv', sep='')
-        },
-        content = function(con) {
-          utils::write.csv(getCohortGeneratorCohortMeta(
-            connectionHandler = connectionHandler, 
-            resultDatabaseSettings = resultDatabaseSettings
-          ) %>%
-            dplyr::select("cohortId",
-                          "cohortName",
-                          "generationStatus",
-                          "startTime",
-                          "endTime"), con)
-        }
       )
+      
+      resultTableServer(
+        id = "cohortGeneration",
+        df = dataGen,
+        colDefsInput = cohortGenerationColDefs,
+        downloadedFileName = "cohortGenerationTable-"
+      )
+      
+      
+      
+      # inclusion rules and attrition
       
       tryCatch(
         

@@ -374,7 +374,6 @@ fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
   });
 }')
 
-      
 
       output$resultData <- reactable::renderReactable({
           if (is.null(input$dataCols)) {
@@ -415,6 +414,7 @@ fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
                   rowStyle = list(
                     height = height
                     ),
+
                   elementId = 'resultDataFiltered'
                   #, experimental
                   #theme = ohdsiReactableTheme

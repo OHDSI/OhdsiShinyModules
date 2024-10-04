@@ -212,7 +212,7 @@ getExecutionMetadata <- function(dataSource, databaseId) {
 
 
 getDatabaseMetadata <- function(dataSource, databaseTable) {
-  data <- loadResultsTable(dataSource, "metadata", required = TRUE, cdTablePrefix = dataSource$cdTablePrefix)
+  data <- loadResultsTable(dataSource, "metadata", required = TRUE, cdTablePrefix = dataSource$cdTablePrefix, databaseTablePrefix = dataSource$databaseTablePrefix)
   data <- data %>%
     tidyr::pivot_wider(
       id_cols = c("startTime", "databaseId"),

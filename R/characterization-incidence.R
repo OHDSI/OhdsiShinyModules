@@ -1697,9 +1697,6 @@ getIncidenceData <- function(
 ){
   if(!is.null(targetIds) & !is.null(outcomeIds)){
     
-    print(targetIds)
-    print(outcomeIds)
-    
     shiny::withProgress(message = 'Getting incidence data', value = 0, {
     
     sql <- 'select d.cdm_source_abbreviation, i.*, ct1.cohort_name as target_name, ct2.cohort_name as outcome_name
