@@ -1,15 +1,13 @@
 pandoc: '3.2'
-pkgdown: 2.0.9
+pkgdown: 2.1.0
 pkgdown_sha: ~
 articles:
   AddingShinyModules: AddingShinyModules.html
   Characterization: Characterization.html
   CohortDiagnostics: CohortDiagnostics.html
-  CohortMethod: CohortMethod.html
   Cohorts: Cohorts.html
   DataSources: DataSources.html
-  EvidenceSynthesis: EvidenceSynthesis.html
+  Estimation: Estimation.html
   Prediction: Prediction.html
-  SelfControlledCaseSeries: SelfControlledCaseSeries.html
-last_built: 2024-09-27T15:53Z
-
+  ReportGenerator: ReportGenerator.html
+last_built: 2024-10-07T15:13Z

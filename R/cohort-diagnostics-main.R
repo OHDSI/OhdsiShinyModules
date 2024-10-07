@@ -621,6 +621,9 @@ cohortDiagnosticsServer <- function(id,
       if (!hasData(targetCohortId())) {
         return(NULL)
       }
+      if (sum(c('cohortId','conceptSetName') %in% colnames(dataSource$conceptSets)) !=2) {
+        return(NULL)
+      }
       dataSource$conceptSets %>%
         dplyr::filter(.data$cohortId == targetCohortId()) %>%
         dplyr::mutate(name = .data$conceptSetName) %>%
