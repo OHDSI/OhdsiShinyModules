@@ -1,7 +1,7 @@
 Package: OhdsiShinyModules
 Type: Package
 Title: Repository of Shiny Modules for OHDSI Result Viewers
-Version: 3.0.2
+Version: 3.1.0
 Authors@R: c(
   person("Jenna", "Reps", email = "jreps@its.jnj.com", role = c("aut", "cre")),
   person("Nathan", "Hall", role = c("aut")),
