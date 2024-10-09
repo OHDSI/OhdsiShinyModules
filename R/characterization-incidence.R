@@ -354,6 +354,23 @@ characterizationIncidenceServer <- function(
           ),
           
           shinyWidgets::pickerInput(
+            inputId = session$ns('cleanWindows'),
+            label = 'Select Clean Window',
+            choices = ciOptions$cleanWindows,
+            selected = ciOptions$cleanWindows,
+            multiple = F,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size = 10,
+              dropupAuto = TRUE,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
+          ),
+          
+          shinyWidgets::pickerInput(
             inputId = session$ns('tars'),
             label = 'Select Time at risk (TAR)',
             choices = ciOptions$tar,
@@ -370,6 +387,7 @@ characterizationIncidenceServer <- function(
             )
           ),
           
+          
           shiny::actionButton(
             inputId = session$ns('generate'), 
             label = 'Generate',
@@ -384,12 +402,14 @@ characterizationIncidenceServer <- function(
       incidenceRateAgeFilter <- shiny::reactiveVal(NULL)
       incidenceRateGenderFilter <- shiny::reactiveVal(NULL)
       incidenceRateDbFilter <- shiny::reactiveVal(NULL)
+      incidenceRateCleanWindowsFilter <- shiny::reactiveVal(NULL)
       shiny::observeEvent(input$generate,{
         incidenceRateTarFilter(names(ciOptions$tar)[(ciOptions$tar == input$tars)]) # filter needs actual value
         incidenceRateCalendarFilter(input$startYears)
         incidenceRateAgeFilter(input$ageIds)
         incidenceRateGenderFilter(input$sexIds)
         incidenceRateDbFilter(input$databaseSelector)
+        incidenceRateCleanWindowsFilter(input$cleanWindows)
         outcomeIds(input$outcomeIds)
       })
       
@@ -625,7 +645,8 @@ characterizationIncidenceServer <- function(
                             .data$genderId %in% !! incidenceRateGenderFilter() & 
                             .data$startYear %in% !! incidenceRateCalendarFilter() & 
                             .data$tar %in% incidenceRateTarFilter() &
-                            .data$cdmSourceAbbreviation %in% !! incidenceRateDbFilter()
+                            .data$cdmSourceAbbreviation %in% !! incidenceRateDbFilter() &
+                            .data$cleanWindow %in% !! incidenceRateCleanWindowsFilter()
             ) %>%
             dplyr::relocate("targetName", .after = "cdmSourceAbbreviation") %>%
             dplyr::relocate("outcomeName", .after = "targetName") %>%
@@ -654,7 +675,7 @@ characterizationIncidenceServer <- function(
         id = "incidenceRateTable",
         df = filteredData,
         selectedCols = c("cdmSourceAbbreviation", "targetName", "targetNameShort", "outcomeName", "outcomeNameShort",
-                         "ageGroupName", "genderName", "startYear", "tar", "outcomes",
+                         "ageGroupName", "genderName", "startYear", "cleanWindow", "tar", "outcomes",
                          "incidenceProportionP100p", "incidenceRateP100py"),
         sortedCols = c("ageGroupName", "genderName", "startYear", "incidenceRateP100py"),
         elementId = "incidence-select",
@@ -1809,6 +1830,20 @@ from @result_schema.@incidence_table_prefixOUTCOME_DEF
   outcomes <- outcomeDf$outcomeId
   names(outcomes) <- outcomeDf$outcomeName
   
+  #getting clean window options
+  sql <- '
+select clean_window 
+from @result_schema.@incidence_table_prefixOUTCOME_DEF
+'
+  cleanWindowDf <- connectionHandler$queryDb(
+    sql = sql, 
+    result_schema = resultDatabaseSettings$schema,
+    incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
+  )
+  cleanWindows <- cleanWindowDf$cleanWindow
+  names(cleanWindows) <- cleanWindowDf$cleanWindow
+
+  
   irPlotCategoricalChoices <- list(
     "cdmSourceAbbreviation",
     "ageGroupName",
@@ -1867,6 +1902,7 @@ from @result_schema.@incidence_table_prefixOUTCOME_DEF
       startYear = startYear,
       tar = tar,
       outcomes = outcomes,
+      cleanWindows = cleanWindows,
       irPlotNumericChoices = irPlotNumericChoices,
       irPlotCategoricalChoices = irPlotCategoricalChoices
     )
