@@ -614,11 +614,13 @@ characterizationIncidenceServer <- function(
                               shiny::validate("Please wait...")
                             }
                             
-                            else if(targetIds()[1] == outcomeIds()[1] &&
-                                    length(targetIds())==1 && length(outcomeIds())==1
-                            ){
-                              shiny::validate("Target and outcome cohorts must differ from each other. Make a different selection.")
-                            }
+                            #causing an issue when we want the same target & outcome for recurrent events
+                            
+                            # else if(targetIds()[1] == outcomeIds()[1] &&
+                            #         length(targetIds())==1 && length(outcomeIds())==1
+                            # ){
+                            #   shiny::validate("Target and outcome cohorts must differ from each other. Make a different selection.")
+                            # }
                             
                             else {
                               result <- getIncidenceData(targetIds = targetIds(),
