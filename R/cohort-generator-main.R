@@ -821,7 +821,7 @@ getCohortGenerationAttritionTable <- function(
     
   }
   
-  attritionTableDistinct <- dplyr::distinct(attritionTable)
+  attritionTableDistinct <- unique(attritionTable)
 
   
   #adding drop counts
