@@ -23,11 +23,12 @@ output:
     toc: yes
 ---
 
+```{=html}
 <!--
 %\VignetteEngine{knitr}
 %\VignetteIndexEntry{CohortMethod}
 -->
-
+```
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -134,3 +135,13 @@ The EvidenceSynthesis package is instrumental in synthesizing evidence from obse
 **Policy and Clinical Guidelines Development**: Meta-analytical findings informed by comprehensive, real-world data can guide policy formulation and the updating of clinical guidelines, ensuring they are grounded in broad-based evidence.
 
 **Addressing Challenges of Small Sample Sizes**: The EvidenceSynthesis package notably advances the field by tackling the issue of small sample sizes and zero event counts, which traditional meta-analytical methods often handle poorly. Its innovative use of non-normal likelihood approximations enables more precise effect size estimation under such conditions, ensuring that the insights derived from meta-analyses are both accurate and meaningful. This attribute is particularly beneficial in distributed health data networks, where individual site/database data may be limited but collectively hold significant informational value.
+
+# The Estimation Module
+
+In the Estimation tab of the OHDSI Analysis Viewer, the user can find CohortMethod, SCCS, and/or meta-analysis results (depending on what was included in the analysis specifications).
+
+First, the user selects a target and an outcome of interest. After this is completed, a table will be shown below the input selection, which has 2 parent tabs: "Diagnostics" & "Results", and 2 child tabs: "CohortMethod" and "SCCS".
+
+In the Diagnostics tab, the user can find information on whether diagnostics passed for each database, analysis, target, and comparator combination included in their study. These results will be shown for CohortMethod and SCCS, respectively, based on which child tab the user selects.
+
+In the Results tab, the user can find more detailed information on the specific results for each database, analysis, target, and comparator combination included in their study. There is both a tabular and a graphical summary of the results for both CohortMethod and SCCS included underneath the parent Results tab. The user may click on the "View results" link in the "Actions" column to view more detailed results for each individual database, analysis, target, and comparator combination included in their study. More information on what kinds of results are shown can be found in the [1. CohortMethod] and [2. Self-Controlled Case Series] sections above. The graphical summary renders a forest plot of the meta-analysis results across each of the databases for the given selection. 
