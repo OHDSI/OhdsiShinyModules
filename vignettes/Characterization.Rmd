@@ -71,3 +71,4 @@ Characterization serves as a powerful tool for researchers aiming to dissect and
 To find out more about the analyses execution details and see examples, please see [here](https://ohdsi.github.io/OhdsiShinyModules/articles/Characterization.html).
 
 To see the code behind the Characterization R package, please see [here](https://github.com/OHDSI/Characterization).
+
