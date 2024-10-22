@@ -19,6 +19,7 @@
 #' Use for customizing UI
 #'
 #' @param id    Namespace Id - use namespaced id ns("conceptsInDataSource") inside diagnosticsExplorer module
+#' @family {CohortDiagnostics}
 #' @export
 conceptsInDataSourceView <- function(id) {
   ns <- shiny::NS(id)

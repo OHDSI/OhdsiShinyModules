@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Repository of Shiny Modules for OHDSI Result Viewers • OhdsiShinyModules</title>
-<!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script><!-- Bootstrap --><link href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.4.0/cosmo/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+<!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- Bootstrap --><link href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.4.0/cosmo/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script><!-- bootstrap-toc --><link rel="stylesheet" href="bootstrap-toc.css">
 <script src="bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
@@ -19,7 +19,7 @@
 <![endif]-->
 </head>
 <body data-spy="scroll" data-target="#toc">
-    
+
 
     <div class="container template-home">
       <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">OhdsiShinyModules</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">2.1.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">3.0.2</span>
       </span>
     </div>
 
@@ -42,7 +42,7 @@
 <li>
   <a href="index.html">
     <span class="fa fa-home fa-lg"></span>
-     
+
   </a>
 </li>
 <li>
@@ -54,12 +54,39 @@
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     Articles
-     
+
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu">
 <li>
       <a href="articles/AddingShinyModules.html">Adding Shiny Modules</a>
+    </li>
+    <li>
+      <a href="articles/Characterization.html">Characterization</a>
+    </li>
+    <li>
+      <a href="articles/CohortDiagnostics.html">Cohort Diagnostics</a>
+    </li>
+    <li>
+      <a href="articles/Cohorts.html">Cohorts</a>
+    </li>
+    <li>
+      <a href="articles/DataSources.html">Data Sources</a>
+    </li>
+    <li>
+      <a href="articles/Estimation.html">Estimation</a>
+    </li>
+    <li>
+      <a href="articles/EvidenceSynthesis.html">Evidence Synthesis (Meta, Meta Analysis)</a>
+    </li>
+    <li>
+      <a href="articles/Prediction.html">Prediction</a>
+    </li>
+    <li>
+      <a href="articles/ReportGenerator.html">Report Generator</a>
+    </li>
+    <li>
+      <a href="articles/SelfControlledCaseSeries.html">Self-Controlled Case Series</a>
     </li>
   </ul>
 </li>
@@ -74,7 +101,7 @@
 <li>
   <a href="https://github.com/OHDSI/PatientLevelPrediction" class="external-link">
     <span class="fa fa-github fa-lg"></span>
-     
+
   </a>
 </li>
       </ul>
@@ -85,7 +112,7 @@
 </div>
 <!--/.navbar -->
 
-      
+
 
       </header><div class="row">
   <div class="contents col-md-9">
@@ -102,8 +129,12 @@
 <h1 id="current-modules">Current Modules<a class="anchor" aria-label="anchor" href="#current-modules"></a>
 </h1>
 <ul>
-<li>about module: this contains information about the shiny viewer and the types of OHDSI analyses</li>
-<li>prediction module: a module for exploring patient-level prediction results that were developed usign the OHDSI PatientLevelPrediction package</li>
+<li>about module: this contains information about the shiny viewer and the types of OHDSI analyses.</li>
+<li>cohort diagnostics module: a module for exploring CohortDiagnostics results.</li>
+<li>characterization module: a module for exploring Characterization and CohortIncidence results.</li>
+<li>estimation module: a module for exploring CohortMethod, SelfControlledCaseSeries and EvidenceSynthesis results.</li>
+<li>prediction module: a module for exploring patient-level prediction results that were developed usign the OHDSI PatientLevelPrediction package.</li>
+<li>report module: a module that uses ReportGenerator to create a report based on user specified inputs.</li>
 </ul>
 </div>
 <div class="section level1">
@@ -123,14 +154,13 @@
 <li><p>See the instructions <a href="https://ohdsi.github.io/Hades/rSetup.html" class="external-link">here</a> for configuring your R environment, including Java.</p></li>
 <li><p>To install the latest stable version:</p></li>
 </ol>
-<pre><code><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="va">remotes</span><span class="op">)</span></span>
+<pre><code><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">'remotes'</span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">'ohdsi/OhdsiShinyModules'</span><span class="op">)</span></span></code></pre>
 </div>
 <div class="section level1">
 <h1 id="user-documentation">User Documentation<a class="anchor" aria-label="anchor" href="#user-documentation"></a>
 </h1>
 <p>Documentation can be found on the <a href="https://ohdsi.github.io/OhdsiShinyModules/" class="external-link">package website</a>.</p>
-<p>PDF versions of the documentation are also available: Vignette: <a href="https://github.com/OHDSI/OhdsiShinyModules/blob/main/inst/doc/AddingShinyModules.pdf" class="external-link">AddingShinyModules.pdf</a> * Package manual: <a href="https://raw.githubusercontent.com/OHDSI/OhdsiShinyModules/main/extras/OhdsiShinyModules.pdf" class="external-link">OhdsiShinyModules manual</a></p>
 </div>
 <div class="section level1">
 <h1 id="support">Support<a class="anchor" aria-label="anchor" href="#support"></a>
@@ -196,7 +226,9 @@
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>Jenna Reps <br><small class="roles"> Maintainer </small>  </li>
+<li>Jenna Reps <br><small class="roles"> Author, maintainer </small>  </li>
+<li>Nathan Hall <br><small class="roles"> Author </small>  </li>
+<li>Jamie Gibert <br><small class="roles"> Author </small>  </li>
 </ul>
 </div>
 
@@ -208,21 +240,21 @@
 
       <footer><div class="copyright">
   <p></p>
-<p>Developed by Jenna Reps.</p>
+<p>Developed by Jenna Reps, Nathan Hall, Jamie Gibert.</p>
 </div>
 
 <div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.0.</p>
 </div>
 
       </footer>
 </div>
 
-  
 
 
-  
+
+
 
   </body>
 </html>

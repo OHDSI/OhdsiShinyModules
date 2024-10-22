@@ -23,7 +23,7 @@
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' 
+#' @family {PatientLevelPrediction}
 #' @return
 #' The user interface to the summary module
 #'
@@ -59,7 +59,7 @@ patientLevelPredictionModelSummaryViewer <- function(id) {
 #' @param connectionHandler the connection to the prediction result database
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
 #' @param modelDesignId a reactable id specifying the prediction model design identifier
-#' 
+#' @family {PatientLevelPrediction}
 #' @return
 #' The server to the summary module
 #'
@@ -276,12 +276,7 @@ getModelDesignPerformanceSummary <- function(
   
     inner join @schema.@plp_table_prefixmodel_designs as model_designs
     on model_designs.model_design_id = results.model_design_id
-    -- and results.target_id = model_designs.target_id 
-             -- and results.outcome_id = model_designs.outcome_id and 
-             -- results.tar_id = model_designs.tar_id and
-             -- results.population_setting_id = model_designs.population_setting_id
-             -- and results.plp_data_setting_id = model_designs.plp_data_setting_id
-             
+
         LEFT JOIN 
         (SELECT c.cohort_id, cd.cohort_name FROM @schema.@plp_table_prefixcohorts c
         inner join @schema.@cg_table_prefixcohort_definition cd
@@ -293,11 +288,11 @@ getModelDesignPerformanceSummary <- function(
         on c.cohort_definition_id = cd.cohort_definition_id
         ) AS outcomes ON results.outcome_id = outcomes.cohort_id
         LEFT JOIN (select dd.database_id, md.cdm_source_abbreviation database_acronym 
-                   from @schema.@database_table_prefixdatabase_meta_data md inner join 
+                   from @schema.@database_table_prefix@database_table md inner join 
                    @schema.@plp_table_prefixdatabase_details dd 
                    on md.database_id = dd.database_meta_data_id) AS d ON results.development_database_id = d.database_id 
                    LEFT JOIN (select dd.database_id, md.cdm_source_abbreviation database_acronym 
-                   from @schema.@database_table_prefixdatabase_meta_data md inner join 
+                   from @schema.@database_table_prefix@database_table md inner join 
                    @schema.@plp_table_prefixdatabase_details dd 
                    on md.database_id = dd.database_meta_data_id) AS v ON results.validation_database_id = v.database_id 
         LEFT JOIN @schema.@plp_table_prefixtars AS tars ON results.tar_id = tars.tar_id
@@ -314,6 +309,7 @@ getModelDesignPerformanceSummary <- function(
     plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
     model_design_id = modelDesignId(),
     database_table_prefix = resultDatabaseSettings$databaseTablePrefix,
+    database_table = resultDatabaseSettings$databaseTable,
     cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
   
@@ -391,9 +387,12 @@ getModelDesignInfo <- function(
   }
   
   modelType <- connectionHandler$queryDb(
-    'select distinct model_type from 
-    @schema.@plp_table_prefixmodels 
-    where model_design_id = @model_design_id;',
+    'select distinct ms.model_type from 
+    @schema.@plp_table_prefixmodel_settings ms
+    inner join 
+    @schema.@plp_table_prefixmodel_designs md
+    on ms.model_setting_id = md.model_setting_id
+    where md.model_design_id = @model_design_id;',
     schema = resultDatabaseSettings$schema,
     plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
     model_design_id = modelDesignId()

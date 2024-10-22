@@ -176,7 +176,10 @@ plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
                          zerolinewidth = 2,
                          gridcolor = 'ffff'),
                        yaxis = list(
-                         title = db,
+                         title = addTextBreaks(
+                           text = db, 
+                           length = 25 # change this based on plot height?
+                         ),
                          showTitle = FALSE,
                          zerolinecolor = '#ffff',
                          zerolinewidth = 2,
@@ -219,6 +222,7 @@ plotTimeDistribution <- function(data, shortNameRef = NULL, showMax = FALSE) {
 #' Use for customizing UI
 #'
 #' @param id    Namespace Id - use namespaced id ns("imeDistributions") inside diagnosticsExplorer module
+#' @family {CohortDiagnostics}
 #' @export
 timeDistributionsView <- function(id) {
   ns <- shiny::NS(id)

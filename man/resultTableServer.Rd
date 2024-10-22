@@ -8,6 +8,7 @@ resultTableServer(
   id,
   df,
   colDefsInput,
+  details = data.frame(),
   selectedCols = NULL,
   sortedCols = NULL,
   elementId = NULL,
@@ -22,6 +23,8 @@ resultTableServer(
 \item{df}{reactive that returns a data frame}
 
 \item{colDefsInput}{named list of reactable::colDefs}
+
+\item{details}{The details of the results such as cohort names and database names}
 
 \item{selectedCols}{string vector of columns the reactable should display to start by default. Defaults to ALL if not specified.}
 
@@ -42,3 +45,21 @@ shiny module server
 \description{
 Result Table Server
 }
+\seealso{
+Other {Utils}: 
+\code{\link{createCustomColDefList}()},
+\code{\link{datasourcesHelperFile}()},
+\code{\link{datasourcesServer}()},
+\code{\link{datasourcesViewer}()},
+\code{\link{makeButtonLabel}()},
+\code{\link{resultTableViewer}()}
+
+Other {Utils}: 
+\code{\link{createCustomColDefList}()},
+\code{\link{datasourcesHelperFile}()},
+\code{\link{datasourcesServer}()},
+\code{\link{datasourcesViewer}()},
+\code{\link{makeButtonLabel}()},
+\code{\link{resultTableViewer}()}
+}
+\concept{{Utils}}

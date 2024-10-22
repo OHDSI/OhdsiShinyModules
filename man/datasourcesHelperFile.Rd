@@ -12,3 +12,21 @@ The helper html file for the datasources module
 \description{
 Define the helper file for the module
 }
+\seealso{
+Other {Utils}: 
+\code{\link{createCustomColDefList}()},
+\code{\link{datasourcesServer}()},
+\code{\link{datasourcesViewer}()},
+\code{\link{makeButtonLabel}()},
+\code{\link{resultTableServer}()},
+\code{\link{resultTableViewer}()}
+
+Other {Utils}: 
+\code{\link{createCustomColDefList}()},
+\code{\link{datasourcesServer}()},
+\code{\link{datasourcesViewer}()},
+\code{\link{makeButtonLabel}()},
+\code{\link{resultTableServer}()},
+\code{\link{resultTableViewer}()}
+}
+\concept{{Utils}}

@@ -22,8 +22,9 @@
 #' Define the helper file for the module
 #'
 #' @return The helper html file for the datasources module
+#' @family {Utils}
 #' @export
-#'
+#' @family {Utils}
 datasourcesHelperFile <- function() {
   fileLoc <-
     system.file('datasources-www', "datasources.html", package = "OhdsiShinyModules")
@@ -37,8 +38,9 @@ datasourcesHelperFile <- function() {
 #' @param id The unique id for the datasources viewer namespace
 #'
 #' @return The UI for the datasources module
+#' @family {Utils}
 #' @export
-#'
+#' @family {Utils}
 datasourcesViewer <- function(id) {
   ns <- shiny::NS(id)
   
@@ -47,15 +49,7 @@ datasourcesViewer <- function(id) {
     width = "100%",
     title =  shiny::span(shiny::icon("database"), "Data Sources"),
     solidHeader = TRUE,
-    
-    shinydashboard::box(
-      collapsible = TRUE,
-      collapsed = FALSE,
-      title = shiny::span( shiny::icon("circle-question"), "Help & Information"),
-      width = "100%",
-      shiny::htmlTemplate(system.file("datasources-www", "datasources.html", package = utils::packageName()))
-    ),
-      
+
       shiny::tabsetPanel(
         type = 'pills',
         id = ns('mainPanel'),
@@ -79,8 +73,9 @@ datasourcesViewer <- function(id) {
 #' @param resultDatabaseSettings A named list containing the cohort generator results database details (schema, table prefix)
 #'
 #' @return The server for the datasources module
+#' @family {Utils}
 #' @export
-#'
+#' @family {Utils}
 datasourcesServer <- function(
   id, 
   connectionHandler, 
@@ -175,6 +170,9 @@ datasourcesServer <- function(
       resultTableServer(id = "datasourcesTable",
                         df = datasourcesData,
                         colDefsInput = datasourcesColList,
+                        selectedCols = c("cdmSourceName", "cdmSourceAbbreviation", "cdmHolder",
+                                         "sourceReleaseDate", "cdmReleaseDate", "cdmVersion",
+                                         "vocabularyVersion", "maxObsPeriodEndDate"),
                         downloadedFileName = "datasourcesTable-")
       
       return(invisible(NULL))

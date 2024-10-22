@@ -1,7 +1,41 @@
-OhdsiShinyModules v2.1.3
+OhdsiShinyModules v3.0.2
+========================
+- Fixed bug with orphan concepts not loading
+
+OhdsiShinyModules v3.0.1
+========================
+- Bug fixes
+
+OhdsiShinyModules v3.0.0
+========================
+- Removed CohortMethod/SCCS/EvidenceSyntheis modules as these
+are replaced with Estimation 
+
+OhdsiShinyModules v2.2.1
+========================
+- Fixed issue in DatabaseConnector check for pooled connections of sqlite databases on cohort diagnotiscs load (from main hotfix)
+
+OhdsiShinyModules v2.2.0
+========================
+- Combined cohort method, sccs and evidence synthesis into one estimation module with shared target and outcome ids
+- Characterizations now share the target id 
+- Updated tests to get them all working
+- Cleaned R check (but cohort incidence still has many notes)
+
+
+OhdsiShinyModules v2.1.5
 ========================
 Fixed bug of orphan concepts report not displaying
 Fixed bug in orphan concepts where negative database ids were causing dynamic sql queries to crash
+
+OhdsiShinyModules v2.1.4
+========================
+Fixed missing call to dplyr in CohortDiagnostics load up
+
+OhdsiShinyModules v2.1.3
+========================
+Hotfix release to fix issue with cohort diagnostics reports hanging on load when using `DatabaseConnector::dbListTables`
+on postgres backends
 
 OhdsiShinyModules v2.1.2
 ========================

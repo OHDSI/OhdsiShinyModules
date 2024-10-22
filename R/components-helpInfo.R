@@ -6,7 +6,7 @@ infoHelperViewer <- function(
   
 shinydashboard::box(
   collapsible = TRUE,
-  collapsed = FALSE,
+  collapsed = TRUE,
   title = shiny::span( shiny::icon("circle-question"), "Help & Information"),
   width = "100%",
   shiny::htmlTemplate(helpLocation)

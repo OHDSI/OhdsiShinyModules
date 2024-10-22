@@ -33,3 +33,27 @@ use this to create an interface to cohort diagnostics results data
 NOTE: I think this would make a good R6 class for other objects in this package so you could query them outside of
 a shiny app. E.g. if you wanted to make a custom R markdown template
 }
+\seealso{
+Other {CohortDiagnostics}: 
+\code{\link{cohortCountsModule}()},
+\code{\link{cohortCountsView}()},
+\code{\link{cohortDefinitionsModule}()},
+\code{\link{cohortDefinitionsView}()},
+\code{\link{cohortDiagCharacterizationView}()},
+\code{\link{cohortDiagnosticsHelperFile}()},
+\code{\link{cohortDiagnosticsServer}()},
+\code{\link{cohortDiagnosticsView}()},
+\code{\link{cohortOverlapView}()},
+\code{\link{compareCohortCharacterizationView}()},
+\code{\link{conceptsInDataSourceView}()},
+\code{\link{databaseInformationView}()},
+\code{\link{getCirceRenderedExpression}()},
+\code{\link{getEnabledCdReports}()},
+\code{\link{incidenceRatesView}()},
+\code{\link{inclusionRulesView}()},
+\code{\link{indexEventBreakdownView}()},
+\code{\link{orpahanConceptsView}()},
+\code{\link{timeDistributionsView}()},
+\code{\link{visitContextView}()}
+}
+\concept{{CohortDiagnostics}}

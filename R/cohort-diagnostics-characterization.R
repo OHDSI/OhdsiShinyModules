@@ -19,6 +19,7 @@
 #' Use for customizing UI
 #'
 #' @param id    Namespace Id - use namespaced id ns("characterization") inside diagnosticsExplorer module
+#' @family {CohortDiagnostics}
 #' @export
 cohortDiagCharacterizationView <- function(id) {
   ns <- shiny::NS(id)
@@ -419,7 +420,7 @@ prepareTable1 <- function(covariates,
       "characteristic",
       "valueCount"
     ) %>%
-    dplyr::rename("count" = "valueCount") %>%
+    dplyr::rename(count = "valueCount") %>%
     dplyr::inner_join(cohort %>%
                         dplyr::select(
                           "cohortId",
@@ -739,7 +740,7 @@ cohortDiagCharacterizationModule <- function(
           "covariateName",
           "mean"
         ) %>%
-        dplyr::rename("sumValue" = "mean")
+        dplyr::rename(sumValue = "mean")
 
 
       table <- data %>%
@@ -861,6 +862,8 @@ cohortDiagCharacterizationModule <- function(
       params$time_id <- ""
       params$use_database_id <- TRUE
       params$database_table <- dataSource$databaseTable
+      params$database_table_prefix <- dataSource$databaseTablePrefix
+      params$database_name <- ifelse(tolower(dataSource$databaseTable) == 'database_meta_data', 'cdm_source_name', 'database_name')
       return(params)
     })
 
@@ -1053,11 +1056,11 @@ cohortDiagCharacterizationModule <- function(
           FROM @results_database_schema.@table_prefixtemporal_covariate_ref tcr
           INNER JOIN @results_database_schema.@table_prefixtemporal_analysis_ref tar ON tar.analysis_id = tcr.analysis_id
           INNER JOIN @results_database_schema.@table_prefixtemporal_covariate_value tcv ON tcr.covariate_id = tcv.covariate_id
-          INNER JOIN @results_database_schema.@database_table db ON db.database_id = tcv.database_id
+          INNER JOIN @results_database_schema.@database_table_prefix@database_table db ON db.database_id = tcv.database_id
           WHERE tcr.covariate_id IS NOT NULL
         "
 
-        selectSt <- "db.database_name,
+        selectSt <- "db.@database_name as database_name,
             tcr.covariate_name,
             tar.analysis_name,
             is_binary,
@@ -1075,13 +1078,21 @@ cohortDiagCharacterizationModule <- function(
         # Select casees for each db
         for (i in 1:length(timeIds)) {
           timeId <- timeIds[i]
-          tplSql <- c(tplSql, SqlRender::render(selectTemplate, i = i, time_id = timeId))
-          havingSql <- c(havingSql, SqlRender::render(havingTemplate, time_id = timeId))
+          tplSql <- c(tplSql, SqlRender::render(
+            sql = selectTemplate, 
+            i = i, 
+            time_id = timeId)
+            )
+          havingSql <- c(havingSql, SqlRender::render(
+            sql = havingTemplate, 
+            time_id = timeId
+            )
+            )
         }
 
         tplSql <- paste(tplSql, collapse = ", \n")
         groupClause <- SqlRender::render("
-        GROUP BY db.database_name, tcr.covariate_name, tar.analysis_name, tcr.concept_id, is_binary
+        GROUP BY db.@database_name, tcr.covariate_name, tar.analysis_name, tcr.concept_id, is_binary
         HAVING @having_clasuse
         ", having_clasuse = paste(havingSql, collapse = " OR\n"))
 

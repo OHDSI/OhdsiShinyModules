@@ -50,6 +50,7 @@ resultDatabaseSettingsPlp <- list(
   plpTablePrefix = '',
   cgTablePrefix = '',
   databaseTablePrefix = '',
+  databaseTable = 'DATABASE_META_DATA',
   schema = 'main'
 )
 # =========== PLP End
@@ -57,7 +58,7 @@ resultDatabaseSettingsPlp <- list(
 
 
 # =========== characterization START
-serverCharacterization <- "../resources/characterizationDatabase/databaseFile.sqlite"
+serverCharacterization <- "../resources/cDatabase/databaseFile.sqlite"
 connectionDetailsCharacterization <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite',
   server = serverCharacterization
@@ -80,30 +81,55 @@ resultDatabaseSettingsCharacterization <- list(
 )
 
 
+
 # =========== Characterization END
 
 
-# =========== Cohort Method START
-connectionDetailsCm <- DatabaseConnector::createConnectionDetails(
+# =========== Estimation START
+connectionDetailsEstimation <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite', 
-  server = "../resources/cmDatabase/databaseFile.sqlite"
+  server = "../resources/estDatabase/databaseFile.sqlite"
 )
 
-connectionHandlerCm  <- ResultModelManager::ConnectionHandler$new(
-  connectionDetailsCm, 
+connectionHandlerEstimation  <- ResultModelManager::ConnectionHandler$new(
+  connectionDetailsEstimation, 
   loadConnection = FALSE
   )
 
-resultDatabaseSettingsCm <- list(
+resultDatabaseSettingsEstimation <- list(
   dbms = 'sqlite',
   cmTablePrefix = 'cm_',
+  esTablePrefix = 'es_',
+  sccsTablePrefix = 'sccs_',
   cgTablePrefix = 'cg_',
   databaseTable = 'DATABASE_META_DATA',
   schema = "main",
   tempEmulationSchema = NULL
 )
 
-# =========== Cohort Method END
+resultDatabaseSettingsEstimationCm <- list(
+  dbms = 'sqlite',
+  cmTablePrefix = 'cm_',
+  esTablePrefix = 'es2_',
+  sccsTablePrefix = 'sccs2_',
+  cgTablePrefix = 'cg_',
+  databaseTable = 'DATABASE_META_DATA',
+  schema = "main",
+  tempEmulationSchema = NULL
+)
+
+resultDatabaseSettingsEstimationSccs <- list(
+  dbms = 'sqlite',
+  cmTablePrefix = 'cm2_',
+  esTablePrefix = 'es2_',
+  sccsTablePrefix = 'sccs_',
+  cgTablePrefix = 'cg_',
+  databaseTable = 'DATABASE_META_DATA',
+  schema = "main",
+  tempEmulationSchema = NULL
+)
+
+# =========== Estimation END
 
 
 # =========== Data diag START
@@ -241,8 +267,8 @@ withr::defer({
   connectionHandlerPlp$finalize()
   connectionHandlerCharacterization$finalize()
   connectionHandlerDataDiag$finalize()
-  connectionHandlerCm$finalize()
   connectionHandlerCohortDiag$finalize()
+  connectionHandlerEstimation$finalize()
   connectionHandlerSccs$finalize()
   connectionHandlerES$finalize()
   connectionHandlerDS$finalize()

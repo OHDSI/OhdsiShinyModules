@@ -18,3 +18,9 @@ The module viewer for exploring home
 \details{
 The user specifies the id for the module
 }
+\seealso{
+Other {Home}: 
+\code{\link{homeHelperFile}()},
+\code{\link{homeServer}()}
+}
+\concept{{Home}}

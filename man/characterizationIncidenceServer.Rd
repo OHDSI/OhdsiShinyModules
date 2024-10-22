@@ -4,7 +4,15 @@
 \alias{characterizationIncidenceServer}
 \title{The module server for exploring incidence results}
 \usage{
-characterizationIncidenceServer(id, connectionHandler, resultDatabaseSettings)
+characterizationIncidenceServer(
+  id,
+  connectionHandler,
+  resultDatabaseSettings,
+  parents,
+  parentIndex,
+  outcomes,
+  targetIds
+)
 }
 \arguments{
 \item{id}{the unique reference id for the module}
@@ -12,6 +20,14 @@ characterizationIncidenceServer(id, connectionHandler, resultDatabaseSettings)
 \item{connectionHandler}{the connection to the prediction result database}
 
 \item{resultDatabaseSettings}{a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix}
+
+\item{parents}{a list of parent cohorts}
+
+\item{parentIndex}{an integer specifying the parent index of interest}
+
+\item{outcomes}{a reactive object specifying the outcomes of interest}
+
+\item{targetIds}{a reactive vector of integer specifying the targetIds of interest}
 }
 \value{
 The server to the prediction incidence module
@@ -22,3 +38,11 @@ The module server for exploring incidence results
 \details{
 The user specifies the id for the module
 }
+\seealso{
+Other {Characterization}: 
+\code{\link{characterizationHelperFile}()},
+\code{\link{characterizationIncidenceViewer}()},
+\code{\link{characterizationServer}()},
+\code{\link{characterizationViewer}()}
+}
+\concept{{Characterization}}
