@@ -1,3 +1,8 @@
+OhdsiShinyModules v3.1.1
+========================
+- bug fixes
+- updated helper documents
+
 OhdsiShinyModules v3.1.0
 ========================
 - Removed percentage calculation from records field in CohortDiagnostics
