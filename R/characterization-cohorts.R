@@ -49,7 +49,20 @@ characterizationCohortComparisonViewer <- function(id) {
           ),
           shiny::tabPanel(
             title = 'Binary',
-            resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
+            shiny::tabsetPanel(
+              type = 'pills',
+              id = ns('binaryPanel'),
+              shiny::tabPanel(
+                title = "Table",
+                resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
+              ),
+              shiny::tabPanel(
+                title = "Plot",
+                shinycssloaders::withSpinner(
+                  plotly::plotlyOutput(ns('scatterPlot'))
+                )
+              )
+            )
           ),
           shiny::tabPanel(
             title = 'Continuous',
@@ -281,9 +294,80 @@ characterizationCohortComparisonServer <- function(
               elementId = session$ns('count-table-filter')
             ),
             elementId = session$ns('count-table-filter')
-          )} 
+          )
+          
+        }
+        
+        #scatterplots
+        
+        plotDf <- shiny::reactive({
+          
+          # Get the filtered and processed plot data
+          plotData <- resultTable %>%
+            replace(is.na(.), 0) %>%
+            dplyr::mutate(domain = dplyr::case_when(
+              grepl("condition_", covariateName) | sub("\\s.*", "", covariateName) == "condition" ~ "Condition",
+              grepl("drug_", covariateName) | sub("\\s.*", "", covariateName) == "drug" ~ "Drug",
+              grepl("procedure_", covariateName) | sub("\\s.*", "", covariateName) == "procedure" ~ "Procedure",
+              grepl("measurement_", covariateName) | sub("\\s.*", "", covariateName) == "measurement" ~ "Measurement",
+              grepl("observation_", covariateName) | sub("\\s.*", "", covariateName) == "observation" ~ "Observation",
+              grepl("device_", covariateName) | sub("\\s.*", "", covariateName) == "device" ~ "Device",
+              grepl("cohort_", covariateName) | sub("\\s.*", "", covariateName) == "cohort" ~ "Cohort",
+              grepl("visit_", covariateName) | sub("\\s.*", "", covariateName) == "visit" ~ "Visit",
+              .default = "Demographic"
+            ))
+          
+          # Create hover text for plotly
+          plotData$hoverText <- paste(
+            "Covariate Name:", plotData$covariateName, 
+            "<br>", "Target", ":", scales::percent(plotData$averageValue_1), 
+            "<br>", "Comparator", ":", scales::percent(plotData$averageValue_2)
+          )
+          
+          #removing negatives, which come from "< min threshold"
+          plotData$averageValue_1[plotData$averageValue_1 < 0] <- 0
+          plotData$averageValue_2[plotData$averageValue_2 < 0] <- 0
+          
+          return(plotData)
+          
+        })
+          
+         shiny::observe({
+            output$scatterPlot <- plotly::renderPlotly({
+              
+              plotData <- plotDf()
+
+              # Create the scatter plot with the diagonal line (x = y)
+              p <- ggplot2::ggplot(plotData, ggplot2::aes(       x = .data$averageValue_1,
+                                                                 y = .data$averageValue_2,
+                                                                 color = .data$domain,
+                                                                 text = .data$hoverText)) +  # Use hoverText for hover labels
+                ggplot2::geom_point(size = 2) +    # Smaller point size
+                ggplot2::geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +  # Diagonal x=y line in black
+                ggplot2::labs(
+                  x = paste0("Target", " %"),
+                  y = paste0("Comparator", " %"),
+                  color = "Domain",
+                  title = paste0("Database: ", names(inputVals()$databaseIds)[input$databaseId == inputVals()$databaseIds])
+                ) +
+                ggplot2::theme_minimal() +          # Optional: use a clean theme
+                ggplot2::theme(
+                  plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
+                  legend.position = "right",        # Position legend as needed
+                  axis.title = ggplot2::element_text(size = 12),  # Adjust axis title size
+                  axis.text = ggplot2::element_text(size = 10)    # Adjust axis text size
+                ) +
+                ggplot2::scale_x_continuous(labels = scales::percent_format()) +  # Format x-axis as percentage
+                ggplot2::scale_y_continuous(labels = scales::percent_format())    # Format y-axis as percentage
+              
+              # Convert to a plotly object for interactivity
+              plotly::ggplotly(p, tooltip = "text")  # Use the custom hover text
+            })
+          })
         
       })
+      
+      
 
       return(invisible(NULL))
       
@@ -777,7 +861,7 @@ characterizatonGetCohortData <- function(
   }
 
   shiny::withProgress(message = 'characterizatonGetCohortData', value = 0, {
-    
+
     shiny::incProgress(1/4, detail = paste("Setting types"))
     
     types <- data.frame(
@@ -862,13 +946,15 @@ characterizatonGetCohortData <- function(
         result <- result %>% dplyr::select(-"firstVar",-"secondVar", -"N_1", -"N_2")
         
       } else{
+        NULL
         shiny::showNotification('Unable to add SMD due to missing columns')
       }
     }
     shiny::incProgress(4/4, detail = paste("Done"))
   })
   
-  return(result)
+    return(result)
+  
 }
 
 
@@ -1013,4 +1099,62 @@ characterizationGetCohortsInputs <- function(
       databaseIds = databaseIds
     )
   )
+}
+
+characterizationGetCohortComparisonDataRaw <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    targetIds,
+    databaseIds,
+    minThreshold = 0.01,
+    addSMD = F
+){
+  
+  if(is.null(targetIds) |  is.null(databaseIds)){
+    warning('Ids cannot be NULL')
+    return(NULL)
+  }
+  
+  sql <- "select  d.cdm_source_abbreviation,
+          ref.covariate_name, 
+          s.min_prior_observation,
+          cov.target_cohort_id as cohort_definition_id,
+          cg.cohort_name,
+          cov.* from   
+    @schema.@c_table_prefixCOVARIATES cov 
+    inner join 
+    @schema.@c_table_prefixcovariate_ref ref
+    on cov.covariate_id = ref.covariate_id
+    and cov.setting_id = ref.setting_id
+    and cov.database_id = ref.database_id
+    inner join 
+    @schema.@c_table_prefixsettings s
+    on s.database_id = cov.database_id
+    and s.setting_id = cov.setting_id
+    inner join 
+    @schema.@database_table d
+    on cov.database_id = d.database_id
+    inner join
+    @schema.@cg_table_prefixcohort_definition cg
+    on cov.target_cohort_id = cg.cohort_definition_id
+    
+    where 
+    cov.target_cohort_id in (@target_ids) 
+    and cov.cohort_type = 'Target'
+    AND cov.database_id in (@database_ids)
+    AND cov.average_value >= @min_threshold;"
+  
+  # settings.min_characterization_mean needed?
+  res <- connectionHandler$queryDb(
+    sql = sql,
+    target_ids = paste0(targetIds, collapse = ','),
+    database_ids = paste0("'",databaseIds,"'", collapse = ','),
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
+    min_threshold = minThreshold,
+    database_table = resultDatabaseSettings$databaseTable,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
+  )
+  
+  return(res)
 }
