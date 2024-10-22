@@ -76,16 +76,10 @@
       <a href="../articles/Estimation.html">Estimation</a>
     </li>
     <li>
-      <a href="../articles/EvidenceSynthesis.html">Evidence Synthesis (Meta, Meta Analysis)</a>
-    </li>
-    <li>
       <a href="../articles/Prediction.html">Prediction</a>
     </li>
     <li>
       <a href="../articles/ReportGenerator.html">Report Generator</a>
-    </li>
-    <li>
-      <a href="../articles/SelfControlledCaseSeries.html">Self-Controlled Case Series</a>
     </li>
   </ul>
 </li>
@@ -120,7 +114,7 @@
                         <h4 data-toc-skip class="author">Nathan
 Hall</h4>
             
-            <h4 data-toc-skip class="date">2024-10-04</h4>
+            <h4 data-toc-skip class="date">2024-10-22</h4>
       
 
       <div class="hidden name"><code>DataSources.Rmd</code></div>
@@ -136,11 +130,6 @@ Hall</h4>
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>Real-world data (RWD) encompasses a vast array of information
-collected from a variety of sources outside traditional clinical
-research settings. This data, when analyzed, generates real-world
-evidence (RWE) that can inform healthcare decisions, policy-making, and
-patient care.</p>
 <p>The Observational Medical Outcomes Partnership (OMOP) was a
 collaborative initiative chaired by the U.S. Food and Drug
 Administration (FDA) aimed at improving the understanding of how
@@ -167,11 +156,11 @@ management procedure that prepares raw data for analysis by extracting
 it from various sources, transforming it into a consistent format that
 aligns with analysis requirements, and loading it into a destination
 system for use. In the context of generating real-world evidence (RWE)
-and ensuring adherence to a Common Data Model (CDM) like OMOP, the ETL
-process is indispensable. It enables the standardization of
-observational healthcare data—often fragmented across different systems
-and formats—into a unified structure. This standardization is essential
-not only for the interoperability of data across different healthcare
+and ensuring adherence to a CDM like OMOP, the ETL process is
+indispensable. It enables the standardization of observational
+healthcare data—often fragmented across different systems and
+formats—into a unified structure. This standardization is essential not
+only for the interoperability of data across different healthcare
 databases but also for ensuring that analyses conducted on these data
 are reliable, scalable, and reproducible. For more information on the
 ETL process and how OHDSI tools can be utilizied to perform it for a
@@ -219,6 +208,14 @@ Datasets from OHDSI</a></li>
 <li><a href="https://www.cms.gov/data-research/statistics-trends-and-reports/medicare-claims-synthetic-public-use-files" title="Medicare Claims Synthetic Public Use Files (SynPUFs)" class="external-link">SynPUFs</a></li>
 </ol>
 </div>
+<div class="section level2">
+<h2 id="the-datasources-module">The DataSources Module<a class="anchor" aria-label="anchor" href="#the-datasources-module"></a>
+</h2>
+<p>In the DataSources tab of the OHDSI Analysis Viewer, a table is
+displayed to the user which gives information on each of the data
+sources used in the analysis. Information such as database name, CDM
+version, and the maximum observation period end date are available.</p>
+</div>
   </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
@@ -236,7 +233,7 @@ Datasets from OHDSI</a></li>
 
 <div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.0.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
 </div>
 
       </footer>
