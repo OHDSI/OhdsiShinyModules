@@ -20,8 +20,16 @@ shiny::testServer(
   ), 
   expr = {
     
-    # check setting and generating works
-    session$setInputs(n = 30) 
-    testthat::expect_true(input$n == 30)
+    # create a html file in a folder
+    # add the folder location to environmental var shiny_report_folder
+    tempDir <- file.path(tempdir(),'reports')
+    if(!dir.exists(tempDir)){
+      dir.create(tempDir, recursive = T)
+    }
+    write.table(x = c(a=1, b=2), file = file.path(tempDir, 'Prediction.html'))
+    Sys.setenv(shiny_report_folder = tempDir)
+    shiny::addResourcePath('www-reports', tempDir)
+    
+    testthat::expect_true(!is.null(output$tabs))
   })
 
