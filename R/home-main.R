@@ -68,19 +68,21 @@ homeServer <- function(
       # for each summary report in the summaryReports folder create a tab
       # containing the html
       
+      if(length(htmlFiles) > 0){
       output$tabs <- shiny::renderUI({
         tabs <- list(NULL)
         for(i in 1:length(htmlFiles)){
           tabs[[i]] <- shiny::tabPanel(
             title = gsub('.html','', htmlFiles[i]),
             shiny::tags$iframe(
-              src = file.path('www-reports',htmlFiles[1]), 
+              src = file.path('www-reports',htmlFiles[i]), 
               style='width:90vw;height:100vh;'
             )
           )
              }
         do.call(shinydashboard::tabBox,tabs)
       })
+      }
       
 
     }

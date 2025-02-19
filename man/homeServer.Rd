@@ -2,7 +2,7 @@
 % Please edit documentation in R/home-main.R
 \name{homeServer}
 \alias{homeServer}
-\title{The module server for exploring home}
+\title{The module server for exploring summary html files}
 \usage{
 homeServer(id, connectionHandler, resultDatabaseSettings = list(port = 1))
 }
@@ -17,7 +17,7 @@ homeServer(id, connectionHandler, resultDatabaseSettings = list(port = 1))
 The server for the home module
 }
 \description{
-The module server for exploring home
+The module server for exploring summary html files
 }
 \details{
 The user specifies the id for the module

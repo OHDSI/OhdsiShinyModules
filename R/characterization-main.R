@@ -662,11 +662,18 @@ inner join @schema.@cg_table_prefixcohort_definition c on temp.outcome_cohort_id
   if(!'subsetDefinitionId' %in% colnames(cg)){
     cg$subsetDefinitionId <- cg$cohortDefinitionId
   }
-  cg$subsetParent[is.na(cg$isSubset)] <- cg$cohortDefinitionId
-  cg$subsetDefinitionId[is.na(cg$isSubset)] <- cg$cohortDefinitionId
-  cg$isSubset[is.na(cg$isSubset)] <- 0
   
-  parents <- unique(cg$cohortDefinitionId[cg$isSubset == 0])
+  # set subsetId to cohortId if NA as that means it is a parent
+  if(sum(is.na(cg$subsetDefinitionId)) > 0){
+  cg$subsetDefinitionId[is.na(cg$subsetDefinitionId)] <- cg$cohortDefinitionId[is.na(cg$subsetDefinitionId)]
+  }
+  # set parentId to cohortDefinitionId is it is NA
+  if(sum(is.na(cg$subsetParent)) > 0){
+    cg$subsetParent[is.na(cg$subsetParent)] <- cg$cohortDefinitionId[is.na(cg$subsetParent)]
+  }
+  
+  # isSubset not being used now so use cg$subsetDefinitionId == cg$cohortDefinitionId
+  parents <- unique(cg$cohortDefinitionId[cg$subsetDefinitionId == cg$cohortDefinitionId])
   results <- lapply(parents, function(id){
     list(
       cohortName = cg$cohortName[cg$cohortDefinitionId == id],

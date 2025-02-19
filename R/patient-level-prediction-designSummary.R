@@ -91,6 +91,7 @@ patientLevelPredictionDesignSummaryServer <- function(
               options = shinyWidgets::pickerOptions(
                 actionsBox = TRUE,
                 liveSearch = TRUE,
+                dropupAuto = F,
                 size = 10,
                 liveSearchStyle = "contains",
                 liveSearchPlaceholder = "Type here to search",
@@ -112,7 +113,8 @@ patientLevelPredictionDesignSummaryServer <- function(
               options = shinyWidgets::pickerOptions(
                 actionsBox = TRUE,
                 liveSearch = TRUE,
-                size = 10,
+                size = 10, 
+                dropupAuto = F,
                 liveSearchStyle = "contains",
                 liveSearchPlaceholder = "Type here to search",
                 virtualScroll = 50
@@ -278,6 +280,8 @@ getPlpCohortIds <- function(
         on c.cohort_definition_id = cd.cohort_definition_id
         ) AS cohorts
         ON model_designs.@type_id = cohorts.cohort_id
+        
+        order by cohorts.cohort_name asc
         ;"
   
   result <- connectionHandler$queryDb(

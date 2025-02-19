@@ -2,7 +2,7 @@
 % Please edit documentation in R/home-main.R
 \name{homeViewer}
 \alias{homeViewer}
-\title{The module viewer for exploring home}
+\title{The module viewer for exploring summary results}
 \usage{
 homeViewer(id = 1)
 }
@@ -13,7 +13,7 @@ homeViewer(id = 1)
 The user interface to the home viewer module
 }
 \description{
-The module viewer for exploring home
+The module viewer for exploring summary results
 }
 \details{
 The user specifies the id for the module
