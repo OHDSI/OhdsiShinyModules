@@ -23,7 +23,7 @@
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @family {PatientLevelPrediction}
+#' @family PatientLevelPrediction
 #' @return
 #' The user interface to the prediction design module
 #'
@@ -48,7 +48,7 @@ patientLevelPredictionDesignSummaryViewer <- function(id) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
-#' @family {PatientLevelPrediction}
+#' @family PatientLevelPrediction
 #' @return
 #' The server to the prediction design module
 #'
@@ -91,6 +91,7 @@ patientLevelPredictionDesignSummaryServer <- function(
               options = shinyWidgets::pickerOptions(
                 actionsBox = TRUE,
                 liveSearch = TRUE,
+                dropupAuto = F,
                 size = 10,
                 liveSearchStyle = "contains",
                 liveSearchPlaceholder = "Type here to search",
@@ -112,7 +113,8 @@ patientLevelPredictionDesignSummaryServer <- function(
               options = shinyWidgets::pickerOptions(
                 actionsBox = TRUE,
                 liveSearch = TRUE,
-                size = 10,
+                size = 10, 
+                dropupAuto = F,
                 liveSearchStyle = "contains",
                 liveSearchPlaceholder = "Type here to search",
                 virtualScroll = 50
@@ -278,6 +280,8 @@ getPlpCohortIds <- function(
         on c.cohort_definition_id = cd.cohort_definition_id
         ) AS cohorts
         ON model_designs.@type_id = cohorts.cohort_id
+        
+        order by cohorts.cohort_name asc
         ;"
   
   result <- connectionHandler$queryDb(

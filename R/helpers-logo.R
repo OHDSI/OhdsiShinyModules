@@ -6,6 +6,7 @@
 #' @return
 #' string location of the OHDSI logo
 #'
+#' @family Utils
 #' @export
 getLogoImage <- function(){
   fileLoc <- system.file(

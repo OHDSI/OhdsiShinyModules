@@ -12,6 +12,19 @@ if (jarFolder == "") {
   }, testthat::teardown_env())
 }
 
+# home test setup
+#==============
+# create a html file in a folder
+# add the folder location to environmental var shiny_report_folder
+homeTempDir <- file.path(tempdir(),'reports')
+if(!dir.exists(homeTempDir)){
+  dir.create(homeTempDir, recursive = T)
+}
+write.table(x = c(a=1, b=2), file = file.path(homeTempDir, 'Prediction.html'))
+Sys.setenv(shiny_report_folder = homeTempDir)
+shiny::addResourcePath('www-reports', homeTempDir)
+#==============
+
 dbmsTest <- 'sqlite'
 schemaTest <- 'main'
 

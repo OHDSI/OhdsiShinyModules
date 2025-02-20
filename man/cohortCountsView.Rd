@@ -13,7 +13,7 @@ cohortCountsView(id)
 Shiny view for cohort counts module
 }
 \seealso{
-Other {CohortDiagnostics}: 
+Other CohortDiagnostics: 
 \code{\link{cohortCountsModule}()},
 \code{\link{cohortDefinitionsModule}()},
 \code{\link{cohortDefinitionsView}()},
@@ -35,4 +35,4 @@ Other {CohortDiagnostics}:
 \code{\link{timeDistributionsView}()},
 \code{\link{visitContextView}()}
 }
-\concept{{CohortDiagnostics}}
+\concept{CohortDiagnostics}

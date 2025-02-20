@@ -20,7 +20,7 @@
 #' The module viewer for rendering the PLE systematic error objects
 #'
 #' @param id the unique reference id for the module
-#' @family {Estimation}
+#' @family Estimation
 #' @return
 #' The user interface to the cohort method systematic error module
 #' 
@@ -53,7 +53,7 @@ cohortMethodSystematicErrorViewer <- function(id) {
 #' @param selectedRow the selected row from the main results table 
 #' @param connectionHandler  the connection handler to the result databases
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
-#' @family {Estimation}
+#' @family Estimation
 #' @return
 #' the PLE systematic error content server
 #' 

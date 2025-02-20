@@ -16,4 +16,4 @@ A connection details to an example result database
 Finds the location within the package of an sqlite database with example results for 1) CohortGenerator, 
 2) Characterization, 3) PatientLevelPrediction, 4) CohortMethod, 5) SelfControlledCaseSeries and 6) CohortIncidence
 }
-\concept{{Example}}
+\concept{Example}

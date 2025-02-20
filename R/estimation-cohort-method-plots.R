@@ -74,12 +74,14 @@ estimationCreateCmPlot <- function(data) {
   # make sure bayesian is at top
   db <- unique(data$database)
   bInd <- grep('bayesian', tolower(db))
-  withoutb <- db[-bInd]
   b <- db[bInd]
-  data$database <- factor(
-    x = data$database, 
-    levels = c(b, sort(withoutb))
-  )
+  if(length(bInd) > 0){
+    withoutb <- db[-bInd]
+    data$database <- factor(
+      x = data$database, 
+      levels = c(b, sort(withoutb))
+    )
+  }
   metadata <- data[data$database == b,]
   
   breaks <- c(0.1, 0.25, 0.5, 1, 2, 4, 6, 8)

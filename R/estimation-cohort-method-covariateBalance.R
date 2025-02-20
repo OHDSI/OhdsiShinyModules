@@ -20,7 +20,7 @@
 #' The module viewer for rendering the PLE covariate balance analysis
 #'
 #' @param id the unique reference id for the module
-#' @family {Estimation}
+#' @family Estimation
 #' @return
 #' The user interface to the cohort method covariate balance results
 #' 
@@ -75,7 +75,7 @@ cohortMethodCovariateBalanceViewer <- function(id) {
 #' @param connectionHandler the connection to the PLE results database
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
 #' @param metaAnalysisDbIds metaAnalysisDbIds
-#' @family {Estimation}
+#' @family Estimation
 #' @return
 #' the PLE covariate balance content server
 #' 
@@ -439,6 +439,7 @@ getCohortMethodCovariateBalanceSummary <- function(
   
 }
 
+# what is the purpose of below?
 cmDiagnostics <- shiny::reactive({
   estimationGetCmDiagnostics(
     connectionHandler = connectionHandler,

@@ -20,7 +20,7 @@
 #' The module viewer for rendering the PLE propensity score model covariates/coefficients
 #'
 #' @param id the unique reference id for the module
-#' @family {Estimation}
+#' @family Estimation
 #' @return
 #' The user interface to the cohort method propensity score model covariates/coefficients
 #' 
@@ -42,7 +42,7 @@ cohortMethodPropensityModelViewer <- function(id) {
 #' @param selectedRow the selected row from the main results table 
 #' @param connectionHandler the connection to the PLE results database
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
-#' @family {Estimation}
+#' @family Estimation
 #' @return
 #' the PLE propensity score model
 #' 

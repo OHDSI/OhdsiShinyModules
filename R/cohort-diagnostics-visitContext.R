@@ -19,7 +19,7 @@
 #' Use for customizing UI
 #'
 #' @param id        Namespace Id - use namespaced id ns("vistConext") inside diagnosticsExplorer module
-#' @family {CohortDiagnostics}
+#' @family CohortDiagnostics
 #' @export
 visitContextView <- function(id) {
   ns <- shiny::NS(id)

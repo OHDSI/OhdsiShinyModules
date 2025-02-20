@@ -19,9 +19,6 @@ shiny::testServer(
     resultDatabaseSettings = resultDatabaseSettingsCharacterization
   ), 
   expr = {
-    
-    # check setting and generating works
-    session$setInputs(n = 30) 
-    testthat::expect_true(input$n == 30)
+    testthat::expect_true(!is.null(output$tabs))
   })
 

@@ -21,7 +21,7 @@
 #'
 #' @details
 #' Returns the location of the data-diagnostic helper file
-#' @family {DataDiagnostics}
+#' @family DataDiagnostics
 #' @return
 #' string location of the data-diagnostic helper file
 #'
@@ -37,7 +37,7 @@ dataDiagnosticHelperFile <- function(){
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @family {DataDiagnostics}
+#' @family DataDiagnostics
 #' @return
 #' The user interface to the data-diagnostic viewer module
 #'
@@ -72,7 +72,7 @@ dataDiagnosticViewer <- function(id = 'dataDiag') {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler a connection to the database with the results
 #' @param resultDatabaseSettings a list containing the data-diagnostic result schema
-#' @family {DataDiagnostics}
+#' @family DataDiagnostics
 #' @return
 #' The server for the data-diagnostic module
 #'

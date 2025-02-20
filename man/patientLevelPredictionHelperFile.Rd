@@ -16,7 +16,7 @@ The location of the prediction module helper file
 Returns the location of the prediction helper file
 }
 \seealso{
-Other {PatientLevelPrediction}: 
+Other PatientLevelPrediction: 
 \code{\link{patientLevelPredictionCalibrationServer}()},
 \code{\link{patientLevelPredictionCalibrationViewer}()},
 \code{\link{patientLevelPredictionCovariateSummaryServer}()},
@@ -40,4 +40,4 @@ Other {PatientLevelPrediction}:
 \code{\link{patientLevelPredictionValidationViewer}()},
 \code{\link{patientLevelPredictionViewer}()}
 }
-\concept{{PatientLevelPrediction}}
+\concept{PatientLevelPrediction}

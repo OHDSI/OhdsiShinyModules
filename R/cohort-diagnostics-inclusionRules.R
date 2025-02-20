@@ -19,7 +19,7 @@
 #' Use for customizing UI
 #'
 #' @param id    Namespace Id - use namespaced id ns("inclusionRules") inside diagnosticsExplorer module
-#' @family {CohortDiagnostics}
+#' @family CohortDiagnostics
 #' @export
 inclusionRulesView <- function(id) {
   ns <- shiny::NS(id)

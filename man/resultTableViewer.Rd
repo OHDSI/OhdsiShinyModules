@@ -24,20 +24,12 @@ shiny module UI
 Result Table Viewer
 }
 \seealso{
-Other {Utils}: 
+Other Utils: 
 \code{\link{createCustomColDefList}()},
 \code{\link{datasourcesHelperFile}()},
 \code{\link{datasourcesServer}()},
 \code{\link{datasourcesViewer}()},
-\code{\link{makeButtonLabel}()},
-\code{\link{resultTableServer}()}
-
-Other {Utils}: 
-\code{\link{createCustomColDefList}()},
-\code{\link{datasourcesHelperFile}()},
-\code{\link{datasourcesServer}()},
-\code{\link{datasourcesViewer}()},
-\code{\link{makeButtonLabel}()},
-\code{\link{resultTableServer}()}
+\code{\link{getLogoImage}()},
+\code{\link{makeButtonLabel}()}
 }
-\concept{{Utils}}
+\concept{Utils}

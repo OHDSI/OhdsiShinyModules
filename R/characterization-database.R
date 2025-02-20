@@ -381,9 +381,9 @@ characterizationDatabaseComparisonServer <- function(
                 currentDb <- plotResultDbSplit[[i]]
                 
                 currentDbDf <- currentDb %>%
-                  dplyr::select(cdmSourceAbbreviation,
-                                covariateName,
-                                averageValue)
+                  dplyr::select("cdmSourceAbbreviation",
+                                "covariateName",
+                                "averageValue")
                 
                 # Ensure only rows with selected xAxis or yAxis inputs are kept
                 currentDbDf <- currentDbDf %>%
@@ -397,7 +397,7 @@ characterizationDatabaseComparisonServer <- function(
                 
                 # Remove the cdmSourceAbbreviation column for joining later
                 currentDbDf <- currentDbDf %>%
-                  dplyr::select(-cdmSourceAbbreviation)
+                  dplyr::select(-"cdmSourceAbbreviation")
                 
                 # Append the processed dataframe to the list
                 processedDfs[[i]] <- currentDbDf
@@ -413,17 +413,18 @@ characterizationDatabaseComparisonServer <- function(
               }
               
               # Replace NA values with 0
+              plotResultDbComb[is.na(plotResultDbComb)] <- 0
               plotResultDbComb <- plotResultDbComb %>%
-                replace(is.na(.), 0) %>%
+                #replace(is.na(.), 0) %>%
                 dplyr::mutate(domain = dplyr::case_when(
-                  grepl("condition_", covariateName) | sub("\\s.*", "", covariateName) == "condition" ~ "Condition",
-                  grepl("drug_", covariateName) | sub("\\s.*", "", covariateName) == "drug" ~ "Drug",
-                  grepl("procedure_", covariateName) | sub("\\s.*", "", covariateName) == "procedure" ~ "Procedure",
-                  grepl("measurement_", covariateName) | sub("\\s.*", "", covariateName) == "measurement" ~ "Measurement",
-                  grepl("observation_", covariateName) | sub("\\s.*", "", covariateName) == "observation" ~ "Observation",
-                  grepl("device_", covariateName) | sub("\\s.*", "", covariateName) == "device" ~ "Device",
-                  grepl("cohort_", covariateName) | sub("\\s.*", "", covariateName) == "cohort" ~ "Cohort",
-                  grepl("visit_", covariateName) | sub("\\s.*", "", covariateName) == "visit" ~ "Visit",
+                  grepl("condition_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "condition" ~ "Condition",
+                  grepl("drug_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "drug" ~ "Drug",
+                  grepl("procedure_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "procedure" ~ "Procedure",
+                  grepl("measurement_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "measurement" ~ "Measurement",
+                  grepl("observation_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "observation" ~ "Observation",
+                  grepl("device_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "device" ~ "Device",
+                  grepl("cohort_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "cohort" ~ "Cohort",
+                  grepl("visit_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "visit" ~ "Visit",
                   .default = "Demographic"
                 ))
               

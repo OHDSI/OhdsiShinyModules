@@ -19,7 +19,7 @@ The module viewer for exploring data-diagnostic summary results
 The user specifies the id for the module
 }
 \seealso{
-Other {DataDiagnostics}: 
+Other DataDiagnostics: 
 \code{\link{dataDiagnosticDrillServer}()},
 \code{\link{dataDiagnosticDrillViewer}()},
 \code{\link{dataDiagnosticHelperFile}()},
@@ -27,4 +27,4 @@ Other {DataDiagnostics}:
 \code{\link{dataDiagnosticSummaryServer}()},
 \code{\link{dataDiagnosticViewer}()}
 }
-\concept{{DataDiagnostics}}
+\concept{DataDiagnostics}

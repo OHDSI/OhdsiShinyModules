@@ -27,7 +27,7 @@ the PLE attrition results content server
 The module server for rendering the PLE attrition results
 }
 \seealso{
-Other {Estimation}: 
+Other Estimation: 
 \code{\link{cohortMethodAttritionViewer}()},
 \code{\link{cohortMethodCovariateBalanceServer}()},
 \code{\link{cohortMethodCovariateBalanceViewer}()},
@@ -47,4 +47,4 @@ Other {Estimation}:
 \code{\link{estimationServer}()},
 \code{\link{estimationViewer}()}
 }
-\concept{{Estimation}}
+\concept{Estimation}

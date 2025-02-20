@@ -21,7 +21,7 @@
 #'
 #' @details
 #' Returns the location of the about helper file
-#' @family {About}
+#' @family About
 #' @return
 #' string location of the about helper file
 #'
@@ -38,7 +38,7 @@ aboutHelperFile <- function() {
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @family {About}
+#' @family About
 #' @return
 #' The user interface to the home page module
 #'
@@ -102,7 +102,7 @@ targetedValueBox <- function(
 #' @param connectionHandler a connection to the database with the results
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #' @param config the config from the app.R file that contains a list of which modules to include
-#' @family {About}
+#' @family About
 #' @return
 #' The server for the shiny app home
 #'

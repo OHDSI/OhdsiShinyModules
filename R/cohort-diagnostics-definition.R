@@ -26,7 +26,7 @@
 #' @param cohortName Name for the cohort definition
 #'
 #' @param includeConceptSets Do you want to inclued concept set in the documentation
-#' @family {CohortDiagnostics}
+#' @family CohortDiagnostics
 #' @return list object
 #'
 getCirceRenderedExpression <- function(cohortDefinition,
@@ -302,7 +302,7 @@ exportCohortDefinitionsZip <- function(cohortDefinitions,
 #' @description
 #' Outputs cohort definitions
 #' @param id            Namespace id for module
-#' @family {CohortDiagnostics}
+#' @family CohortDiagnostics
 #' @export
 cohortDefinitionsView <- function(id) {
   ns <- shiny::NS(id)
@@ -523,7 +523,7 @@ getCountForConceptIdInCohort <-
 #' @param databaseTable                 data.frame of databasese, databaseId, name
 #' @param cohortTable                   data.frame of cohorts, cohortId, cohortName
 #' @param cohortCountTable              data.frame of cohortCounts, cohortId, subjects records
-#' @family {CohortDiagnostics}
+#' @family CohortDiagnostics
 cohortDefinitionsModule <- function(
     id,
     dataSource,

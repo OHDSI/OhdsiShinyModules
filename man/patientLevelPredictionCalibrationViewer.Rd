@@ -19,7 +19,7 @@ The module viewer for exploring prediction model calibration results
 The user specifies the id for the module
 }
 \seealso{
-Other {PatientLevelPrediction}: 
+Other PatientLevelPrediction: 
 \code{\link{patientLevelPredictionCalibrationServer}()},
 \code{\link{patientLevelPredictionCovariateSummaryServer}()},
 \code{\link{patientLevelPredictionCovariateSummaryViewer}()},
@@ -43,4 +43,4 @@ Other {PatientLevelPrediction}:
 \code{\link{patientLevelPredictionValidationViewer}()},
 \code{\link{patientLevelPredictionViewer}()}
 }
-\concept{{PatientLevelPrediction}}
+\concept{PatientLevelPrediction}

@@ -103,7 +103,9 @@ LargeDataTable <- R6::R6Class(
 #' @param baseQuery                 base sql query
 #' @param countQuery                count query string (should match query). Can be auto generated with sub query
 #'                                  (default) but this will likely result in slow results
-#' @family {LargeTables}                                 
+#' @family LargeTables 
+#' 
+#' @export                                
 createLargeSqlQueryDt <- function(connectionHandler = NULL,
                                   connectionDetails = NULL,
                                   baseQuery,
@@ -128,7 +130,9 @@ createLargeSqlQueryDt <- function(connectionHandler = NULL,
 #' @param pageSizeChoices    numeric selection options for pages
 #' @param selectedPageSize   numeric selection options for pages
 #' @param fullDownloads     allow download button of full dataset from query
-#' @family {LargeTables}
+#' @family LargeTables
+#' 
+#' @export
 largeTableView <- function(id, pageSizeChoices = c(10,25,50,100), selectedPageSize = 10, fullDownloads = TRUE) {
   ns <- shiny::NS(id)
   checkmate::assertNumeric(pageSizeChoices, min.len = 1, finite = TRUE, lower = 1)
@@ -212,7 +216,9 @@ largeTableView <- function(id, pageSizeChoices = c(10,25,50,100), selectedPageSi
 #'
 #' @param columns       List or reactable returning list of reactable::columnDef objects
 #' @param ...           Additional reactable options (searchable, sortable
-#' @family {LargeTables}
+#' @family LargeTables
+#' 
+#' @export
 largeTableServer <- function(id,
                              ldt,
                              inputParams,
