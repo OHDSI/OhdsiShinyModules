@@ -31,7 +31,7 @@ the PLE propensity score distribution content server
 The module server for rendering a PLE propensity score distribution
 }
 \seealso{
-Other {Estimation}: 
+Other Estimation: 
 \code{\link{cohortMethodAttritionServer}()},
 \code{\link{cohortMethodAttritionViewer}()},
 \code{\link{cohortMethodCovariateBalanceServer}()},
@@ -51,4 +51,4 @@ Other {Estimation}:
 \code{\link{estimationServer}()},
 \code{\link{estimationViewer}()}
 }
-\concept{{Estimation}}
+\concept{Estimation}

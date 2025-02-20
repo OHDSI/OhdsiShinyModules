@@ -145,7 +145,7 @@ cdUiControls <- function(ns) {
 #'
 #' @return
 #' string location of the description helper file
-#' @family {CohortDiagnostics}
+#' @family CohortDiagnostics
 #'
 #' @export
 cohortDiagnosticsHelperFile <- function() {
@@ -162,7 +162,7 @@ cohortDiagnosticsHelperFile <- function() {
 #'
 #' @return
 #' The user interface to the cohort diagnostics viewer module
-#' @family {CohortDiagnostics}
+#' @family CohortDiagnostics
 #'
 #' @export
 cohortDiagnosticsView <- function(id = "DiagnosticsExplorer") {

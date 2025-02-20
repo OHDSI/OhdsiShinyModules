@@ -21,7 +21,7 @@
 #'
 #' @details
 #' Returns the location of the characterization helper file
-#' @family {Characterization}
+#' @family Characterization
 #' @return
 #' string location of the characterization helper file
 #'
@@ -37,7 +37,7 @@ characterizationHelperFile <- function(){
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @family {Characterization}
+#' @family Characterization
 #' @return
 #' The user interface to the characterization viewer module
 #'
@@ -80,7 +80,7 @@ characterizationViewer <- function(id=1) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler a connection to the database with the results
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
-#' @family {Characterization}
+#' @family Characterization
 #' @return
 #' The server for the characterization module
 #'

@@ -28,8 +28,8 @@ This should pass a parameterized sql query that can be used to iteratively retur
 rather than returning the entire object.
 }
 \seealso{
-Other {LargeTables}: 
+Other LargeTables: 
 \code{\link{largeTableServer}()},
 \code{\link{largeTableView}()}
 }
-\concept{{LargeTables}}
+\concept{LargeTables}

@@ -16,12 +16,8 @@ The location of the phevaluator module helper file
 Returns the location of the cohort-generator helper file
 }
 \seealso{
-Other {PheValuator}: 
-\code{\link{phevaluatorServer}()},
-\code{\link{phevaluatorViewer}()}
-
-Other {PheValuator}: 
+Other PheValuator: 
 \code{\link{phevaluatorServer}()},
 \code{\link{phevaluatorViewer}()}
 }
-\concept{{PheValuator}}
+\concept{PheValuator}

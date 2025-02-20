@@ -20,7 +20,7 @@
 #' The module viewer for rendering the PLE power analysis
 #'
 #' @param id the unique reference id for the module
-#' @family {Estimation}
+#' @family Estimation
 #' @return
 #' The user interface to the cohort method power calculation results
 #' 
@@ -59,7 +59,7 @@ cohortMethodPowerViewer <- function(id) {
 #' @param selectedRow the selected row from the main results table 
 #' @param connectionHandler the connection to the PLE results database
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
-#' @family {Estimation}
+#' @family Estimation
 #' @return
 #' the PLE systematic error power server
 #' 

@@ -3,7 +3,7 @@
 #' Get Migrations
 #' @description
 #' Checks to see if migrations are present in the database for a given table prefix
-#' @family {Utils}
+#' @family Utils
 #' @noRd
 getMigrations <- function(connectionHandler, resultDatabaseSettings, tablePrefix) {
   migrations <- data.frame()
@@ -23,7 +23,7 @@ getMigrations <- function(connectionHandler, resultDatabaseSettings, tablePrefix
 #' Migration present
 #' @description
 #' Given a data.frame of migrations check if a migration number is present
-#' @family {Utils}
+#' @family Utils
 #' @noRd
 migrationPresent <- function(migrations, migrationId) {
   if (nrow(migrations) == 0) {

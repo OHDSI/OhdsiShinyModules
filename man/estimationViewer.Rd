@@ -19,7 +19,7 @@ The module viewer for exploring characterization studies
 The user specifies the id for the module
 }
 \seealso{
-Other {Estimation}: 
+Other Estimation: 
 \code{\link{cohortMethodAttritionServer}()},
 \code{\link{cohortMethodAttritionViewer}()},
 \code{\link{cohortMethodCovariateBalanceServer}()},
@@ -39,4 +39,4 @@ Other {Estimation}:
 \code{\link{estimationHelperFile}()},
 \code{\link{estimationServer}()}
 }
-\concept{{Estimation}}
+\concept{Estimation}

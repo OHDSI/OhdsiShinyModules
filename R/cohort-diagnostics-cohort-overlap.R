@@ -175,7 +175,7 @@ plotCohortOverlap <- function(data,
 #' Use for customizing UI
 #'
 #' @param id    Namespace Id - use namespaced id ns("cohortOverlap") inside diagnosticsExplorer module
-#' @family {CohortDiagnostics}
+#' @family CohortDiagnostics
 #' @export
 cohortOverlapView <- function(id) {
   ns <- shiny::NS(id)

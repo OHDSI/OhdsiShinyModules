@@ -15,3 +15,13 @@ The location of the OHDSI logo
 \details{
 Returns the location of the OHDSI logo
 }
+\seealso{
+Other Utils: 
+\code{\link{createCustomColDefList}()},
+\code{\link{datasourcesHelperFile}()},
+\code{\link{datasourcesServer}()},
+\code{\link{datasourcesViewer}()},
+\code{\link{makeButtonLabel}()},
+\code{\link{resultTableViewer}()}
+}
+\concept{Utils}

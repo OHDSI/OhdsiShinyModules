@@ -303,17 +303,18 @@ characterizationCohortComparisonServer <- function(
         plotDf <- shiny::reactive({
           
           # Get the filtered and processed plot data
+          resultTable[is.na(resultTable)] <- 0
           plotData <- resultTable %>%
-            replace(is.na(.), 0) %>%
+            #replace(is.na(.), 0) %>%
             dplyr::mutate(domain = dplyr::case_when(
-              grepl("condition_", covariateName) | sub("\\s.*", "", covariateName) == "condition" ~ "Condition",
-              grepl("drug_", covariateName) | sub("\\s.*", "", covariateName) == "drug" ~ "Drug",
-              grepl("procedure_", covariateName) | sub("\\s.*", "", covariateName) == "procedure" ~ "Procedure",
-              grepl("measurement_", covariateName) | sub("\\s.*", "", covariateName) == "measurement" ~ "Measurement",
-              grepl("observation_", covariateName) | sub("\\s.*", "", covariateName) == "observation" ~ "Observation",
-              grepl("device_", covariateName) | sub("\\s.*", "", covariateName) == "device" ~ "Device",
-              grepl("cohort_", covariateName) | sub("\\s.*", "", covariateName) == "cohort" ~ "Cohort",
-              grepl("visit_", covariateName) | sub("\\s.*", "", covariateName) == "visit" ~ "Visit",
+              grepl("condition_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "condition" ~ "Condition",
+              grepl("drug_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "drug" ~ "Drug",
+              grepl("procedure_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "procedure" ~ "Procedure",
+              grepl("measurement_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "measurement" ~ "Measurement",
+              grepl("observation_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "observation" ~ "Observation",
+              grepl("device_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "device" ~ "Device",
+              grepl("cohort_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "cohort" ~ "Cohort",
+              grepl("visit_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "visit" ~ "Visit",
               .default = "Demographic"
             ))
           

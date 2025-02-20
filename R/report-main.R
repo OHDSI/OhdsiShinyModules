@@ -37,7 +37,7 @@ reportHelperFile <- function(){
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @family {Report}
+#' @family Report
 #' @return
 #' The user interface to the home page module
 #'
@@ -104,7 +104,7 @@ reportViewer <- function(
 #' @param username username for the connection to the results for quarto
 #' @param password password for the connection to the results for quarto
 #' @param dbms dbms for the connection to the results for quarto
-#' @family {Report}
+#' @family Report
 #' @return
 #' The server for the shiny app home
 #'

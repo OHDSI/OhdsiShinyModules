@@ -26,9 +26,10 @@ filteredDownloadButton <- function(
 #' @param id string
 #' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #' @param boxTitle the title added to the box 
-#' @family {Utils}
+#' @family Utils
 #' @return shiny module UI
-#' @family {Utils}
+#' 
+#' @export
 resultTableViewer <- function(
     id = "result-table",
     downloadedFileName = NULL,

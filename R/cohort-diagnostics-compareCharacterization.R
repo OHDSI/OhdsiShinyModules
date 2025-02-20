@@ -246,7 +246,7 @@ plotTemporalCompareStandardizedDifference <- function(balance,
 #'
 #' @param id    Namespace Id - use namespaced id ns("compareCohortCharacterization") inside diagnosticsExplorer module
 #' @param title     Optional string title field
-#' @family {CohortDiagnostics}
+#' @family CohortDiagnostics
 #' @export
 compareCohortCharacterizationView <- function(id, title = "Compare cohort characterization") {
   ns <- shiny::NS(id)

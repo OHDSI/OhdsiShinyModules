@@ -16,7 +16,7 @@ The user interface to the cohort method attrition
 The module viewer for rendering the PLE attrition results
 }
 \seealso{
-Other {Estimation}: 
+Other Estimation: 
 \code{\link{cohortMethodAttritionServer}()},
 \code{\link{cohortMethodCovariateBalanceServer}()},
 \code{\link{cohortMethodCovariateBalanceViewer}()},
@@ -36,4 +36,4 @@ Other {Estimation}:
 \code{\link{estimationServer}()},
 \code{\link{estimationViewer}()}
 }
-\concept{{Estimation}}
+\concept{Estimation}

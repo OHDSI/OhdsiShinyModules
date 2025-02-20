@@ -11,21 +11,14 @@ header-includes:
   - \renewcommand{\headrulewidth}{0.4pt}
   - \renewcommand{\footrulewidth}{0.4pt}
 output:
-  pdf_document:
-    includes:
-      in_header: preamble.tex
-    number_sections: yes
-    toc: yes
-  word_document:
-    toc: yes
   html_document:
     number_sections: yes
     toc: yes
+vignette: >
+  %\VignetteIndexEntry{ReportGenerator}
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteEncoding{UTF-8}
 ---
-<!--
-%\VignetteEngine{knitr}
-%\VignetteIndexEntry{Adding Shiny Modules}
--->
   
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)

@@ -45,21 +45,4 @@ shiny module server
 \description{
 Result Table Server
 }
-\seealso{
-Other {Utils}: 
-\code{\link{createCustomColDefList}()},
-\code{\link{datasourcesHelperFile}()},
-\code{\link{datasourcesServer}()},
-\code{\link{datasourcesViewer}()},
-\code{\link{makeButtonLabel}()},
-\code{\link{resultTableViewer}()}
-
-Other {Utils}: 
-\code{\link{createCustomColDefList}()},
-\code{\link{datasourcesHelperFile}()},
-\code{\link{datasourcesServer}()},
-\code{\link{datasourcesViewer}()},
-\code{\link{makeButtonLabel}()},
-\code{\link{resultTableViewer}()}
-}
 \concept{{Utils}}

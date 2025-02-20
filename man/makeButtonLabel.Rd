@@ -16,20 +16,12 @@ html code to make a button label
 Make a label for an html button
 }
 \seealso{
-Other {Utils}: 
+Other Utils: 
 \code{\link{createCustomColDefList}()},
 \code{\link{datasourcesHelperFile}()},
 \code{\link{datasourcesServer}()},
 \code{\link{datasourcesViewer}()},
-\code{\link{resultTableServer}()},
-\code{\link{resultTableViewer}()}
-
-Other {Utils}: 
-\code{\link{createCustomColDefList}()},
-\code{\link{datasourcesHelperFile}()},
-\code{\link{datasourcesServer}()},
-\code{\link{datasourcesViewer}()},
-\code{\link{resultTableServer}()},
+\code{\link{getLogoImage}()},
 \code{\link{resultTableViewer}()}
 }
-\concept{{Utils}}
+\concept{Utils}

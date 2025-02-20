@@ -30,7 +30,7 @@ the PLE covariate balance content server
 The module server for rendering the covariate balance plot
 }
 \seealso{
-Other {Estimation}: 
+Other Estimation: 
 \code{\link{cohortMethodAttritionServer}()},
 \code{\link{cohortMethodAttritionViewer}()},
 \code{\link{cohortMethodCovariateBalanceViewer}()},
@@ -50,4 +50,4 @@ Other {Estimation}:
 \code{\link{estimationServer}()},
 \code{\link{estimationViewer}()}
 }
-\concept{{Estimation}}
+\concept{Estimation}

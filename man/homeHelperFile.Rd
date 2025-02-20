@@ -16,8 +16,7 @@ The location of the home module helper file
 Returns the location of the home helper file
 }
 \seealso{
-Other {Home}: 
-\code{\link{homeServer}()},
-\code{\link{homeViewer}()}
+Other Home: 
+\code{\link{homeServer}()}
 }
-\concept{{Home}}
+\concept{Home}

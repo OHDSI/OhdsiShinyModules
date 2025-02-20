@@ -14,21 +14,12 @@ output:
   html_document:
     number_sections: yes
     toc: yes
-  word_document:
-    toc: yes
-  pdf_document:
-    includes:
-      in_header: preamble.tex
-    number_sections: yes
-    toc: yes
+vignette: >
+  %\VignetteIndexEntry{Characterization}
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteEncoding{UTF-8}
 ---
 
-```{=html}
-<!--
-%\VignetteEngine{knitr}
-%\VignetteIndexEntry{Characterization}
--->
-```
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```

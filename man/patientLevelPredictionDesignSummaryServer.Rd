@@ -27,7 +27,7 @@ The module server for exploring prediction designs in the results
 The user specifies the id for the module
 }
 \seealso{
-Other {PatientLevelPrediction}: 
+Other PatientLevelPrediction: 
 \code{\link{patientLevelPredictionCalibrationServer}()},
 \code{\link{patientLevelPredictionCalibrationViewer}()},
 \code{\link{patientLevelPredictionCovariateSummaryServer}()},
@@ -51,4 +51,4 @@ Other {PatientLevelPrediction}:
 \code{\link{patientLevelPredictionValidationViewer}()},
 \code{\link{patientLevelPredictionViewer}()}
 }
-\concept{{PatientLevelPrediction}}
+\concept{PatientLevelPrediction}
