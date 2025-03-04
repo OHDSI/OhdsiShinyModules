@@ -33,7 +33,7 @@ cohortCountsModule(
 Shiny module for cohort counts. Displays reactable table of cohort counts
 }
 \seealso{
-Other {CohortDiagnostics}: 
+Other CohortDiagnostics: 
 \code{\link{cohortCountsView}()},
 \code{\link{cohortDefinitionsModule}()},
 \code{\link{cohortDefinitionsView}()},
@@ -55,4 +55,4 @@ Other {CohortDiagnostics}:
 \code{\link{timeDistributionsView}()},
 \code{\link{visitContextView}()}
 }
-\concept{{CohortDiagnostics}}
+\concept{CohortDiagnostics}

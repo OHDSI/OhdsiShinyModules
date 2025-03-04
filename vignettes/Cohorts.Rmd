@@ -14,21 +14,12 @@ output:
   html_document:
     number_sections: yes
     toc: yes
-  word_document:
-    toc: yes
-  pdf_document:
-    includes:
-      in_header: preamble.tex
-    number_sections: yes
-    toc: yes
+vignette: >
+  %\VignetteIndexEntry{Cohorts}
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteEncoding{UTF-8}
 ---
 
-```{=html}
-<!--
-%\VignetteEngine{knitr}
-%\VignetteIndexEntry{Cohorts}
--->
-```
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -60,3 +51,11 @@ OHDSI offers a suite of open-source tools to support cohort identification withi
 1.  [ATLAS](http://atlas-demo.ohdsi.org/ "ATLAS"): A web-based tool that enables researchers to define, execute, and share cohort definitions using standardized terminologies and criteria. ATLAS streamlines the cohort creation process by providing an intuitive interface for specifying cohort criteria and visualizing cohort characteristics.
 2.  [SQL](https://www.geeksforgeeks.org/what-is-sql/ "What is SQL?"): Structured Query Language (SQL) provides a powerful means for defining cohorts through custom queries. OHDSI encourages the use of SQL for advanced cohort definition tasks and complex analyses.
 3.  [CohortGenerator](https://github.com/OHDSI/CohortGenerator?tab=readme-ov-file "Cohort Generator"): The CohortGenerator R package is a tool within the Observational Health Data Sciences and Informatics (OHDSI) ecosystem designed to facilitate the creation of cohorts from observational healthcare data stored in databases adhering to the OMOP Common Data Model (CDM). It is an R Package that streamlines the cohort creation process, allowing for efficient and reproducible cohort identification across different datasets.
+
+# The Cohorts Module
+
+In the Cohorts tab of the OHDSI Analysis Viewer, there are 3 main sections, each with their own tab, the user can explore: 
+
+1. **Cohort Counts**: Gives the counts of both the number of subjects and the number of records for each cohort and each database.
+2. **Cohort Generation**: Gives the cohort generation information for each cohort and each database, including an indicator if the cohort was generated (or not), the generation start and end time, and the duration (in minutes) of the cohort generation.
+3. **Inclusion Rules & Attrition**: Gives both a tabular and graphical representation of cohort attrition statistics for each cohort and each database. The user may select whether they want to view the results at the subject or record-level.

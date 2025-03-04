@@ -1,6 +1,6 @@
 ---
 title: "Prediction"
-author: "Nathan Hall"
+author: "Jenna Reps & Nathan Hall"
 date: '`r Sys.Date()`'
 header-includes:
   - \usepackage{fancyhdr}
@@ -14,63 +14,52 @@ output:
   html_document:
     number_sections: yes
     toc: yes
-  word_document:
-    toc: yes
-  pdf_document:
-    includes:
-      in_header: preamble.tex
-    number_sections: yes
-    toc: yes
+vignette: >
+  %\VignetteIndexEntry{Prediction}
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteEncoding{UTF-8}
 ---
 
-```{=html}
-<!--
-%\VignetteEngine{knitr}
-%\VignetteIndexEntry{Prediction}
--->
-```
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Introduction
 
-Patient-level prediction stands as a pivotal component in clinical decision-making, providing clinicians with tools to anticipate diagnostic or prognostic outcomes based on individual patient characteristics. In the complex landscape of modern medicine, where patients generate extensive digital footprints through Electronic Health Records (EHRs), the ability to harness this wealth of data for predictive modeling holds immense potential. However, despite the growing interest in predictive modeling, challenges such as model reproducibility, validation, and transparency persist. The Observational Health Data Science and Informatics (OHDSI) framework, with its Common Data Model (CDM) and standardized methodologies, addresses these challenges by enabling the development and validation of predictive models at scale, facilitating external validation across diverse healthcare settings globally. The OHDSI [PatientLevelPrediction](https://ohdsi.github.io/PatientLevelPrediction/ "Patient-level Prediction") R package encapsulates established best practices for model development and validation.
+Patient-level prediction lets users answer the question, who is at risk or an outcome during some time period within a target population.  For example, you can answer: who is at risk of developing angioedema within a year of starting lisinopril, in new users or lisinopril?
+
 
 # Features and Functionalities
 
-The Prediction module is dedicated to investigating prediction models tailored to specific prediction problems through a combination of machine learning algorithms and feature engineering techniques. In this module, users are able to explore model design summaries, detailed information about the models fitted, model diagnostics, and a detailed report including performance characteristic results, model discrimination results, and calibration results.
+We define a **target cohort** as a set of patients with an exposure or interest and/or with evidence of having an indication of interest, an **outcome cohort** as a set of patients with evidence of the outcome of interest, and a **time-at-risk** as a period of time to where the patient is at risk of developing the outcome. The package shows performance of models developed to predict the outcome during the time-at-risk relative to the target cohort index for patients in the target cohort.
 
-The full list of features which are explorable in the Prediction module are as follows:
+The first page lets you pick one or more target cohorts and outcome cohorts to restrict to.  Then a model design summary table is displayed restricted to the selected target and outcome cohorts. The model design summary aggregates the performances of models developed across different databases for the same model design (target cohort, outcome, time-at-risk, population inclusion criteria, model and data preprocessing).  The summary table includes the model design id, target cohort name, outcome cohort name, time-at-risk, the min/mean/max AUROC for models developed using the model design across databases as well as the number of databases included in diagostics, model development and model validation.
 
--   Takes one or more target cohorts (Ts) and one or more outcome cohorts (Os) and develops and validates models for all T and O combinations.
+The first column of the summary table is a button that enables users to dive deeper into the results.  Users can select from:
 
--   Allows for multiple prediction design options.
+- view models (this lets users see the performance of all models developed using the model design)
+- view diagnostic (this lets users see the diagnostic results showing the suitability of the database for the model design)
+- view report (this lets users view a html summary report of all the models developed using the model design)
 
--   Extracts the necessary data from a database in OMOP Common Data Model format for multiple covariate settings.
+## View models
+The view models view shows all the model development/validation results for the selected model design.  The table shows the development database, validation data, target name, outcome name, time-at-risk (TAR), the AUROC, AUPRC, number of people in the target cohort, number of target cohort with the outcome during TAR, the percentage of the target population used for model validation (this is 100% when displaying external validation) and percentage of target population with the outcome during TAR.
 
--   Uses a large set of covariates including for example all drugs, diagnoses, procedures, as well as age, comorbidity indexes, and custom covariates.
+Users can select a result view to explore the model more:
 
--   Allows you to add custom covariates or cohort covariates.
+- View results (this lets users view the model, calibration/discrimination plots and net benefit plots).
+- View attrition (this lets users see where patients were lost between paients in the database and the final target population).
 
--   Includes a large number of state-of-the-art machine learning algorithms that can be used to develop predictive models, including Regularized logistic regression, Random forest, Gradient boosting machines, Decision tree, Naive Bayes, K-nearest neighbours, Neural network, AdaBoost and Support vector machines.
+## View diagnostic
+The view diagnostic view shows diagnostics based on PROBAST, that aims to see the risk of bias in a model design when applied to a specific database.  Click [here](https://pubmed.ncbi.nlm.nih.gov/30596875/) to read more about PROBAST.
 
--   Allows you to add custom algorithms.
-
--   Allows you to add custom feature engineering
-
--   Allows you to add custom under/over sampling (or any other sampling) [note: based on existing research this is not recommended]
-
--   Contains functionality to externally validate models.
-
--   Includes functions to plot and explore model performance (ROC + Calibration).
-
--   Build ensemble models using EnsemblePatientLevelPrediction.
-
--   Build Deep Learning models using DeepPatientLevelPrediction.
-
--   Generates learning curves.
+## View report
+The view report view displays a summary report of the results for the selected model design.  This requires additional R package dependencies that must be installed.  If the dependencies are not installed, a warning will display telling the user what package is missing.
 
 # Utility and Application
 
-Patient-level prediction within the OHDSI framework represents a paradigm shift in clinical decision support, offering the potential to transform patient care through personalized medicine. By leveraging standardized data structures, rigorous methodologies, and transparent reporting practices, patient-level prediction endeavors in OHDSI strive to bridge the gap between predictive modeling research and clinical practice, ultimately enhancing patient outcomes and advancing evidence-based healthcare.
+Patient-level prediction enables users to identify who is at risk of developing some future outcome.  This can be used to guide clinical interventions or risk mitigation or early detection.
+
+To find out more about the analyses execution details and see examples, please see [here](https://ohdsi.github.io/PatientLevelPrediction/articles/BuildingMultiplePredictiveModels.html).
+
+To see the code behind the PatientLevelPrediction R package, please see [here](https://github.com/OHDSI/PatientLevelPrediction).
+

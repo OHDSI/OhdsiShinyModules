@@ -30,7 +30,7 @@ cohortDefinitionsModule(
 cohort defintion conceptsets, json etc
 }
 \seealso{
-Other {CohortDiagnostics}: 
+Other CohortDiagnostics: 
 \code{\link{cohortCountsModule}()},
 \code{\link{cohortCountsView}()},
 \code{\link{cohortDefinitionsView}()},
@@ -52,4 +52,4 @@ Other {CohortDiagnostics}:
 \code{\link{timeDistributionsView}()},
 \code{\link{visitContextView}()}
 }
-\concept{{CohortDiagnostics}}
+\concept{CohortDiagnostics}

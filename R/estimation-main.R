@@ -21,7 +21,7 @@
 #'
 #' @details
 #' Returns the location of the characterization helper file
-#' @family {Estimation}
+#' @family Estimation
 #' @return
 #' string location of the characterization helper file
 #'
@@ -37,7 +37,7 @@ estimationHelperFile <- function(){
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @family {Estimation}
+#' @family Estimation
 #' @return
 #' The user interface to the characterization viewer module
 #'
@@ -100,7 +100,7 @@ estimationViewer <- function(id=1) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler a connection to the database with the results
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
-#' @family {Estimation}
+#' @family Estimation
 #' @return
 #' The server for the estimation module
 #'

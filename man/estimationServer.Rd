@@ -27,7 +27,7 @@ The module server for exploring estimation studies
 The user specifies the id for the module
 }
 \seealso{
-Other {Estimation}: 
+Other Estimation: 
 \code{\link{cohortMethodAttritionServer}()},
 \code{\link{cohortMethodAttritionViewer}()},
 \code{\link{cohortMethodCovariateBalanceServer}()},
@@ -47,4 +47,4 @@ Other {Estimation}:
 \code{\link{estimationHelperFile}()},
 \code{\link{estimationViewer}()}
 }
-\concept{{Estimation}}
+\concept{Estimation}

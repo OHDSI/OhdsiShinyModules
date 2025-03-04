@@ -1,6 +1,11 @@
 template:
+  bootstrap: 5
   params:
     bootswatch: cosmo
+
+development:
+  mode: auto
+  development: docs/dev
     
 home:
   links:
@@ -9,29 +14,27 @@ home:
     
 navbar:
   structure:
-    left:
-    - home
-    - reference
-    - contribute
-    - articles
-    - news
+    left: [home, reference, contribute, articles, news]
     right: [hades, github]
   components:
     home:
       icon: fa-home fa-lg
       href: index.html
     reference:
+      icon: fa-info-circle fa-lg
       text: Reference
       href: reference/index.html
     contribute:
+      icon: fa-hand-pointer-o fa-lg      
       text: Contribute
       href: articles/AddingShinyModules.html
     news:
+      icon: fa-newspaper-o fa-lg
       text: Changelog
       href: news/index.html
     github:
       icon: fa-github fa-lg
-      href: https://github.com/OHDSI/PatientLevelPrediction
+      href: https://github.com/OHDSI/OhdsiShinyModules
     hades:
       text: hadesLogo
       href: https://ohdsi.github.io/Hades
@@ -42,7 +45,6 @@ reference:
       Modules for OHDSI shiny apps.
     contents:
       - OhdsiShinyModules
-      - getLogoImage
   - title: "Prediction module"
     desc: >
       Modules for prediction results.

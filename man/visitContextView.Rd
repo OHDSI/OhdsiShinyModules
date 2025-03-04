@@ -13,7 +13,7 @@ visitContextView(id)
 Use for customizing UI
 }
 \seealso{
-Other {CohortDiagnostics}: 
+Other CohortDiagnostics: 
 \code{\link{cohortCountsModule}()},
 \code{\link{cohortCountsView}()},
 \code{\link{cohortDefinitionsModule}()},
@@ -35,4 +35,4 @@ Other {CohortDiagnostics}:
 \code{\link{orpahanConceptsView}()},
 \code{\link{timeDistributionsView}()}
 }
-\concept{{CohortDiagnostics}}
+\concept{CohortDiagnostics}

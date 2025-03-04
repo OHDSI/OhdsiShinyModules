@@ -16,7 +16,7 @@ The module viewer for Kaplan Meier objects
 The module viewer for rendering the PLE Kaplan Meier curve
 }
 \seealso{
-Other {Estimation}: 
+Other Estimation: 
 \code{\link{cohortMethodAttritionServer}()},
 \code{\link{cohortMethodAttritionViewer}()},
 \code{\link{cohortMethodCovariateBalanceServer}()},
@@ -36,4 +36,4 @@ Other {Estimation}:
 \code{\link{estimationServer}()},
 \code{\link{estimationViewer}()}
 }
-\concept{{Estimation}}
+\concept{Estimation}

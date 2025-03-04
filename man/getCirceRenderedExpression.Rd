@@ -26,7 +26,7 @@ list object
 Returns list with circe generated documentation
 }
 \seealso{
-Other {CohortDiagnostics}: 
+Other CohortDiagnostics: 
 \code{\link{cohortCountsModule}()},
 \code{\link{cohortCountsView}()},
 \code{\link{cohortDefinitionsModule}()},
@@ -48,4 +48,4 @@ Other {CohortDiagnostics}:
 \code{\link{timeDistributionsView}()},
 \code{\link{visitContextView}()}
 }
-\concept{{CohortDiagnostics}}
+\concept{CohortDiagnostics}

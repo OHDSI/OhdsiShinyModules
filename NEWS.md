@@ -1,3 +1,19 @@
+OhdsiShinyModules v3.1.1
+========================
+- bug fixes
+- updated helper documents
+
+OhdsiShinyModules v3.1.0
+========================
+- Removed percentage calculation from records field in CohortDiagnostics
+- Updated the About module to reflect new module names and structure
+- Updated module description vignette files to reflect new module names and structure
+- Added interactive scatterplots for binary covariates when doing database and cohort comparisons in Characterization
+
+OhdsiShinyModules v3.0.2
+========================
+- Fixed bug with orphan concepts not loading
+
 OhdsiShinyModules v3.0.1
 ========================
 - Bug fixes

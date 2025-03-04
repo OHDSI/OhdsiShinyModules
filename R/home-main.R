@@ -2,7 +2,7 @@
 #'
 #' @details
 #' Returns the location of the home helper file
-#' @family {Home}
+#' @family Home
 #' @return
 #' string location of the home helper file
 #'
@@ -12,7 +12,7 @@ homeHelperFile <- function(){
   return(fileLoc)
 }
 
-#' The module viewer for exploring home
+#' The module viewer for exploring summary results
 #'
 #' @details
 #' The user specifies the id for the module
@@ -26,47 +26,19 @@ homeHelperFile <- function(){
 homeViewer <- function(id=1) {
   ns <- shiny::NS(id)
   
-  screens <- list(
-    shinyglide::screen(
-      shiny::p("Assure Executive Summary"),
-      shiny::p("Study Name"),
-      shiny::p("The study question was..."),
-      shiny::p("<list available results>"),
-      next_label="Estimation Results"
-    ),
-    shinyglide::screen(
-      shiny::p("Estimation Results"),
-      shiny::p("User Inputs are possible"),
-      shiny::numericInput(
-        inputId = ns("n"),
-        label =  "n", 
-        value = 10, 
-        min = 10
-        ),
-      next_label="Prediction Results"
-    ),
-    shinyglide::screen(
-      shiny::p("Cool plot here"),
-      shiny::plotOutput(ns("cool_plot"))
-    )
-  )
-  
   shinydashboard::box(
     status = 'info', width = 12,
-    title =  shiny::span( shiny::icon("house"), "Executive Summary"),
+    title =  shiny::span( shiny::icon("house"), "Summary Reports"),
     solidHeader = TRUE,
     
-    shinyglide::glide(
-      height = "350px",
-      screens
-    )
-    
+    # tabs per html file
+    shiny::uiOutput(ns("tabs"))
   )
   
 }
 
 
-#' The module server for exploring home
+#' The module server for exploring summary html files
 #'
 #' @details
 #' The user specifies the id for the module
@@ -74,7 +46,7 @@ homeViewer <- function(id=1) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler a connection to the database with the results
 #' @param resultDatabaseSettings a list containing the prediction result schema and connection details
-#' @family {Home}
+#' @family Home
 #' @return
 #' The server for the home module
 #'
@@ -88,14 +60,31 @@ homeServer <- function(
     id,
     function(input, output, session) {
       
-      output$cool_plot <- shiny::renderPlot({
-        graphics::hist(
-          stats::rnorm(input$n), 
-          main = paste("n =", input$n), 
-          xlab = ""
-          )
-      })
+      # ShinyAppBuilder moves the html reports to the summaryReports folder
+      # and renames them to the tabname.html
+      # here we find all of these files as they end in html
+      htmlFiles <- dir(Sys.getenv('shiny_report_folder'), pattern = '.html')
       
+      # for each summary report in the summaryReports folder create a tab
+      # containing the html
+      
+      if(length(htmlFiles) > 0){
+      output$tabs <- shiny::renderUI({
+        tabs <- list(NULL)
+        for(i in 1:length(htmlFiles)){
+          tabs[[i]] <- shiny::tabPanel(
+            title = gsub('.html','', htmlFiles[i]),
+            shiny::tags$iframe(
+              src = file.path('www-reports',htmlFiles[i]), 
+              style='width:90vw;height:100vh;'
+            )
+          )
+             }
+        do.call(shinydashboard::tabBox,tabs)
+      })
+      }
+      
+
     }
   )
 }

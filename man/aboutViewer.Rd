@@ -19,8 +19,8 @@ The module viewer for the shiny app home
 The user specifies the id for the module
 }
 \seealso{
-Other {About}: 
+Other About: 
 \code{\link{aboutHelperFile}()},
 \code{\link{aboutServer}()}
 }
-\concept{{About}}
+\concept{About}

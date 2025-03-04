@@ -15,9 +15,4 @@ The location of the report module helper file
 \details{
 Returns the location of the report helper file
 }
-\seealso{
-Other {Report}: 
-\code{\link{reportServer}()},
-\code{\link{reportViewer}()}
-}
 \concept{{Report}}

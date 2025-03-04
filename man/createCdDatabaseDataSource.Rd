@@ -34,7 +34,7 @@ NOTE: I think this would make a good R6 class for other objects in this package 
 a shiny app. E.g. if you wanted to make a custom R markdown template
 }
 \seealso{
-Other {CohortDiagnostics}: 
+Other CohortDiagnostics: 
 \code{\link{cohortCountsModule}()},
 \code{\link{cohortCountsView}()},
 \code{\link{cohortDefinitionsModule}()},
@@ -56,4 +56,4 @@ Other {CohortDiagnostics}:
 \code{\link{timeDistributionsView}()},
 \code{\link{visitContextView}()}
 }
-\concept{{CohortDiagnostics}}
+\concept{CohortDiagnostics}

@@ -37,7 +37,7 @@ reportHelperFile <- function(){
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @family {Report}
+#' @family Report
 #' @return
 #' The user interface to the home page module
 #'
@@ -104,7 +104,7 @@ reportViewer <- function(
 #' @param username username for the connection to the results for quarto
 #' @param password password for the connection to the results for quarto
 #' @param dbms dbms for the connection to the results for quarto
-#' @family {Report}
+#' @family Report
 #' @return
 #' The server for the shiny app home
 #'
@@ -701,7 +701,7 @@ reportServer <- function(
               
               shiny::incProgress(0.2, detail = "Generating report")
               
-              ReportGenerator::generatePresentationMultiple(
+              OhdsiReportGenerator::generatePresentationMultiple(
                 server = server, 
                 username = username, 
                 password = password, 
@@ -971,13 +971,14 @@ getTandOs <- function(
   })
   names(groupedCohorts) <- unique(res$targetName)
   
-  # if using subsets then do this using the isSubset
-  if('isSubset' %in% colnames(cg)){
-    cg$isSubset[is.na(cg$isSubset)] <- 0
-    cg$subsetParent[is.na(cg$subsetParent)] <- cg$cohortDefinitionId
+  # if using subsets then do this using the subsetDefinitionId
+  if('subsetDefinitionId' %in% colnames(cg)){
+    if(sum(is.na(cg$subsetParent)) > 0){
+      cg$subsetParent[is.na(cg$subsetParent)] <- cg$cohortDefinitionId[is.na(cg$subsetParent)] 
+    }
     cg$subsetDefinitionId[is.na(cg$subsetDefinitionId)] <- 0
     
-    if(sum(cg$isSubset == 0) > 0 ){
+    if(sum(cg$subsetParent == cg$cohortDefinitionId) > 0 ){
       # 
       parentChild <- unique(
         merge(

@@ -113,7 +113,7 @@ postgresEnabledReports <- function(connectionHandler, schema, tbls) {
 
 #' Get enable cd reports from available data
 #' @param dataSource     Cohort diagnostics data source
-#' @family {CohortDiagnostics}
+#' @family CohortDiagnostics
 #' @export
 getEnabledCdReports <- function(dataSource) {
   
@@ -154,7 +154,7 @@ getEnabledCdReports <- function(dataSource) {
 #' @param displayProgress display a progress messaage (can only be used inside a shiny reactive context)
 #' @param dataMigrationsRef The path to a file listing all migrations for the data model that should have been applied
 #' @return An object of class `CdDataSource`.
-#' @family {CohortDiagnostics}
+#' @family CohortDiagnostics
 #' @export
 createCdDatabaseDataSource <- function(
     connectionHandler,
@@ -432,7 +432,7 @@ getResultsTemporalTimeRef <- function(dataSource) {
 #' @param resultDatabaseSettings        results database settings
 #' @param dataSource                    dataSource optionally created with createCdDatabaseDataSource
 #'
-#' @family {CohortDiagnostics}
+#' @family CohortDiagnostics
 #' @export
 cohortDiagnosticsServer <- function(id,
                                     connectionHandler,
@@ -493,7 +493,7 @@ cohortDiagnosticsServer <- function(id,
       if ("includedSourceConcept" %in% dataSource$enabledReports)
         selection["Concepts In Data Source"] <- "conceptsInDataSource"
       
-      if ("orphanConcepts" %in% dataSource$enabledReports)
+      if ("orphanConcept" %in% dataSource$enabledReports)
         selection["Orphan Concepts"] <- "orphanConcepts"
       
       if ("indexEventBreakdown" %in% dataSource$enabledReports)
@@ -619,6 +619,9 @@ cohortDiagnosticsServer <- function(id,
     ### getConceptSetNameForFilter ----
     getConceptSetNameForFilter <- shiny::reactive(x = {
       if (!hasData(targetCohortId())) {
+        return(NULL)
+      }
+      if (sum(c('cohortId','conceptSetName') %in% colnames(dataSource$conceptSets)) !=2) {
         return(NULL)
       }
       dataSource$conceptSets %>%

@@ -13,29 +13,7 @@ orpahanConceptsView(id)
 Use for customizing UI
 }
 \seealso{
-Other {CohortDiagnostics}: 
-\code{\link{cohortCountsModule}()},
-\code{\link{cohortCountsView}()},
-\code{\link{cohortDefinitionsModule}()},
-\code{\link{cohortDefinitionsView}()},
-\code{\link{cohortDiagCharacterizationView}()},
-\code{\link{cohortDiagnosticsHelperFile}()},
-\code{\link{cohortDiagnosticsServer}()},
-\code{\link{cohortDiagnosticsView}()},
-\code{\link{cohortOverlapView}()},
-\code{\link{compareCohortCharacterizationView}()},
-\code{\link{conceptsInDataSourceView}()},
-\code{\link{createCdDatabaseDataSource}()},
-\code{\link{databaseInformationView}()},
-\code{\link{getCirceRenderedExpression}()},
-\code{\link{getEnabledCdReports}()},
-\code{\link{incidenceRatesView}()},
-\code{\link{inclusionRulesView}()},
-\code{\link{indexEventBreakdownView}()},
-\code{\link{timeDistributionsView}()},
-\code{\link{visitContextView}()}
-
-Other {CohortDiagnostics}: 
+Other CohortDiagnostics: 
 \code{\link{cohortCountsModule}()},
 \code{\link{cohortCountsView}()},
 \code{\link{cohortDefinitionsModule}()},
@@ -57,4 +35,4 @@ Other {CohortDiagnostics}:
 \code{\link{timeDistributionsView}()},
 \code{\link{visitContextView}()}
 }
-\concept{{CohortDiagnostics}}
+\concept{CohortDiagnostics}

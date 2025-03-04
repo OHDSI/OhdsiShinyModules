@@ -20,7 +20,7 @@
 #' The module viewer for rendering the PLE Kaplan Meier curve
 #'
 #' @param id the unique reference id for the module
-#' @family {Estimation}
+#' @family Estimation
 #' @return
 #' The module viewer for Kaplan Meier objects
 #' 
@@ -45,7 +45,7 @@ cohortMethodKaplanMeierViewer <- function(id) {
 #' @param selectedRow the selected row from the main results table 
 #' @param connectionHandler the connection to the PLE results database
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
-#' @family {Estimation}
+#' @family Estimation
 #' @return
 #' the PLE Kaplain Meier content server
 #' 

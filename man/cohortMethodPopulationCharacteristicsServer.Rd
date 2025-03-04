@@ -28,7 +28,7 @@ the PLE population characteristics content server
 The module server for rendering the population characteristics
 }
 \seealso{
-Other {Estimation}: 
+Other Estimation: 
 \code{\link{cohortMethodAttritionServer}()},
 \code{\link{cohortMethodAttritionViewer}()},
 \code{\link{cohortMethodCovariateBalanceServer}()},
@@ -48,4 +48,4 @@ Other {Estimation}:
 \code{\link{estimationServer}()},
 \code{\link{estimationViewer}()}
 }
-\concept{{Estimation}}
+\concept{Estimation}

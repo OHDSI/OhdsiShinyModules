@@ -23,7 +23,7 @@
 #' The user specifies the id for the module
 #'
 #' @param id  the unique reference id for the module
-#' @family {PatientLevelPrediction}
+#' @family PatientLevelPrediction
 #' @return
 #' The user interface to the settings module
 #'
@@ -64,7 +64,7 @@ patientLevelPredictionSettingsViewer <- function(id) {
 #' @param connectionHandler the connection to the prediction result database
 #' @param inputSingleView the current tab 
 #' @param resultDatabaseSettings a list containing the result schema and prefixes
-#' @family {PatientLevelPrediction}
+#' @family PatientLevelPrediction
 #' @return
 #' The server to the settings module
 #'

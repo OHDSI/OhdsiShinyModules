@@ -18,7 +18,7 @@
 #' @description
 #' Shiny view for cohort counts module
 #' @param id            Namespace id
-#' @family {CohortDiagnostics}
+#' @family CohortDiagnostics
 #' @export
 cohortCountsView <- function(id) {
   ns <- shiny::NS(id)
@@ -192,7 +192,7 @@ getInclusionRulesTable <- function(
 #' @param selectedCohorts           shiny::reactive - should return cohorts selected or NULL
 #' @param selectedDatabaseIds       shiny::reactive - should return cohorts selected or NULL
 #' @param cohortIds                 shiny::reactive - should return cohorts selected integers or NULL
-#' @family {CohortDiagnostics}
+#' @family CohortDiagnostics
 cohortCountsModule <- function(id,
                                dataSource,
                                cohortTable = dataSource$cohortTable,

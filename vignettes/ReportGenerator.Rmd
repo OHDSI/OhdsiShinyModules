@@ -1,0 +1,40 @@
+---
+title: "Report Generator"
+author: "Nathan Hall"
+date: '`r Sys.Date()`'
+header-includes:
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyhead{}
+  - \fancyfoot[CO,CE]{OhdsiShinyModules Package Version `r  utils::packageVersion("OhdsiShinyModules")`}
+  - \fancyfoot[LE,RO]{\thepage}
+  - \renewcommand{\headrulewidth}{0.4pt}
+  - \renewcommand{\footrulewidth}{0.4pt}
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+vignette: >
+  %\VignetteIndexEntry{ReportGenerator}
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteEncoding{UTF-8}
+---
+  
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+ReportGenerator is a tool used to create a summary presentation document using results from a Strategus execution which should be stored in a results database. 
+
+# Description
+
+The Report Generator module allows the user to choose which target (T), subgroup (indication & extra inclusions), comparator (C), and outcome(s) (O) they would like a downloaded report on. In the last section of the module, the user's selections are reported back to them for review before downloading. Here, the user can also choose to restrict the study date and/or the age range of people included in the report. 
+
+## Notes
+
+Please note that this package is currently under development, so results may vary or may not be available at the time of report generation.
+
+
+

@@ -21,11 +21,10 @@
 #' The location of the phevaluator module helper file
 #' 
 #' @details Returns the location of the cohort-generator helper file
-#' @family {PheValuator}
+#' @family PheValuator
 #' @return String location of the phevaluator helper file
 #' 
 #' @export 
-#' @family {PheValuator}
 phevaluatorHelperFile <- function() {
   fileLoc <-
     system.file('phevaluator-www', "phevaluator.html", package = "OhdsiShinyModules")
@@ -36,11 +35,10 @@ phevaluatorHelperFile <- function() {
 #' The viewer of the phevaluator module
 #'
 #' @param id The unique reference id for the module
-#' @family {PheValuator}
+#' @family PheValuator
 #' @return The user interface to the phevaluator results viewer
 #' 
 #' @export
-#' @family {PheValuator}
 phevaluatorViewer <- function(id) {
   ns <- shiny::NS(id)
   
@@ -130,11 +128,10 @@ phevaluatorViewer <- function(id) {
 #' @param id The unique reference id for the module
 #' @param connectionHandler A connection to the database with the results
 #' @param resultDatabaseSettings A named list containing the cohort generator results database details (schema, table prefix) 
-#' @family {PheValuator}
+#' @family PheValuator
 #' @return The phevaluator main module server
 #' 
 #' @export
-#' @family {PheValuator}
 phevaluatorServer <- function(
   id, 
   connectionHandler, 
