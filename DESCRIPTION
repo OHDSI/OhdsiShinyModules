@@ -51,7 +51,8 @@ Imports:
     tippy,
     RColorBrewer,
     markdown,
-    visNetwork
+    visNetwork,
+    igraph
 Suggests:
     kableExtra,
     knitr,

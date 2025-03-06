@@ -18,19 +18,19 @@
 plotCohortOverlap <- function(data,
                               cohortTable = NULL,
                               yAxis = "Percentages") {
-  data <- data %>%
+  data <- data |>
     addShortName(
       shortNameRef = cohortTable,
       cohortIdColumn = "targetCohortId",
       shortNameColumn = "targetShortName"
-    ) %>%
+    ) |>
     addShortName(
       shortNameRef = cohortTable,
       cohortIdColumn = "comparatorCohortId",
       shortNameColumn = "comparatorShortName"
     )
 
-  plotData <- data %>%
+  plotData <- data |>
     dplyr::mutate(
       absTOnlySubjects = abs(.data$tOnlySubjects),
       absCOnlySubjects = abs(.data$cOnlySubjects),
@@ -39,7 +39,7 @@ plotCohortOverlap <- function(data,
       signTOnlySubjects = dplyr::case_when(.data$tOnlySubjects < 0 ~ "<", TRUE ~ ""),
       signCOnlySubjects = dplyr::case_when(.data$cOnlySubjects < 0 ~ "<", TRUE ~ ""),
       signBothSubjects = dplyr::case_when(.data$bothSubjects < 0 ~ "<", TRUE ~ "")
-    ) %>%
+    ) |>
     dplyr::mutate(
       tOnlyString = paste0(
         .data$signTOnlySubjects,
@@ -74,7 +74,7 @@ plotCohortOverlap <- function(data,
         ),
         ")"
       )
-    ) %>%
+    ) |>
     dplyr::mutate(
       tooltip = paste0(
         .data$targetShortName, " x ", .data$comparatorShortName,
@@ -94,7 +94,7 @@ plotCohortOverlap <- function(data,
     )
 
   if (yAxis == "Percentages") {
-    plotData <- plotData %>%
+    plotData <- plotData |>
       dplyr::mutate(tOnlySubjects = .data$absTOnlySubjects / .data$absEitherSubjects * 100,
                     cOnlySubjects = .data$absCOnlySubjects / .data$absEitherSubjects * 100,
                     bothSubjects = .data$absBothSubjects / .data$absEitherSubjects * 100)
@@ -109,7 +109,7 @@ plotCohortOverlap <- function(data,
     database <- databases[i]
     for (j in 1:length(targetCohorts)) {
       targetCohortName <- rev(targetCohorts)[j]
-      tPlotData <- plotData %>%
+      tPlotData <- plotData |>
         dplyr::filter(.data$databaseName == database, .data$targetShortName == targetCohortName)
       plot <- plotly::plot_ly(tPlotData,
                               type = 'bar',
@@ -117,10 +117,10 @@ plotCohortOverlap <- function(data,
                               x = ~tOnlySubjects,
                               y = ~comparatorShortName,
                               #text = ~tooltip,
-                              marker = list(color = "rgba(71, 58, 131, 0.8)")) %>%
-        plotly::add_trace(x = ~bothSubjects, marker = list(color = 'rgba(122, 120, 168, 0.8)')) %>%
-        plotly::add_trace(x = ~cOnlySubjects, marker = list(color = 'rgba(164, 163, 204, 0.85)')) %>%
-        plotly::add_markers(x = 50, text = ~tooltip, marker = list(color = 'rgba(164, 163, 204, 0.00)')) %>%
+                              marker = list(color = "rgba(71, 58, 131, 0.8)")) |>
+        plotly::add_trace(x = ~bothSubjects, marker = list(color = 'rgba(122, 120, 168, 0.8)')) |>
+        plotly::add_trace(x = ~cOnlySubjects, marker = list(color = 'rgba(164, 163, 204, 0.85)')) |>
+        plotly::add_markers(x = 50, text = ~tooltip, marker = list(color = 'rgba(164, 163, 204, 0.00)')) |>
         plotly::layout(barmode = "stack",
                        xaxis = list(zerolinecolor = '#ffff',
                                     zerolinewidth = 1,
@@ -154,7 +154,7 @@ plotCohortOverlap <- function(data,
                           nrows = nrows,
                           shareY = T,
                           shareX = (yAxis == "Percentages"),
-                          margin = c(0.02, 0.02, 0.03, 0.03)) %>%
+                          margin = c(0.02, 0.02, 0.03, 0.03)) |>
     plotly::layout(showlegend = FALSE,
                    annotations = annotations,
                    plot_bgcolor = '#e5ecf6',
@@ -257,62 +257,77 @@ cohortOverlapView <- function(id) {
           shinycssloaders::withSpinner(
             shiny::div(visNetwork::visNetworkOutput(ns("graphVis")))
           ),
-          shiny::p("Figure: Node size is proportional to cohort subjects, edge weight is propotional to overlap.")
+          shiny::p("Figure: Node size is proportional to cohort subjects, edge weight is propotional to overlap based on subject count.")
         )
       )
     )
   )
 }
 
-# Returns data from cohort_relationships table of Cohort Diagnostics results data model
-getResultsCohortRelationships <- function(dataSource,
-                                          cohortIds = NULL,
-                                          comparatorCohortIds = NULL,
-                                          databaseIds = NULL,
-                                          startDays = NULL,
-                                          endDays = NULL) {
-  #data <- dataSource$connectionHandler$queryDb(
-  #  sql = "SELECT cr.*, db.database_name
-  #           FROM @schema.@table_name cr
-  #           INNER JOIN @schema.@database_table db ON db.database_id = cr.database_id
-  #           WHERE cr.cohort_id IN (@cohort_id)
-  #           AND cr.database_id IN (@database_id)
-  #            {@comparator_cohort_id != \"\"} ? { AND cr.comparator_cohort_id IN (@comparator_cohort_id)}
-  #            {@start_day != \"\"} ? { AND cr.start_day IN (@start_day)}
-  #            {@end_day != \"\"} ? { AND cr.end_day IN (@end_day)};",
-  #  snakeCaseToCamelCase = TRUE,
-  #  schema = dataSource$schema,
-  #  database_id = quoteLiterals(databaseIds),
-  #  table_name = dataSource$prefixTable("cohort_relationships"),
-  #  database_table = paste0(dataSource$databaseTablePrefix, dataSource$databaseTable),
-  #  cohort_id = cohortIds,
-  #  comparator_cohort_id = comparatorCohortIds,
-  #  start_day = startDays,
-  #  end_day = endDays
-  #) %>%
-  #  dplyr::tibble()
 
+# From feature extraction tables, return cohort overlap
+getResultsCohortOverlapFe <- function(dataSource,
+                                      cohortIds = NULL,
+                                      comparatorCohortIds = NULL,
+                                      databaseIds = NULL,
+                                      timeId = 1) {
   data <- dataSource$connectionHandler$queryDb(
-    sql = "SELECT cr.*
+    sql = "SELECT cr.cohort_id,
+                  cr.covariate_id,
+                  cr.sum_value as both_subjects,
+                  cc.cohort_subjects - cr.sum_value as t_only_subjects,
+                  cr.mean as t_fraction_in_c,
+                  cc.cohort_subjects as target_subjects,
+                  cr.database_id,
+                  cr.time_id
              FROM @schema.@table_name cr
+             INNER JOIN @schema.@cov_ref_tbl tcr ON tcr.covariate_id = cr.covariate_id AND tcr.analysis_id = @analysis_id
+             INNER JOIN @schema.@cohort_count cc on cc.cohort_id = cr.cohort_id and cc.database_id = cr.database_id
              WHERE cr.cohort_id IN (@cohort_id)
              AND cr.database_id IN (@database_id)
-              {@comparator_cohort_id != \"\"} ? { AND cr.comparator_cohort_id IN (@comparator_cohort_id)}
-              {@start_day != \"\"} ? { AND cr.start_day IN (@start_day)}
-              {@end_day != \"\"} ? { AND cr.end_day IN (@end_day)};",
+             AND cr.time_id IN (@time_id)",
     snakeCaseToCamelCase = TRUE,
     schema = dataSource$schema,
     database_id = quoteLiterals(databaseIds),
-    table_name = dataSource$prefixTable("cohort_relationships"),
-    cohort_id = cohortIds,
-    comparator_cohort_id = comparatorCohortIds,
-    start_day = startDays,
-    end_day = endDays
-  ) %>%
-    dplyr::tibble()
+    table_name = dataSource$prefixTable("temporal_covariate_value"),
+    cov_ref_tbl = dataSource$prefixTable("temporal_covariate_ref"),
+    cohort_count = dataSource$prefixTable("cohort_count"),
+    cohort_id = c(cohortIds, comparatorCohortIds),
+    analysis_id = 173, # Hard coding issue needs to be resolved somehow - likely in the export stage of CD
+    time_id = timeId
+  ) |>
+    dplyr::tibble() |>
+    dplyr::mutate(comparatorCohortId = as.numeric(sub("173+$", "", .data$covariateId))) |> # Hard coding of ID
+    dplyr::filter(.data$cohortId != .data$comparatorCohortId)
 
+  if (!is.null(comparatorCohortIds))
+    data <- data |> dplyr::filter(.data$comparatorCohortId %in% c(cohortIds, comparatorCohortIds))
+
+
+  counts <- dataSource$cohortCountTable |> dplyr::select("comparatorCohortId" = "cohortId", "comparatorSubjects" = "cohortSubjects", "databaseId")
+  data <- data |>
+    dplyr::inner_join(counts, by = c("comparatorCohortId" = "comparatorCohortId", "databaseId" = "databaseId"), keep = NULL) |>
+    dplyr::mutate(cFractionInT = .data$bothSubjects/.data$comparatorSubjects,
+                  cOnlySubjects = .data$comparatorSubjects - .data$bothSubjects) |>
+    dplyr::mutate(eitherSubjects = .data$cOnlySubjects + .data$tOnlySubjects + .data$bothSubjects)
+
+  dataMirrored <- data |>
+    dplyr::rename("comparatorCohortId" = "cohortId",
+                  "cohortId" = "comparatorCohortId",
+                  "comparatorSubjects" = "targetSubjects",
+                  "targetSubjects" = "comparatorSubjects",
+                  "cFractionInT" = "tFractionInC",
+                  "tFractionInC" = "cFractionInT",
+                  "cOnlySubjects" = "tOnlySubjects",
+                  "tOnlySubjects" = "cOnlySubjects")
+
+  data <- rbind(data, dataMirrored)
   # join with dbTable (moved this outside sql)
-  data <- merge(data, dataSource$dbTable, by = 'databaseId')
+  dTableNames <- dataSource$dbTable |> dplyr::select("databaseId", "databaseName")
+  data <- dplyr::inner_join(data, dTableNames, by = 'databaseId') |>
+    dplyr::rename(
+      "targetCohortId" = "cohortId"
+    )
 
   return(data)
 }
@@ -321,8 +336,9 @@ getResultsCohortRelationships <- function(dataSource,
 getResultsCohortOverlap <- function(dataSource,
                                     targetCohortIds = NULL,
                                     comparatorCohortIds = NULL,
-                                    databaseIds = NULL) {
-  cohortIds <- c(targetCohortIds, comparatorCohortIds) %>% unique()
+                                    databaseIds = NULL,
+                                    timeIds = 1) {
+  cohortIds <- c(targetCohortIds, comparatorCohortIds) |> unique()
   cohortCounts <-
     getResultsCohortCounts(
       dataSource = dataSource,
@@ -335,130 +351,26 @@ getResultsCohortOverlap <- function(dataSource,
   }
 
   cohortRelationship <-
-    getResultsCohortRelationships(
+    getResultsCohortOverlapFe(
       dataSource = dataSource,
       cohortIds = cohortIds,
       comparatorCohortIds = comparatorCohortIds,
       databaseIds = databaseIds,
-      startDays = c(-9999, 0),
-      endDays = c(9999, 0)
+      timeId = timeIds
     )
 
-  # Fix relationship data so 0 overlap displays
-  allCombinations <- dplyr::tibble(databaseId = databaseIds) %>%
-    tidyr::crossing(dplyr::tibble(cohortId = cohortIds)) %>%
-    tidyr::crossing(dplyr::tibble(comparatorCohortId = comparatorCohortIds)) %>%
-    dplyr::filter(.data$comparatorCohortId != .data$cohortId) %>%
-    tidyr::crossing(dplyr::tibble(startDay = c(-9999, 0),
-                                  endDay = c(9999, 0)))
-
-  cohortRelationship <- allCombinations %>%
-    dplyr::left_join(cohortRelationship,
-                     by = c("databaseId", "cohortId", "comparatorCohortId", "startDay", "endDay")) %>%
-    dplyr::mutate(dplyr::across(.cols = tidyselect::where(is.numeric), ~tidyr::replace_na(., 0)))
-
-  fullOffSet <- cohortRelationship %>%
-    dplyr::filter(.data$startDay == -9999) %>%
-    dplyr::filter(.data$endDay == 9999) %>%
-    dplyr::filter(.data$cohortId %in% c(targetCohortIds)) %>%
-    dplyr::filter(.data$comparatorCohortId %in% c(comparatorCohortIds)) %>%
+  result <- cohortRelationship |>
+    dplyr::filter(.data$targetCohortId != .data$comparatorCohortId) |>
     dplyr::select(
       "databaseId",
-      "cohortId",
-      "comparatorCohortId",
-      "subjects"
-    ) %>%
-    dplyr::inner_join(
-      cohortCounts %>%
-        dplyr::select(-"cohortEntries") %>%
-        dplyr::rename(targetCohortSubjects = "cohortSubjects"),
-      by = c("databaseId", "cohortId")
-    ) %>%
-    dplyr::mutate(tOnlySubjects = .data$targetCohortSubjects - .data$subjects) %>%
-    dplyr::inner_join(
-      cohortCounts %>%
-        dplyr::select(-"cohortEntries") %>%
-        dplyr::rename(
-          comparatorCohortSubjects = "cohortSubjects",
-          comparatorCohortId = "cohortId"
-        ),
-      by = c("databaseId", "comparatorCohortId")
-    ) %>%
-    dplyr::mutate(cOnlySubjects = .data$comparatorCohortSubjects - .data$subjects) %>%
-    dplyr::mutate(eitherSubjects = .data$cOnlySubjects +
-      .data$tOnlySubjects +
-      .data$subjects) %>%
-    dplyr::rename(
-      "targetCohortId" = "cohortId",
-      "bothSubjects" = "subjects"
-    ) %>%
-    dplyr::select(
-      "databaseId",
+      "databaseName",
       "targetCohortId",
-      "comparatorCohortId",
-      "bothSubjects",
-      "tOnlySubjects",
-      "cOnlySubjects",
-      "eitherSubjects"
-    )
-
-
-  noOffset <- cohortRelationship %>%
-    dplyr::filter(.data$comparatorCohortId %in% comparatorCohortIds) %>%
-    dplyr::filter(.data$cohortId %in% targetCohortIds) %>%
-    dplyr::filter(.data$startDay == 0) %>%
-    dplyr::filter(.data$endDay == 0) %>%
-    dplyr::select(
-      "databaseId",
-      "cohortId",
-      "comparatorCohortId",
-      "subCsBeforeTs",
-      "subCWithinT",
-      "subCsAfterTs",
-      "subCsAfterTe",
-      "subCsBeforeTs",
-      "subCsBeforeTe",
-      "subCsOnTs",
-      "subCsOnTe"
-    ) %>%
-    dplyr::rename(
-      "cBeforeTSubjects" = "subCsBeforeTs",
-      "targetCohortId" = "cohortId",
-      "cInTSubjects" = "subCWithinT",
-      "cStartAfterTStart" = "subCsAfterTs",
-      "cStartAfterTEnd" = "subCsAfterTe",
-      "cStartBeforeTStart" = "subCsBeforeTs",
-      "cStartBeforeTEnd" = "subCsBeforeTe",
-      "cStartOnTStart" = "subCsOnTs",
-      "cStartOnTEnd" = "subCsOnTe"
-    )
-
-  result <- fullOffSet %>%
-    dplyr::left_join(noOffset,
-                     by = c("databaseId", "targetCohortId", "comparatorCohortId")
-    ) %>%
-    dplyr::filter(.data$targetCohortId != .data$comparatorCohortId) %>%
-    dplyr::select(
-      "databaseId",
-      # cohortId,
       "comparatorCohortId",
       "eitherSubjects",
       "tOnlySubjects",
       "cOnlySubjects",
-      "bothSubjects",
-      # cBeforeTSubjects,
-      "targetCohortId",
-      "cInTSubjects",
-      "cStartAfterTStart",
-      "cStartAfterTEnd",
-      "cStartBeforeTStart",
-      "cStartBeforeTEnd",
-      "cStartOnTStart",
-      "cStartOnTEnd",
+      "bothSubjects"
     )
-
-  databaseNames <- cohortCounts %>% dplyr::distinct(.data$databaseId, .data$databaseName)
-  result <- result %>% dplyr::inner_join(databaseNames, by = "databaseId")
 
   return(result)
 }
@@ -491,8 +403,8 @@ cohortOverlapModule <- function(id,
     cohortOverlapData <- shiny::reactive({
       shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
       shiny::validate(shiny::need(length(cohortIds()) > 1, "Please select at least two cohorts."))
-      combisOfTargetComparator <- t(utils::combn(cohortIds(), 2)) %>%
-        as.data.frame() %>%
+      combisOfTargetComparator <- t(utils::combn(cohortIds(), 2)) |>
+        as.data.frame() |>
         dplyr::tibble()
       colnames(combisOfTargetComparator) <- c("targetCohortId", "comparatorCohortId")
 
@@ -554,13 +466,13 @@ cohortOverlapModule <- function(id,
         paste0("No cohort overlap data for this combination")
       ))
 
-      data <- data %>%
-        dplyr::inner_join(cohortTable %>% dplyr::select("cohortId",
+      data <- data |>
+        dplyr::inner_join(cohortTable |> dplyr::select("cohortId",
                                                         "targetCohortName" = "cohortName"),
-                          by = c("targetCohortId" = "cohortId")) %>%
-        dplyr::inner_join(cohortTable %>% dplyr::select("cohortId",
+                          by = c("targetCohortId" = "cohortId")) |>
+        dplyr::inner_join(cohortTable |> dplyr::select("cohortId",
                                                         "comparatorCohortName" = "cohortName"),
-                          by = c("comparatorCohortId" = "cohortId")) %>%
+                          by = c("comparatorCohortId" = "cohortId")) |>
         dplyr::select(
           "databaseName",
           "targetCohortId",
@@ -574,13 +486,13 @@ cohortOverlapModule <- function(id,
         )
 
       if (input$showCohortIds) {
-        data <- data %>% dplyr::mutate(
+        data <- data |> dplyr::mutate(
           targetCohortName = paste0("C", .data$targetCohortId, " - ", .data$targetCohortName),
           comparatorCohortName = paste0("C", .data$comparatorCohortId, " - ", .data$comparatorCohortName)
         )
       }
 
-      data <- data %>% dplyr::select(-"targetCohortId", -"comparatorCohortId")
+      data <- data |> dplyr::select(-"targetCohortId", -"comparatorCohortId")
 
       if (input$showAsPercentage) {
         data$tOnly <- data$tOnly / data$totalSubjects
@@ -669,7 +581,9 @@ cohortOverlapModule <- function(id,
                       value = "bothSubjects")
 
 
-      dbName <- dataSource$dbTable |> dplyr::filter(.data$databaseId == !!databaseId) |> dplyr::pull("databaseName")
+      dbName <- dataSource$dbTable |>
+        dplyr::filter(.data$databaseId == !!databaseId) |>
+        dplyr::pull("databaseName")
 
       visNetwork::visNetwork(nodes,
                              edges,
