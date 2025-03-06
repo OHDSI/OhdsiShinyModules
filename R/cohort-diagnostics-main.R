@@ -254,7 +254,8 @@ createCdDatabaseDataSource <- function(
     useCgTable = FALSE,
     databaseTable = resultDatabaseSettings$databaseTable,#"database",
     databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix,#"cd_",
-    dataModelSpecifications = modelSpec
+    dataModelSpecifications = modelSpec,
+    migrations = migrations
   )
   
   if (displayProgress)
@@ -476,11 +477,9 @@ cohortDiagnosticsServer <- function(id,
         selection["Cohort Characterization"] <- "characterization"
         selection["Compare Cohort Characterization"] <- "compareCohortCharacterization"
         selection["Time Distributions"] <- "timeDistribution"
-      }
-      
-      if ("relationship" %in% dataSource$enabledReports)
         selection["Cohort Overlap"] <- "cohortOverlap"
-      
+      }
+
       if ("cohortInclusion" %in% dataSource$enabledReports)
         selection["Inclusion Rule Statistics"] <- "inclusionRules"
       
@@ -713,7 +712,7 @@ cohortDiagnosticsServer <- function(id,
                          databaseTable = databaseTable)
     }
     
-    if ("relationship" %in% enabledReports) {
+    if ("temporalCovariateValue" %in% enabledReports) {
       cohortOverlapModule(id = "cohortOverlap",
                           dataSource = dataSource,
                           selectedCohorts = selectedCohorts,

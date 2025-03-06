@@ -307,9 +307,11 @@ getResultsCohortOverlapFe <- function(dataSource,
   counts <- dataSource$cohortCountTable |> dplyr::select("comparatorCohortId" = "cohortId", "comparatorSubjects" = "cohortSubjects", "databaseId")
   data <- data |>
     dplyr::inner_join(counts, by = c("comparatorCohortId" = "comparatorCohortId", "databaseId" = "databaseId"), keep = NULL) |>
-    dplyr::mutate(cFractionInT = .data$bothSubjects/.data$comparatorSubjects,
+    dplyr::mutate(cFractionInT = .data$bothSubjects / .data$comparatorSubjects,
                   cOnlySubjects = .data$comparatorSubjects - .data$bothSubjects) |>
-    dplyr::mutate(eitherSubjects = .data$cOnlySubjects + .data$tOnlySubjects + .data$bothSubjects)
+    dplyr::mutate(eitherSubjects = .data$cOnlySubjects +
+      .data$tOnlySubjects +
+      .data$bothSubjects)
 
   dataMirrored <- data |>
     dplyr::rename("comparatorCohortId" = "cohortId",
@@ -401,6 +403,9 @@ cohortOverlapModule <- function(id,
 
     # Cohort Overlap ------------------------
     cohortOverlapData <- shiny::reactive({
+      shiny::validate(shiny::need(6 %in% dataSource$migrations$migrationOrder,
+                                  message = "Cohort Diagnostics results data migration required for this report. Please run CohortDiagnostics::migrateDataModel"))
+
       shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
       shiny::validate(shiny::need(length(cohortIds()) > 1, "Please select at least two cohorts."))
       combisOfTargetComparator <- t(utils::combn(cohortIds(), 2)) |>
@@ -468,10 +473,10 @@ cohortOverlapModule <- function(id,
 
       data <- data |>
         dplyr::inner_join(cohortTable |> dplyr::select("cohortId",
-                                                        "targetCohortName" = "cohortName"),
+                                                       "targetCohortName" = "cohortName"),
                           by = c("targetCohortId" = "cohortId")) |>
         dplyr::inner_join(cohortTable |> dplyr::select("cohortId",
-                                                        "comparatorCohortName" = "cohortName"),
+                                                       "comparatorCohortName" = "cohortName"),
                           by = c("comparatorCohortId" = "cohortId")) |>
         dplyr::select(
           "databaseName",
@@ -555,6 +560,8 @@ cohortOverlapModule <- function(id,
     })
 
     output$graphVis <- visNetwork::renderVisNetwork({
+      shiny::validate(shiny::need(6 %in% dataSource$migrations$migrationOrder,
+                                  message = "Cohort Diagnostics results data migration required for this report. Please run CohortDiagnostics::migrateDataModel"))
       databaseId <- input$graphVisDb
       data <- cohortOverlapData() |>
         dplyr::filter(.data$databaseId == !!databaseId)
