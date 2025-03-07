@@ -358,7 +358,7 @@ characterizationIncidenceServer <- function(
             label = 'Select Clean Window',
             choices = ciOptions$cleanWindows,
             selected = ciOptions$cleanWindows,
-            multiple = F,
+            multiple = T,
             options = shinyWidgets::pickerOptions(
               actionsBox = TRUE,
               liveSearch = TRUE,
