@@ -198,9 +198,19 @@ cohortOverlapView <- function(id) {
     shinydashboard::box(
       width = NULL,
       status = "primary",
-
       shiny::tabsetPanel(
         type = "pills",
+        header = shiny::fluidRow(
+          shiny::column(
+            width = 4,
+            shiny::selectInput(
+              inputId = ns("timeId"),
+              label = "Time window",
+              choices = c("T(-9999d to 0d)" = 1),
+              selected = 1
+            )
+          )
+        ),
         shiny::tabPanel(
           title = "Plot",
           shiny::radioButtons(
@@ -400,6 +410,22 @@ cohortOverlapModule <- function(id,
                                choices = databaseIdSet,
                                selected = selectedDatabaseIds()[1])
     })
+    
+    
+    shiny::observe({
+      timeIds <- dataSource$temporalChoices |> 
+        dplyr::filter(.data$timeId > 0) |>
+        dplyr::select("timeId", "temporalChoices")
+      
+      timeChoices <- timeIds$timeId
+      names(timeChoices) <- timeIds$temporalChoices
+      
+      shiny::updateSelectInput(inputId = "timeId",
+                               label = "Time window 1",
+                               session = session,
+                               choices = timeChoices,
+                               selected = timeChoices[[1]])
+    })
 
     # Cohort Overlap ------------------------
     cohortOverlapData <- shiny::reactive({
@@ -418,7 +444,8 @@ cohortOverlapModule <- function(id,
         dataSource = dataSource,
         targetCohortIds = combisOfTargetComparator$targetCohortId,
         comparatorCohortIds = combisOfTargetComparator$comparatorCohortId,
-        databaseIds = selectedDatabaseIds()
+        databaseIds = selectedDatabaseIds(),
+        timeIds = input$timeId
       )
       shiny::validate(shiny::need(
         !is.null(data),
@@ -594,12 +621,14 @@ cohortOverlapModule <- function(id,
 
       visNetwork::visNetwork(nodes,
                              edges,
+                             height = "600px",
                              main = paste0(dbName)) |>
         visNetwork::visIgraphLayout(layout = "layout_in_circle") |>
         visNetwork::visOptions(highlightNearest = list(enabled = TRUE, hover = TRUE),
                                width = "100%",
                                clickToUse = FALSE,
                                manipulation = FALSE,
+                               autoResize = TRUE,
                                nodesIdSelection = FALSE) |>
         visNetwork::visEdges(color = list(opacity = 0.2)) |>
         visNetwork::visPhysics(enabled = FALSE)
