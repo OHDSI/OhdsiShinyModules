@@ -598,13 +598,6 @@ getCharacterizationOutput <- function(dataSource,
       )
   }
 
-  if (hasData(resultCohortValue)) {
-    temporalCovariateValue <- dplyr::bind_rows(
-      temporalCovariateValue,
-      resultCohortValue
-    )
-  }
-
   return(
     list(
       covariateValue = temporalCovariateValue,

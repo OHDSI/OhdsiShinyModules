@@ -421,7 +421,7 @@ cohortOverlapModule <- function(id,
       names(timeChoices) <- timeIds$temporalChoices
       
       shiny::updateSelectInput(inputId = "timeId",
-                               label = "Time window 1",
+                               label = "Time window",
                                session = session,
                                choices = timeChoices,
                                selected = timeChoices[[1]])
