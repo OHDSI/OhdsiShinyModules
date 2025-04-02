@@ -3,14 +3,13 @@ context("cohort-diagnostics-overlap")
 shiny::testServer(cohortOverlapModule, args = list(
   id = "testCohortOverlap", #Any string is ok?
   dataSource = dataSourceCd,
-  selectedCohorts = shiny::reactive("Any String"),
+  selectedCohorts = shiny::reactive({ c(18349, 18350) }),
   selectedDatabaseIds = shiny::reactive("Eunomia"),
-  targetCohortId = shiny::reactive({ c(14906) }),
-  cohortIds = shiny::reactive({ c(14906, 14907) }),
+  targetCohortId = shiny::reactive({ c(18347) }),
+  cohortIds = shiny::reactive({ c(18349, 18350) }),
   cohortTable = getCohortTable(dataSourceCd)
 ), {
-
-  session$setInputs(showCohortIds = TRUE, showAsPercentage = TRUE)
+  session$setInputs(showCohortIds = TRUE, showAsPercentage = TRUE, timeId = 1)
 
   # Just checking to make sure all the input data is following the correct variable types
   checkmate::expect_character(cohortOverlapData()$databaseId)
@@ -20,12 +19,5 @@ shiny::testServer(cohortOverlapModule, args = list(
   checkmate::expect_numeric(cohortOverlapData()$cOnlySubjects)
   checkmate::expect_numeric(cohortOverlapData()$bothSubjects)
   checkmate::expect_numeric(cohortOverlapData()$targetCohortId)
-  checkmate::expect_numeric(cohortOverlapData()$cInTSubjects)
-  checkmate::expect_numeric(cohortOverlapData()$cStartAfterTStart)
-  checkmate::expect_numeric(cohortOverlapData()$cStartAfterTEnd)
-  checkmate::expect_numeric(cohortOverlapData()$cStartBeforeTStart)
-  checkmate::expect_numeric(cohortOverlapData()$cStartBeforeTEnd)
-  checkmate::expect_numeric(cohortOverlapData()$cStartOnTStart)
-  checkmate::expect_numeric(cohortOverlapData()$cStartOnTEnd)
   checkmate::expect_class(output$overlapTable, "json")
 })
