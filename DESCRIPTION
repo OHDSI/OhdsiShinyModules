@@ -34,7 +34,7 @@ Imports:
     reactable,
     readr,
     OhdsiReportGenerator,
-    RJSONIO,
+    jsonlite,
     rlang,
     rmarkdown,
     scales,

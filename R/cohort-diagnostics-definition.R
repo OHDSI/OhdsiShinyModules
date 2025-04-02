@@ -21,7 +21,7 @@
 #'
 #' @param cohortDefinition An R object (list) with a list representation of the cohort definition expression,
 #'                          that may be converted to a cohort expression JSON using
-#'                          RJSONIO::toJSON(x = cohortDefinition, digits = 23, pretty = TRUE)
+#'                          jsonlite::toJSON(x = cohortDefinition, digits = 23, pretty = TRUE)
 #'
 #' @param cohortName Name for the cohort definition
 #'
@@ -33,7 +33,7 @@ getCirceRenderedExpression <- function(cohortDefinition,
                                        cohortName = "Cohort Definition",
                                        includeConceptSets = FALSE) {
   cohortJson <-
-    RJSONIO::toJSON(
+    jsonlite::toJSON(
       x = cohortDefinition,
       digits = 23,
       pretty = TRUE
@@ -181,7 +181,7 @@ getConceptSetDetailsFromCohortDefinition <-
     conceptSetExpression <- expression$ConceptSets %>%
       dplyr::bind_rows() %>%
       dplyr::mutate(
-        "json" = RJSONIO::toJSON(
+        "json" = jsonlite::toJSON(
         x = .data$expression,
         pretty = TRUE
       ))
@@ -243,7 +243,7 @@ exportCohortDefinitionsZip <- function(cohortDefinitions,
       recursive = TRUE,
       showWarnings = FALSE
     )
-    cohortExpression <- RJSONIO::fromJSON(cohortDefinitions[i,]$json, digits = 23)
+    cohortExpression <- jsonlite::fromJSON(cohortDefinitions[i,]$json, digits = 23)
 
     details <-
       getCirceRenderedExpression(cohortDefinition = cohortExpression)
@@ -653,7 +653,7 @@ cohortDefinitionsModule <- function(
       }
       details <-
         getCirceRenderedExpression(
-          cohortDefinition = data$json[1] %>% RJSONIO::fromJSON(digits = 23),
+          cohortDefinition = data$json[1] %>% jsonlite::fromJSON(),
           cohortName = data$cohortName[1],
           includeConceptSets = TRUE
         )
@@ -691,7 +691,7 @@ cohortDefinitionsModule <- function(
         return(NULL)
       }
 
-      expression <- RJSONIO::fromJSON(row$json, digits = 23)
+      expression <- jsonlite::fromJSON(row$json)
       if (is.null(expression)) {
         return(NULL)
       }
