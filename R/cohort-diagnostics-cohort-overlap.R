@@ -609,7 +609,7 @@ cohortOverlapModule <- function(id,
 
       edges <- data |>
         dplyr::mutate(bothSubjects = abs(.data$bothSubjects)) |>
-        dplyr::filter(bothSubjects > 0) |>
+        dplyr::filter(.data$bothSubjects > 0) |>
         dplyr::rename(from = "targetCohortId",
                       to = "comparatorCohortId",
                       value = "bothSubjects")
