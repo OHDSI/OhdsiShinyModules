@@ -32,14 +32,8 @@
 getCirceRenderedExpression <- function(cohortDefinition,
                                        cohortName = "Cohort Definition",
                                        includeConceptSets = FALSE) {
-  cohortJson <-
-    RJSONIO::toJSON(
-      x = cohortDefinition,
-      auto_unbox = TRUE
-    )
-
   circeExpression <-
-    CirceR::cohortExpressionFromJson(expressionJson = cohortJson)
+    CirceR::cohortExpressionFromJson(expressionJson = cohortDefinition)
   circeExpressionMarkdown <-
     CirceR::cohortPrintFriendly(circeExpression)
   circeConceptSetListmarkdown <-
@@ -78,7 +72,7 @@ getCirceRenderedExpression <- function(cohortDefinition,
     markdown::renderMarkdown(text = circeConceptSetListmarkdown)
   return(
     list(
-      cohortJson = cohortJson,
+      cohortJson = cohortDefinition,
       cohortMarkdown = circeExpressionMarkdown,
       conceptSetMarkdown = circeConceptSetListmarkdown,
       cohortHtmlExpression = htmlExpressionCohort,
@@ -168,6 +162,8 @@ getConceptSetDataFrameFromConceptSetExpression <-
 
 getConceptSetDetailsFromCohortDefinition <-
   function(cohortDefinitionExpression) {
+
+    cohortDefinitionExpression <- jsonlite::fromJSON(cohortDefinitionExpression)
     if ("expression" %in% names(cohortDefinitionExpression)) {
       expression <- cohortDefinitionExpression$expression
     } else {
@@ -181,7 +177,7 @@ getConceptSetDetailsFromCohortDefinition <-
     conceptSetExpression <- expression$ConceptSets %>%
       dplyr::bind_rows() %>%
       dplyr::mutate(
-        "json" = RJSONIO::toJSON(
+        "json" = jsonlite::toJSON(
         x = .data$expression,
         pretty = TRUE
       ))
@@ -245,7 +241,7 @@ exportCohortDefinitionsZip <- function(cohortDefinitions,
     )
 
     if (is.na(cohortDefinitions[i,]$subsetDefinitionId)) {
-      cohortExpression <- RJSONIO::fromJSON(cohortDefinitions[i,]$json, digits = 23)
+      cohortExpression <- cohortDefinitions[i,]$json
 
       details <-
         getCirceRenderedExpression(cohortDefinition = cohortExpression)
@@ -656,7 +652,7 @@ cohortDefinitionsModule <- function(
       }
       details <-
         getCirceRenderedExpression(
-          cohortDefinition = data$json[1] %>% RJSONIO::fromJSON(digits = 23),
+          cohortDefinition = data$json[1],
           cohortName = data$cohortName[1],
           includeConceptSets = TRUE
         )
@@ -694,7 +690,7 @@ cohortDefinitionsModule <- function(
         return(NULL)
       }
 
-      expression <- RJSONIO::fromJSON(row$json, digits = 23)
+      expression <- jsonlite::fromJSON(row$json, digits = 23)
       if (is.null(expression)) {
         return(NULL)
       }
