@@ -178,9 +178,9 @@ getConceptSetDetailsFromCohortDefinition <-
       dplyr::bind_rows() %>%
       dplyr::mutate(
         "json" = jsonlite::toJSON(
-        x = .data$expression,
-        pretty = TRUE
-      ))
+          x = .data$expression,
+          pretty = TRUE
+        ))
 
     conceptSetExpressionDetails <- list()
     i <- 0
@@ -524,12 +524,12 @@ getCountForConceptIdInCohort <-
 #' @param cohortCountTable              data.frame of cohortCounts, cohortId, subjects records
 #' @family CohortDiagnostics
 cohortDefinitionsModule <- function(
-    id,
-    dataSource,
-    cohortDefinitions,
-    cohortTable = dataSource$cohortTable,
-    cohortCountTable = dataSource$cohortCountTable,
-    databaseTable = dataSource$dbTable
+  id,
+  dataSource,
+  cohortDefinitions,
+  cohortTable = dataSource$cohortTable,
+  cohortCountTable = dataSource$cohortCountTable,
+  databaseTable = dataSource$dbTable
 ) {
   ns <- shiny::NS(id)
 
@@ -583,8 +583,8 @@ cohortDefinitionsModule <- function(
     })
 
     shiny::outputOptions(output,
-                  "cohortDefinitionRowIsSelected",
-                  suspendWhenHidden = FALSE)
+                         "cohortDefinitionRowIsSelected",
+                         suspendWhenHidden = FALSE)
 
     ## cohortDetailsText ---------------------------------------------------------
     output$cohortDetailsText <- shiny::renderUI({
@@ -650,18 +650,21 @@ cohortDefinitionsModule <- function(
       if (!hasData(data)) {
         return(NULL)
       }
-      details <-
-        getCirceRenderedExpression(
-          cohortDefinition = data$json[1],
-          cohortName = data$cohortName[1],
-          includeConceptSets = TRUE
-        )
+      if (is.na(data$subsetDefinitionId[1])) {
+        details <-
+          getCirceRenderedExpression(
+            cohortDefinition = data$json[1],
+            cohortName = data$cohortName[1],
+            includeConceptSets = TRUE
+          )
+      } else {
+        details <- list(cohortHtmlExpression = paste("<p> Subset of cohort", data$subsetParent[1], "</p>"))
+      }
       return(details)
     })
 
     output$cohortDefinitionText <- shiny::renderUI(expr = {
-      cohortDefinitionCirceRDetails()$cohortHtmlExpression %>%
-        shiny::HTML()
+      cohortDefinitionCirceRDetails()$cohortHtmlExpression %>% shiny::HTML()
     })
     ## cohortDefinitionJson ---------------------------------------------------------
     output$cohortDefinitionJson <- shiny::renderText({
@@ -690,12 +693,16 @@ cohortDefinitionsModule <- function(
         return(NULL)
       }
 
-      expression <- jsonlite::fromJSON(row$json, digits = 23)
+      if (!is.na(row$subsetDefinitionId[1])) {
+        return(NULL)
+      }
+
+      expression <- jsonlite::fromJSON(row$json)
       if (is.null(expression)) {
         return(NULL)
       }
       expression <-
-        getConceptSetDetailsFromCohortDefinition(cohortDefinitionExpression = expression)
+        getConceptSetDetailsFromCohortDefinition(cohortDefinitionExpression = row$json)
 
       return(expression)
     })
