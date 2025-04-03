@@ -150,7 +150,7 @@ getExecutionMetadata <- function(dataSource, databaseId) {
       transposeJsonsTemp[[i]][[columnNamesJson[[j]]]] <-
         transposeJsonsTemp[[i]][[columnNamesJson[[j]]]] %>%
           jsonlite::fromJSON() %>%
-          jsonlite::toJSON(digits = 23, pretty = TRUE)
+          jsonlite::toJSON(digits = 23, pretty = TRUE, auto_unbox = TRUE)
     }
   }
   transposeJsons <- dplyr::bind_rows(transposeJsonsTemp)
@@ -439,7 +439,8 @@ databaseInformationModule <- function(
           jsonlite::fromJSON() %>%
           jsonlite::toJSON(
             digits = 23,
-            pretty = TRUE
+            pretty = TRUE,
+            auto_unbox = TRUE
           )
         return(data)
       })

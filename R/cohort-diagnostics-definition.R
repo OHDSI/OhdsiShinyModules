@@ -33,11 +33,11 @@ getCirceRenderedExpression <- function(cohortDefinition,
                                        cohortName = "Cohort Definition",
                                        includeConceptSets = FALSE) {
   cohortJson <-
-    jsonlite::toJSON(
+    RJSONIO::toJSON(
       x = cohortDefinition,
-      digits = 23,
-      pretty = TRUE
+      auto_unbox = TRUE
     )
+
   circeExpression <-
     CirceR::cohortExpressionFromJson(expressionJson = cohortJson)
   circeExpressionMarkdown <-
@@ -181,7 +181,7 @@ getConceptSetDetailsFromCohortDefinition <-
     conceptSetExpression <- expression$ConceptSets %>%
       dplyr::bind_rows() %>%
       dplyr::mutate(
-        "json" = jsonlite::toJSON(
+        "json" = RJSONIO::toJSON(
         x = .data$expression,
         pretty = TRUE
       ))
@@ -243,54 +243,57 @@ exportCohortDefinitionsZip <- function(cohortDefinitions,
       recursive = TRUE,
       showWarnings = FALSE
     )
-    cohortExpression <- jsonlite::fromJSON(cohortDefinitions[i,]$json, digits = 23)
 
-    details <-
-      getCirceRenderedExpression(cohortDefinition = cohortExpression)
+    if (is.na(cohortDefinitions[i,]$subsetDefinitionId)) {
+      cohortExpression <- RJSONIO::fromJSON(cohortDefinitions[i,]$json, digits = 23)
 
-    SqlRender::writeSql(
-      sql = details$cohortJson,
-      targetFile = file.path(
-        tempdir,
-        cohortId,
-        paste0("cohortDefinitionJson_", cohortId, ".json")
-      )
-    )
-    SqlRender::writeSql(
-      sql = details$cohortMarkdown,
-      targetFile = file.path(
-        tempdir,
-        cohortId,
-        paste0("cohortDefinitionMarkdown_", cohortId, ".md")
-      )
-    )
+      details <-
+        getCirceRenderedExpression(cohortDefinition = cohortExpression)
 
-    SqlRender::writeSql(
-      sql = details$conceptSetMarkdown,
-      targetFile = file.path(
-        tempdir,
-        cohortId,
-        paste0("conceptSetMarkdown_", cohortId, ".md")
+      SqlRender::writeSql(
+        sql = details$cohortJson,
+        targetFile = file.path(
+          tempdir,
+          cohortId,
+          paste0("cohortDefinitionJson_", cohortId, ".json")
+        )
       )
-    )
+      SqlRender::writeSql(
+        sql = details$cohortMarkdown,
+        targetFile = file.path(
+          tempdir,
+          cohortId,
+          paste0("cohortDefinitionMarkdown_", cohortId, ".md")
+        )
+      )
 
-    SqlRender::writeSql(
-      sql = details$cohortHtmlExpression,
-      targetFile = file.path(
-        tempdir,
-        cohortId,
-        paste0("cohortDefinitionHtml_", cohortId, ".html")
+      SqlRender::writeSql(
+        sql = details$conceptSetMarkdown,
+        targetFile = file.path(
+          tempdir,
+          cohortId,
+          paste0("conceptSetMarkdown_", cohortId, ".md")
+        )
       )
-    )
 
-    SqlRender::writeSql(
-      sql = details$conceptSetHtmlExpression,
-      targetFile = file.path(
-        tempdir,
-        cohortId,
-        paste0("conceptSetsHtml_", cohortId, ".html")
+      SqlRender::writeSql(
+        sql = details$cohortHtmlExpression,
+        targetFile = file.path(
+          tempdir,
+          cohortId,
+          paste0("cohortDefinitionHtml_", cohortId, ".html")
+        )
       )
-    )
+
+      SqlRender::writeSql(
+        sql = details$conceptSetHtmlExpression,
+        targetFile = file.path(
+          tempdir,
+          cohortId,
+          paste0("conceptSetsHtml_", cohortId, ".html")
+        )
+      )
+    }
   }
 
   return(DatabaseConnector::createZipFile(zipFile = zipFile,
@@ -653,7 +656,7 @@ cohortDefinitionsModule <- function(
       }
       details <-
         getCirceRenderedExpression(
-          cohortDefinition = data$json[1] %>% jsonlite::fromJSON(),
+          cohortDefinition = data$json[1] %>% RJSONIO::fromJSON(digits = 23),
           cohortName = data$cohortName[1],
           includeConceptSets = TRUE
         )
@@ -691,7 +694,7 @@ cohortDefinitionsModule <- function(
         return(NULL)
       }
 
-      expression <- jsonlite::fromJSON(row$json)
+      expression <- RJSONIO::fromJSON(row$json, digits = 23)
       if (is.null(expression)) {
         return(NULL)
       }
