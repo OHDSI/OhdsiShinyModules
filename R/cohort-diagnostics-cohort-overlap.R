@@ -323,18 +323,7 @@ getResultsCohortOverlapFe <- function(dataSource,
       .data$tOnlySubjects +
       .data$bothSubjects)
 
-  dataMirrored <- data |>
-    dplyr::rename("comparatorCohortId" = "cohortId",
-                  "cohortId" = "comparatorCohortId",
-                  "comparatorSubjects" = "targetSubjects",
-                  "targetSubjects" = "comparatorSubjects",
-                  "cFractionInT" = "tFractionInC",
-                  "tFractionInC" = "cFractionInT",
-                  "cOnlySubjects" = "tOnlySubjects",
-                  "tOnlySubjects" = "cOnlySubjects")
-
-  data <- rbind(data, dataMirrored)
-  # join with dbTable (moved this outside sql)
+  # # join with dbTable (moved this outside sql)
   dTableNames <- dataSource$dbTable |> dplyr::select("databaseId", "databaseName")
   data <- dplyr::inner_join(data, dTableNames, by = 'databaseId') |>
     dplyr::rename(
