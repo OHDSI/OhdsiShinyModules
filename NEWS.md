@@ -1,3 +1,8 @@
+OhdsiShinyModules v3.2.0
+========================
+- removal of RJSOIO dependency
+- Support for CohortDiagnositcs 3.4.x results data model
+
 OhdsiShinyModules v3.1.1
 ========================
 - bug fixes
