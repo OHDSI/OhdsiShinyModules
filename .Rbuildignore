@@ -9,3 +9,4 @@ docs
 deploy.sh
 compare_versions
 ^.idea$
+Dockerfile

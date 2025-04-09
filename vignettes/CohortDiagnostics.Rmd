@@ -12,8 +12,8 @@ header-includes:
   - \fancyfoot[CO,CE]{OhdsiShinyModules Package Version `r  utils::packageVersion("OhdsiShinyModules")`}
 output:
   html_document:
-    number_sections: yes
-    toc: yes
+    number_sections: true
+    toc: true
 vignette: >
   %\VignetteIndexEntry{CohortDiagnostics}
   %\VignetteEngine{knitr::knitr}

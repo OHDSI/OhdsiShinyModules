@@ -481,170 +481,6 @@ compareCohortCharacterizationView <- function(id, title = "Compare cohort charac
   )
 }
 
-# Returns cohort as feature characterization
-getCohortRelationshipCharacterizationResults <-
-  function(dataSource,
-           cohortIds,
-           databaseIds) {
-    cohortCounts <-
-      getResultsCohortCounts(
-        dataSource = dataSource,
-        cohortIds = cohortIds,
-        databaseIds = databaseIds
-      )
-    cohort <- getCdCohortRows(dataSource = dataSource,
-                              cohortIds = cohortIds)
-
-    cohortRelationships <-
-      getResultsCohortRelationships(
-        dataSource = dataSource,
-        cohortIds = cohortIds,
-        databaseIds = databaseIds
-      )
-
-    # cannot do records because comparator cohorts may have sumValue > target cohort (which is first occurrence only)
-    # subjects overlap
-    subjectsOverlap <- cohortRelationships %>%
-      dplyr::inner_join(cohortCounts,
-                        by = c("cohortId", "databaseId")
-      ) %>%
-      dplyr::mutate(sumValue = .data$subCeWindowT + .data$subCsWindowT - .data$subCWithinT) %>%
-      dplyr::mutate(mean = .data$sumValue / .data$cohortSubjects) %>%
-      dplyr::select(
-        "cohortId",
-        "comparatorCohortId",
-        "databaseId",
-        "startDay",
-        "endDay",
-        "mean",
-        "sumValue"
-      ) %>%
-      dplyr::mutate(analysisId = -301)
-
-    # subjects start
-    subjectsStart <- cohortRelationships %>%
-      dplyr::inner_join(cohortCounts,
-                        by = c("cohortId", "databaseId")
-      ) %>%
-      dplyr::mutate(sumValue = .data$subCsWindowT) %>%
-      dplyr::mutate(mean = .data$sumValue / .data$cohortSubjects) %>%
-      dplyr::select(
-        "cohortId",
-        "comparatorCohortId",
-        "databaseId",
-        "startDay",
-        "endDay",
-        "mean",
-        "sumValue"
-      ) %>%
-      dplyr::mutate(analysisId = -201)
-
-    data <- dplyr::bind_rows(
-      subjectsOverlap,
-      subjectsStart
-    ) %>%
-      dplyr::filter(.data$comparatorCohortId > 0) %>%
-      dplyr::mutate(covariateId = (.data$comparatorCohortId * -1000) + .data$analysisId)
-
-    # suppressing warning because of - negative causing NaN values
-    data <- suppressWarnings(expr = {
-      data %>%
-        dplyr::mutate(sd = sqrt(.data$mean * (1 - .data$mean)))
-    }, classes = "warning")
-
-    analysisRef <-
-      dplyr::tibble(
-        analysisId = c(-201, -301),
-        analysisName = c("CohortEraStart", "CohortEraOverlap"),
-        domainId = "Cohort",
-        isBinary = "Y",
-        missingMeansZero = "Y"
-      ) %>%
-        dplyr::inner_join(data %>%
-                            dplyr::select("analysisId") %>%
-                            dplyr::distinct(),
-                          by = c("analysisId")
-        )
-
-    covariateRef <- tidyr::crossing(
-      cohort,
-      analysisRef %>%
-        dplyr::select(
-          "analysisId",
-          "analysisName"
-        )
-    ) %>%
-      dplyr::mutate(covariateId = (.data$cohortId * -1000) + .data$analysisId) %>%
-      dplyr::inner_join(data %>%
-                          dplyr::select("covariateId") %>%
-                          dplyr::distinct(),
-                        by = "covariateId"
-      ) %>%
-      dplyr::mutate(covariateName = paste0(
-        .data$analysisName,
-        ": (",
-        .data$cohortId,
-        ") ",
-        .data$cohortName
-      )) %>%
-      dplyr::mutate(conceptId = .data$cohortId * -1) %>%
-      dplyr::arrange(.data$covariateId) %>%
-      dplyr::select(
-        "analysisId",
-        "conceptId",
-        "covariateId",
-        "covariateName"
-      )
-    concept <- cohort %>%
-      dplyr::filter(.data$cohortId %in% c(data$comparatorCohortId %>% unique())) %>%
-      dplyr::mutate(
-        conceptId = .data$cohortId * -1,
-        conceptName = .data$cohortName,
-        domainId = "Cohort",
-        vocabularyId = "Cohort",
-        conceptClassId = "Cohort",
-        standardConcept = "S",
-        conceptCode = as.character(.data$cohortId),
-        validStartDate = as.Date("2002-01-31"),
-        validEndDate = as.Date("2099-12-31"),
-        invalidReason = as.character(NA)
-      ) %>%
-      dplyr::select(
-        "conceptId",
-        "conceptName",
-        "domainId",
-        "vocabularyId",
-        "conceptClassId",
-        "standardConcept",
-        "conceptCode",
-        "validStartDate",
-        "validEndDate",
-        "invalidReason"
-      ) %>%
-      dplyr::arrange(.data$conceptId)
-
-    covariateValue <- data %>%
-      dplyr::select(
-        "cohortId",
-        "covariateId",
-        "databaseId",
-        "startDay",
-        "endDay",
-        "mean",
-        "sd",
-        "sumValue"
-      )
-
-    data <- list(
-      temporalCovariateRef = covariateRef,
-      temporalCovariateValue = covariateValue,
-      temporalCovariateValueDist = NULL,
-      temporalAnalysisRef = analysisRef,
-      concept = concept
-    )
-    return(data)
-  }
-
 getCharacterizationOutput <- function(dataSource,
                                       cohortIds,
                                       analysisIds = NULL,
@@ -742,19 +578,6 @@ getCharacterizationOutput <- function(dataSource,
       postProcessCharacterizationValue(data = covariateValue)
   }
 
-  cohortRelCharRes <-
-    getCohortRelationshipCharacterizationResults(
-      dataSource = dataSource,
-      cohortIds = cohortIds,
-      databaseIds = databaseIds
-    )
-  resultCohortValue <- NULL
-  if ("temporalCovariateValue" %in% names(cohortRelCharRes) &&
-    hasData(cohortRelCharRes$temporalCovariateValue)) {
-    resultCohortValue <-
-      postProcessCharacterizationValue(data = cohortRelCharRes)
-  }
-
   resultCovariateValueDist <- NULL
 
   temporalCovariateValue <- NULL
@@ -773,13 +596,6 @@ getCharacterizationOutput <- function(dataSource,
         temporalCovariateValueDist,
         resultCovariateValueDist
       )
-  }
-
-  if (hasData(resultCohortValue)) {
-    temporalCovariateValue <- dplyr::bind_rows(
-      temporalCovariateValue,
-      resultCohortValue
-    )
   }
 
   return(
