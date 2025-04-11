@@ -117,8 +117,7 @@ copyToClipboardButton <-
 
 getConceptSetDetailsFromCohortDefinition <-
   function(cohortDefinitionExpression) {
-
-    cohortDefinitionExpression <- jsonlite::fromJSON(cohortDefinitionExpression)
+    cohortDefinitionExpression <- jsonlite::fromJSON(cohortDefinitionExpression, simplifyDataFrame = FALSE)
     if ("expression" %in% names(cohortDefinitionExpression)) {
       expression <- cohortDefinitionExpression$expression
     } else {
