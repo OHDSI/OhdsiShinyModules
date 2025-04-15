@@ -1,4 +1,4 @@
-# Copyright 2024 Observational Health Data Sciences and Informatics
+# Copyright 2025 Observational Health Data Sciences and Informatics
 #
 # This file is part of PatientLevelPrediction
 #
@@ -115,55 +115,9 @@ copyToClipboardButton <-
   }
 
 
-getConceptSetDataFrameFromConceptSetExpression <-
-  function(conceptSetExpression) {
-    if ("items" %in% names(conceptSetExpression)) {
-      items <- conceptSetExpression$items
-    } else {
-      items <- conceptSetExpression
-    }
-    conceptSetExpressionDetails <- items %>%
-      purrr::map_df(.f = purrr::flatten)
-    if ("CONCEPT_ID" %in% colnames(conceptSetExpressionDetails)) {
-      if ("isExcluded" %in% colnames(conceptSetExpressionDetails)) {
-        conceptSetExpressionDetails <- conceptSetExpressionDetails %>%
-          dplyr::rename("IS_EXCLUDED" = "isExcluded")
-      } else {
-        conceptSetExpressionDetails <- conceptSetExpressionDetails %>%
-          dplyr::mutate("IS_EXCLUDED" = FALSE)
-      }
-      if ("includeDescendants" %in% colnames(conceptSetExpressionDetails)) {
-        conceptSetExpressionDetails <- conceptSetExpressionDetails %>%
-          dplyr::rename("INCLUDE_DESCENDANTS" = "includeDescendants")
-      } else {
-        conceptSetExpressionDetails <- conceptSetExpressionDetails %>%
-          dplyr::mutate("INCLUDE_DESCENDANTS" = FALSE)
-      }
-      if ("includeMapped" %in% colnames(conceptSetExpressionDetails)) {
-        conceptSetExpressionDetails <- conceptSetExpressionDetails %>%
-          dplyr::rename("INCLUDE_MAPPED" = "includeMapped")
-      } else {
-        conceptSetExpressionDetails <- conceptSetExpressionDetails %>%
-          dplyr::mutate("INCLUDE_MAPPED" = FALSE)
-      }
-      conceptSetExpressionDetails <-
-        conceptSetExpressionDetails %>%
-          tidyr::replace_na(list(
-            IS_EXCLUDED = FALSE,
-            INCLUDE_DESCENDANTS = FALSE,
-            INCLUDE_MAPPED = FALSE
-          ))
-      colnames(conceptSetExpressionDetails) <-
-        SqlRender::snakeCaseToCamelCase(colnames(conceptSetExpressionDetails))
-    }
-    return(conceptSetExpressionDetails)
-  }
-
-
 getConceptSetDetailsFromCohortDefinition <-
   function(cohortDefinitionExpression) {
-
-    cohortDefinitionExpression <- jsonlite::fromJSON(cohortDefinitionExpression)
+    cohortDefinitionExpression <- jsonlite::fromJSON(cohortDefinitionExpression, simplifyDataFrame = FALSE)
     if ("expression" %in% names(cohortDefinitionExpression)) {
       expression <- cohortDefinitionExpression$expression
     } else {
@@ -174,32 +128,34 @@ getConceptSetDetailsFromCohortDefinition <-
       return(NULL)
     }
 
-    conceptSetExpression <- expression$ConceptSets %>%
-      dplyr::bind_rows() %>%
-      dplyr::mutate(
-        "json" = jsonlite::toJSON(
-          x = .data$expression,
-          pretty = TRUE
-        ))
+    # you don't want to have to go there
+    conceptSetExpression <- list()
+    mappedConceptSets <- list()
+    for (i in seq_len(length(expression$ConceptSets))) {
+      conceptSetExpression[[i]] <- list(
+        id = expression$ConceptSets[[i]]$id |> as.character(),
+        name = expression$ConceptSets[[i]]$name,
+        json = jsonlite::toJSON(expression$ConceptSets[[i]]$expression) |> as.character()
+      )
 
-    conceptSetExpressionDetails <- list()
-    i <- 0
-    for (id in conceptSetExpression$id) {
-      i <- i + 1
-      conceptSetExpressionDetails[[i]] <-
-        getConceptSetDataFrameFromConceptSetExpression(
-          conceptSetExpression =
-            conceptSetExpression[i,]$expression$items
-        ) %>%
-          dplyr::mutate("id" = conceptSetExpression[i,]$id) %>%
-          dplyr::relocate("id") %>%
-          dplyr::arrange("id")
+      items <- expression$ConceptSets[[i]]$expression$items
+      conceptSet <- data.frame()
+      # create concept set data frane
+      for (j in seq_len(length(items))) {
+        row <- items[[j]]$concept |> data.frame()
+        colnames(row) <- colnames(row) |> SqlRender::snakeCaseToCamelCase()
+        row$isExcluded = items[[j]]$isExcluded
+        row$includeDescendants = items[[j]]$includeDescendants
+        row$includeMapped = items[[j]]$includeMapped
+        conceptSet <- dplyr::bind_rows(conceptSet, row)
+      }
+      mappedConceptSets[[as.character(conceptSetExpression[[i]]$id)]] <- conceptSet
     }
-    conceptSetExpressionDetails <-
-      dplyr::bind_rows(conceptSetExpressionDetails)
+
+
     output <- list(
-      conceptSetExpression = conceptSetExpression,
-      conceptSetExpressionDetails = conceptSetExpressionDetails
+      conceptSetExpression = dplyr::bind_rows(conceptSetExpression),
+      conceptSetExpressionDetails = mappedConceptSets
     )
     return(output)
   }
@@ -780,8 +736,8 @@ cohortDefinitionsModule <- function(
       if (!hasData(data)) {
         return(NULL)
       }
-      data <- data %>%
-        dplyr::filter(.data$id == cohortDefinitionConceptSetExpressionSelected()$id)
+
+      data <- data[[cohortDefinitionConceptSetExpressionSelected()$id]]
       if (!hasData(data)) {
         return(NULL)
       }
