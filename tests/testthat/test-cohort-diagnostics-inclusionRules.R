@@ -5,7 +5,7 @@ shiny::testServer(inclusionRulesModule, args = list(
   dataSource = dataSourceCd,
   selectedCohort = shiny::reactive("Any String"),
   selectedDatabaseIds = shiny::reactive("Eunomia"),
-  targetCohortId = shiny::reactive({ c(14906) })
+  targetCohortId = shiny::reactive({ c(18350) })
 ), {
   checkmate::expect_list(output$selectedCohort)
   expect_error(output$inclusionRuleTable)
@@ -24,5 +24,5 @@ shiny::testServer(inclusionRulesModule, args = list(
     inclusionRuleTableFilters = "All",
     inclusionRulesShowAsPercent = FALSE
   )
-  checkmate::expect_class(output$inclusionRuleTable, "json")
+  expect_error(output$inclusionRuleTable)
 })

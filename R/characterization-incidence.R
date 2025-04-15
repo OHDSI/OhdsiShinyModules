@@ -1,6 +1,6 @@
 # @file characterization-incidence.R
 #
-# Copyright 2024 Observational Health Data Sciences and Informatics
+# Copyright 2025 Observational Health Data Sciences and Informatics
 #
 # This file is part of OhdsiShinyModules
 #
@@ -278,7 +278,7 @@ characterizationIncidenceServer <- function(
               actionsBox = TRUE,
               liveSearch = TRUE,
               size = 10,
-              dropupAuto = TRUE,
+              dropupAuto = FALSE,
               liveSearchStyle = "contains",
               liveSearchPlaceholder = "Type here to search",
               virtualScroll = 50
@@ -295,7 +295,7 @@ characterizationIncidenceServer <- function(
               actionsBox = TRUE,
               liveSearch = TRUE,
               size = 10,
-              dropupAuto = TRUE,
+              dropupAuto = FALSE,
               liveSearchStyle = "contains",
               liveSearchPlaceholder = "Type here to search",
               virtualScroll = 50
@@ -312,7 +312,7 @@ characterizationIncidenceServer <- function(
               actionsBox = TRUE,
               liveSearch = TRUE,
               size = 10,
-              dropupAuto = TRUE,
+              dropupAuto = FALSE,
               liveSearchStyle = "contains",
               liveSearchPlaceholder = "Type here to search",
               virtualScroll = 50
@@ -329,7 +329,7 @@ characterizationIncidenceServer <- function(
               actionsBox = TRUE,
               liveSearch = TRUE,
               size = 10,
-              dropupAuto = TRUE,
+              dropupAuto = FALSE,
               liveSearchStyle = "contains",
               liveSearchPlaceholder = "Type here to search",
               virtualScroll = 50
@@ -346,7 +346,7 @@ characterizationIncidenceServer <- function(
               actionsBox = TRUE,
               liveSearch = TRUE,
               size = 10,
-              dropupAuto = TRUE,
+              dropupAuto = FALSE,
               liveSearchStyle = "contains",
               liveSearchPlaceholder = "Type here to search",
               virtualScroll = 50
@@ -358,12 +358,12 @@ characterizationIncidenceServer <- function(
             label = 'Select Clean Window',
             choices = ciOptions$cleanWindows,
             selected = ciOptions$cleanWindows,
-            multiple = F,
+            multiple = T,
             options = shinyWidgets::pickerOptions(
               actionsBox = TRUE,
               liveSearch = TRUE,
               size = 10,
-              dropupAuto = TRUE,
+              dropupAuto = FALSE,
               liveSearchStyle = "contains",
               liveSearchPlaceholder = "Type here to search",
               virtualScroll = 50
@@ -380,7 +380,7 @@ characterizationIncidenceServer <- function(
               actionsBox = TRUE,
               liveSearch = TRUE,
               size = 10,
-              dropupAuto = TRUE,
+              dropupAuto = FALSE,
               liveSearchStyle = "contains",
               liveSearchPlaceholder = "Type here to search",
               virtualScroll = 50
@@ -1791,7 +1791,7 @@ getIncidenceOptions <- function(connectionHandler,
 
   # database options
   databaseDf <- connectionHandler$queryDb(
-    sql = 'select database_id, cdm_source_abbreviation from @result_schema.@database_table_name;', 
+    sql = 'select distinct database_id, cdm_source_abbreviation from @result_schema.@database_table_name;', 
     result_schema = resultDatabaseSettings$schema,
     database_table_name = resultDatabaseSettings$databaseTable
   )
@@ -1799,7 +1799,7 @@ getIncidenceOptions <- function(connectionHandler,
 
   # Age Gruop Options
   ageGroupDf <- connectionHandler$queryDb(
-    sql = 'select age_group_id, age_group_name from @result_schema.@incidence_table_prefixAGE_GROUP_DEF;', 
+    sql = 'select distinct age_group_id, age_group_name from @result_schema.@incidence_table_prefixAGE_GROUP_DEF;', 
     result_schema = resultDatabaseSettings$schema,
     incidence_table_prefix = resultDatabaseSettings$incidenceTablePrefix
   )
@@ -1821,7 +1821,7 @@ getIncidenceOptions <- function(connectionHandler,
   names(tar) <- cohortIncidenceFormatTar(tarDf)
   
   sql <- '
-select outcome_id, outcome_name 
+select distinct outcome_id, outcome_name 
 from @result_schema.@incidence_table_prefixOUTCOME_DEF
 '
   outcomeDf <- connectionHandler$queryDb(
@@ -1834,7 +1834,7 @@ from @result_schema.@incidence_table_prefixOUTCOME_DEF
   
   #getting clean window options
   sql <- '
-select clean_window 
+select distinct clean_window 
 from @result_schema.@incidence_table_prefixOUTCOME_DEF
 '
   cleanWindowDf <- connectionHandler$queryDb(

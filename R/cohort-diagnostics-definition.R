@@ -1,4 +1,4 @@
-# Copyright 2024 Observational Health Data Sciences and Informatics
+# Copyright 2025 Observational Health Data Sciences and Informatics
 #
 # This file is part of PatientLevelPrediction
 #
@@ -21,7 +21,7 @@
 #'
 #' @param cohortDefinition An R object (list) with a list representation of the cohort definition expression,
 #'                          that may be converted to a cohort expression JSON using
-#'                          RJSONIO::toJSON(x = cohortDefinition, digits = 23, pretty = TRUE)
+#'                          jsonlite::toJSON(x = cohortDefinition, digits = 23, pretty = TRUE)
 #'
 #' @param cohortName Name for the cohort definition
 #'
@@ -32,14 +32,8 @@
 getCirceRenderedExpression <- function(cohortDefinition,
                                        cohortName = "Cohort Definition",
                                        includeConceptSets = FALSE) {
-  cohortJson <-
-    RJSONIO::toJSON(
-      x = cohortDefinition,
-      digits = 23,
-      pretty = TRUE
-    )
   circeExpression <-
-    CirceR::cohortExpressionFromJson(expressionJson = cohortJson)
+    CirceR::cohortExpressionFromJson(expressionJson = cohortDefinition)
   circeExpressionMarkdown <-
     CirceR::cohortPrintFriendly(circeExpression)
   circeConceptSetListmarkdown <-
@@ -78,7 +72,7 @@ getCirceRenderedExpression <- function(cohortDefinition,
     markdown::renderMarkdown(text = circeConceptSetListmarkdown)
   return(
     list(
-      cohortJson = cohortJson,
+      cohortJson = cohortDefinition,
       cohortMarkdown = circeExpressionMarkdown,
       conceptSetMarkdown = circeConceptSetListmarkdown,
       cohortHtmlExpression = htmlExpressionCohort,
@@ -121,53 +115,9 @@ copyToClipboardButton <-
   }
 
 
-getConceptSetDataFrameFromConceptSetExpression <-
-  function(conceptSetExpression) {
-    if ("items" %in% names(conceptSetExpression)) {
-      items <- conceptSetExpression$items
-    } else {
-      items <- conceptSetExpression
-    }
-    conceptSetExpressionDetails <- items %>%
-      purrr::map_df(.f = purrr::flatten)
-    if ("CONCEPT_ID" %in% colnames(conceptSetExpressionDetails)) {
-      if ("isExcluded" %in% colnames(conceptSetExpressionDetails)) {
-        conceptSetExpressionDetails <- conceptSetExpressionDetails %>%
-          dplyr::rename("IS_EXCLUDED" = "isExcluded")
-      } else {
-        conceptSetExpressionDetails <- conceptSetExpressionDetails %>%
-          dplyr::mutate("IS_EXCLUDED" = FALSE)
-      }
-      if ("includeDescendants" %in% colnames(conceptSetExpressionDetails)) {
-        conceptSetExpressionDetails <- conceptSetExpressionDetails %>%
-          dplyr::rename("INCLUDE_DESCENDANTS" = "includeDescendants")
-      } else {
-        conceptSetExpressionDetails <- conceptSetExpressionDetails %>%
-          dplyr::mutate("INCLUDE_DESCENDANTS" = FALSE)
-      }
-      if ("includeMapped" %in% colnames(conceptSetExpressionDetails)) {
-        conceptSetExpressionDetails <- conceptSetExpressionDetails %>%
-          dplyr::rename("INCLUDE_MAPPED" = "includeMapped")
-      } else {
-        conceptSetExpressionDetails <- conceptSetExpressionDetails %>%
-          dplyr::mutate("INCLUDE_MAPPED" = FALSE)
-      }
-      conceptSetExpressionDetails <-
-        conceptSetExpressionDetails %>%
-          tidyr::replace_na(list(
-            IS_EXCLUDED = FALSE,
-            INCLUDE_DESCENDANTS = FALSE,
-            INCLUDE_MAPPED = FALSE
-          ))
-      colnames(conceptSetExpressionDetails) <-
-        SqlRender::snakeCaseToCamelCase(colnames(conceptSetExpressionDetails))
-    }
-    return(conceptSetExpressionDetails)
-  }
-
-
 getConceptSetDetailsFromCohortDefinition <-
   function(cohortDefinitionExpression) {
+    cohortDefinitionExpression <- jsonlite::fromJSON(cohortDefinitionExpression, simplifyDataFrame = FALSE)
     if ("expression" %in% names(cohortDefinitionExpression)) {
       expression <- cohortDefinitionExpression$expression
     } else {
@@ -178,32 +128,34 @@ getConceptSetDetailsFromCohortDefinition <-
       return(NULL)
     }
 
-    conceptSetExpression <- expression$ConceptSets %>%
-      dplyr::bind_rows() %>%
-      dplyr::mutate(
-        "json" = RJSONIO::toJSON(
-        x = .data$expression,
-        pretty = TRUE
-      ))
+    # you don't want to have to go there
+    conceptSetExpression <- list()
+    mappedConceptSets <- list()
+    for (i in seq_len(length(expression$ConceptSets))) {
+      conceptSetExpression[[i]] <- list(
+        id = expression$ConceptSets[[i]]$id |> as.character(),
+        name = expression$ConceptSets[[i]]$name,
+        json = jsonlite::toJSON(expression$ConceptSets[[i]]$expression) |> as.character()
+      )
 
-    conceptSetExpressionDetails <- list()
-    i <- 0
-    for (id in conceptSetExpression$id) {
-      i <- i + 1
-      conceptSetExpressionDetails[[i]] <-
-        getConceptSetDataFrameFromConceptSetExpression(
-          conceptSetExpression =
-            conceptSetExpression[i,]$expression$items
-        ) %>%
-          dplyr::mutate("id" = conceptSetExpression[i,]$id) %>%
-          dplyr::relocate("id") %>%
-          dplyr::arrange("id")
+      items <- expression$ConceptSets[[i]]$expression$items
+      conceptSet <- data.frame()
+      # create concept set data frane
+      for (j in seq_len(length(items))) {
+        row <- items[[j]]$concept |> data.frame()
+        colnames(row) <- colnames(row) |> SqlRender::snakeCaseToCamelCase()
+        row$isExcluded = items[[j]]$isExcluded
+        row$includeDescendants = items[[j]]$includeDescendants
+        row$includeMapped = items[[j]]$includeMapped
+        conceptSet <- dplyr::bind_rows(conceptSet, row)
+      }
+      mappedConceptSets[[as.character(conceptSetExpression[[i]]$id)]] <- conceptSet
     }
-    conceptSetExpressionDetails <-
-      dplyr::bind_rows(conceptSetExpressionDetails)
+
+
     output <- list(
-      conceptSetExpression = conceptSetExpression,
-      conceptSetExpressionDetails = conceptSetExpressionDetails
+      conceptSetExpression = dplyr::bind_rows(conceptSetExpression),
+      conceptSetExpressionDetails = mappedConceptSets
     )
     return(output)
   }
@@ -243,54 +195,57 @@ exportCohortDefinitionsZip <- function(cohortDefinitions,
       recursive = TRUE,
       showWarnings = FALSE
     )
-    cohortExpression <- RJSONIO::fromJSON(cohortDefinitions[i,]$json, digits = 23)
 
-    details <-
-      getCirceRenderedExpression(cohortDefinition = cohortExpression)
+    if (is.na(cohortDefinitions[i,]$subsetDefinitionId)) {
+      cohortExpression <- cohortDefinitions[i,]$json
 
-    SqlRender::writeSql(
-      sql = details$cohortJson,
-      targetFile = file.path(
-        tempdir,
-        cohortId,
-        paste0("cohortDefinitionJson_", cohortId, ".json")
-      )
-    )
-    SqlRender::writeSql(
-      sql = details$cohortMarkdown,
-      targetFile = file.path(
-        tempdir,
-        cohortId,
-        paste0("cohortDefinitionMarkdown_", cohortId, ".md")
-      )
-    )
+      details <-
+        getCirceRenderedExpression(cohortDefinition = cohortExpression)
 
-    SqlRender::writeSql(
-      sql = details$conceptSetMarkdown,
-      targetFile = file.path(
-        tempdir,
-        cohortId,
-        paste0("conceptSetMarkdown_", cohortId, ".md")
+      SqlRender::writeSql(
+        sql = details$cohortJson,
+        targetFile = file.path(
+          tempdir,
+          cohortId,
+          paste0("cohortDefinitionJson_", cohortId, ".json")
+        )
       )
-    )
+      SqlRender::writeSql(
+        sql = details$cohortMarkdown,
+        targetFile = file.path(
+          tempdir,
+          cohortId,
+          paste0("cohortDefinitionMarkdown_", cohortId, ".md")
+        )
+      )
 
-    SqlRender::writeSql(
-      sql = details$cohortHtmlExpression,
-      targetFile = file.path(
-        tempdir,
-        cohortId,
-        paste0("cohortDefinitionHtml_", cohortId, ".html")
+      SqlRender::writeSql(
+        sql = details$conceptSetMarkdown,
+        targetFile = file.path(
+          tempdir,
+          cohortId,
+          paste0("conceptSetMarkdown_", cohortId, ".md")
+        )
       )
-    )
 
-    SqlRender::writeSql(
-      sql = details$conceptSetHtmlExpression,
-      targetFile = file.path(
-        tempdir,
-        cohortId,
-        paste0("conceptSetsHtml_", cohortId, ".html")
+      SqlRender::writeSql(
+        sql = details$cohortHtmlExpression,
+        targetFile = file.path(
+          tempdir,
+          cohortId,
+          paste0("cohortDefinitionHtml_", cohortId, ".html")
+        )
       )
-    )
+
+      SqlRender::writeSql(
+        sql = details$conceptSetHtmlExpression,
+        targetFile = file.path(
+          tempdir,
+          cohortId,
+          paste0("conceptSetsHtml_", cohortId, ".html")
+        )
+      )
+    }
   }
 
   return(DatabaseConnector::createZipFile(zipFile = zipFile,
@@ -525,12 +480,12 @@ getCountForConceptIdInCohort <-
 #' @param cohortCountTable              data.frame of cohortCounts, cohortId, subjects records
 #' @family CohortDiagnostics
 cohortDefinitionsModule <- function(
-    id,
-    dataSource,
-    cohortDefinitions,
-    cohortTable = dataSource$cohortTable,
-    cohortCountTable = dataSource$cohortCountTable,
-    databaseTable = dataSource$dbTable
+  id,
+  dataSource,
+  cohortDefinitions,
+  cohortTable = dataSource$cohortTable,
+  cohortCountTable = dataSource$cohortCountTable,
+  databaseTable = dataSource$dbTable
 ) {
   ns <- shiny::NS(id)
 
@@ -584,8 +539,8 @@ cohortDefinitionsModule <- function(
     })
 
     shiny::outputOptions(output,
-                  "cohortDefinitionRowIsSelected",
-                  suspendWhenHidden = FALSE)
+                         "cohortDefinitionRowIsSelected",
+                         suspendWhenHidden = FALSE)
 
     ## cohortDetailsText ---------------------------------------------------------
     output$cohortDetailsText <- shiny::renderUI({
@@ -651,18 +606,21 @@ cohortDefinitionsModule <- function(
       if (!hasData(data)) {
         return(NULL)
       }
-      details <-
-        getCirceRenderedExpression(
-          cohortDefinition = data$json[1] %>% RJSONIO::fromJSON(digits = 23),
-          cohortName = data$cohortName[1],
-          includeConceptSets = TRUE
-        )
+      if (is.na(data$subsetDefinitionId[1])) {
+        details <-
+          getCirceRenderedExpression(
+            cohortDefinition = data$json[1],
+            cohortName = data$cohortName[1],
+            includeConceptSets = TRUE
+          )
+      } else {
+        details <- list(cohortHtmlExpression = paste("<p> Subset of cohort", data$subsetParent[1], "</p>"))
+      }
       return(details)
     })
 
     output$cohortDefinitionText <- shiny::renderUI(expr = {
-      cohortDefinitionCirceRDetails()$cohortHtmlExpression %>%
-        shiny::HTML()
+      cohortDefinitionCirceRDetails()$cohortHtmlExpression %>% shiny::HTML()
     })
     ## cohortDefinitionJson ---------------------------------------------------------
     output$cohortDefinitionJson <- shiny::renderText({
@@ -691,12 +649,16 @@ cohortDefinitionsModule <- function(
         return(NULL)
       }
 
-      expression <- RJSONIO::fromJSON(row$json, digits = 23)
+      if (!is.na(row$subsetDefinitionId[1])) {
+        return(NULL)
+      }
+
+      expression <- jsonlite::fromJSON(row$json)
       if (is.null(expression)) {
         return(NULL)
       }
       expression <-
-        getConceptSetDetailsFromCohortDefinition(cohortDefinitionExpression = expression)
+        getConceptSetDetailsFromCohortDefinition(cohortDefinitionExpression = row$json)
 
       return(expression)
     })
@@ -774,8 +736,8 @@ cohortDefinitionsModule <- function(
       if (!hasData(data)) {
         return(NULL)
       }
-      data <- data %>%
-        dplyr::filter(.data$id == cohortDefinitionConceptSetExpressionSelected()$id)
+
+      data <- data[[cohortDefinitionConceptSetExpressionSelected()$id]]
       if (!hasData(data)) {
         return(NULL)
       }

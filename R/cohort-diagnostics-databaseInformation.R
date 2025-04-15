@@ -1,4 +1,4 @@
-# Copyright 2024 Observational Health Data Sciences and Informatics
+# Copyright 2025 Observational Health Data Sciences and Informatics
 #
 # This file is part of PatientLevelPrediction
 #
@@ -149,8 +149,8 @@ getExecutionMetadata <- function(dataSource, databaseId) {
     for (j in (1:length(columnNamesJson))) {
       transposeJsonsTemp[[i]][[columnNamesJson[[j]]]] <-
         transposeJsonsTemp[[i]][[columnNamesJson[[j]]]] %>%
-          RJSONIO::fromJSON(digits = 23) %>%
-          RJSONIO::toJSON(digits = 23, pretty = TRUE)
+          jsonlite::fromJSON() %>%
+          jsonlite::toJSON(digits = 23, pretty = TRUE, auto_unbox = TRUE)
     }
   }
   transposeJsons <- dplyr::bind_rows(transposeJsonsTemp)
@@ -436,10 +436,11 @@ databaseInformationModule <- function(
         }
         data <- data %>%
           dplyr::pull("argumentsAtDiagnosticsInitiationJson") %>%
-          RJSONIO::fromJSON(digits = 23) %>%
-          RJSONIO::toJSON(
+          jsonlite::fromJSON() %>%
+          jsonlite::toJSON(
             digits = 23,
-            pretty = TRUE
+            pretty = TRUE,
+            auto_unbox = TRUE
           )
         return(data)
       })

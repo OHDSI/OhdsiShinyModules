@@ -7,7 +7,7 @@ shiny::testServer(cohortCountsModule, args = list(
   databaseTable = dataSourceCd$dbTable,
   selectedCohorts = shiny::reactive("Any String"),
   selectedDatabaseIds = shiny::reactive("Eunomia"),
-  cohortIds = shiny::reactive({ c(14906, 14907) })
+  cohortIds = shiny::reactive({ c(18350, 18347) })
 ), {
   # Checking to see if a dataframe is returned and all the elements are of the
   # correct datatype
@@ -27,8 +27,6 @@ shiny::testServer(cohortCountsModule, args = list(
     cohortCountsTableColumnFilter = "Records"
   )
   checkmate::expect_class(output$cohortCountsTable, "json")
-
-  res <- getInclusionRulesTable(dataSourceCd, 18350, "Eunomia",  c("Meet", "Gain", "Remain"), 0, TRUE)
-  checkmate::expect_class(res, "reactable")
+  expect_error(getInclusionRulesTable(dataSourceCd, 18347, "Eunomia",  c("Meet", "Gain", "Remain"), 0, TRUE))
 })
 

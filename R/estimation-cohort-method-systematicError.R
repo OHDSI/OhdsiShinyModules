@@ -1,6 +1,6 @@
 # @file cohort-method-systematicError
 #
-# Copyright 2024 Observational Health Data Sciences and Informatics
+# Copyright 2025 Observational Health Data Sciences and Informatics
 #
 # This file is part of OhdsiShinyModules
 #
