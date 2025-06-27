@@ -30,7 +30,6 @@ Imports:
     openxlsx,
     ParallelLogger,
     plotly,
-    purrr,
     reactable,
     readr,
     OhdsiReportGenerator,
@@ -47,7 +46,6 @@ Imports:
     stringr,
     tibble,
     tidyr,
-    tidyselect,
     tippy,
     RColorBrewer,
     markdown
@@ -58,7 +56,4 @@ Suggests:
     RSQLite,
     testthat,
     withr
-Remotes:
-    ohdsi/OhdsiReportGenerator,
-    ohdsi/ResultModelManager
 RoxygenNote: 7.3.2
