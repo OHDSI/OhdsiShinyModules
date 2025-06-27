@@ -434,7 +434,8 @@ estimationSccsFullResultServer <- function(
             covariateId = row$covariateId,
             databaseId = row$databaseId,
             analysisId = row$analysisId,
-            eraId = row$eraId
+            eraId = row$eraId,
+            exposuresOutcomeSetId = row$exposuresOutcomeSetId
           )
           plotControlEstimates(
             controlEstimates = controlEstimates$plotResult,
@@ -734,14 +735,16 @@ estimationGetSccsControlEstimates <- function(
     databaseId,
     analysisId,
     covariateId,
-    eraId
+    eraId,
+    exposuresOutcomeSetId = NULL
 ) {
   
   sql <- "
   SELECT r.ci_95_lb, r.ci_95_ub, r.log_rr, r.se_log_rr, 
   r.calibrated_ci_95_lb, r.calibrated_ci_95_ub, r.calibrated_log_rr,
   r.calibrated_se_log_rr, r.exposures_outcome_set_id,
-  e.true_effect_size, c.exposures_outcome_set_id 
+  e.true_effect_size, c.exposures_outcome_set_id,
+  eos.nesting_cohort_id as indication_id
   
   FROM 
   @schema.@sccs_table_prefixresult r
@@ -757,10 +760,15 @@ estimationGetSccsControlEstimates <- function(
    and c.analysis_id = r.analysis_id
    and c.covariate_id = r.covariate_id
    
+   INNER JOIN  
+   @schema.@sccs_table_prefixexposures_outcome_set eos
+   on eos.exposures_outcome_set_id = r.exposures_outcome_set_id
+   
    WHERE r.database_id = '@database_id'
    AND r.analysis_id = @analysis_id
    AND r.covariate_id = @covariate_id
    AND e.true_effect_size is not NULL
+   
    -- AND e.era_id = @era_id
   ;
   "
@@ -779,9 +787,13 @@ estimationGetSccsControlEstimates <- function(
   # get ease for the plot
   sql <- "SELECT top 1 ds.ease
   FROM @schema.@sccs_table_prefixdiagnostics_summary ds
+
   WHERE ds.database_id = '@database_id'
   AND ds.analysis_id = @analysis_id
-  AND ds.covariate_id = @covariate_id;"
+  AND ds.covariate_id = @covariate_id
+  
+  {@use_exposures_outcome_set_id} ? {AND ds.exposures_outcome_set_id = '@exposures_outcome_set_id'}
+  ;"
   
   ease <- connectionHandler$queryDb(
     sql,
@@ -790,7 +802,9 @@ estimationGetSccsControlEstimates <- function(
     database_id = databaseId,
     covariate_id = covariateId,
     analysis_id = analysisId,
-    snakeCaseToCamelCase = TRUE
+    snakeCaseToCamelCase = TRUE,
+    use_exposures_outcome_set_id = !is.null(exposuresOutcomeSetId),
+    exposures_outcome_set_id = exposuresOutcomeSetId
   )
 
   return(list(
