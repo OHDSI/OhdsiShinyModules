@@ -134,7 +134,8 @@ cohortMethodCovariateBalanceServer <- function(
           return(NULL)
         }
         
-        maxSdmStatistic <- estimationGetMaxSdm(
+        # replacing maxSdmStatistic with max shared
+        maxSharedSdmStatistic <- estimationGetMaxSharedSdm(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
           targetId = row$targetId,
@@ -152,7 +153,7 @@ cohortMethodCovariateBalanceServer <- function(
             beforeLabel = "Before propensity score adjustment",
             afterLabel = "After propensity score adjustment",
             textsearch = textSearchCohortMethod,
-            maxSdmStatistic
+            maxSharedSdmStatistic = maxSharedSdmStatistic
           )
           return(plot)
         }
@@ -457,7 +458,7 @@ plotCohortMethodCovariateBalanceScatterPlotNew <- function(
     beforeLabel = "Before propensity score adjustment",
     afterLabel = "After propensity score adjustment",
     textsearch = shiny::reactiveVal(NULL),
-    maxSdmStatistic = NULL
+    maxSharedSdmStatistic = NULL
 ){
   
   if(is.null(textsearch())){
@@ -499,7 +500,7 @@ plotCohortMethodCovariateBalanceScatterPlotNew <- function(
   ) %>%
     plotly::layout(
       #shapes = list(xyline(limits)),
-      title = ~paste0("Max SDM Statistic = ", maxSdmStatistic),
+      title = ~paste0("Shared Max SDM Statistic = ", maxSharedSdmStatistic),
       shapes = list(list(
         type = "line", 
         x0 = 0, 
@@ -620,7 +621,7 @@ getCmOptions <- function(connectionHandler,
   
 }
 
-estimationGetMaxSdm <- function(
+estimationGetMaxSharedSdm <- function(
     connectionHandler = connectionHandler,
     resultDatabaseSettings = resultDatabaseSettings,
     targetId =  targetId,
@@ -637,7 +638,7 @@ estimationGetMaxSdm <- function(
       cmds.target_id,
       cmds.comparator_id,
       cmds.outcome_id,
-      cmds.max_sdm,
+      cmds.shared_max_sdm,
       cmds.ease
     FROM
       @schema.@cm_table_prefixdiagnostics_summary cmds
@@ -663,10 +664,10 @@ estimationGetMaxSdm <- function(
     database_id = databaseId
   )
   
-  maxSdm <- round(result$maxSdm, 4)
+  sharedMaxSdm<- round(result$sharedMaxSdm, 4)
   
   return(
-    maxSdm
+    sharedMaxSdm
   )
   
 }
