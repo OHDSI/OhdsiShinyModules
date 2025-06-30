@@ -11,10 +11,28 @@ shiny::testServer(
     testthat::expect_true(inherits(connectionHandler,"ConnectionHandler"))
     
     
+    testthat::expect_true(!is.null(inputColsCohortCounts))
     testthat::expect_true(!is.null(data))
     testthat::expect_true(!is.null(dataGen))
-    #testthat::expect_true(nrow(inclusionStats)>0)
-    #testthat::expect_true(!is.null(output$inclusionsStats))
+    testthat::expect_true(!is.null(cohortDefData))
+    
+    testthat::expect_true(is.null(selectedCohortDefInputs()))
+    testthat::expect_true(is.null(attritionData()))
+    
+    # set input$selectedCohortDefRow to 10
+    session$setInputs(selectedCohortDefRow = 11)
+    
+    # test input$generate_cohort_def set to 1 causes trigger 
+    session$setInputs(generate_cohort_def = 1)
+    testthat::expect_true(!is.null(selectedCohortDefInputs()))
+  
+    # test input$generate_attrition set to 1 causes trigger
+    session$setInputs(generate_attrition = 1)
+    
+    # test with a subset cohort
+    session$setInputs(selectedCohortDefRow = 12)
+    session$setInputs(generate_cohort_def = 1)
+    
     
     
   })
