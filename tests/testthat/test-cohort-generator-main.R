@@ -20,7 +20,7 @@ shiny::testServer(
     testthat::expect_true(is.null(attritionData()))
     
     # set input$selectedCohortDefRow to 10
-    session$setInputs(selectedCohortDefRow = 11)
+    session$setInputs(selectedCohortDefRow = 17)
     
     # test input$generate_cohort_def set to 1 causes trigger 
     session$setInputs(generate_cohort_def = 1)
@@ -30,10 +30,8 @@ shiny::testServer(
     session$setInputs(generate_attrition = 1)
     
     # test with a subset cohort
-    session$setInputs(selectedCohortDefRow = 12)
-    session$setInputs(generate_cohort_def = 1)
-    
-    
+    session$setInputs(selectedCohortDefRow = 2)
+    session$setInputs(generate_cohort_def = 3)
     
   })
 
