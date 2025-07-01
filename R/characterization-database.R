@@ -96,6 +96,13 @@ characterizationDatabaseComparisonServer <- function(
         targetId = subTargetId
       )})
       
+      # get min char value:
+      # set this to the min threshold used in analysis: covariates.min_characterization_mean
+      minCharVal <- getMinCovaraiteThreshold(
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings
+      )
+      
       output$inputs <- shiny::renderUI({
         
         shiny::div(
@@ -119,7 +126,7 @@ characterizationDatabaseComparisonServer <- function(
           shiny::sliderInput(
             inputId = session$ns('minThreshold'), 
             label = 'Covariate Threshold', 
-            min = 0, 
+            min = minCharVal, 
             max = 1, 
             value = 0.01, 
             step = 0.01, 
@@ -597,3 +604,22 @@ characterizatonGetDatabaseComparisonDataRaw <- function(
   
   return(res)
 }
+
+
+
+getMinCovaraiteThreshold <- function(
+  connectionHandler,
+  resultDatabaseSettings ){
+  
+  sql <- "select min(min_characterization_mean) val from
+     @schema.@c_table_prefixcovariates;"
+  
+  res <- connectionHandler$queryDb(
+    sql = sql,
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix
+  )
+  
+  return(res$val)
+}
+

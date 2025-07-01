@@ -1,7 +1,7 @@
 Package: OhdsiShinyModules
 Type: Package
 Title: Repository of Shiny Modules for OHDSI Result Viewers
-Version: 3.2.0
+Version: 3.3.0
 Authors@R: c(
   person("Jenna", "Reps", email = "jreps@its.jnj.com", role = c("aut", "cre")),
   person("Nathan", "Hall", role = c("aut")),
@@ -30,7 +30,6 @@ Imports:
     openxlsx,
     ParallelLogger,
     plotly,
-    purrr,
     reactable,
     readr,
     OhdsiReportGenerator,
@@ -47,7 +46,6 @@ Imports:
     stringr,
     tibble,
     tidyr,
-    tidyselect,
     tippy,
     RColorBrewer,
     markdown
@@ -58,7 +56,4 @@ Suggests:
     RSQLite,
     testthat,
     withr
-Remotes:
-    ohdsi/OhdsiReportGenerator,
-    ohdsi/ResultModelManager
 RoxygenNote: 7.3.2

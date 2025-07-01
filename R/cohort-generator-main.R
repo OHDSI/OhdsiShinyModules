@@ -89,41 +89,64 @@ cohortGeneratorViewer <- function(id) {
           ),
         
         shiny::tabPanel(
-          title = "Inclusion Rules & Attrition"
-          ,
+          title = "Cohort Definition",
           
           shinydashboard::box(
             collapsible = T,
             collapsed = F,
             width = '100%',
             title = shiny::span( shiny::icon("gear"), 'Options'),
-            
-            shiny::uiOutput(ns('attritionTableSelect'))
+            shiny::uiOutput(ns('cohortDefinitionCohortSelect'))
           ),
           
           shiny::conditionalPanel(
-            condition = "input.generate != 0",
+            condition = "input.generate_cohort_def != 0",
             ns = ns,
             
-            shiny::uiOutput(ns("inputsText")),
- 
-            shinydashboard::box(
-              status = 'info', 
-              width = '100%',
-              title = shiny::span( shiny::icon("table"), 'Attrition Table'),
-              
-              resultTableViewer(ns('attritionTable'),
-                                downloadedFileName = "cohortAttritionTable-")
-            ),
+            shiny::uiOutput(ns("inputsCohortDefText")),
             
-            shinydashboard::box(
-              status = 'info', 
-              width = '100%',
-              title = shiny::span( shiny::icon("chart-area"), 'Attrition Plot'),
+            shiny::tabsetPanel( 
+              id = ns('cohortDefPanel'),
               
-              plotly::plotlyOutput(ns('attritionPlot'))
-            )
-          )
+              shiny::tabPanel(
+                title = "Friendly Definition",
+                shiny::uiOutput(ns('outputCohortDefText'))
+              ),
+              
+              shiny::tabPanel(
+                title = "JSON",
+                shiny::uiOutput(ns('outputCohortDefJson'))
+              ),
+              
+              shiny::tabPanel(
+                title = "SQL",
+                shiny::uiOutput(ns('outputCohortDefSql'))
+              ),
+              
+              shiny::tabPanel(
+                title = "Inclusion Rules & Attrition", 
+                
+                shiny::uiOutput(ns('attritionRuleSelect')),
+                
+                #shiny::conditionalPanel(
+                #  condition = "input.generate_attrition != 0",
+                #  ns = ns,
+                  
+                shiny::uiOutput(ns("attritionInputsText")),
+                
+                shiny::uiOutput(ns("attritionOutputTable")),
+                
+                shiny::uiOutput(ns("attritionOutputPlot"))
+                  
+                #) # end attrition select condition
+                
+              ) # end inclusion tab
+              
+              
+            ) # end cohort def sub tabs
+ 
+            
+          ) # end conditional on generate
         )
       )
     )
@@ -379,106 +402,318 @@ cohortGeneratorServer <- function(
       
       
       
+      # NEW: Cohort definition
+      
+      cohortDefData <- getCohortGeneratorCohortDefinition(
+        connectionHandler = connectionHandler, 
+        resultDatabaseSettings = resultDatabaseSettings
+      )
+      
+      cohortDefInputs <- 1:nrow(cohortDefData)
+      names(cohortDefInputs) <- cohortDefData$cohortName
+      
+      output$cohortDefinitionCohortSelect <- shiny::renderUI(
+        shiny::tagList(
+        shiny::selectInput(
+          inputId = session$ns('selectedCohortDefRow'), 
+          label = 'Cohort:', 
+          choices = cohortDefInputs, 
+          selected = 1,
+          multiple = FALSE, 
+          selectize = FALSE
+        ),
+        shiny::actionButton(
+          inputId = session$ns('generate_cohort_def'),
+          label = 'Generate'
+        )
+      )
+      )
+      
+    # reactive vars for all the cohort def parts  
+    selectedCohortDefInputs <- shiny::reactiveVal()
+    selectedJson <- shiny::reactiveVal()
+    selectedSql <- shiny::reactiveVal()
+    selectedJsonText <- shiny::reactiveVal()
+    
+    attritionData <- shiny::reactiveVal(NULL)
+    
+    selectedAttritionInputs <- shiny::reactiveVal()
+    selectedAttritionTable <- shiny::reactiveVal()
+    selectedAttritionPlot <- shiny::reactiveVal()
+    
+    
+    # outputs for all the cohort def parts
+    output$inputsCohortDefText <- shiny::renderUI(selectedCohortDefInputs())
+    output$outputCohortDefJson <- shiny::renderUI(selectedJson())
+    output$outputCohortDefSql <- shiny::renderUI(selectedSql())
+    output$outputCohortDefText <- shiny::renderUI(selectedJsonText())
+    
+    output$attritionInputsText <- shiny::renderUI(selectedAttritionInputs())
+    output$attritionOutputTable  <- shiny::renderUI(selectedAttritionTable())
+    output$attritionOutputPlot  <- shiny::renderUI(selectedAttritionPlot())
+    
+    
+    shiny::observeEvent(
+      eventExpr = input$generate_cohort_def,
+      {
+        
+        # make the output for the attrition empty 
+        # evertime a new cohort is delected
+        selectedAttritionInputs(NULL)
+        selectedAttritionTable(NULL)
+        selectedAttritionPlot(NULL)
+        
+        # set to tab to cohort friendly
+        shiny::updateTabsetPanel(
+          session = session,
+          inputId = 'cohortDefPanel',
+          selected = "Friendly Definition"
+        )
+        
+        json <- cohortDefData$parentJson[as.double(input$selectedCohortDefRow)]
+        subset <- cohortDefData$subsetJson[as.double(input$selectedCohortDefRow)]
+        isSubset <- cohortDefData$cohortDefinitionId[as.double(input$selectedCohortDefRow)] != cohortDefData$subsetParent[as.double(input$selectedCohortDefRow)]
+          
+        noAttritionText <- ifelse(isSubset, 'Cannot display for cohorts with subset logic', 'No attrition results to display')
+        
+        selectedCohortDefInputs(
+          shinydashboard::box(
+            status = 'warning', 
+            width = "100%",
+            title = 'Selected:',
+            collapsible = T,
+            collapsed = F,
+            shiny::div(
+              shiny::fluidRow(
+                shiny::column(
+                  width = 8,
+                  shiny::tags$b("Cohort Name:"),
+                  cohortDefData$cohortName[as.double(input$selectedCohortDefRow)]
+                )
+              )
+            )
+          )
+        )
+        
+
+        # get the json 
+        if(isSubset){        
+          selectedJson(
+          shinydashboard::box(
+            status = 'primary', 
+            solidHeader = TRUE,
+            width = "100%",
+            title = 'JSON Code',
+            collapsible = T,
+            collapsed = F,
+            
+            shiny::tabsetPanel(
+              
+              shiny::tabPanel(
+                title = 'Parent',
+                shiny::renderPrint({
+                  cat(json, sep = "\n")
+                })
+              ),
+              
+              shiny::tabPanel(
+                title = 'Subset',
+                shiny::renderPrint({
+                  cat(subset, sep = "\n")
+                })
+              )
+              
+            )
+          ))
+            
+            selectedJsonText(
+              shinydashboard::box(
+                status = 'primary', 
+                solidHeader = TRUE,
+                width = "100%",
+                title = 'Cohort Definition',
+                collapsible = T,
+                collapsed = F,
+                
+                shiny::tabsetPanel(
+                  
+                  shiny::tabPanel(
+                    title = 'Parent',
+                shiny::HTML(
+                  markdown::renderMarkdown(text = CirceR::cohortPrintFriendly(json))
+                )
+                  ),
+                
+                shiny::tabPanel(
+                  title = 'Subset',
+                  shiny::HTML(
+                    markdown::renderMarkdown(text = extractSubsetText(subset))
+                    )
+                )
+                
+                )
+                
+              )
+            )
+            
+            selectedSql(
+              shinydashboard::box(
+                status = 'primary', 
+                solidHeader = TRUE,
+                width = "100%",
+                title = 'SQL Code',
+                collapsible = T,
+                collapsed = F,
+                
+                shiny::tabsetPanel(
+                  
+                  shiny::tabPanel(
+                    title = 'Parent',
+                    shiny::renderPrint({
+                      cat(CirceR::buildCohortQuery(
+                        expression = json, 
+                        options = CirceR::createGenerateOptions()
+                      ), sep = "\n")
+                    })
+                  ),
+                  
+                  shiny::tabPanel(
+                    title = 'Subset',
+                    shiny::renderPrint({
+                      cat(
+                        cohortDefData$sqlCommand[as.double(input$selectedCohortDefRow)], 
+                        sep = "\n")
+                    })
+                  )
+                  
+                )
+              ))
+            
+        } else{
+          selectedJson(
+            shinydashboard::box(
+              status = 'primary', 
+              solidHeader = TRUE,
+              width = "100%",
+              title = 'JSON Code',
+              collapsible = T,
+              collapsed = F,
+              
+                  shiny::renderPrint({
+                    cat(json, sep = "\n")
+                  })
+                
+            ))
+          
+          selectedJsonText(
+            shinydashboard::box(
+              status = 'primary', 
+              solidHeader = TRUE,
+              width = "100%",
+              title = 'Cohort Definition',
+              collapsible = T,
+              collapsed = F,
+              
+              shiny::HTML(
+                markdown::renderMarkdown(text = CirceR::cohortPrintFriendly(json))
+              )
+              
+            )
+          )
+          
+          selectedSql(
+            shinydashboard::box(
+              status = 'primary', 
+              solidHeader = TRUE,
+              width = "100%",
+              title = 'SQL Code',
+              collapsible = T,
+              collapsed = F,
+              
+              shiny::renderPrint({
+                cat(CirceR::buildCohortQuery(
+                  expression = json, 
+                  options = CirceR::createGenerateOptions()
+                ), sep = "\n")
+              })
+              
+            ))
+          
+        }
+        
+        # add attrition stuff
+        #building attrition table using inclusion rules & stats tables
+        rules <- getCohortGeneratorInclusionRules(
+          connectionHandler = connectionHandler, 
+          resultDatabaseSettings = resultDatabaseSettings,
+          cohortDefinitionId = cohortDefData$cohortDefinitionId[as.double(input$selectedCohortDefRow)]
+        )
+
+        stats <- getCohortGeneratorInclusionStats(
+          connectionHandler = connectionHandler, 
+          resultDatabaseSettings = resultDatabaseSettings,
+          cohortDefinitionId = cohortDefData$cohortDefinitionId[as.double(input$selectedCohortDefRow)]
+        )
+
+        if(!nrow(rules) == 0 & !nrow(stats) == 0){
+        #this gets the full attrition table
+        inputVals <- getCohortGenerationAttritionTable(
+          rules, 
+          stats
+        )
+        
+        attritionData(dplyr::ungroup(inputVals) %>%
+          dplyr::mutate(modeId = dplyr::case_when(
+            modeId==1 ~ "Subject",
+            TRUE ~ "Record"
+          )
+          ))
+        
+        #build the selector
+        output$attritionRuleSelect <- shiny::renderUI({
+          
+          shiny::tagList(
+            shiny::selectInput(
+              inputId = session$ns('selectedDatabaseId'), 
+              label = 'Database:', 
+              choices = unique(attritionData()$cdmSourceName), 
+              selected = 1,
+              multiple = F, 
+              selectize=FALSE
+            ),
+            shiny::radioButtons(
+              inputId = session$ns('selectedModeId'),
+              label = "Subject-level or Record-level?",
+              choices = unique(attritionData()$modeId),
+              selected = "Subject"
+            ),
+            shiny::actionButton(
+              inputId = session$ns('generate_attrition'),
+              label = 'Generate Report'
+            )
+          )
+        })  
+        } else {
+          
+          output$attritionRuleSelect <- shiny::renderUI({
+             shiny::renderText(noAttritionText)
+            })
+        }
+        
+      }) # end observe event
+      
       # inclusion rules and attrition
       
       tryCatch(
         
         {
       
-      #building attrition table using inclusion rules & stats tables
-      rules <- getCohortGeneratorInclusionRules(
-        connectionHandler = connectionHandler, 
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      
-      stats <- getCohortGeneratorInclusionStats(
-        connectionHandler = connectionHandler, 
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      
-      #this gets the full attrition table
-      inputVals <- getCohortGenerationAttritionTable(
-        rules, 
-        stats
-      )
-      
-      #making a "clean" version where modeId is renamed to sensible values
-      cohortNames <- unique(inputVals$cohortName)
-      databaseIds <- unique(inputVals$cdmSourceName)
-      
-      inputValsClean <- dplyr::ungroup(inputVals) %>%
-        dplyr::mutate(modeId = dplyr::case_when(
-          modeId==1 ~ "Subject",
-          TRUE ~ "Record"
-          )
-        )
-      
-      modeIds <- unique(inputValsClean$modeId)
-      
-      # cohortName <- shiny::reactiveVal(cohortNames[1])
-      # databaseId <- shiny::reactiveVal(databaseIds[1])
-      # modeId <- shiny::reactiveVal(modeIds[1])
-      
-      #build the selector
-      output$attritionTableSelect <- shiny::renderUI({
-        
-        shiny::tagList(
-          shiny::selectInput(
-            inputId = session$ns('selectedCohortName'), 
-            label = 'Cohort:', 
-            choices = cohortNames, 
-            selected = 1,
-            multiple = F, 
-            selectize=FALSE
-          ),
-          shiny::selectInput(
-            inputId = session$ns('selectedDatabaseId'), 
-            label = 'Database:', 
-            choices = databaseIds, 
-            selected = 1,
-            multiple = F, 
-            selectize=FALSE
-          ),
-          shiny::radioButtons(
-            inputId = session$ns('selectedModeId'),
-            label = "Subject-level or Record-level?",
-            choices = modeIds,
-            selected = "Subject"
-          ),
-          shiny::actionButton(
-            inputId = session$ns('generate'),
-            label = 'Generate Report'
-          )
-        )
-      })
-      
-      reactiveData <- shiny::reactiveVal(NULL)
-      selectedInputs <- shiny::reactiveVal()
-      output$inputsText <- shiny::renderUI(selectedInputs())
-      
-      # shiny::observeEvent(input$selectedCohortName,{
-      #   cohortName(input$selectedCohortName)
-      # })
-      # shiny::observeEvent(input$selectedDatabaseId,{
-      #   databaseId(input$selectedDatabaseId)
-      # })
-      # shiny::observeEvent(input$selectedModeId,{
-      #   modeId(input$selectedModeId)
-      # })
-      
       #build the reactive data
-      
       shiny::observeEvent(
-        eventExpr = input$generate,
+        eventExpr = input$generate_attrition,
     {
       
-      # if(length(input$selectedCohortName) == 0 | is.null(input$selectedDatabaseId |
-      #                                                    is.null(input$selectedModeId))){
-      #   print('Null ids value')
-      #   return(invisible(NULL))
-      # }
-      
-      selectedInputs(
+      selectedAttritionInputs(
         shinydashboard::box(
           status = 'warning', 
           width = "100%",
@@ -488,52 +723,58 @@ cohortGeneratorServer <- function(
           shiny::div(
             shiny::fluidRow(
               shiny::column(
-                width = 8,
-                shiny::tags$b("Cohort:"),
-                 #unique(inputVals$cohortName[inputVals$cohortName %in% input$selectedCohortName])
-                input$selectedCohortName
-              ),
-              shiny::column(
                 width = 4,
                 shiny::tags$b("Database:"),
-                #unique(inputVals$cdmSourceName[inputVals$cdmSourceName == input$selectedDatabaseId])
                 input$selectedDatabaseId
               ),
               shiny::column(
                 width = 4,
                 shiny::tags$b("Level:"),
-                #unique(inputValsClean$modeId)[inputValsClean$modeId == input$selectedModeId]
                 input$selectedModeId
               )
             )
           )
         )
       )
-
       
-      data <- inputValsClean %>%
+      selectedAttritionTable(
+        shinydashboard::box(
+          status = 'info', 
+          width = '100%',
+          title = shiny::span(shiny::icon("table"), 'Attrition Table'),
+          
+          resultTableViewer(session$ns('attritionTable'),
+                            downloadedFileName = "cohortAttritionTable-")
+        )
+      )
+      
+      selectedAttritionPlot(
+        shinydashboard::box(
+          status = 'info', 
+          width = '100%',
+          title = shiny::span( shiny::icon("chart-area"), 'Attrition Plot'),
+          
+          plotly::plotlyOutput(session$ns('attritionPlot'))
+        )
+      )
+      
+
+      selectedAttritionData <- attritionData() %>%
         dplyr::filter(.data$cdmSourceName %in% input$selectedDatabaseId & 
-                        .data$cohortName %in% input$selectedCohortName &
                         .data$modeId %in% input$selectedModeId
         )
       
-      reactiveData <- shiny::reactive(data)
-      
-      if(!is.null(data)){
+      if(!is.null(selectedAttritionData)){ # or nrow > 0 ?
         
         resultTableServer(
             id = 'attritionTable',
-            df =  reactiveData() %>%
+            df =  selectedAttritionData %>%
               dplyr::select(c("cdmSourceName", "cohortName", "ruleName",
                               "personCount", "dropCount",
                               "dropPerc", "retainPerc")
               )
             
             ,
-            # rownames = FALSE, 
-            # defaultPageSize = 5,
-            # showPageSizeOptions = T, 
-            # striped = T,
             colDefsInput = list(
               cdmSourceName = reactable::colDef( 
                 filterable = TRUE,
@@ -577,20 +818,12 @@ cohortGeneratorServer <- function(
                   "The percentage of subjects or records (depending on your selection) retained after the inclusion rule was applied compared to the previous rule count"
                 ))
             )
-            #,
-            
-            # filterable = TRUE,
-            # sortable = TRUE,
-            # defaultColDef = reactable::colDef(
-            #   align = "left"
-            # )
           )
-        #)
         
         #attrition plot
         output$attritionPlot <- plotly::renderPlotly(
           getCohortAttritionPlot(
-            data
+            selectedAttritionData
           )
         )
         
@@ -604,14 +837,11 @@ cohortGeneratorServer <- function(
                              , con)
           }
         )
-      }
-      
-      else{
+      } else{
         shiny::showNotification('data NULL')
       }
       
-    }
-      )
+    }) # end observe
       
         },
     
@@ -633,6 +863,53 @@ cohortGeneratorServer <- function(
 }
 
 
+extractSubsetText <- function(subsetJson){
+  
+  # add code to extract the names from the json and display as bullet points
+  
+  json <- ParallelLogger::convertJsonToSettings(as.character(subsetJson))
+  getOperatorNames <- lapply(json$subsetOperators, function(x){x$name})
+  getOperatorNames <- paste0('- ',unlist(getOperatorNames), collapse = ' \n')
+
+  return(getOperatorNames)
+}
+
+
+getCohortGeneratorCohortDefinition <- function(
+    connectionHandler, 
+    resultDatabaseSettings
+) {
+  
+  sql <- "SELECT cd.*, csd.json as subset_json
+  FROM @schema.@cg_table_prefixCOHORT_DEFINITION cd
+  left join 
+  @schema.@cg_table_prefixcohort_subset_definition csd
+  on cd.subset_definition_id = csd.subset_definition_id
+  ;"
+  
+  result <- connectionHandler$queryDb(
+    sql = sql,
+    schema = resultDatabaseSettings$schema,
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
+  )
+  
+  parents <- result %>%
+    dplyr::filter(.data$cohortDefinitionId == .data$subsetParent) %>%
+    dplyr::select("json","cohortDefinitionId") %>%
+    dplyr::rename(
+      parentJson = "json",
+      parentCohortDefinitionId = 'cohortDefinitionId'
+    )
+  
+  result <- merge(
+    x = result,
+    y = parents, 
+    by.x = 'subsetParent', 
+    by.y = 'parentCohortDefinitionId'
+  )
+    
+  return(result)
+}
 
 
 getCohortGeneratorCohortCounts <- function(
@@ -728,32 +1005,38 @@ getCohortGeneratorCohortInclusionSummary <- function(
 
 getCohortGeneratorInclusionRules <- function(
     connectionHandler, 
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    cohortDefinitionId = NULL
 ) {
   
   sql <- "SELECT ci.cohort_definition_id, ci.rule_sequence, ci.name as rule_name,
   cd.cohort_name FROM @schema.@cg_table_prefixCOHORT_INCLUSION ci
   join @schema.@cg_table_prefixCOHORT_DEFINITION cd
   on cd.cohort_definition_id = ci.cohort_definition_id
+  {@use_cohort_def_id}?{ where cd.cohort_definition_id = @cohort_definition_id}
   ;"
   return(
     connectionHandler$queryDb(
       sql = sql,
       schema = resultDatabaseSettings$schema,
-      cg_table_prefix = resultDatabaseSettings$cgTablePrefix
+      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+      use_cohort_def_id = !is.null(cohortDefinitionId),
+      cohort_definition_id = cohortDefinitionId
     )
   )
 }
 
 getCohortGeneratorInclusionStats <- function(
     connectionHandler, 
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    cohortDefinitionId = NULL
 ) {
   
   sql <- "SELECT cir.database_id, cir.cohort_definition_id, cir.inclusion_rule_mask, cir.person_count, cir.mode_id,
   dt.cdm_source_name FROM @schema.@cg_table_prefixCOHORT_INC_RESULT cir
   join @schema.@database_table_prefix@database_table dt
   on cir.database_id = dt.database_id
+  {@use_cohort_def_id}?{ where cir.cohort_definition_id = @cohort_definition_id}
   ;"
   return(
     connectionHandler$queryDb(
@@ -761,7 +1044,9 @@ getCohortGeneratorInclusionStats <- function(
       schema = resultDatabaseSettings$schema,
       cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
       database_table = resultDatabaseSettings$databaseTable,
-      database_table_prefix = resultDatabaseSettings$databaseTablePrefix
+      database_table_prefix = resultDatabaseSettings$databaseTablePrefix,
+      use_cohort_def_id = !is.null(cohortDefinitionId),
+      cohort_definition_id = cohortDefinitionId
     )
   )
 }
@@ -770,8 +1055,6 @@ getCohortGenerationAttritionTable <- function(
     rules,
     stats
 ){
-  
-  
   
   uniqueCohortIDs <- unique(rules$cohortDefinitionId)
   
@@ -862,9 +1145,6 @@ getCohortGenerationAttritionTable <- function(
   
 }
 
-# test <- inputValsClean %>%
-#   dplyr::filter(cohortDefinitionId == 11057 & cdmSourceName == "Optum EHR" & 
-#            modeId == "Subject")
 
 getCohortAttritionPlot <- function(data) {
   
