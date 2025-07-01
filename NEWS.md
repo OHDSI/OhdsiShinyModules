@@ -1,3 +1,11 @@
+OhdsiShinyModules v3.3.0
+========================
+- fixed bug with incorrect ease in SCCS plot
+- fixed bug with incorrect SMD value in CM plot 
+- updated cohort method diagnostics to add add diagnostics
+- updated cohort viewer to show cohort definition/json/sql and attrition shows when it is not available due to no inclusion rules in the definition.
+- updated characterization database min cell threshold slider to have a minimum value equal to the min_cell_threshold used in the analysis.
+
 OhdsiShinyModules v3.2.0
 ========================
 - removal of RJSOIO dependency
