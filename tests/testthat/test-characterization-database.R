@@ -83,3 +83,15 @@ test_that("Test characterizationDatabaseComparison ui", {
   checkmate::expect_list(ui)
 })
 
+
+test_that("Test getMinCovaraiteThreshold", {
+
+  minVal <- getMinCovaraiteThreshold(
+    connectionHandler = connectionHandlerCharacterization,
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
+  )
+  
+  testthat::expect_true(minVal >= 0)
+  
+})
+
