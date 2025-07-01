@@ -71,13 +71,16 @@ estimationGetCmDiagnostics <- function(
       cmds.shared_max_sdm,
       cmds.equipoise,
       cmds.mdrr,
+      cmds.generalizability_max_sdm,
       cmds.ease,
       cmds.balance_diagnostic,
       cmds.shared_balance_diagnostic, -- added back
       cmds.equipoise_diagnostic,
       cmds.mdrr_diagnostic,
+      cmds.generalizability_diagnostic,
       cmds.ease_diagnostic,
-      cmds.unblind
+      cmds.unblind,
+      cmds.unblind_for_evidence_synthesis
     FROM
       @schema.@cm_table_prefixdiagnostics_summary cmds
       INNER JOIN @schema.@cm_table_prefixanalysis cma ON cmds.analysis_id = cma.analysis_id
@@ -220,6 +223,13 @@ estimationGetCmDiagnosticColDefs <- function(){
       ),
       format = reactable::colFormat(digits = 4)
     ),
+    generalizabilityMaxSdm = reactable::colDef(
+      header = withTooltip(
+        "Generalizability Max SDM",
+        "The maximum absolute standardized difference of mean comparing before to after adjustment."
+      ),
+      format = reactable::colFormat(digits = 4)
+    ),
     balanceDiagnostic = reactable::colDef(
       header = withTooltip(
         "Balance Diagnostic",
@@ -236,6 +246,12 @@ estimationGetCmDiagnosticColDefs <- function(){
       header = withTooltip(
         "Shared Balance Diagnostic",
         "Pass / warning / fail classification of the shared balance diagnostic (Shared Max SDM)"
+      )
+    ),
+    generalizabilityDiagnostic = reactable::colDef(
+      header = withTooltip(
+        "Generalizability Diagnostic",
+        "Pass / warning / fail classification of the generalizability diagnostic."
       )
     ),
     easeDiagnostic = reactable::colDef(
@@ -255,6 +271,13 @@ estimationGetCmDiagnosticColDefs <- function(){
       header = withTooltip(
         "Unblind",
         "If the value is 1 then the diagnostics passed and results can be unblinded"
+      )
+    ),
+    
+    unblindForEvidenceSynthesis = reactable::colDef(
+      header = withTooltip(
+        "Unblind for Evidence Synthesis",
+        "Is unblinding the result for inclusion in evidence synthesis recommended? This ignores the MDRR diagnostic. (1 = yes, 0 = no)"
       )
     )
   )
