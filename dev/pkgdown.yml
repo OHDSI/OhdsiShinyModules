@@ -1,5 +1,5 @@
 pandoc: 3.1.11
-pkgdown: 2.1.1
+pkgdown: 2.1.3
 pkgdown_sha: ~
 articles:
   AddingShinyModules: AddingShinyModules.html
@@ -10,4 +10,4 @@ articles:
   Estimation: Estimation.html
   Prediction: Prediction.html
   ReportGenerator: ReportGenerator.html
-last_built: 2025-02-20T18:02Z
+last_built: 2025-07-15T20:51Z
