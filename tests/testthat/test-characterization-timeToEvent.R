@@ -1,18 +1,36 @@
 context("characterization-TimeToEvent")
 
+targetCohort <- OhdsiReportGenerator::getTargetTable(
+  connectionHandler = connectionHandlerCharacterization,
+  schema = resultDatabaseSettingsCharacterization$schema, 
+  ciTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix
+)
+
+outcomeCohort <- OhdsiReportGenerator::getOutcomeTable(
+  connectionHandler = connectionHandlerCharacterization,
+  schema = resultDatabaseSettingsCharacterization$schema, 
+  ciTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix, 
+  targetId = targetCohort$cohortId[2]
+)
+
+
 shiny::testServer(
   app = characterizationTimeToEventServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-    targetId = shiny::reactive(1),
-    outcomeId = shiny::reactive(3)
+    reactiveTargetRow = shiny::reactive(targetCohort[2,]),
+    reactiveOutcomeRow = shiny::reactive(outcomeCohort[1,])
   ), 
   expr = {
     
-    testthat::expect_true(inherits(options(), 'list'))
-    testthat::expect_true( nrow(allData()) > 0 )
+    testthat::expect_true( is.null(allData()) )
+    
     testthat::expect_true(inherits(characterizationTimeToEventColDefs(), 'list'))
+    
+    # data extracted when generate is set
+    session$setInputs(generate = TRUE)
+    testthat::expect_true( nrow(allData()) > 0 )
     
     # check plot works
     session$setInputs(
@@ -24,8 +42,8 @@ shiny::testServer(
     
     
     data <- getTimeToEventData(
-      targetId = targetId(),
-      outcomeId = outcomeId(),
+      targetId = reactiveTargetRow()$cohortId,
+      outcomeId = reactiveOutcomeRow()$cohortId,
       connectionHandler = connectionHandlerCharacterization,
       resultDatabaseSettings = resultDatabaseSettingsCharacterization
     )

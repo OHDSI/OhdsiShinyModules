@@ -74,7 +74,7 @@ characterizationIncidenceViewer <- function(id) {
     shiny::uiOutput(ns("inputOptions")),
     
     shiny::conditionalPanel(
-      condition = 'input.generate != 0',
+      condition = 'output.showIncidence != 0',
       ns = ns,
       
       shiny::tabsetPanel(
@@ -230,10 +230,8 @@ characterizationIncidenceViewer <- function(id) {
 #' @param id  the unique reference id for the module
 #' @param connectionHandler the connection to the prediction result database
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
-#' @param parents a list of parent cohorts
-#' @param parentIndex an integer specifying the parent index of interest
-#' @param outcomes a reactive object specifying the outcomes of interest
-#' @param targetIds a reactive vector of integer specifying the targetIds of interest
+#' @param reactiveTargetRow a reactive data.frame with the target of interest details
+#' @param outcomeTable A reactive data.frame with the outcome table for the target of interest
 #' @family Characterization
 #' @return
 #' The server to the prediction incidence module
@@ -243,18 +241,23 @@ characterizationIncidenceServer <- function(
     id, 
     connectionHandler,
     resultDatabaseSettings,
-    #options, # this gets overwritten in code below - why here?
-    parents,
-    parentIndex, # reactive
-    outcomes, # reactive
-    targetIds # reactive
+    reactiveTargetRow, # reactive
+    outcomeTable # reactive
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
       ##  ns <- session$ns
-
+      
+      output$showIncidence <- shiny::reactive(0)
+      shiny::outputOptions(output, "showIncidence", suspendWhenHidden = FALSE)
+      
+      # if target changes hide results
+      shiny::observeEvent(reactiveTargetRow(), {
+        output$showIncidence <- shiny::reactive(0)
+      })
+      
       ciOptions <- getIncidenceOptions(connectionHandler, resultDatabaseSettings)
 
       output$inputOptions <- shiny::renderUI({
@@ -268,22 +271,7 @@ characterizationIncidenceServer <- function(
             style = "font-weight: bold; font-size: 20px; text-align: center; margin-bottom: 20px;"
           ),
           
-          shinyWidgets::pickerInput(
-            inputId = session$ns('outcomeIds'),
-            label = 'Outcome: ',
-            choices = outcomes(),
-            selected = outcomes()[1],
-            multiple = T,
-            options = shinyWidgets::pickerOptions(
-              actionsBox = TRUE,
-              liveSearch = TRUE,
-              size = 10,
-              dropupAuto = FALSE,
-              liveSearchStyle = "contains",
-              liveSearchPlaceholder = "Type here to search",
-              virtualScroll = 50
-            )
-          ),
+          tableSelectionViewer(id = session$ns('outcome-table-select')),
           
           shinyWidgets::pickerInput(
             inputId = session$ns('databaseSelector'),
@@ -396,6 +384,24 @@ characterizationIncidenceServer <- function(
         )
       })
       
+      reactiveOutcomeRows <- tableSelectionServer(
+        id = 'outcome-table-select',
+        table = shiny::reactive(outcomeTable() %>%
+                                  dplyr::filter(.data$cohortIncidence == 1) %>%
+                                  dplyr::relocate("parentName", .before = "cohortName") %>%
+                                  dplyr::relocate("cohortId", .after = "cohortName")
+        ), 
+        selectMultiple = TRUE, 
+        elementId = session$ns('table-selector'),
+        inputColumns = characterizationOutcomeDisplayColumns(),
+        selectButtonText = 'Select Outcomes'
+      )
+      
+      # hide results if outcome changes
+      shiny::observeEvent(reactiveOutcomeRows(), {
+        output$showIncidence <- shiny::reactive(0)
+      })
+      
       outcomeIds <- shiny::reactiveVal(NULL)
       incidenceRateTarFilter <- shiny::reactiveVal(NULL)
       incidenceRateCalendarFilter <- shiny::reactiveVal(NULL)
@@ -404,13 +410,17 @@ characterizationIncidenceServer <- function(
       incidenceRateDbFilter <- shiny::reactiveVal(NULL)
       incidenceRateCleanWindowsFilter <- shiny::reactiveVal(NULL)
       shiny::observeEvent(input$generate,{
+        
+        # TODO add input checks 
+        
+        output$showIncidence <- shiny::reactive(1)
         incidenceRateTarFilter(names(ciOptions$tar)[(ciOptions$tar == input$tars)]) # filter needs actual value
         incidenceRateCalendarFilter(input$startYears)
         incidenceRateAgeFilter(input$ageIds)
         incidenceRateGenderFilter(input$sexIds)
         incidenceRateDbFilter(input$databaseSelector)
         incidenceRateCleanWindowsFilter(input$cleanWindows)
-        outcomeIds(input$outcomeIds)
+        outcomeIds(reactiveOutcomeRows()$cohortId)
       })
       
       
@@ -608,22 +618,14 @@ characterizationIncidenceServer <- function(
       extractedData <- shiny::reactiveVal()
       shiny::observeEvent(input$generate ,      
                           {
-                            if (is.null(targetIds()) |
-                                is.null(outcomeIds())
+                            if (is.null(reactiveTargetRow()) |
+                                is.null(reactiveOutcomeRows())
                             ) {
                               shiny::validate("Please wait...")
-                            }
-                            
-                            #causing an issue when we want the same target & outcome for recurrent events
-                            
-                            # else if(targetIds()[1] == outcomeIds()[1] &&
-                            #         length(targetIds())==1 && length(outcomeIds())==1
-                            # ){
-                            #   shiny::validate("Target and outcome cohorts must differ from each other. Make a different selection.")
-                            # }
-                            
-                            else {
-                              result <- getIncidenceData(targetIds = targetIds(),
+                            } else {
+                              
+                              # TODO check nrow > 0 for t and o
+                              result <- getIncidenceData(targetIds = reactiveTargetRow()$cohortId,
                                                          outcomeIds = outcomeIds(),
                                                          connectionHandler = connectionHandler,
                                                          resultDatabaseSettings = resultDatabaseSettings
@@ -690,8 +692,8 @@ characterizationIncidenceServer <- function(
       #ir plots
       irPlotCustom <- shiny::reactive( # observeEvent generate instead?
         {
-          if (is.null(targetIds()) |
-              is.null(outcomeIds())) {
+          if (is.null(reactiveTargetRow()) |
+              is.null(reactiveOutcomeRows())) {
             return(data.frame())
           }
           if(nrow(filteredData()) == 0){
@@ -1017,8 +1019,8 @@ characterizationIncidenceServer <- function(
       #render the event reactive incidence plot without legend
       renderIrPlotCustomNoLegend <- shiny::reactive(
         {
-          if (is.null(targetIds()) |
-              is.null(outcomeIds())) {
+          if (is.null(reactiveTargetRow()) |
+              is.null(reactiveOutcomeRows())) {
             shiny::validate("Please select at least one target and one outcome.")
           }
           if(nrow(filteredData()) == 0){
@@ -1074,8 +1076,8 @@ characterizationIncidenceServer <- function(
       #render the event reactive incidence plot without legend
       renderIrPlotCustom <- shiny::reactive(
         {
-          if (is.null(targetIds()) |
-              is.null(outcomeIds())) {
+          if (is.null(reactiveTargetRow()) |
+              is.null(reactiveOutcomeRows())) {
             shiny::validate("Please select at least one target and one outcome.")
           }
           if(nrow(filteredData()) == 0){
@@ -1141,8 +1143,8 @@ characterizationIncidenceServer <- function(
       renderIrPlotStandardAge <- shiny::reactive({
         
         
-        if (is.null(targetIds()) |
-            is.null(outcomeIds())) {
+        if (is.null(reactiveTargetRow()) |
+            is.null(reactiveOutcomeRows())) {
           return(data.frame())
         }
         if(nrow(filteredData()) == 0){
@@ -1156,7 +1158,7 @@ characterizationIncidenceServer <- function(
         )
         
         #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
-        ifelse(length(targetIds()) * length(outcomeIds()) <= 10,
+        ifelse(nrow(reactiveTargetRow()) * nrow(reactiveOutcomeRows()) <= 10,
                plotData <- filteredData(),
                shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
         )
@@ -1277,8 +1279,8 @@ characterizationIncidenceServer <- function(
       
       renderIrPlotStandardAgeSex <- shiny::reactive({
         
-        if (is.null(targetIds()) |
-            is.null(outcomeIds())) {
+        if (is.null(reactiveTargetRow()) |
+            is.null(reactiveOutcomeRows())) {
           return(data.frame())
         }
         if(nrow(filteredData()) == 0){
@@ -1292,7 +1294,7 @@ characterizationIncidenceServer <- function(
         )
         
         #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
-        ifelse(length(targetIds()) * length(outcomeIds()) <= 10,
+        ifelse(nrow(reactiveTargetRow()) * nrow(reactiveOutcomeRows()) <= 10,
                plotData <- filteredData(),
                shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
         )
@@ -1420,8 +1422,8 @@ characterizationIncidenceServer <- function(
       # by calendar year
       renderIrPlotStandardYear <- shiny::reactive({
         
-        if (is.null(targetIds()) |
-            is.null(outcomeIds())) {
+        if (is.null(reactiveTargetRow()) |
+            is.null(reactiveOutcomeRows())) {
           return(data.frame())
         }
         if(nrow(filteredData()) == 0){
@@ -1440,8 +1442,8 @@ characterizationIncidenceServer <- function(
                shiny::validate("Please select only one TAR at a time to view yearly plots.")
         )
         
-        ifelse((length(targetIds()) == 1) & 
-                 (length(outcomeIds()) == 1), 
+        ifelse((nrow(reactiveTargetRow()) == 1) & 
+                 (nrow(reactiveOutcomeRows()) == 1), 
                plotData <- plotData,
                shiny::validate("Please select only one Target and Outcome at a time to view yearly plots.")
         )
@@ -1576,8 +1578,8 @@ characterizationIncidenceServer <- function(
       
       renderIrPlotStandardAggregate <- shiny::reactive({
         
-        if (is.null(targetIds()) |
-            is.null(outcomeIds())) {
+        if (is.null(reactiveTargetRow()) |
+            is.null(reactiveOutcomeRows())) {
           return(data.frame())
         }
         if(nrow(filteredData()) == 0){
@@ -1591,7 +1593,7 @@ characterizationIncidenceServer <- function(
         )
         
         #add check to make sure facetted plots fit nicely in plotting window (600px). this is currently nrow * ncol in facet_wrap()
-        ifelse(length(targetIds()) * length(outcomeIds()) <= 10,
+        ifelse(nrow(reactiveTargetRow()) * nrow(reactiveOutcomeRows()) <= 10,
                plotData <- filteredData(),
                shiny::validate("Too many Target-Outcome pairs selected to plot efficiently. Please choose fewer targets and/or outcomes.")
         )

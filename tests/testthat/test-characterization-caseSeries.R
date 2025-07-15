@@ -1,25 +1,46 @@
 context("characterization-caseSeries")
 
+targetCohort <- OhdsiReportGenerator::getTargetTable(
+  connectionHandler = connectionHandlerCharacterization,
+  schema = resultDatabaseSettingsCharacterization$schema, 
+  ciTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix
+)
+
+outcomeCohort <- OhdsiReportGenerator::getOutcomeTable(
+  connectionHandler = connectionHandlerCharacterization,
+  schema = resultDatabaseSettingsCharacterization$schema, 
+  ciTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix, 
+  targetId = targetCohort$cohortId[2]
+)
+
+tars <- characterizationGetCaseSeriesTars(
+  connectionHandler = connectionHandlerCharacterization,
+  resultDatabaseSettings = resultDatabaseSettingsCharacterization,
+  targetId = targetCohort$cohortId[2],
+  outcomeId = outcomeCohort$cohortId[1]
+)
+
 shiny::testServer(
   app = characterizationCaseSeriesServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization ,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-    targetId = shiny::reactive(1), #reactive 
-    outcomeId = shiny::reactive(3)
+    reactiveTargetRow = shiny::reactive(targetCohort[2,]),
+    reactiveOutcomeRow = shiny::reactive(outcomeCohort[1,]),
+    reactiveOutcomeTar = shiny::reactive(tars)
     ), 
   expr = {
     
-    # make sure options returns a list
-    testthat::expect_true(class(options()) == 'list')
-    testthat::expect_true(length(options()$databaseIds) > 0 )
-    testthat::expect_true(length(options()$tarInds) > 0 )
+    # check database
+    testthat::expect_true(length(databaseNames()) > 0 )
+    testthat::expect_true(length(databaseIds()) > 0 )
+    
     
     testthat::expect_true(inherits(selected(), 'NULL'))
     
     # check setting and generating works
-    session$setInputs(tarInd = options()$tarInds[1]) 
-    session$setInputs(databaseId = options()$databaseIds[1]) 
+    session$setInputs(tarInd = reactiveOutcomeTar()$tarInds[1]) 
+    session$setInputs(databaseName = databaseNames()[1]) 
     session$setInputs(generate = TRUE)
     
     testthat::expect_true(inherits(selected(), 'data.frame'))
@@ -29,7 +50,7 @@ shiny::testServer(
       resultDatabaseSettings = resultDatabaseSettingsCharacterization,
       targetId = 1,
       outcomeId = 3,
-      databaseId = options()$databaseIds[1],
+      databaseId = databaseIds()[1],
       tar = list(
         riskWindowStart = 1,
         riskWindowEnd = 365,
@@ -51,15 +72,15 @@ test_that("Test characterizationCaseSeriesViewer ui", {
   checkmate::expect_list(ui)
 })
 
-test_that("Test characterizationGetCaseSeriesOptions", {
-options <- characterizationGetCaseSeriesOptions(
+test_that("Test characterizationGetCaseSeriesTars", {
+tars <- characterizationGetCaseSeriesTars(
   connectionHandler = connectionHandlerCharacterization ,
   resultDatabaseSettings = resultDatabaseSettingsCharacterization,
   targetId = 2,
   outcomeId = 3
 )
 
-testthat::expect_true(inherits(options, 'list'))
+testthat::expect_true(inherits(tars, 'list'))
 
 })
 

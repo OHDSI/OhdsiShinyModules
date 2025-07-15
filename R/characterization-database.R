@@ -34,7 +34,7 @@ characterizationDatabaseComparisonViewer <- function(id) {
     
     # displayed inputs
     shiny::conditionalPanel(
-      condition = "input.generate != 0",
+      condition = "output.showDatabase != 0",
       ns = ns,
       
       inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
@@ -79,22 +79,23 @@ characterizationDatabaseComparisonServer <- function(
     id,
     connectionHandler,
     resultDatabaseSettings,
-    options,
-    parents,
-    parentIndex, # reactive
-    subTargetId # reactive
+    reactiveTargetRow
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      # TODO react to subTargetId
-      inputVals <- shiny::reactive({
-        characterizationGetCohortsInputs(
-        connectionHandler,
-        resultDatabaseSettings,
-        targetId = subTargetId
-      )})
+      # initially do not show results
+      output$showDatabase <- shiny::reactive(0)
+      shiny::outputOptions(output, "showDatabase", suspendWhenHidden = FALSE)
+      
+      # if target or outcome changes hide results
+      shiny::observeEvent(reactiveTargetRow(), {
+        output$showDatabase <- shiny::reactive(0)
+      })
+      
+      databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseString, split = ', ')))
+      databaseIds <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseIdString, split = ', ')))
       
       # get min char value:
       # set this to the min threshold used in analysis: covariates.min_characterization_mean
@@ -106,32 +107,40 @@ characterizationDatabaseComparisonServer <- function(
       output$inputs <- shiny::renderUI({
         
         shiny::div(
-          shinyWidgets::pickerInput(
-            inputId = session$ns('databaseIds'), 
-            label = 'Databases: ',
-            choices = inputVals()$databaseIds,
-            selected = inputVals()$databaseIds[1],
-            multiple = T,
-            options = shinyWidgets::pickerOptions(
-              actionsBox = TRUE,
-              liveSearch = TRUE,
-              size = 10,
-              dropupAuto = TRUE,
-              liveSearchStyle = "contains",
-              liveSearchPlaceholder = "Type here to search",
-              virtualScroll = 50
+          shiny::fluidRow(
+            shiny::column(
+              width = 8,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('databaseNames'), 
+                label = 'Databases: ',
+                choices = databaseNames(),
+                selected = databaseNames()[1],
+                multiple = T,
+                options = shinyWidgets::pickerOptions(
+                  actionsBox = TRUE,
+                  liveSearch = TRUE,
+                  size = 10,
+                  dropupAuto = TRUE,
+                  liveSearchStyle = "contains",
+                  liveSearchPlaceholder = "Type here to search",
+                  virtualScroll = 50
+                )
+              )
+            ),
+            
+            shiny::column(
+              width = 4,
+              shiny::sliderInput(
+                inputId = session$ns('minThreshold'), 
+                label = 'Covariate Threshold', 
+                min = minCharVal, 
+                max = 1, 
+                value = 0.01, 
+                step = 0.01, 
+                ticks = F
+              )
             )
           ),
-          
-          shiny::sliderInput(
-            inputId = session$ns('minThreshold'), 
-            label = 'Covariate Threshold', 
-            min = minCharVal, 
-            max = 1, 
-            value = 0.01, 
-            step = 0.01, 
-            ticks = F
-            ),
           
           shiny::actionButton(
             inputId = session$ns('generate'), 
@@ -151,24 +160,25 @@ characterizationDatabaseComparisonServer <- function(
       
       #get results
       selected <- shiny::reactiveVal()
+      plotResult <- shiny::reactiveVal(NULL)
       shiny::observeEvent(input$generate,{
         
-        if(is.null(input$databaseIds)){
+        if(is.null(input$databaseNames) | is.null(reactiveTargetRow())){
+          output$showDatabase <- shiny::reactive(0)
           shiny::showNotification('No databases selected')
-          return(NULL)
-        }
-        if(length(input$databaseIds) == 0 ){
+        } else {
+        if(length(input$databaseNames) == 0 | nrow(reactiveTargetRow()) == 0){
+          output$showDatabase <- shiny::reactive(0)
           shiny::showNotification('No databases selected')
-          return(NULL)
-        }
+        } else {
         
-        selectedDatabases <- paste0(
-          names(inputVals()$databaseIds)[which(inputVals()$databaseIds %in% input$databaseIds)], 
-          collapse =  ','
-          )
+        output$showDatabase <- shiny::reactive(1)
+        
+        selectedDatabases <- paste0(input$databaseNames, collapse =  ', ')
         
         selected(
           data.frame(
+            Target = reactiveTargetRow()$cohortName[1],
             Databases = selectedDatabases,
             `Minimum Covariate Threshold` = input$minThreshold
           )
@@ -176,81 +186,62 @@ characterizationDatabaseComparisonServer <- function(
 
 
         #get results
-        results <- list(
-          table = data.frame(),
-          databaseNames = data.frame(
-            id = 1,
-            databaseName = 'None'
-          )
-          )
-        continuousTable <- data.frame()
-        countTable <- data.frame()
-        
-        if(length(input$databaseIds) > 0){
-          
           countTable <- characterizatonGetCohortCounts(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetIds = subTargetId(),
-            databaseIds = input$databaseIds
+            targetIds = reactiveTargetRow()$cohortId,
+            databaseIds = databaseIds()[databaseNames() %in% input$databaseNames]
           )
           
           result <- characterizatonGetDatabaseComparisonData(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetIds = subTargetId(),
-            databaseIds = input$databaseIds,
+            targetIds = reactiveTargetRow()$cohortId,
+            databaseIds = databaseIds()[databaseNames() %in% input$databaseNames],
             minThreshold = input$minThreshold
           )
           
           continuousTable <- characterizatonGetCohortComparisonDataContinuous(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetIds = subTargetId(),
-            databaseIds = input$databaseIds,
+            targetIds = reactiveTargetRow()$cohortId,
+            databaseIds = databaseIds()[databaseNames() %in% input$databaseNames],
             pivot = F
           )
-          
-        } else{
-          shiny::showNotification('No results')
-        }
         
-        
-          databaseNames <- result$databaseNames
+          databaseNamesResult <- result$databaseNames
           
-          meanColumns <- lapply(1:nrow(databaseNames), function(i){
+          meanColumns <- lapply(1:nrow(databaseNamesResult), function(i){
             reactable::colDef(
               header = withTooltip(
-                paste0(databaseNames$databaseName[i], ' %'),
-                paste0("The percentage of the target population in database ", databaseNames$databaseName[i], ' who had the covariate prior.')
+                paste0(databaseNamesResult$databaseName[i], ' %'),
+                paste0("The percentage of the target population in database ", databaseNamesResult$databaseName[i], ' who had the covariate prior.')
               ),
               cell = function(value) {
                 if (value >= 0) paste0(round(value*100, digits = 3),' %') else '< min threshold'
               }
             )
           })
-          names(meanColumns) <- unlist(lapply(1:nrow(databaseNames), function(i) paste0('averageValue_',databaseNames$id[i])))
+          names(meanColumns) <- unlist(lapply(1:nrow(databaseNamesResult), function(i) paste0('averageValue_',databaseNamesResult$id[i])))
           
-          sumColumns <- lapply(1:nrow(databaseNames), function(i){
+          sumColumns <- lapply(1:nrow(databaseNamesResult), function(i){
             reactable::colDef(
               header = withTooltip(
-                paste0(databaseNames$databaseName[i], " Count"),
-                paste0("The number of people in the target cohort in database ", databaseNames$databaseName[i], ' who have the covariate prior.')
+                paste0(databaseNamesResult$databaseName[i], " Count"),
+                paste0("The number of people in the target cohort in database ", databaseNamesResult$databaseName[i], ' who have the covariate prior.')
               ),
               cell = function(value) {
                 if (value >= 0) value else '< min threshold'
               }
             )
           })
-          names(sumColumns) <- unlist(lapply(1:nrow(databaseNames), function(i) paste0('sumValue_',databaseNames$id[i])))
+          names(sumColumns) <- unlist(lapply(1:nrow(databaseNamesResult), function(i) paste0('sumValue_',databaseNamesResult$id[i])))
         
-          targetGroups <- characterizationGetChildren(options, parentIndex())
-          
           resultTableServer(
             id = 'countTable',
             df = countTable, 
             details = data.frame(
-              Target = names(targetGroups)[which(targetGroups == subTargetId())],
+              Target = reactiveTargetRow()$cohortName,
               Databases = selectedDatabases,
               `Minimum Covariate Threshold` = input$minThreshold,
               Analysis = 'Cohort comparison across databases'
@@ -265,7 +256,7 @@ characterizationDatabaseComparisonServer <- function(
             id = 'mainTable',
             df = result$table,
             details = data.frame(
-              Target = names(targetGroups)[which(targetGroups == subTargetId())],
+              Target = reactiveTargetRow()$cohortName,
               Databases = selectedDatabases,
               `Minimum Covariate Threshold` = input$minThreshold,
               Analysis = 'Cohort comparison across databases'
@@ -287,7 +278,7 @@ characterizationDatabaseComparisonServer <- function(
             id = 'continuousTable',
             df = continuousTable,
             details = data.frame(
-              Target = names(targetGroups)[which(targetGroups == subTargetId())],
+              Target = reactiveTargetRow()$cohortName,
               Databases = selectedDatabases,
               `Minimum Covariate Threshold` = input$minThreshold,
               Analysis = 'Cohort comparison across databases'
@@ -299,19 +290,22 @@ characterizationDatabaseComparisonServer <- function(
             elementId = session$ns('continuous-table-filter')
           )
           
-          
-          #scatterplots
-          
-          plotResult <- characterizatonGetDatabaseComparisonDataRaw(
+          # get plot data - TODO replace this to do one data extraction!
+          plotResult(characterizatonGetDatabaseComparisonDataRaw(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetIds = subTargetId(),
-            databaseIds = input$databaseIds,
+            targetIds = reactiveTargetRow()$cohortId,
+            databaseIds = databaseIds()[databaseNames() %in% input$databaseNames],
             minThreshold = input$minThreshold
-          )
+          ))
           
-          names(plotResult$databaseId) <- plotResult$cdmSourceAbbreviation
+        }
+        }
+      })
           
+          
+          
+          #scatterplots
           output$plotInputs <- shiny::renderUI({
             shiny::div(
               shiny::fluidRow(
@@ -319,8 +313,8 @@ characterizationDatabaseComparisonServer <- function(
                               shinyWidgets::pickerInput(
                                 inputId = session$ns('xAxis'), 
                                 label = 'X-Axis Database: ',
-                                choices = unique(plotResult$cdmSourceAbbreviation),
-                                selected = unique(plotResult$cdmSourceAbbreviation)[1],
+                                choices = unique(plotResult()$cdmSourceAbbreviation),
+                                selected = unique(plotResult()$cdmSourceAbbreviation)[1],
                                 multiple = F,
                                 options = shinyWidgets::pickerOptions(
                                   actionsBox = TRUE,
@@ -337,8 +331,8 @@ characterizationDatabaseComparisonServer <- function(
                               shinyWidgets::pickerInput(
                                 inputId = session$ns('yAxis'), 
                                 label = 'Y-Axis Database: ',
-                                choices = unique(plotResult$cdmSourceAbbreviation),
-                                selected = unique(plotResult$cdmSourceAbbreviation)[2],
+                                choices = unique(plotResult()$cdmSourceAbbreviation),
+                                selected = unique(plotResult()$cdmSourceAbbreviation)[2],
                                 multiple = F,
                                 options = shinyWidgets::pickerOptions(
                                   actionsBox = TRUE,
@@ -364,18 +358,16 @@ characterizationDatabaseComparisonServer <- function(
             )
           })
           
-          #get results
-          selectedPlotDbs <- shiny::reactiveVal()
+          #plot when generate plot is pressed
           shiny::observeEvent(input$generatePlot,{
             
-            plotDf <- shiny::reactive({
-              
-              # Filter the plot result based on selected xAxis and yAxis inputs
-              plotResult2 <- plotResult %>%
+            # TODO add a check to make sure plotResult() has results
+            
+            plotDf <- plotResult() %>%
                 dplyr::filter(.data$cdmSourceAbbreviation %in% c(input$xAxis, input$yAxis))
               
               # Group and split the data by cdmSourceAbbreviation
-              plotResultDbSplit <- plotResult2 %>%
+              plotDf <- plotDf %>%
                 dplyr::group_by(.data$cdmSourceAbbreviation) %>%
                 dplyr::group_split()
               
@@ -383,11 +375,9 @@ characterizationDatabaseComparisonServer <- function(
               processedDfs <- list()
               
               # Loop over the split datasets and process each one
-              for (i in seq_along(plotResultDbSplit)) {
+              for (i in seq_along(plotDf)) {
                 
-                currentDb <- plotResultDbSplit[[i]]
-                
-                currentDbDf <- currentDb %>%
+                currentDbDf <- plotDf[[i]] %>%
                   dplyr::select("cdmSourceAbbreviation",
                                 "covariateName",
                                 "averageValue")
@@ -413,15 +403,15 @@ characterizationDatabaseComparisonServer <- function(
               # Check if there's at least one dataframe to join
               if (length(processedDfs) > 1) {
                 # Perform a left join across all processed dataframes
-                plotResultDbComb <- Reduce(function(x, y) dplyr::left_join(x, y, by = "covariateName"), processedDfs)
+                plotDf <- Reduce(function(x, y) dplyr::left_join(x, y, by = "covariateName"), processedDfs)
               } else {
                 # If there's only one dataframe, no need for joining
-                plotResultDbComb <- processedDfs[[1]]
+                plotDf <- processedDfs[[1]]
               }
               
               # Replace NA values with 0
-              plotResultDbComb[is.na(plotResultDbComb)] <- 0
-              plotResultDbComb <- plotResultDbComb %>%
+              plotDf[is.na(plotDf)] <- 0
+              plotDf <- plotDf %>%
                 #replace(is.na(.), 0) %>%
                 dplyr::mutate(domain = dplyr::case_when(
                   grepl("condition_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "condition" ~ "Condition",
@@ -434,20 +424,12 @@ characterizationDatabaseComparisonServer <- function(
                   grepl("visit_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "visit" ~ "Visit",
                   .default = "Demographic"
                 ))
-              
-              return(plotResultDbComb)
-              
-              
-              
-            })
           
           #plot
-          
-          shiny::observe({
-            output$scatterPlot <- plotly::renderPlotly({
+          output$scatterPlot <- plotly::renderPlotly({
               
               # Get the filtered and processed plot data
-              plotData <- plotDf()
+              plotData <- plotDf
               
               # Ensure that the reactive inputs are valid and accessible
               xAxisInput <- input$xAxis
@@ -496,17 +478,13 @@ characterizationDatabaseComparisonServer <- function(
               # Convert to a plotly object for interactivity
               plotly::ggplotly(p, tooltip = "text")  # Use the custom hover text
             })
-          })
           
           
-          })
+          }) # end generate plot observe event
           
-      })
-      
-    
       return(invisible(NULL))
       
-    })
+    }) #end server
   
 }
 

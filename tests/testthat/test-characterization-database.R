@@ -1,40 +1,27 @@
 context("characterization-database")
 
-options <- characterizationGetOptions(
+targetCohort <- OhdsiReportGenerator::getTargetTable(
   connectionHandler = connectionHandlerCharacterization,
-  resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-  includeAggregate = T,
-  includeIncidence = T
+  schema = resultDatabaseSettingsCharacterization$schema
 )
-parents <- characterizationGetParents(options)
-
 
 shiny::testServer(
   app = characterizationDatabaseComparisonServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-    options = options,
-    parents = parents,
-    parentIndex = shiny::reactive(1), # reactive
-    subTargetId = shiny::reactive(1) # reactive
+    reactiveTargetRow = shiny::reactive(
+      targetCohort[1,]
+    )
     ), 
   expr = {
     
-    testthat::expect_true(inherits(inputVals(), 'list'))
-    testthat::expect_true(length(inputVals()$databaseIds) > 0)
-    
-    inputTests <- characterizationGetCohortsInputs(
-      connectionHandler = connectionHandlerCharacterization,
-      resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-      targetId = shiny::reactive(3)
-    )
-    testthat::expect_true(inherits(inputTests, 'list'))
-    
+    testthat::expect_true(length(databaseIds()) > 0)
+    testthat::expect_true(length(databaseNames()) > 0)
     
     # set inputs
     session$setInputs(
-      databaseIds = inputVals()$databaseIds,
+      databaseNames = databaseNames()[1],
       minThreshold = 0.02
     )
 
@@ -48,7 +35,7 @@ shiny::testServer(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
       targetIds = c(1),
-      databaseIds = input$databaseIds,
+      databaseIds = databaseIds()[1],
       minThreshold = 0.02
     )
     testthat::expect_true(inherits(resultTable$table , 'data.frame'))
@@ -60,7 +47,7 @@ shiny::testServer(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
       targetIds = c(1),
-      databaseIds = input$databaseIds
+      databaseIds = databaseIds()[1]
     )
     testthat::expect_true(nrow(countTable) > 0)
     
@@ -69,7 +56,7 @@ shiny::testServer(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
       targetIds = c(1),
-      databaseIds = input$databaseIds,
+      databaseIds = databaseIds()[1],
       pivot = F
     )
     testthat::expect_true(nrow(continuousTable) > 0)

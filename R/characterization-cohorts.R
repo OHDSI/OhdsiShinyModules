@@ -35,7 +35,7 @@ characterizationCohortComparisonViewer <- function(id) {
       
       # displayed inputs
       shiny::conditionalPanel(
-        condition = "input.generate != 0",
+        condition = "output.showCohortComp != 0", 
         ns = ns,
         
         inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
@@ -80,58 +80,74 @@ characterizationCohortComparisonServer <- function(
     id,
     connectionHandler,
     resultDatabaseSettings,
-    options,
-    parents,
-    parentIndex, # reactive
-    subTargetId # reactive
+    targetTable,
+    reactiveTargetRow
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      inputVals <- shiny::reactive({characterizationGetCohortsInputs(
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings,
-        targetId = subTargetId
-      )})
+      
+      # initially do not show results
+      output$showCohortComp <- shiny::reactive(0)
+      shiny::outputOptions(output, "showCohortComp", suspendWhenHidden = FALSE)
+      
+      # if target or outcome changes hide results
+      shiny::observeEvent(reactiveTargetRow(), {
+        output$showCohortComp <- shiny::reactive(0)
+      })
+      
+      # get the databases that the target cohort has data in
+      databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseString, split = ', ')))
+      databaseIds <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseIdString, split = ', ')))
+      
+      # add the server for the comparator table select
+      reactiveComparatorRow <- tableSelectionServer(
+        id = 'comparator-selector', 
+        table = shiny::reactive(targetTable %>%
+                                  dplyr::filter(.data$cohortComparator == 1) %>%
+                                  dplyr::filter(.data$cohortId != reactiveTargetRow()$cohortId) %>%
+                                  dplyr::select("parentName", "cohortName", "cohortId")
+                                ), 
+        selectMultiple = FALSE, 
+        elementId = session$ns('comp-selector'),
+        inputColumns = list(
+          parentName = reactable::colDef(
+            name = 'Comparator', 
+            minWidth = 150
+          ),
+          cohortName = reactable::colDef(
+            name = 'Subset',
+            minWidth = 300
+          ),
+          cohortId = reactable::colDef(
+            show = TRUE,
+            name = 'Cohort ID'
+          )
+        ),
+        selectButtonText = 'Select Comparator'
+      )
+      
+      # hide results if reactiveComparatorRow changes
+      shiny::observeEvent(reactiveComparatorRow(),{
+        output$showCohortComp <- shiny::reactive(0)
+      })
       
       
       # initial comp chilren
-      comparatorOptions <- characterizationGetChildren(options, 1)
       output$inputs <- shiny::renderUI({
         
         shiny::div(
-          shinyWidgets::pickerInput(
-            inputId = session$ns('comparatorGroup'),
-            label = 'Comparator Group: ',
-            choices = parents,
-            selected = parents[1],
-            multiple = F,
-            options = shinyWidgets::pickerOptions(
-              actionsBox = TRUE,
-              liveSearch = TRUE,
-              size = 10,
-              liveSearchStyle = "contains",
-              liveSearchPlaceholder = "Type here to search",
-              #virtualScroll = 50,
-              #container = "div.tabbable",
-              dropupAuto = FALSE
-            )
-          ),
           
-          shiny::selectInput(
-            inputId = session$ns('comparatorId'),
-            label = 'Comparator: ',
-            choices = comparatorOptions,
-            selected = comparatorOptions[1],
-            multiple = F
-          ),
-        
+          tableSelectionViewer(
+            id = session$ns('comparator-selector')
+            ),
+          
         shinyWidgets::pickerInput(
-          inputId = session$ns('databaseId'),
+          inputId = session$ns('databaseName'),
           label = 'Database: ',
-          choices = inputVals()$databaseIds,
-          selected = inputVals()$databaseIds[1],
+          choices = databaseNames(),
+          selected = databaseNames(),
           multiple = F,
           options = shinyWidgets::pickerOptions(
             actionsBox = TRUE,
@@ -152,23 +168,6 @@ characterizationCohortComparisonServer <- function(
       
       })
       
-      # update comparatorId
-      comparatorGroups <- shiny::reactiveVal()
-      comparatorIndex <- shiny::reactiveVal(1)
-      shiny::observeEvent(input$comparatorGroup,{
-        comparatorIndex(which(input$comparatorGroup == parents))
-        result <- characterizationGetChildren(options, comparatorIndex())
-        comparatorGroups(result)
-        shiny::updateSelectInput(
-          session = session, 
-          inputId = 'comparatorId', 
-          label = 'Comparator: ',
-          choices = result,
-          selected = result[1]
-        )
-      })
-      
-  
       # show selected inputs to user
       inputSelectionDfServer(
         id = 'inputSelected', 
@@ -180,177 +179,143 @@ characterizationCohortComparisonServer <- function(
       selected <- shiny::reactiveVal()
       shiny::observeEvent(input$generate,{
         
-        targetGroups <- characterizationGetChildren(options, parentIndex())
         
-        runTables <- TRUE
-        
-        if(is.null(subTargetId()) | is.null(input$comparatorId)){
-          runTables <- FALSE
-        }
-        if(is.null(input$databaseId)){
-          runTables <- FALSE
-        }
-        
-        if(subTargetId() == input$comparatorId){
-          runTables <- FALSE
-          shiny::showNotification('Must select different cohorts')
-        }
-        
-        # ADDED
-        subTargetIds <- unlist(lapply(options[[parentIndex()]]$children, function(x){x$subsetId}))
-        subTargetNames <- unlist(lapply(options[[parentIndex()]]$children, function(x){x$subsetName}))
-        
-        selected(
-          data.frame(
-            Comparator = names(comparatorGroups())[which(comparatorGroups() == input$comparatorId)],
-            Database = names(inputVals()$databaseIds)[input$databaseId == inputVals()$databaseIds]
-          )
-        )
-        
-        selection1 <- subTargetId()
-
-        if(length(selection1) == 0){
-          runTables <- FALSE
-          shiny::showNotification('No results for section 1')
-        }
-        
-        selection2 <- input$comparatorId
- 
-        if(length(selection2) == 0){
-          runTables <- FALSE
-          shiny::showNotification('No results for section 2')
-        }
-
-        
-        if(runTables){
-          resultTable <- characterizatonGetCohortData(
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings,
-            targetIds = c(selection1,selection2),
-            databaseIds = input$databaseId,
-            minThreshold = 0.01,
-            addSMD = T
-          )
-          
-          countTable <- characterizatonGetCohortCounts(
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings,
-            targetIds = c(selection1,selection2),
-            databaseIds = input$databaseId
-          )
-        
-          continuousTable <- characterizatonGetCohortComparisonDataContinuous(
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings,
-            targetIds = c(selection1,selection2),
-            databaseIds = input$databaseId
-          )
-          
-          resultTableServer(
-            id = 'mainTable',
-            df = resultTable,
-            details = data.frame(
-              Target = names(targetGroups)[which(targetGroups == subTargetId())],
-              Comparator = names(comparatorGroups())[which(comparatorGroups() == input$comparatorId)],
-              Database = names(inputVals()$databaseIds)[input$databaseId == inputVals()$databaseIds],
-              Analysis = 'Cohort comparison within database'
-            ),
-            downloadedFileName = 'cohort_comparison_binary',
-            colDefsInput = characterizationCohortsColumns(
-              addExtras = T,
-              elementId = session$ns('main-table-filter')
-            ), 
-            elementId = session$ns('main-table-filter')
-          ) 
-          
-          resultTableServer(
-            id = 'continuousTable',
-            df = continuousTable,
-            details = data.frame(
-              Target = names(targetGroups)[which(targetGroups == subTargetId())],
-              Comparator = names(comparatorGroups())[which(comparatorGroups() == input$comparatorId)],
-              Database = names(inputVals()$databaseIds)[input$databaseId == inputVals()$databaseIds],
-              Analysis = 'Cohort comparison within database'
-            ),
-            downloadedFileName = 'cohort_comparison_cont',
-            colDefsInput = characterizationCohortsColumnsContinuous(
-              addExtras = T,
-              elementId = session$ns('continuous-table-filter')
+        # TODO update logic for running 
+        if(is.null(reactiveComparatorRow()) | is.null(reactiveTargetRow())){
+          output$showCohortComp <- shiny::reactive(0)
+          shiny::showNotification('Must select a comparison')
+        } else{
+          if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveComparatorRow()) > 0){
+            
+            output$showCohortComp <- shiny::reactive(1)
+            
+            selected(
+              data.frame(
+                Target = reactiveTargetRow()$cohortName,
+                Comparator = reactiveComparatorRow()$cohortName,
+                Database = input$databaseName
+              )
+            )
+            
+            resultTable <- characterizatonGetCohortData(
+              connectionHandler = connectionHandler,
+              resultDatabaseSettings = resultDatabaseSettings,
+              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow()$cohortId),
+              databaseIds = databaseIds()[databaseNames() == input$databaseName],
+              minThreshold = 0.01,
+              addSMD = T
+            )
+            
+            countTable <- characterizatonGetCohortCounts(
+              connectionHandler = connectionHandler,
+              resultDatabaseSettings = resultDatabaseSettings,
+              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow()$cohortId),
+              databaseIds = databaseIds()[databaseNames() == input$databaseName]
+            )
+            
+            continuousTable <- characterizatonGetCohortComparisonDataContinuous(
+              connectionHandler = connectionHandler,
+              resultDatabaseSettings = resultDatabaseSettings,
+              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow()$cohortId),
+              databaseIds = databaseIds()[databaseNames() == input$databaseName]
+            )
+            
+            resultTableServer(
+              id = 'mainTable',
+              df = resultTable,
+              details = data.frame(
+                Target = reactiveTargetRow()$cohortName,
+                Comparator = reactiveComparatorRow()$cohortName,
+                Database = input$databaseName,
+                Analysis = 'Cohort comparison within database'
               ),
-            elementId = session$ns('continuous-table-filter')
-          ) 
-          
-          resultTableServer(
-            id = 'countTable',
-            df = countTable,
-            details = data.frame(
-              Target = names(targetGroups)[which(targetGroups == subTargetId())],
-              Comparator = names(comparatorGroups())[which(comparatorGroups() == input$comparatorId)],
-              Database = names(inputVals()$databaseIds)[input$databaseId == inputVals()$databaseIds],
-              Analysis = 'Cohort comparison within database'
-            ),
-            downloadedFileName = 'cohort_comparison_count',
-            colDefsInput = characteriationCountTableColDefs(
+              downloadedFileName = 'cohort_comparison_binary',
+              colDefsInput = characterizationCohortsColumns(
+                addExtras = T,
+                elementId = session$ns('main-table-filter')
+              ), 
+              elementId = session$ns('main-table-filter')
+            ) 
+            
+            resultTableServer(
+              id = 'continuousTable',
+              df = continuousTable,
+              details = data.frame(
+                Target = reactiveTargetRow()$cohortName,
+                Comparator = reactiveComparatorRow()$cohortName,
+                Database = input$databaseName,
+                Analysis = 'Cohort comparison within database'
+              ),
+              downloadedFileName = 'cohort_comparison_cont',
+              colDefsInput = characterizationCohortsColumnsContinuous(
+                addExtras = T,
+                elementId = session$ns('continuous-table-filter')
+              ),
+              elementId = session$ns('continuous-table-filter')
+            ) 
+            
+            resultTableServer(
+              id = 'countTable',
+              df = countTable,
+              details = data.frame(
+                Target = reactiveTargetRow()$cohortName,
+                Comparator = reactiveComparatorRow()$cohortName,
+                Database = input$databaseName,
+                Analysis = 'Cohort comparison within database'
+              ),
+              downloadedFileName = 'cohort_comparison_count',
+              colDefsInput = characteriationCountTableColDefs(
+                elementId = session$ns('count-table-filter')
+              ),
               elementId = session$ns('count-table-filter')
-            ),
-            elementId = session$ns('count-table-filter')
-          )
-          
-        }
-        
-        #scatterplots
-        
-        plotDf <- shiny::reactive({
-          
-          # Get the filtered and processed plot data
-          resultTable[is.na(resultTable)] <- 0
-          plotData <- resultTable %>%
-            #replace(is.na(.), 0) %>%
-            dplyr::mutate(domain = dplyr::case_when(
-              grepl("condition_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "condition" ~ "Condition",
-              grepl("drug_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "drug" ~ "Drug",
-              grepl("procedure_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "procedure" ~ "Procedure",
-              grepl("measurement_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "measurement" ~ "Measurement",
-              grepl("observation_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "observation" ~ "Observation",
-              grepl("device_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "device" ~ "Device",
-              grepl("cohort_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "cohort" ~ "Cohort",
-              grepl("visit_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "visit" ~ "Visit",
-              .default = "Demographic"
-            ))
-          
-          # Create hover text for plotly
-          plotData$hoverText <- paste(
-            "Covariate Name:", plotData$covariateName, 
-            "<br>", "Target", ":", scales::percent(plotData$averageValue_1), 
-            "<br>", "Comparator", ":", scales::percent(plotData$averageValue_2)
-          )
-          
-          #removing negatives, which come from "< min threshold"
-          plotData$averageValue_1[plotData$averageValue_1 < 0] <- 0
-          plotData$averageValue_2[plotData$averageValue_2 < 0] <- 0
-          
-          return(plotData)
-          
-        })
-          
-         shiny::observe({
+            )
+            
+            
+            # clean plot data
+            if(nrow(resultTable) > 0){
+              plotDf <- resultTable
+              if(sum(is.na(plotDf)) > 0){
+                plotDf <- plotDf[is.na(plotDf)] <- 0
+              }
+            plotDf <- plotDf %>%
+              dplyr::mutate(domain = dplyr::case_when(
+                grepl("condition_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "condition" ~ "Condition",
+                grepl("drug_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "drug" ~ "Drug",
+                grepl("procedure_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "procedure" ~ "Procedure",
+                grepl("measurement_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "measurement" ~ "Measurement",
+                grepl("observation_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "observation" ~ "Observation",
+                grepl("device_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "device" ~ "Device",
+                grepl("cohort_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "cohort" ~ "Cohort",
+                grepl("visit_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "visit" ~ "Visit",
+                .default = "Demographic"
+              ))
+            
+            # Create hover text for plotly
+            plotDf$hoverText <- paste(
+              "Covariate Name:", plotDf$covariateName, 
+              "<br>", "Target", ":", scales::percent(plotDf$averageValue_1), 
+              "<br>", "Comparator", ":", scales::percent(plotDf$averageValue_2)
+            )
+            
+            #removing negatives, which come from "< min threshold"
+            plotDf$averageValue_1[plotDf$averageValue_1 < 0] <- 0
+            plotDf$averageValue_2[plotDf$averageValue_2 < 0] <- 0
+            
             output$scatterPlot <- plotly::renderPlotly({
               
-              plotData <- plotDf()
-
               # Create the scatter plot with the diagonal line (x = y)
-              p <- ggplot2::ggplot(plotData, ggplot2::aes(       x = .data$averageValue_1,
-                                                                 y = .data$averageValue_2,
-                                                                 color = .data$domain,
-                                                                 text = .data$hoverText)) +  # Use hoverText for hover labels
+              p <- ggplot2::ggplot(plotDf, ggplot2::aes(       x = .data$averageValue_1,
+                                                               y = .data$averageValue_2,
+                                                               color = .data$domain,
+                                                               text = .data$hoverText)) +  # Use hoverText for hover labels
                 ggplot2::geom_point(size = 2) +    # Smaller point size
                 ggplot2::geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +  # Diagonal x=y line in black
                 ggplot2::labs(
                   x = paste0("Target", " %"),
                   y = paste0("Comparator", " %"),
                   color = "Domain",
-                  title = paste0("Database: ", names(inputVals()$databaseIds)[input$databaseId == inputVals()$databaseIds])
-                ) +
+                  title = paste0("Database: ", input$databaseName)
+                  ) +
                 ggplot2::theme_minimal() +          # Optional: use a clean theme
                 ggplot2::theme(
                   plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
@@ -364,12 +329,16 @@ characterizationCohortComparisonServer <- function(
               # Convert to a plotly object for interactivity
               plotly::ggplotly(p, tooltip = "text")  # Use the custom hover text
             })
-          })
+            } # if nrow >0
+            
+          } else{
+            shiny::showNotification('Must select a comparison and target cohort')
+            output$showCohortComp <- shiny::reactive(0)
+          }
+        }
         
       })
       
-      
-
       return(invisible(NULL))
       
     })
@@ -1067,95 +1036,3 @@ characterizatonGetCohortComparisonDataContinuous <- function(
   return(res)
 }
 
-
-characterizationGetCohortsInputs <- function(
-    connectionHandler,
-    resultDatabaseSettings,
-    targetId # reactive
-) {
-  
-  sql <- "select distinct 
-  d.database_id, d.cdm_source_abbreviation as database_name
-  from @schema.@database_table d
-  
-  inner join 
-  @schema.@c_table_prefixcohort_details cd
-  on d.database_id = cd.database_id
-  where cd.target_cohort_id = @target_id
-  and cd.cohort_type = 'Target'
-  ;"
-  
-  database <- connectionHandler$queryDb(
-    sql = sql,
-    schema = resultDatabaseSettings$schema,
-    database_table = resultDatabaseSettings$databaseTable,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    target_id = targetId()
-  )
-  databaseIds <- database$databaseId
-  names(databaseIds) <- database$databaseName
-  
-  return(
-    list(
-      databaseIds = databaseIds
-    )
-  )
-}
-
-characterizationGetCohortComparisonDataRaw <- function(
-    connectionHandler,
-    resultDatabaseSettings,
-    targetIds,
-    databaseIds,
-    minThreshold = 0.01,
-    addSMD = F
-){
-  
-  if(is.null(targetIds) |  is.null(databaseIds)){
-    warning('Ids cannot be NULL')
-    return(NULL)
-  }
-  
-  sql <- "select  d.cdm_source_abbreviation,
-          ref.covariate_name, 
-          s.min_prior_observation,
-          cov.target_cohort_id as cohort_definition_id,
-          cg.cohort_name,
-          cov.* from   
-    @schema.@c_table_prefixCOVARIATES cov 
-    inner join 
-    @schema.@c_table_prefixcovariate_ref ref
-    on cov.covariate_id = ref.covariate_id
-    and cov.setting_id = ref.setting_id
-    and cov.database_id = ref.database_id
-    inner join 
-    @schema.@c_table_prefixsettings s
-    on s.database_id = cov.database_id
-    and s.setting_id = cov.setting_id
-    inner join 
-    @schema.@database_table d
-    on cov.database_id = d.database_id
-    inner join
-    @schema.@cg_table_prefixcohort_definition cg
-    on cov.target_cohort_id = cg.cohort_definition_id
-    
-    where 
-    cov.target_cohort_id in (@target_ids) 
-    and cov.cohort_type = 'Target'
-    AND cov.database_id in (@database_ids)
-    AND cov.average_value >= @min_threshold;"
-  
-  # settings.min_characterization_mean needed?
-  res <- connectionHandler$queryDb(
-    sql = sql,
-    target_ids = paste0(targetIds, collapse = ','),
-    database_ids = paste0("'",databaseIds,"'", collapse = ','),
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    min_threshold = minThreshold,
-    database_table = resultDatabaseSettings$databaseTable,
-    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
-  )
-  
-  return(res)
-}

@@ -1,29 +1,32 @@
 context("characterization-incidence")
 
-options <- characterizationGetOptions(
+targetCohort <- OhdsiReportGenerator::getTargetTable(
   connectionHandler = connectionHandlerCharacterization,
-  resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-  includeAggregate = T,
-  includeIncidence = T
+  schema = resultDatabaseSettingsCharacterization$schema, 
+  ciTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix
 )
-parents <- characterizationGetParents(options)
+
+outcomeCohort <- OhdsiReportGenerator::getOutcomeTable(
+  connectionHandler = connectionHandlerCharacterization,
+  schema = resultDatabaseSettingsCharacterization$schema, 
+  targetId = targetCohort$cohortId[2],
+  ciTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix
+)
+
 
 shiny::testServer(
   app = characterizationIncidenceServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-    parents = parents,
-    parentIndex = shiny::reactive(1), # reactive
-    outcomes = shiny::reactive(3), # reactive
-    targetIds = shiny::reactive(1) # reactive
+    reactiveTargetRow = shiny::reactive(targetCohort[1,]), 
+    outcomeTable = shiny::reactive(outcomeCohort)
   ), 
   expr = {
     
     # check input$generate does not crash app
     # need to test generate in ns("input-selection")
     session$setInputs(
-      outcomeIds = outcomes()[1],
       databaseSelector = ciOptions$databases,
       ageIds = c(1),#ciOptions$ages,
       sexIds = ciOptions$sex,
@@ -31,6 +34,9 @@ shiny::testServer(
       tars = ciOptions$sortedTars[1]
       )
     
+    # set the reactiveOutcomeRows to the first outcome
+    reactiveOutcomeRows(outcomeTable()[1,])
+
     # before generation the reactives should be NULL
     testthat::expect_true(is.null(incidenceRateTarFilter()))
     testthat::expect_true(is.null(incidenceRateCalendarFilter()))
@@ -49,15 +55,16 @@ shiny::testServer(
     testthat::expect_true(!is.null(incidenceRateDbFilter()))
     testthat::expect_true(!is.null(outcomeIds()))
     
-    testthat::expect_true(outcomeIds() == outcomes()[1])
+    # after generating test outcomes set 
+    testthat::expect_true(outcomeIds() == reactiveOutcomeRows()$cohortId)
     
     # should have results after generate
     testthat::expect_true(!is.null(extractedData())) # fails
     
     
     idata <- getIncidenceData(
-      targetIds = targetIds(),
-      outcomeIds = outcomes()[1],
+      targetIds = reactiveTargetRow()$cohortId,
+      outcomeIds = outcomeTable()$cohortId,
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings
     )
@@ -65,7 +72,7 @@ shiny::testServer(
     
     idata <- getIncidenceData(
       targetIds = NULL,
-      outcomeIds = outcomes()[1],
+      outcomeIds = outcomeTable()$cohortId,
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings
     )

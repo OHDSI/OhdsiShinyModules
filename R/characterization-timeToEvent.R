@@ -21,32 +21,41 @@ characterizationTimeToEventViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    shiny::tabsetPanel(
-      type = 'pills',
-      id = ns('tteMainPanel'),
-      
-      shiny::tabPanel(
-        title = "Time-to-event Plots",
-  
-      shinydashboard::box(
-        width = "100%",
-        title = "",
-        
-        shiny::uiOutput(ns('timeToEventPlotInputs')),
-        shinycssloaders::withSpinner(
-          shiny::plotOutput(ns('timeToEvent'))
-          )
-        )
-      ),
+    shiny::helpText('View the timing of all outcomes relative to the target index date and whether the outcome was the frist or subsequent.'),
+    shiny::actionButton(inputId = ns('generate'), label = 'Generate'),
     
-    shiny::tabPanel(
-      title = "Time-to-event Table",
-      
-      shinydashboard::box(
-        status = 'info', 
-        width = '100%',
-        solidHeader = TRUE,
-        resultTableViewer(ns('tableResults'))
+    # TODO: add database selection here?
+    
+    shiny::conditionalPanel(
+      condition = 'output.showTimeToEvent != 0', 
+      ns = ns,
+      shiny::tabsetPanel(
+        type = 'pills',
+        id = ns('tteMainPanel'),
+        
+        shiny::tabPanel(
+          title = "Time-to-event Plots",
+          
+          shinydashboard::box(
+            width = "100%",
+            title = "",
+            
+            shiny::uiOutput(ns('timeToEventPlotInputs')),
+            shinycssloaders::withSpinner(
+              shiny::plotOutput(ns('timeToEvent'))
+            )
+          )
+        ),
+        
+        shiny::tabPanel(
+          title = "Time-to-event Table",
+          
+          shinydashboard::box(
+            status = 'info', 
+            width = '100%',
+            solidHeader = TRUE,
+            resultTableViewer(ns('tableResults'))
+          )
         )
       )
     )
@@ -58,111 +67,66 @@ characterizationTimeToEventServer <- function(
   id, 
   connectionHandler,
   resultDatabaseSettings,
-  targetId,
-  outcomeId
+  reactiveTargetRow,
+  reactiveOutcomeRow
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      options <- shiny::reactive({
-        characterizationGetCaseSeriesOptions(
-          connectionHandler = connectionHandler,
-          resultDatabaseSettings = resultDatabaseSettings,
-          targetId = targetId(),
-          outcomeId = outcomeId()
-        )
+      output$showTimeToEvent <- shiny::reactive(0)
+      shiny::outputOptions(output, "showTimeToEvent", suspendWhenHidden = FALSE)
+      allData <- shiny::reactiveVal(NULL)
+      
+      # if target or outcome changes hide results
+      shiny::observeEvent(reactiveTargetRow(), {
+        output$showTimeToEvent <- shiny::reactive(0)
+      })
+      shiny::observeEvent(reactiveOutcomeRow(), {
+        output$showTimeToEvent <- shiny::reactive(0)
       })
       
-      allData <- shiny::reactive({
-        getTimeToEventData(
-          targetId = targetId(),
-          outcomeId = outcomeId(),
-          connectionHandler = connectionHandler,
-          resultDatabaseSettings = resultDatabaseSettings
-        ) %>%
-          dplyr::mutate(targetName = options()$targetName,
-                        outcomeName = options()$outcomeName) %>%
-          dplyr::relocate("databaseName", .before = "databaseId") %>%
-          dplyr::relocate("targetName", .after = "databaseName") %>%
-          dplyr::relocate("outcomeName", .after = "targetName")
-      })
-        
-      
-      characterizationTimeToEventColDefs <- function(){
-        result <- list(
-          databaseName = reactable::colDef(
-            header = withTooltip("Database",
-                                 "Name of the database"),
-            filterable = T
-          ),
-          databaseId = reactable::colDef(
-            header = withTooltip("Database ID",
-                                 "Unique ID of the database"),
-            filterable = T,
-            show = F
-          ),
-          targetCohortDefinitionId = reactable::colDef(
-            header = withTooltip("Target ID",
-                                 "Unique ID of the target cohort"),
-            filterable = T,
-            show = F
-          ),
-          targetName = reactable::colDef(
-            header = withTooltip("Target Name",
-                                 "Name of the target cohort"),
-            filterable = T
-          ),
-          outcomeCohortDefinitionId = reactable::colDef(
-            header = withTooltip("Outcome ID",
-                                 "Unique ID of the outcome cohort"),
-            filterable = T,
-            show = F
-          ),
-          outcomeName = reactable::colDef(
-            header = withTooltip("Outcome Name",
-                                 "Name of the outcome cohort"),
-            filterable = T
-          ),
-          outcomeType = reactable::colDef(
-            header = withTooltip("Outcome Type",
-                                 "Type of the outcome, either first or subsequent occurrence"),
-            filterable = T
-          ),
-          targetOutcomeType = reactable::colDef(
-            header = withTooltip("Target-Outcome Type",
-                                 "The timing of the event relative to the target era"),
-            filterable = T
-          ),
-          timeToEvent = reactable::colDef(
-            header = withTooltip("Time (in days) To Event",
-                                 "The time in days relative to target index until the event occurred"),
-            filterable = T
-          ),
-          numEvents = reactable::colDef(
-            header = withTooltip("# of Events",
-                                 "The number of events that occurred"),
-            filterable = T,
-            cell = function(value) {
-              # Add < if cencored
-              if (value < 0 ) paste("<", abs(value)) else value
-            }
-          ),
-          timeScale = reactable::colDef(
-            header = withTooltip("Time Scale",
-                                 "The time scale in which the events occurred"),
-            filterable = T
-          )
-        )
-        return(result)
+      # wait for generate to extract data
+      shiny::observeEvent(input$generate, {
+
+        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow())){
+          output$showTimeToEvent <- shiny::reactive(0)
+          allData(NULL)
+          return(NULL)
+        } else{
+          
+          if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveOutcomeRow()) > 0 ){
+            
+            # add code to show T and O selected 
+            
+            output$showTimeToEvent <- shiny::reactive(1)
+            
+            allData(getTimeToEventData(
+              targetId = reactiveTargetRow()$cohortId,
+              outcomeId = reactiveOutcomeRow()$cohortId,
+              connectionHandler = connectionHandler,
+              resultDatabaseSettings = resultDatabaseSettings
+            ) %>%
+              dplyr::mutate(targetName = reactiveTargetRow()$cohortName,
+                            outcomeName = reactiveOutcomeRow()$cohortName) %>%
+              dplyr::relocate("databaseName", .before = "databaseId") %>%
+              dplyr::relocate("targetName", .after = "databaseName") %>%
+              dplyr::relocate("outcomeName", .after = "targetName")
+            )
+          } else{
+            shiny::showNotification('Must have target and outcome set')
+          }
+        }
       }
+      )
+      
       
       tableOutputs <- resultTableServer(
         id = "tableResults", 
         df = allData,
         details = data.frame(
-          target = options()$targetName,
-          outcome = options()$outcomeName,
+          target = reactiveTargetRow()$cohortName,
+          outcome = reactiveOutcomeRow()$cohortName,
           Analysis = 'Exposed Cases Summary - Time-to-event'
         ),
         downloadedFileName = 'time_to_event',
@@ -366,4 +330,73 @@ plotTimeToEvent <- function(
   
   
     return(plot)
+}
+
+
+characterizationTimeToEventColDefs <- function(){
+  result <- list(
+    databaseName = reactable::colDef(
+      header = withTooltip("Database",
+                           "Name of the database"),
+      filterable = T
+    ),
+    databaseId = reactable::colDef(
+      header = withTooltip("Database ID",
+                           "Unique ID of the database"),
+      filterable = T,
+      show = F
+    ),
+    targetCohortDefinitionId = reactable::colDef(
+      header = withTooltip("Target ID",
+                           "Unique ID of the target cohort"),
+      filterable = T,
+      show = F
+    ),
+    targetName = reactable::colDef(
+      header = withTooltip("Target Name",
+                           "Name of the target cohort"),
+      filterable = T
+    ),
+    outcomeCohortDefinitionId = reactable::colDef(
+      header = withTooltip("Outcome ID",
+                           "Unique ID of the outcome cohort"),
+      filterable = T,
+      show = F
+    ),
+    outcomeName = reactable::colDef(
+      header = withTooltip("Outcome Name",
+                           "Name of the outcome cohort"),
+      filterable = T
+    ),
+    outcomeType = reactable::colDef(
+      header = withTooltip("Outcome Type",
+                           "Type of the outcome, either first or subsequent occurrence"),
+      filterable = T
+    ),
+    targetOutcomeType = reactable::colDef(
+      header = withTooltip("Target-Outcome Type",
+                           "The timing of the event relative to the target era"),
+      filterable = T
+    ),
+    timeToEvent = reactable::colDef(
+      header = withTooltip("Time (in days) To Event",
+                           "The time in days relative to target index until the event occurred"),
+      filterable = T
+    ),
+    numEvents = reactable::colDef(
+      header = withTooltip("# of Events",
+                           "The number of events that occurred"),
+      filterable = T,
+      cell = function(value) {
+        # Add < if cencored
+        if (value < 0 ) paste("<", abs(value)) else value
+      }
+    ),
+    timeScale = reactable::colDef(
+      header = withTooltip("Time Scale",
+                           "The time scale in which the events occurred"),
+      filterable = T
+    )
+  )
+  return(result)
 }

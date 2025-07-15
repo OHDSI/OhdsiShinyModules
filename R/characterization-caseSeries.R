@@ -27,7 +27,7 @@ characterizationCaseSeriesViewer <- function(id) {
     shiny::uiOutput(ns("inputs")),
     
     shiny::conditionalPanel(
-      condition = 'input.generate != 0',
+      condition = 'output.showCaseSeries != 0',
       ns = ns,
       
       inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
@@ -54,31 +54,38 @@ characterizationCaseSeriesServer <- function(
     id, 
     connectionHandler,
     resultDatabaseSettings,
-    targetId, #reactive 
-    outcomeId  #reactive 
+    reactiveTargetRow,
+    reactiveOutcomeRow,
+    reactiveOutcomeTar
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      # get databases
-      options <- shiny::reactive({
-        characterizationGetCaseSeriesOptions(
-          connectionHandler = connectionHandler,
-          resultDatabaseSettings = resultDatabaseSettings,
-          targetId = targetId(),
-          outcomeId = outcomeId()
-        )
+      output$showCaseSeries <- shiny::reactive(0)
+      shiny::outputOptions(output, "showCaseSeries", suspendWhenHidden = FALSE)
+      
+      # if target or outcome changes hide results
+      shiny::observeEvent(reactiveTargetRow(), {
+        output$showCaseSeries <- shiny::reactive(0)
       })
+      shiny::observeEvent(reactiveOutcomeRow(), {
+        output$showCaseSeries <- shiny::reactive(0)
+      })
+      
+      # get databases
+      databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseString, split = ', ')))
+      databaseIds <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseIdString, split = ', ')))
+      
       
       output$inputs <- shiny::renderUI({ # need to make reactive?
         
         shiny::div(
           shinyWidgets::pickerInput(
-            inputId = session$ns('databaseId'),
+            inputId = session$ns('databaseName'),
             label = 'Database: ',
-            choices = options()$databaseIds,
-            selected = options()$databaseIds[1],
+            choices = databaseNames(),
+            selected = databaseNames()[1],
             multiple = F,
             options = shinyWidgets::pickerOptions(
               actionsBox = TRUE,
@@ -94,8 +101,8 @@ characterizationCaseSeriesServer <- function(
           shinyWidgets::pickerInput(
             inputId = session$ns('tarInd'),
             label = 'Time-at-risk: ',
-            choices = options()$tarInds,
-            selected = options()$tarInds[1],
+            choices = reactiveOutcomeTar()$tarInds,
+            selected = reactiveOutcomeTar()$tarInds[1],
             multiple = F,
             options = shinyWidgets::pickerOptions(
               actionsBox = TRUE,
@@ -121,61 +128,78 @@ characterizationCaseSeriesServer <- function(
       
       shiny::observeEvent(input$generate, {
         
-        selected(data.frame(
-          database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
-          time_at_risk = names(options()$tarInds)[which(input$tarInd == options()$tarInds)]
-        ))
-        
-        inputSelectionDfServer(
-          id = 'inputSelected', 
-          dataFrameRow = selected,
-          ncol = 1
-        )
-        
-        allData <- characterizationGetCaseSeriesData(
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings,
-            targetId = targetId(),
-            outcomeId = outcomeId(),
-            databaseId = input$databaseId,
-            tar = options()$tarList[[which(options()$tarInds == input$tarInd)]]
-          )
-        
-        binTableOutputs <- resultTableServer(
-          id = "binaryTable", 
-          df = allData$binary, 
-          details = data.frame(
-            database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
-            tar = names(options()$tarInds)[which(input$tarInd == options()$tarInds)],
-            target = options()$targetName,
-            outcome = options()$outcomeName,
-            description = "Case series binary features before target index, during exposure and after outcome index"
-          ),
-          downloadedFileName = 'case_series_binary',
-          colDefsInput = colDefsBinary(
-            elementId = session$ns('binary-table-filter')
-          ), # function below
-          addActions = NULL,
-          elementId = session$ns('binary-table-filter')
-        )
-        
-        conTableOutputs <- resultTableServer(
-          id = "continuousTable", 
-          df = allData$continuous,
-          details = data.frame(
-            database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
-            tar = names(options()$tarInds)[which(input$tarInd == options()$tarInds)],
-            target = options()$targetName,
-            outcome = options()$outcomeName,
-            description = "Case series continuous features before target index, during exposure and after outcome index"
-          ),
-          downloadedFileName = 'case_series_continuous',
-          colDefsInput = colDefsContinuous(
-            elementId = session$ns('continuous-table-filter')
-          ), # function below
-          addActions = NULL,
-          elementId = session$ns('continuous-table-filter')
-        )
+        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow()) |
+           is.null(reactiveOutcomeTar()$tarList[[1]]) | is.null(input$databaseName)){
+          
+          output$showCaseSeries  <- shiny::reactive(0)
+          shiny::showNotification('Need to set all inputs')
+        } else{
+          
+          if(nrow(reactiveTargetRow()) == 0 | nrow(reactiveOutcomeRow()) == 0){
+            output$showCaseSeries  <- shiny::reactive(0)
+            shiny::showNotification('Need to pick a target and outcome')
+          } else{
+            
+            output$showCaseSeries  <- shiny::reactive(1)
+            
+            selected(data.frame( #TODO add outcome and target here
+              database = input$databaseName,
+              time_at_risk = names(reactiveOutcomeTar()$tarInds)[which(input$tarInd == reactiveOutcomeTar()$tarInds)]
+            ))
+            
+            inputSelectionDfServer(
+              id = 'inputSelected', 
+              dataFrameRow = selected,
+              ncol = 1
+            )
+            
+            allData <- characterizationGetCaseSeriesData(
+              connectionHandler = connectionHandler,
+              resultDatabaseSettings = resultDatabaseSettings,
+              targetId = reactiveTargetRow()$cohortId,
+              outcomeId = reactiveOutcomeRow()$cohortId,
+              databaseId = databaseIds()[input$databaseName == databaseNames()],
+              tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
+            )
+            
+            binTableOutputs <- resultTableServer(
+              id = "binaryTable", 
+              df = allData$binary, 
+              details = data.frame(
+                Database = input$databaseName,
+                TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
+                target = reactiveTargetRow()$cohortName,
+                outcome = reactiveOutcomeRow()$cohortName,
+                description = "Case series binary features before target index, during exposure and after outcome index"
+              ),
+              downloadedFileName = 'case_series_binary',
+              colDefsInput = colDefsBinary(
+                elementId = session$ns('binary-table-filter')
+              ), # function below
+              addActions = NULL,
+              elementId = session$ns('binary-table-filter')
+            )
+            
+            conTableOutputs <- resultTableServer(
+              id = "continuousTable", 
+              df = allData$continuous,
+              details = data.frame(
+                Database = input$databaseName,
+                TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
+                target = reactiveTargetRow()$cohortName,
+                outcome = reactiveOutcomeRow()$cohortName,
+                description = "Case series continuous features before target index, during exposure and after outcome index"
+              ),
+              downloadedFileName = 'case_series_continuous',
+              colDefsInput = colDefsContinuous(
+                elementId = session$ns('continuous-table-filter')
+              ), # function below
+              addActions = NULL,
+              elementId = session$ns('continuous-table-filter')
+            )
+            
+          }
+        }
         
       })
    
@@ -185,41 +209,26 @@ characterizationCaseSeriesServer <- function(
 }
 
 
-characterizationGetCaseSeriesOptions <- function(
+characterizationGetCaseSeriesTars <- function(
   connectionHandler,
   resultDatabaseSettings,
   targetId,
   outcomeId
 ){
   
-  sql <- "SELECT distinct s.database_id, d.CDM_SOURCE_ABBREVIATION as database_name,
+  sql <- "SELECT distinct
           s.setting_id, 
           s.RISK_WINDOW_START,	s.RISK_WINDOW_END,	
-          s.START_ANCHOR, s.END_ANCHOR,
-          ct1.cohort_name as target_name,
-          ct2.cohort_name as outcome_name
+          s.START_ANCHOR, s.END_ANCHOR
           
           from
           @schema.@c_table_prefixsettings s
-          inner join @schema.@database_meta_table d 
-          on s.database_id = d.database_id
           inner join @schema.@c_table_prefixcohort_details cd
           on s.setting_id = cd.setting_id
           and s.database_id = cd.database_id
           and cd.target_cohort_id = @target_id
           and cd.outcome_cohort_id = @outcome_id
           and cd.cohort_type = 'Cases'
-          
-          inner join
-          @schema.@cg_table_prefixcohort_definition ct1
-          on 
-          ct1.cohort_definition_id = cd.target_cohort_id
-          
-          inner join
-          @schema.@cg_table_prefixcohort_definition ct2
-          on 
-          ct2.cohort_definition_id = cd.outcome_cohort_id
-          
           
   ;"
   
@@ -228,20 +237,12 @@ characterizationGetCaseSeriesOptions <- function(
     schema = resultDatabaseSettings$schema,
     c_table_prefix = resultDatabaseSettings$cTablePrefix,
     target_id = targetId,
-    outcome_id = outcomeId,
-    database_meta_table = resultDatabaseSettings$databaseTable,
-    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
+    outcome_id = outcomeId
   )
   
-  outcomeName <- unique(options$outcomeName)
-  targetName <- unique(options$targetName)
-  
-  db <- unique(options$databaseId)
-  names(db) <- unique(options$databaseName)
-  
+
   tar <- unique(options[,c('startAnchor','riskWindowStart', 'endAnchor', 'riskWindowEnd')])
   tarList <- lapply(1:nrow(tar), function(i) as.list(tar[i,]))
-  #tar <- unique(options$settingId)
   tarInds <- 1:nrow(tar)
   names(tarInds) <- unique(paste0('(', tar$startAnchor, ' + ', tar$riskWindowStart, ') - (', 
                        tar$endAnchor, ' + ', tar$riskWindowEnd, ')'
@@ -249,11 +250,8 @@ characterizationGetCaseSeriesOptions <- function(
   
   return(
     list(
-      databaseIds = db,
       tarInds = tarInds,
-      tarList = tarList,
-      outcomeName = outcomeName,
-      targetName = targetName
+      tarList = tarList
     )
   )
   

@@ -27,7 +27,7 @@ characterizationRiskFactorViewer <- function(id) {
     shiny::uiOutput(ns("inputs")),
     
     shiny::conditionalPanel(
-      condition = 'input.generate != 0',
+      condition = 'output.showRiskFactors != 0',
       ns = ns,
       
       inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
@@ -62,39 +62,45 @@ characterizationRiskFactorServer <- function(
     id, 
     connectionHandler,
     resultDatabaseSettings,
-    targetId, #reactive 
-    outcomeId  #reactive 
+    reactiveTargetRow,
+    reactiveOutcomeRow,
+    reactiveOutcomeTar
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      # get databases
-      options <- shiny::reactive({
-        characterizationGetCaseSeriesOptions(
-          connectionHandler = connectionHandler,
-          resultDatabaseSettings = resultDatabaseSettings,
-          targetId = targetId(),
-          outcomeId = outcomeId()
-        )
+      output$showRiskFactors <- shiny::reactive(0)
+      shiny::outputOptions(output, "showRiskFactors", suspendWhenHidden = FALSE)
+      
+      # if target or outcome changes hide results
+      shiny::observeEvent(reactiveTargetRow(), {
+        output$showRiskFactors <- shiny::reactive(0)
+      })
+      shiny::observeEvent(reactiveOutcomeRow(), {
+        output$showRiskFactors <- shiny::reactive(0)
       })
       
+      # get databases
+      databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseString, split = ', ')))
+      databaseIds <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseIdString, split = ', ')))
+        
       output$inputs <- shiny::renderUI({ # need to make reactive?
         
         shiny::div(
           shiny::selectInput(
-            inputId = session$ns('databaseId'),
+            inputId = session$ns('databaseName'),
             label = 'Database: ',
-            choices = options()$databaseIds,
-            selected = options()$databaseIds[1],
+            choices = databaseNames(),
+            selected = databaseNames()[1],
             multiple = F
           ),
           
           shiny::selectInput(
             inputId = session$ns('tarInd'),
             label = 'Time-at-risk: ',
-            choices = options()$tarInds,
-            selected = options()$tarInds[1],
+            choices = reactiveOutcomeTar()$tarInds,
+            selected = reactiveOutcomeTar()$tarInds[1],
             multiple = F
           ),
           
@@ -111,82 +117,100 @@ characterizationRiskFactorServer <- function(
       
       shiny::observeEvent(input$generate, {
         
-        selected(
-          data.frame(
-            database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
-            time_at_risk = names(options()$tarInds)[which(input$tarInd == options()$tarInds)]
-          )
-        )
+        # add target, outcome, database and tar check
         
-        inputSelectionDfServer(
-          id = 'inputSelected', 
-          dataFrameRow = selected,
-          ncol = 1
-        )
-        
-        counts <- characterizationGetRiskFactorCounts(
-          connectionHandler = connectionHandler,
-          resultDatabaseSettings = resultDatabaseSettings,
-          targetId = targetId(),
-          outcomeId = outcomeId(),
-          databaseId = input$databaseId,
-          tar = options()$tarList[[which(options()$tarInds == input$tarInd)]]
-        )
-        
-        countTableOutput <- resultTableServer(
-          id = "countTable", 
-          df = counts,
-          details = data.frame(
-            target = options()$targetName,
-            outcome = options()$outcomeName,
-            Database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
-            TimeAtRisk = options()$tarList[[which(options()$tarInds == input$tarInd)]],
-            Analysis = 'Counts - Risk Factor'
-          ),
-          downloadedFileName = 'risk_factor_counts',
-          colDefsInput = characteriationCountsColDefs(
-            elementId = session$ns('count-table-filter')
-          ),
-          addActions = NULL,
-          elementId = session$ns('count-table-filter')
-        )
-        
-        allData <- characterizationGetRiskFactorData(
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings,
-            targetId = targetId(),
-            outcomeId = outcomeId(),
-            databaseId = input$databaseId,
-            tar = options()$tarList[[which(options()$tarInds == input$tarInd)]]
-          )
-        
-        binTableOutputs <- resultTableServer(
-          id = "binaryTable", 
-          df = allData$binary,
-          details = data.frame(
-            target = options()$targetName,
-            outcome = options()$outcomeName,
-            Database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
-            TimeAtRisk = options()$tarList[[which(options()$tarInds == input$tarInd)]],
-            Analysis = 'Exposed Cases Summary - Risk Factor'
-          ),
-          downloadedFileName = 'risk_factor_binary',
-          colDefsInput = characteriationRiskFactorColDefs(
-            elementId = session$ns('binary-table-filter')
-          ), # function below
-          addActions = NULL,
-          elementId = session$ns('binary-table-filter')
-        )
-        
-        conTableOutputs <- resultTableServer(
-          id = "continuousTable", 
-          df = allData$continuous,
-          colDefsInput = characteriationRiskFactorContColDefs(
-            elementId = session$ns('continuous-table-filter')
-          ), # function below
-          addActions = NULL,
-          elementId = session$ns('continuous-table-filter')
-        )
+        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow()) |
+           is.null(reactiveOutcomeTar()$tarList[[1]]) | is.null(input$databaseName)){
+          
+          output$showRiskFactors <- shiny::reactive(0)
+          shiny::showNotification('Need to set all inputs')
+        } else{
+          
+          if(nrow(reactiveTargetRow()) == 0 | nrow(reactiveOutcomeRow()) == 0){
+            output$showRiskFactors <- shiny::reactive(0)
+            shiny::showNotification('Need to pick a target and outcome')
+          } else{
+            output$showRiskFactors <- shiny::reactive(1)
+            
+            selected(
+              data.frame( #TODO add outcome and target here
+                database = input$databaseName,
+                time_at_risk = names(reactiveOutcomeTar()$tarInds)[which(input$tarInd == reactiveOutcomeTar()$tarInds)]
+              )
+            )
+            
+            inputSelectionDfServer(
+              id = 'inputSelected', 
+              dataFrameRow = selected,
+              ncol = 1
+            )
+            
+            counts <- characterizationGetRiskFactorCounts(
+              connectionHandler = connectionHandler,
+              resultDatabaseSettings = resultDatabaseSettings,
+              targetId = reactiveTargetRow()$cohortId,
+              outcomeId = reactiveOutcomeRow()$cohortId,
+              databaseId = databaseIds()[input$databaseName == databaseNames()],
+              tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
+            )
+            
+            countTableOutput <- resultTableServer(
+              id = "countTable", 
+              df = counts,
+              details = data.frame(
+                target = reactiveTargetRow()$cohortName,
+                outcome = reactiveOutcomeRow()$cohortName,
+                Database = input$databaseName,
+                TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
+                Analysis = 'Counts - Risk Factor'
+              ),
+              downloadedFileName = 'risk_factor_counts',
+              colDefsInput = characteriationCountsColDefs(
+                elementId = session$ns('count-table-filter')
+              ),
+              addActions = NULL,
+              elementId = session$ns('count-table-filter')
+            )
+            
+            allData <- characterizationGetRiskFactorData(
+              connectionHandler = connectionHandler,
+              resultDatabaseSettings = resultDatabaseSettings,
+              targetId = reactiveTargetRow()$cohortId,
+              outcomeId = reactiveOutcomeRow()$cohortId,
+              databaseId = databaseIds()[input$databaseName == databaseNames()],
+              tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
+            )
+            
+            binTableOutputs <- resultTableServer(
+              id = "binaryTable", 
+              df = allData$binary,
+              details = data.frame(
+                target = reactiveTargetRow()$cohortName,
+                outcome = reactiveOutcomeRow()$cohortName,
+                Database = input$databaseName,
+                TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
+                Analysis = 'Exposed Cases Summary - Risk Factor'
+              ),
+              downloadedFileName = 'risk_factor_binary',
+              colDefsInput = characteriationRiskFactorColDefs(
+                elementId = session$ns('binary-table-filter')
+              ), # function below
+              addActions = NULL,
+              elementId = session$ns('binary-table-filter')
+            )
+            
+            conTableOutputs <- resultTableServer(
+              id = "continuousTable", 
+              df = allData$continuous,
+              colDefsInput = characteriationRiskFactorContColDefs(
+                elementId = session$ns('continuous-table-filter')
+              ), # function below
+              addActions = NULL,
+              elementId = session$ns('continuous-table-filter')
+            )
+            
+          }
+        }
         
       })
    

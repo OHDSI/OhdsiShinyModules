@@ -1,49 +1,33 @@
 context("characterization-cohorts")
 
-options <- characterizationGetOptions(
+targetCohort <- OhdsiReportGenerator::getTargetTable(
   connectionHandler = connectionHandlerCharacterization,
-  resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-  includeAggregate = T,
-  includeIncidence = T
+  schema = resultDatabaseSettingsCharacterization$schema, 
+  ciTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix
 )
-parents <- characterizationGetParents(options)
-
 
 shiny::testServer(
   app = characterizationCohortComparisonServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-    options = options,
-    parents = parents,
-    parentIndex = shiny::reactive(1), # reactive
-    subTargetId = shiny::reactive(1) # reactive
+    targetTable = targetCohort,
+    reactiveTargetRow = shiny::reactive(targetCohort[1,])
     ), 
   expr = {
     
-    testthat::expect_true(inherits(inputVals(), 'list'))
-    testthat::expect_true(length(inputVals()$databaseIds) > 0)
-    
-    inputTests <- characterizationGetCohortsInputs(
-      connectionHandler = connectionHandlerCharacterization,
-      resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-      targetId = shiny::reactive(3)
-    )
-    testthat::expect_true(inherits(inputTests, 'list'))
-    
+    testthat::expect_true(length(databaseNames()) > 0)
+    testthat::expect_true(length(databaseIds()) > 0)
     
     # set inputs
     session$setInputs(
-      comparatorGroup = parents[2],
-      comparatorId = comparatorOptions[1],
-      databaseId = inputVals()$databaseIds[1]
+      databaseName = databaseNames()[1]
     )
-    testthat::expect_true(comparatorIndex() == 2)
-    testthat::expect_true(comparatorGroups() == characterizationGetChildren(options, comparatorIndex()))
     
-    session$setInputs(
-      comparatorId = comparatorGroups()[1]
-    )
+    # set reactiveComparatorRow() to second row 
+    reactiveComparatorRow(targetTable[2,])
+    
+    # test generate
     session$setInputs(
       generate = T
     )
@@ -54,7 +38,7 @@ shiny::testServer(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
       targetIds = c(1,2),
-      databaseIds = input$databaseId,
+      databaseIds = databaseIds()[1],
       minThreshold = 0.01,
       addSMD = T
     )
@@ -64,7 +48,7 @@ shiny::testServer(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
       targetIds = c(1,2),
-      databaseIds = input$databaseId
+      databaseIds = databaseIds()[1]
     )
     testthat::expect_true(nrow(countTable) > 0)
     
@@ -73,7 +57,7 @@ shiny::testServer(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
       targetIds = c(1,2),
-      databaseIds = input$databaseId
+      databaseIds = databaseIds()[1]
     )
     testthat::expect_true(nrow(continuousTable) > 0)
     

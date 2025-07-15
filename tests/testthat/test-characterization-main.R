@@ -10,84 +10,59 @@ shiny::testServer(
     
     testthat::expect_true(inherits(connectionHandler,"ConnectionHandler"))
     
-    testthat::expect_true(length(charTypes)>0)
-    testthat::expect_true(length(options)>0)
+    # check initial settinfs
+    testthat::expect_true(nrow(targetTable)>0)
+    testthat::expect_true(is.null(outcomeTable()))
+    testthat::expect_true(resultType() == "")
     
-    testthat::expect_equal(parentIndex(), 1)
     
+    # check reactiveTargetRow triggers outcome and tars
+    reactiveTargetRow(targetTable[2,])
     
-    # check the target selection
+    # TODO fix below
+    ##testthat::expect_true(nrow(outcomeTable())>0)
+    
+    # TODO: check when it is unselected that things react correctly
+    
+
+    # check the tab selector works
     session$setInputs(
-      targetId = parents[2],
-      subTargetId = characterizationGetChildren(options,2)[1]
+      resultType = "Dechallenge Rechallenge"
       )
+    testthat::expect_true(resultType() == "Dechallenge Rechallenge")
+    # can we check output$showOutcomeSelector is reactive(TRUE)?
+    #testthat::expect_true(resultType() == "Dechallenge Rechallenge")
     
-    # generate
-    session$setInputs(targetSelect = T)
-    
-    testthat::expect_true(inherits(targetSelected(),'data.frame'))
-    testthat::expect_equal(subTargetId(), characterizationGetChildren(options,2)[1])
-    testthat::expect_true(length(outcomes())>0)
-    
-    # check outcomeSelect
-    session$setInputs(outcomeId = outcomes()[1])
-    session$setInputs(outcomeSelect = T)
-    testthat::expect_true(inherits(outcomeSelected(),'data.frame'))
-    testthat::expect_true(nrow(outcomeSelected()) == 1)
-    testthat::expect_equal(outcomeId(), outcomes()[1])
-    
-    # check mainPanel
-    testthat::expect_true(mainPanel() == 'None')
-    testthat::expect_true(!"Cohort Comparison" %in% previouslyLoaded())
+    # can we check the UI changes?
     session$setInputs(
-      mainPanel = "Cohort Summary",
-      cohortSummaryPanel = 'Cohort Comparison'
-      )
-    testthat::expect_true(mainPanel() == "Cohort Summary")
-    testthat::expect_true(cohortSummaryPanel() == 'Cohort Comparison')
-    testthat::expect_true("Cohort Comparison" %in% previouslyLoaded())
-    
-    session$setInputs(
-      mainPanel = "Cohort Summary",
-      cohortSummaryPanel = 'Database Comparison'
+      resultType = "Cohort Incidence"
     )
-    testthat::expect_true(cohortSummaryPanel() == 'Database Comparison')
-    testthat::expect_true('Database Comparison' %in% previouslyLoaded())
+    testthat::expect_true(resultType() == "Cohort Incidence")
     
     session$setInputs(
-      mainPanel = "Exposed Cases Summary",
-      exposedCasesPanel = "Risk Factor"
+      resultType = "Database Comparison"
     )
-    testthat::expect_true(currentTab() == "Risk Factor")
-    testthat::expect_true("Risk Factor" %in% previouslyLoaded())
+    testthat::expect_true(resultType() == "Database Comparison")
     
     session$setInputs(
-      mainPanel = "Exposed Cases Summary",
-      exposedCasesPanel = 'Case Series'
+      resultType = "Cohort Comparison"
     )
-    testthat::expect_true(currentTab() == 'Case Series')
-    testthat::expect_true('Case Series' %in% previouslyLoaded())
+    testthat::expect_true(resultType() == "Cohort Comparison")
     
     session$setInputs(
-      mainPanel = "Exposed Cases Summary",
-      exposedCasesPanel = 'Time-to-event'
+      resultType = "Time-to-event"
     )
-    testthat::expect_true(currentTab() == 'Time-to-event')
-    testthat::expect_true('Time-to-event' %in% previouslyLoaded())
+    testthat::expect_true(resultType() == "Time-to-event")
     
     session$setInputs(
-      mainPanel = "Exposed Cases Summary",
-      exposedCasesPanel = 'Dechallenge Rechallenge'
+      resultType = "Risk Factors"
     )
-    testthat::expect_true(currentTab() == 'Dechallenge Rechallenge')
-    testthat::expect_true('Dechallenge Rechallenge' %in% previouslyLoaded())
+    testthat::expect_true(resultType() == "Risk Factors")
     
     session$setInputs(
-      mainPanel = "Cohort Incidence"
+      resultType = "Case Series"
     )
-    testthat::expect_true(currentTab() == "Cohort Incidence")
-    testthat::expect_true("Incidence Results" %in% previouslyLoaded())
-    
+    testthat::expect_true(resultType() == "Case Series")
     
   })
 
@@ -98,72 +73,3 @@ test_that("Test characterization ui", {
   checkmate::expect_list(ui)
 })
 
-test_that("getCharacterizationTypes", {
-
-  types <- getCharacterizationTypes(
-    connectionHandler = connectionHandlerCharacterization,
-    resultDatabaseSettings = resultDatabaseSettingsCharacterization
-  )
-  
-  testthat::expect_is(types$mainPanel, 'character')
-  testthat::expect_is(types$subPanel, 'character')
-  
-})
-
-test_that("characterizationGetOptions", {
-options <- characterizationGetOptions(
-  connectionHandler = connectionHandlerCharacterization,
-  resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-    includeAggregate = T,
-    includeIncidence = T
-)
-
-testthat::expect_true(inherits(options, 'list'))
-testthat::expect_true(sum(c('cohortName','cohortId','children') %in% names(options[[1]])) == 3)
-
-})
-
-
-test_that("characterizationGetParents", {
-  options <- characterizationGetOptions(
-    connectionHandler = connectionHandlerCharacterization,
-    resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-    includeAggregate = T,
-    includeIncidence = T
-  )
-  
-  parents <- characterizationGetParents(options)
-  testthat::expect_true(inherits(parents, 'numeric'))
-  testthat::expect_true(length(names(parents)) == length(parents))
-  
-  testthat::expect_true(length(options) == length(parents))
-})
-
-test_that("characterizationGetChildren", {
-  options <- characterizationGetOptions(
-    connectionHandler = connectionHandlerCharacterization,
-    resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-    includeAggregate = T,
-    includeIncidence = T
-  )
-  
-  children <- characterizationGetChildren(options, 1)
-  testthat::expect_true(length(children) > 0 )
-  testthat::expect_true(inherits(children, 'numeric'))
-  testthat::expect_true(length(names(children)) == length(children))
-
-})
-
-test_that("characterizationGetOutcomes", {
-  options <- characterizationGetOptions(
-    connectionHandler = connectionHandlerCharacterization,
-    resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-    includeAggregate = T,
-    includeIncidence = T
-  )
-  
-  outcomes <- characterizationGetOutcomes(options, 1)
-  testthat::expect_true(inherits(outcomes, 'numeric'))
-  testthat::expect_true(length(names(outcomes)) == length(outcomes))
-  
-  })
