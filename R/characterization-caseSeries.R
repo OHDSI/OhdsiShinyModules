@@ -115,6 +115,9 @@ characterizationCaseSeriesServer <- function(
             )
           ),
           
+          shiny::helpText('View features that occur before target index, between target index and outcome and after outcome for patients with the outcome during the time-at-risk.'),
+          
+          
           shiny::actionButton(
             inputId = session$ns('generate'), 
             label = 'Generate'
@@ -254,6 +257,40 @@ characterizationGetCaseSeriesTars <- function(
       tarList = tarList
     )
   )
+  
+}
+
+
+characterizationGetCaseSeriesWashout <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    targetId,
+    outcomeId
+){
+  
+  sql <- "SELECT distinct
+          s.outcome_washout_days
+          
+          from
+          @schema.@c_table_prefixsettings s
+          inner join @schema.@c_table_prefixcohort_details cd
+          on s.setting_id = cd.setting_id
+          and s.database_id = cd.database_id
+          and cd.target_cohort_id = @target_id
+          and cd.outcome_cohort_id = @outcome_id
+          and cd.cohort_type = 'Cases'
+          
+  ;"
+  
+  options <- connectionHandler$queryDb(
+    sql = sql, 
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
+    target_id = targetId,
+    outcome_id = outcomeId
+  )
+  
+return(options$outcomeWashoutDays)
   
 }
 

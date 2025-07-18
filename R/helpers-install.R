@@ -2,5 +2,5 @@
 is_installed <- function (pkg, version = 0) {
   installed_version <- tryCatch(utils::packageVersion(pkg), 
                                 error = function(e) NA)
-  !is.na(installed_version) && installed_version >= version
+  !is.na(installed_version) && installed_version >= as.character(version)
 }

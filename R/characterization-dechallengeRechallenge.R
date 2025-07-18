@@ -30,6 +30,9 @@ characterizationDechallengeRechallengeViewer <- function(id) {
     shiny::conditionalPanel(
       condition = 'output.showDechalRechal != 0', 
       ns = ns,
+      
+      inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
+      
       shiny::uiOutput(ns('warning')),
       
       shinydashboard::box(
@@ -66,6 +69,15 @@ characterizationDechallengeRechallengeServer <- function(
         output$showDechalRechal <- shiny::reactive(0)
       })
       
+      # show selected inputs to user
+      selected <- shiny::reactiveVal()
+      inputSelectionDfServer(
+        id = 'inputSelected', 
+        dataFrameRow = selected,
+        ncol = 1
+      )
+
+      
       # wait for generate to extract data
       shiny::observeEvent(input$generate, {
         
@@ -78,6 +90,13 @@ characterizationDechallengeRechallengeServer <- function(
           if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveOutcomeRow()) > 0 ){
             
             output$showDechalRechal <- shiny::reactive(1)
+            
+            selected(
+              data.frame(
+                Target = reactiveTargetRow()$cohortName,
+                Outcome = reactiveOutcomeRow()$cohortName
+              )
+            )
             
             allData(
               getDechalRechalInputsData(

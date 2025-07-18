@@ -42,30 +42,25 @@ characterizationDatabaseComparisonViewer <- function(id) {
       # add basic table 
       shiny::tabsetPanel(
         type = 'pills',
+
         shiny::tabPanel(
-          title = 'Counts',
-          resultTableViewer(id = ns('countTable'), boxTitle = 'Counts')
+          title = 'Binary Table ',
+          shiny::uiOutput(outputId = ns('helpTextBinary')),
+          resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
         ),
+        
         shiny::tabPanel(
-          title = 'Binary',
-          shiny::tabsetPanel(
-            type = 'pills',
-            id = ns('binaryPanel'),
-            shiny::tabPanel(
-              title = "Table",
-              resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
-            ),
-            shiny::tabPanel(
-              title = "Plot",
-              shiny::uiOutput(ns('plotInputs')),
-              shinycssloaders::withSpinner(
-                plotly::plotlyOutput(ns('scatterPlot'))
-              )
-            )
+          title = "Binary Plot",
+          shiny::helpText('Pick two databases and compare binary features across the databases.'),
+          shiny::uiOutput(ns('plotInputs')),
+          shinycssloaders::withSpinner(
+            plotly::plotlyOutput(ns('scatterPlot'))
           )
         ),
+        
         shiny::tabPanel(
-          title = 'Continuous',
+          title = 'Continuous Table',
+          shiny::uiOutput(outputId = ns('helpTextContinuous')),
           resultTableViewer(id = ns('continuousTable'), boxTitle = 'Continuous')
         )
       )
@@ -193,6 +188,15 @@ characterizationDatabaseComparisonServer <- function(
             databaseIds = databaseIds()[databaseNames() %in% input$databaseNames]
           )
           
+          output$helpTextBinary <- shiny::renderUI(
+            shiny::helpText(paste0("This analysis shows the fraction of patients in the target cohort (restricted to first index date and requiring ",
+                            countTable$minPriorObservation[1]," days observation prior to index) with a history of each binary features across databases."))
+          )
+          output$helpTextContinuous <- shiny::renderUI(
+            shiny::helpText(paste0("This analysis shows the fraction of patients in the target cohort (restricted to first index date and requiring ",
+                                   countTable$minPriorObservation[1]," days observation prior to index) with a history of each continuous features across databases."))
+          )
+          
           result <- characterizatonGetDatabaseComparisonData(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
@@ -208,13 +212,13 @@ characterizationDatabaseComparisonServer <- function(
             databaseIds = databaseIds()[databaseNames() %in% input$databaseNames],
             pivot = F
           )
-        
+          
           databaseNamesResult <- result$databaseNames
           
           meanColumns <- lapply(1:nrow(databaseNamesResult), function(i){
             reactable::colDef(
               header = withTooltip(
-                paste0(databaseNamesResult$databaseName[i], ' %'),
+                paste0('%'),
                 paste0("The percentage of the target population in database ", databaseNamesResult$databaseName[i], ' who had the covariate prior.')
               ),
               cell = function(value) {
@@ -227,7 +231,7 @@ characterizationDatabaseComparisonServer <- function(
           sumColumns <- lapply(1:nrow(databaseNamesResult), function(i){
             reactable::colDef(
               header = withTooltip(
-                paste0(databaseNamesResult$databaseName[i], " Count"),
+                paste0("Count"),
                 paste0("The number of people in the target cohort in database ", databaseNamesResult$databaseName[i], ' who have the covariate prior.')
               ),
               cell = function(value) {
@@ -237,24 +241,34 @@ characterizationDatabaseComparisonServer <- function(
           })
           names(sumColumns) <- unlist(lapply(1:nrow(databaseNamesResult), function(i) paste0('sumValue_',databaseNamesResult$id[i])))
         
-          resultTableServer(
-            id = 'countTable',
-            df = countTable, 
-            details = data.frame(
-              Target = reactiveTargetRow()$cohortName,
-              Databases = selectedDatabases,
-              `Minimum Covariate Threshold` = input$minThreshold,
-              Analysis = 'Cohort comparison across databases'
-            ),
-            downloadedFileName = 'database_comparison_counts',
-            colDefsInput = characteriationCountTableColDefs(
-              elementId = session$ns('count-table-filter')
-            ),
-            elementId = session$ns('count-table-filter')
-          ) 
+          # group columns with the counts
+          
+          getDbCount <- function(databaseName,minPriorObservation){
+            countOfInt <- countTable %>% 
+              dplyr::filter(.data$selection == !!databaseName) %>%
+              dplyr::filter(.data$minPriorObservation == !!minPriorObservation) %>%
+              dplyr::select("personCount")
+            
+            return(countOfInt$personCount)
+          }
+          
+          groupColumns <- lapply(
+            1:nrow(databaseNamesResult),
+            function(i){
+              reactable::colGroup(
+                name = paste0(databaseNamesResult$databaseName[i], ' (N = ',getDbCount(databaseNamesResult$databaseName[i],countTable$minPriorObservation[1]),')'), 
+                columns = c(
+                  paste0('sumValue_',databaseNamesResult$id[i]), 
+                  paste0('averageValue_',databaseNamesResult$id[i]))
+                )
+            }
+          )
+
+          # how to add counts here - in details?
           resultTableServer(
             id = 'mainTable',
-            df = result$table,
+            df = result$table %>% 
+              dplyr::filter(.data$minPriorObservation == countTable$minPriorObservation[1]),
             details = data.frame(
               Target = reactiveTargetRow()$cohortName,
               Databases = selectedDatabases,
@@ -271,12 +285,14 @@ characterizationDatabaseComparisonServer <- function(
                 meanColumns
               )
             ),
+            columnGroups = groupColumns,
             elementId = session$ns('main-table-filter')
           )
           
           resultTableServer(
             id = 'continuousTable',
-            df = continuousTable,
+            df = continuousTable %>% 
+              dplyr::filter(.data$minPriorObservation == countTable$minPriorObservation[1]),
             details = data.frame(
               Target = reactiveTargetRow()$cohortName,
               Databases = selectedDatabases,
@@ -290,6 +306,7 @@ characterizationDatabaseComparisonServer <- function(
             elementId = session$ns('continuous-table-filter')
           )
           
+        
           # get plot data - TODO replace this to do one data extraction!
           plotResult(characterizatonGetDatabaseComparisonDataRaw(
             connectionHandler = connectionHandler,
@@ -302,6 +319,9 @@ characterizationDatabaseComparisonServer <- function(
         }
         }
       })
+      
+      
+      
           
           
           
@@ -359,6 +379,7 @@ characterizationDatabaseComparisonServer <- function(
           })
           
           #plot when generate plot is pressed
+          output$scatterPlot <- NULL
           shiny::observeEvent(input$generatePlot,{
             
             # TODO add a check to make sure plotResult() has results

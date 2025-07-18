@@ -43,29 +43,24 @@ characterizationCohortComparisonViewer <- function(id) {
         # add basic table 
         shiny::tabsetPanel(
           type = 'pills',
+          
           shiny::tabPanel(
-            title = 'Counts',
-            resultTableViewer(id = ns('countTable'), boxTitle = 'Counts')
+            title = 'Binary Table',
+            shiny::uiOutput(outputId = ns('helpTextBinary')),
+            resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
           ),
+          
           shiny::tabPanel(
-            title = 'Binary',
-            shiny::tabsetPanel(
-              type = 'pills',
-              id = ns('binaryPanel'),
-              shiny::tabPanel(
-                title = "Table",
-                resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
-              ),
-              shiny::tabPanel(
-                title = "Plot",
-                shinycssloaders::withSpinner(
-                  plotly::plotlyOutput(ns('scatterPlot'))
-                )
-              )
+            title = "Binary Plot",
+            shiny::helpText('Pick two databases and compare binary features across the databases.'),
+            shinycssloaders::withSpinner(
+              plotly::plotlyOutput(ns('scatterPlot'))
             )
           ),
+          
           shiny::tabPanel(
             title = 'Continuous',
+            shiny::uiOutput(outputId = ns('helpTextContinuous')),
             resultTableViewer(id = ns('continuousTable'), boxTitle = 'Continuous')
           )
         )
@@ -213,6 +208,15 @@ characterizationCohortComparisonServer <- function(
               databaseIds = databaseIds()[databaseNames() == input$databaseName]
             )
             
+            output$helpTextBinary <- shiny::renderUI(
+              shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts (restricted to first index date and requiring ",
+                                     countTable$minPriorObservation[1]," days observation prior to index) with a history of each binary features across databases."))
+            )
+            output$helpTextContinuous <- shiny::renderUI(
+              shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts (restricted to first index date and requiring ",
+                                     countTable$minPriorObservation[1]," days observation prior to index) with a history of each continuous features across databases."))
+            )
+            
             continuousTable <- characterizatonGetCohortComparisonDataContinuous(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
@@ -220,9 +224,35 @@ characterizationCohortComparisonServer <- function(
               databaseIds = databaseIds()[databaseNames() == input$databaseName]
             )
             
+            getDbCount <- function(selection,minPriorObservation){
+              countOfInt <- countTable %>% 
+                dplyr::filter(.data$selection == !!selection) %>%
+                dplyr::filter(.data$minPriorObservation == !!minPriorObservation) %>%
+                dplyr::select("personCount")
+              
+              return(countOfInt$personCount)
+            }
+            
+            
+            groupColumns <- list(
+                reactable::colGroup(
+                  name = paste0('Target ', ' (N = ',getDbCount('Target',countTable$minPriorObservation[1]),')'), 
+                  columns = c(
+                    paste0('sumValue_',1), 
+                    paste0('averageValue_',1))
+                ),
+                reactable::colGroup(
+                  name = paste0('Comparator ', ' (N = ',getDbCount('Comparator',countTable$minPriorObservation[1]),')'), 
+                  columns = c(
+                    paste0('sumValue_',2), 
+                    paste0('averageValue_',2))
+                )
+                )
+            
             resultTableServer(
               id = 'mainTable',
-              df = resultTable,
+              df = resultTable %>% 
+                dplyr::filter(.data$minPriorObservation == countTable$minPriorObservation[1]),
               details = data.frame(
                 Target = reactiveTargetRow()$cohortName,
                 Comparator = reactiveComparatorRow()$cohortName,
@@ -234,12 +264,14 @@ characterizationCohortComparisonServer <- function(
                 addExtras = T,
                 elementId = session$ns('main-table-filter')
               ), 
+              columnGroups = groupColumns,
               elementId = session$ns('main-table-filter')
             ) 
             
             resultTableServer(
               id = 'continuousTable',
-              df = continuousTable,
+              df = continuousTable %>% 
+                dplyr::filter(.data$minPriorObservation == countTable$minPriorObservation[1]),
               details = data.frame(
                 Target = reactiveTargetRow()$cohortName,
                 Comparator = reactiveComparatorRow()$cohortName,
@@ -253,24 +285,8 @@ characterizationCohortComparisonServer <- function(
               ),
               elementId = session$ns('continuous-table-filter')
             ) 
-            
-            resultTableServer(
-              id = 'countTable',
-              df = countTable,
-              details = data.frame(
-                Target = reactiveTargetRow()$cohortName,
-                Comparator = reactiveComparatorRow()$cohortName,
-                Database = input$databaseName,
-                Analysis = 'Cohort comparison within database'
-              ),
-              downloadedFileName = 'cohort_comparison_count',
-              colDefsInput = characteriationCountTableColDefs(
-                elementId = session$ns('count-table-filter')
-              ),
-              elementId = session$ns('count-table-filter')
-            )
-            
-            
+
+          
             # clean plot data
             if(nrow(resultTable) > 0){
               plotDf <- resultTable
@@ -365,6 +381,7 @@ characterizationCohortsColumns <- function(
                            "Unique identifier of the covariate")
     ),
     minPriorObservation = reactable::colDef(
+      show = FALSE,
       header = withTooltip(
         "Min Prior Obs",
         "The minimum prior observation a patient in the target 
@@ -423,28 +440,28 @@ characterizationCohortsColumns <- function(
       res,
       list(
         sumValue_1 = reactable::colDef(
-          header = withTooltip("Target Sum",
+          header = withTooltip("Count",
                                "The total sum of the covariate for the target cohort."),
           cell = function(value) {
             if (value >= 0) value else '< min threshold'
           }
         ),
         sumValue_2 = reactable::colDef(
-          header = withTooltip("Compatator Sum",
+          header = withTooltip("Count",
                                "The total sum of the covariate for the comparator cohort."),
           cell = function(value) {
             if (value >= 0) value else '< min threshold'
           }
         ),
         averageValue_1 = reactable::colDef(
-          header = withTooltip("Target %",
+          header = withTooltip("%",
                                "The percentage of the target cohort who had the covariate prior to index."), 
           cell = function(value) {
             if (value >= 0) paste0(round(value*100, digits = 3),'%') else '< min threshold'
           }
         ),
         averageValue_2 = reactable::colDef(
-          header = withTooltip("Comparator %",
+          header = withTooltip("%",
                                "The percentage of the comparator cohort who had the covariate prior to index"),
           cell = function(value) {
             if (value >= 0) paste0(round(value*100, digits = 3),'%') else '< min threshold'
@@ -537,6 +554,7 @@ characterizationCohortsColumnsContinuous <- function(
                            "Unique identifier of the covariate")
     ),
     minPriorObservation = reactable::colDef(
+      show = FALSE,
       header = withTooltip(
         "Min Prior Obs",
         "The minimum prior observation a patient in the target 

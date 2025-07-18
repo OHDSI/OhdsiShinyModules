@@ -29,6 +29,9 @@ characterizationTimeToEventViewer <- function(id) {
     shiny::conditionalPanel(
       condition = 'output.showTimeToEvent != 0', 
       ns = ns,
+      
+      inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
+      
       shiny::tabsetPanel(
         type = 'pills',
         id = ns('tteMainPanel'),
@@ -86,6 +89,14 @@ characterizationTimeToEventServer <- function(
         output$showTimeToEvent <- shiny::reactive(0)
       })
       
+      # show selected inputs to user
+      selected <- shiny::reactiveVal()
+      inputSelectionDfServer(
+        id = 'inputSelected', 
+        dataFrameRow = selected,
+        ncol = 1
+      )
+      
       # wait for generate to extract data
       shiny::observeEvent(input$generate, {
 
@@ -96,6 +107,13 @@ characterizationTimeToEventServer <- function(
         } else{
           
           if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveOutcomeRow()) > 0 ){
+            
+            selected(
+              data.frame(
+                Target = reactiveTargetRow()$cohortName,
+                Outcome = reactiveOutcomeRow()$cohortName
+              )
+            )
             
             # add code to show T and O selected 
             

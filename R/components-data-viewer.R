@@ -176,6 +176,7 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param id string, table id must match resultsTableViewer function
 #' @param df reactive that returns a data frame
 #' @param colDefsInput named list of reactable::colDefs
+#' @param columnGroups list specifying how to group columns 
 #' @param details The details of the results such as cohort names and database names
 #' @param selectedCols string vector of columns the reactable should display to start by default. Defaults to ALL if not specified.
 #' @param sortedCols string vector of columns the reactable should sort by by default. Defaults to no sort if not specified.
@@ -192,6 +193,7 @@ resultTableServer <- function(
     id, #string
     df, #data.frame
     colDefsInput,
+    columnGroups = NULL,
     details = data.frame(), # details about the data.frame such as target and database name
     selectedCols = NULL,
     sortedCols = NULL,
@@ -397,6 +399,7 @@ fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
                 reactable::reactable(
                   data,
                   columns = colDefs(),
+                  columnGroups = columnGroups,
                   onClick = onClick,
                   groupBy = groupBy,
                   #these can be turned on/off and will overwrite colDef args

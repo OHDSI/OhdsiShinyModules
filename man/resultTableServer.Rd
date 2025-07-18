@@ -8,6 +8,7 @@ resultTableServer(
   id,
   df,
   colDefsInput,
+  columnGroups = NULL,
   details = data.frame(),
   selectedCols = NULL,
   sortedCols = NULL,
@@ -23,6 +24,8 @@ resultTableServer(
 \item{df}{reactive that returns a data frame}
 
 \item{colDefsInput}{named list of reactable::colDefs}
+
+\item{columnGroups}{list specifying how to group columns}
 
 \item{details}{The details of the results such as cohort names and database names}
 

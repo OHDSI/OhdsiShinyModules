@@ -121,7 +121,7 @@ characterizationServer <- function(
           ), 
         selectMultiple = FALSE, 
         elementId = session$ns('table-selector'),
-        inputColumns = characterizationTargetInputColumns(session = session),
+        inputColumns = characterizationTargetInputColumns(),
         displayColumns = characterizationTargetDisplayColumns(), 
         selectButtonText = 'Select Target'
         )
@@ -306,12 +306,14 @@ characterizationServer <- function(
           tableReset = outcomeTableReset
         )
       
-      # find tars when outcome is selected
+      # find tars and washout when outcome is selected
       reactiveOutcomeTar <- shiny::reactiveVal(
         list(
         tarList = c(),
         tarInds = c()
       ))
+      reactiveOutcomeWashout <- shiny::reactiveVal(NULL)
+      
       shiny::observeEvent(
         eventExpr = reactiveOutcomeRow(), {
           
@@ -320,6 +322,7 @@ characterizationServer <- function(
               tarList = c(),
               tarInds = c()
             ))
+            reactiveOutcomeWashout(NULL)
           } else{
             
             if(nrow(reactiveTargetRow()) == 0 | nrow(reactiveOutcomeRow()) == 0){
@@ -327,6 +330,7 @@ characterizationServer <- function(
                 tarList = c(),
                 tarInds = c()
               ))
+              reactiveOutcomeWashout(NULL)
             } else{
             reactiveOutcomeTar(
               characterizationGetCaseSeriesTars(
@@ -335,6 +339,14 @@ characterizationServer <- function(
                 targetId = reactiveTargetRow()$cohortId,
                 outcomeId = reactiveOutcomeRow()$cohortId
               ))
+              reactiveOutcomeWashout(
+                characterizationGetCaseSeriesWashout(
+                  connectionHandler = connectionHandler,
+                  resultDatabaseSettings = resultDatabaseSettings,
+                  targetId = reactiveTargetRow()$cohortId,
+                  outcomeId = reactiveOutcomeRow()$cohortId
+                )
+              )
             }
           }
         }
@@ -377,7 +389,8 @@ characterizationServer <- function(
         resultDatabaseSettings = resultDatabaseSettings,
         reactiveTargetRow = reactiveTargetRow,
         reactiveOutcomeRow = reactiveOutcomeRow,
-        reactiveOutcomeTar = reactiveOutcomeTar
+        reactiveOutcomeTar = reactiveOutcomeTar,
+        reactiveOutcomeWashout = reactiveOutcomeWashout
       )
       
       characterizationCaseSeriesServer(
@@ -402,7 +415,7 @@ characterizationServer <- function(
 }
 
 
-characterizationTargetInputColumns <- function(session){
+characterizationTargetInputColumns <- function(){
   return(
     list(
       databaseString  = reactable::colDef(show = FALSE),
@@ -411,6 +424,8 @@ characterizationTargetInputColumns <- function(session){
       maxSubjectCount = reactable::colDef(show = FALSE),
       minEntryCount = reactable::colDef(show = FALSE),
       maxEntryCount = reactable::colDef(show = FALSE),
+      subsetDefinitionJson = reactable::colDef(show = FALSE),
+      subsetCohortId = reactable::colDef(show = FALSE),
       cohortId = reactable::colDef(
         show = TRUE,
         name = 'Cohort ID'
@@ -439,18 +454,6 @@ characterizationTargetInputColumns <- function(session){
         cell = function(value) {
           # Render as an X mark or check mark
           if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
-        },
-        filterable = TRUE,
-        filterInput = function(values, name) {
-          shiny::tags$select(
-            # Set to undefined to clear the filter
-            onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", session$ns('table-selector'), name),
-            # "All" has an empty value to clear the filter, and is the default option
-            shiny::tags$option(value = "", "All"),
-            lapply(unique(values), shiny::tags$option),
-            "aria-label" = sprintf("Filter %s", name),
-            style = "width: 100%; height: 28px;"
-          )
         }
       ), 
       dechalRechal = reactable::colDef(
@@ -509,6 +512,8 @@ characterizationTargetDisplayColumns <- function(){
       maxSubjectCount = reactable::colDef(show = FALSE),
       minEntryCount = reactable::colDef(show = FALSE),
       maxEntryCount = reactable::colDef(show = FALSE),
+      subsetDefinitionJson = reactable::colDef(show = FALSE),
+      subsetCohortId = reactable::colDef(show = FALSE),
       cohortId = reactable::colDef(
         show = TRUE,
         name = 'Cohort ID'

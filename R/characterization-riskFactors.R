@@ -26,18 +26,12 @@ characterizationRiskFactorViewer <- function(id) {
     # module that does input selection for a single row DF
     shiny::uiOutput(ns("inputs")),
     
+    
     shiny::conditionalPanel(
       condition = 'output.showRiskFactors != 0',
       ns = ns,
       
       inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
-      
-      shinydashboard::box(
-        title = 'Counts', 
-        width = "100%", 
-        collapsible = T, 
-        resultTableViewer(ns('countTable'))
-      ),
       
       shinydashboard::tabBox(
         width = "100%",
@@ -45,9 +39,11 @@ characterizationRiskFactorViewer <- function(id) {
         title = shiny::tagList(shiny::icon("gear"), "Risk Factors"),
         
         shiny::tabPanel("Binary Feature Table", 
+                        shiny::uiOutput(outputId = ns('helpTextBinary')),
                         resultTableViewer(ns('binaryTable'))
         ),
         shiny::tabPanel("Continuous Feature Table", 
+                        shiny::uiOutput(outputId = ns('helpTextContinuous')),
                         resultTableViewer(ns('continuousTable'))
         )
       )
@@ -64,7 +60,8 @@ characterizationRiskFactorServer <- function(
     resultDatabaseSettings,
     reactiveTargetRow,
     reactiveOutcomeRow,
-    reactiveOutcomeTar
+    reactiveOutcomeTar,
+    reactiveOutcomeWashout
 ) {
   shiny::moduleServer(
     id,
@@ -104,6 +101,16 @@ characterizationRiskFactorServer <- function(
             multiple = F
           ),
           
+          shiny::selectInput(
+            inputId = session$ns('outcomeWashout'),
+            label = 'Outcome washout: ',
+            choices = reactiveOutcomeWashout(),
+            selected = reactiveOutcomeWashout()[1],
+            multiple = F
+          ),
+          
+          shiny::helpText('View features that are associated with having or not having the outcome during the time-at-risk.'),
+          
           shiny::actionButton(
             inputId = session$ns('generate'), 
             label = 'Generate'
@@ -133,9 +140,12 @@ characterizationRiskFactorServer <- function(
             output$showRiskFactors <- shiny::reactive(1)
             
             selected(
-              data.frame( #TODO add outcome and target here
-                database = input$databaseName,
-                time_at_risk = names(reactiveOutcomeTar()$tarInds)[which(input$tarInd == reactiveOutcomeTar()$tarInds)]
+              data.frame(
+                Target = reactiveTargetRow()$cohortName,
+                Outcome = reactiveOutcomeRow()$cohortName,
+                Database = input$databaseName,
+                `Time-at-risk` = names(reactiveOutcomeTar()$tarInds)[which(input$tarInd == reactiveOutcomeTar()$tarInds)],
+                OutcomeWashoutDays = input$outcomeWashout
               )
             )
             
@@ -145,7 +155,7 @@ characterizationRiskFactorServer <- function(
               ncol = 1
             )
             
-            counts <- characterizationGetRiskFactorCounts(
+            countTable <- characterizationGetRiskFactorCounts(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
               targetId = reactiveTargetRow()$cohortId,
@@ -154,23 +164,80 @@ characterizationRiskFactorServer <- function(
               tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
             )
             
-            countTableOutput <- resultTableServer(
-              id = "countTable", 
-              df = counts,
-              details = data.frame(
-                target = reactiveTargetRow()$cohortName,
-                outcome = reactiveOutcomeRow()$cohortName,
-                Database = input$databaseName,
-                TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
-                Analysis = 'Counts - Risk Factor'
-              ),
-              downloadedFileName = 'risk_factor_counts',
-              colDefsInput = characteriationCountsColDefs(
-                elementId = session$ns('count-table-filter')
-              ),
-              addActions = NULL,
-              elementId = session$ns('count-table-filter')
+            #print(countTable)
+            
+            output$helpTextBinary <- shiny::renderUI(
+              shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts (restricted to first index date and requiring ",
+                                     countTable$minPriorObservation[1]," days observation prior to index) stratified by whether they had the outcome during the time-at-risk with a history of each binary features across databases."))
             )
+            output$helpTextContinuous <- shiny::renderUI(
+              shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts (restricted to first index date and requiring ",
+                                     countTable$minPriorObservation[1]," days observation prior to index) stratified by whether they had the outcome during the time-at-risk with a history of each continuous features across databases."))
+            )
+            
+            getDbCount <- function(selection,minPriorObservation,outcomeWashoutDays){
+              
+              if(selection == 'Case'){
+                countOfInt <- countTable %>% 
+                  dplyr::filter(.data$cohortType == 'Cases') %>%
+                  dplyr::filter(.data$minPriorObservation == !!minPriorObservation) %>%
+                  dplyr::filter(.data$outcomeWashoutDays == !!outcomeWashoutDays) %>%
+                  dplyr::select("personCount")
+                
+                return(countOfInt$personCount)
+              }
+              
+              if(selection == 'Target'){
+                countOfInt <- countTable %>% 
+                  dplyr::filter(.data$cohortType == 'Target') %>%
+                  dplyr::filter(.data$minPriorObservation == !!minPriorObservation) %>%
+                  dplyr::select("personCount")
+                
+                return(countOfInt$personCount)
+              }
+              
+              if(selection == 'Non Case'){
+                
+                tOfInt <- countTable %>% 
+                  dplyr::filter(.data$cohortType == 'Target') %>%
+                  dplyr::filter(.data$minPriorObservation == !!minPriorObservation) %>%
+                  dplyr::select("personCount")
+                
+                eOfInt <- countTable %>% 
+                  dplyr::filter(.data$cohortType == 'Exclude') %>%
+                  dplyr::filter(.data$minPriorObservation == !!minPriorObservation) %>%
+                  dplyr::filter(.data$outcomeWashoutDays == !!outcomeWashoutDays) %>%
+                  dplyr::select("personCount")
+                
+                cOfInt <- countTable %>% 
+                  dplyr::filter(.data$cohortType == 'Cases') %>%
+                  dplyr::filter(.data$minPriorObservation == !!minPriorObservation) %>%
+                  dplyr::filter(.data$outcomeWashoutDays == !!outcomeWashoutDays) %>%
+                  dplyr::select("personCount")
+                
+                N <- tOfInt$personCount - ifelse(is.null(eOfInt$personCount), 0, eOfInt$personCount) - ifelse(is.null(cOfInt$personCount), 0, cOfInt$personCount)
+                
+                return(N)
+              }
+            
+            }
+            
+            
+            groupColumns <- list(
+              reactable::colGroup(
+                name = paste0('Case ', ' (N = ',getDbCount('Case',countTable$minPriorObservation[1], input$outcomeWashout),')'), 
+                columns = c(
+                  paste0('caseSumValue'), 
+                  paste0('caseAverageValue'))
+              ),
+              reactable::colGroup(
+                name = paste0('Non Case ', ' (N = ',getDbCount('Non Case',countTable$minPriorObservation[1], input$outcomeWashout),')'), 
+                columns = c(
+                  paste0('nonCaseSumValue'), 
+                  paste0('nonCaseAverageValue'))
+              )
+            )
+            
             
             allData <- characterizationGetRiskFactorData(
               connectionHandler = connectionHandler,
@@ -183,7 +250,8 @@ characterizationRiskFactorServer <- function(
             
             binTableOutputs <- resultTableServer(
               id = "binaryTable", 
-              df = allData$binary,
+              df = allData$binary %>%
+                dplyr::filter(.data$outcomeWashoutDays == !!input$outcomeWashout),
               details = data.frame(
                 target = reactiveTargetRow()$cohortName,
                 outcome = reactiveOutcomeRow()$cohortName,
@@ -196,7 +264,41 @@ characterizationRiskFactorServer <- function(
                 elementId = session$ns('binary-table-filter')
               ), # function below
               addActions = NULL,
-              elementId = session$ns('binary-table-filter')
+              columnGroups = groupColumns,
+              elementId = session$ns('binary-table-filter'), 
+            )
+            
+            groupColumnsContinuous <- list(
+              reactable::colGroup(
+                name = paste0('Case ', ' (N = ',getDbCount('Case',countTable$minPriorObservation[1], input$outcomeWashout),')'), 
+                columns = c(
+                  paste0('caseCountValue'), 
+                  paste0('caseMinValue'), 
+                  paste0('caseMaxValue'), 
+                  paste0('caseAverageValue'),
+                  paste0('caseStandardDeviation'),
+                  paste0('caseMedianValue')
+                  #paste0('caseP10Value'),
+                  #paste0('caseP25Value'),
+                  #paste0('caseP75Value'),
+                  #paste0('caseP90Value')
+                  )
+              ),
+              reactable::colGroup(
+                name = paste0('Target ', ' (N = ',getDbCount('Target',countTable$minPriorObservation[1], input$outcomeWashout),')'), 
+                columns = c(
+                  paste0('targetCountValue'), 
+                  paste0('targetMinValue'), 
+                  paste0('targetMaxValue'), 
+                  paste0('targetAverageValue'),
+                  paste0('targetStandardDeviation'),
+                  paste0('targetMedianValue')
+                  #paste0('targetP10Value'),
+                  #paste0('targetP25Value'),
+                  #paste0('targetP75Value'),
+                  #paste0('targetP90Value')
+                )
+            )
             )
             
             conTableOutputs <- resultTableServer(
@@ -206,6 +308,7 @@ characterizationRiskFactorServer <- function(
                 elementId = session$ns('continuous-table-filter')
               ), # function below
               addActions = NULL,
+              columnGroups = groupColumnsContinuous,
               elementId = session$ns('continuous-table-filter')
             )
             
@@ -698,71 +801,6 @@ riskFactorContinuousTable <- function(
   
 }
 
-characteriationCountsColDefs <- function(
-    elementId
-){
-  result <- list(
-    cohortType = reactable::colDef(
-      header = withTooltip("Cohort Type",
-                           "The target popualtion, exclusions from target or cases"),
-      filterable = T
-    ),
-    
-    minPriorObservation = reactable::colDef(
-      header = withTooltip("Min Prior Observation",
-                           "Minimum prior observation time (days)"),
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
-    ), 
-    outcomeWashoutDays = reactable::colDef(
-      header = withTooltip("Outcome Washout Days",
-                           "Number of days for the outcome washout"),
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
-    ),
-    
-    rowCount = reactable::colDef(
-      header = withTooltip("# Rows",
-                           "Number of exposures in the cohort (people can be in more than once)"),
-      cell = function(value) {
-        if(is.null(value)){return('< min threshold')}
-        if(is.na(value)){return('< min threshold')}
-        if (value >= 0) value else paste0('< ', abs(value))
-      }
-    ), 
-    personCount = reactable::colDef(
-      header = withTooltip("# Persons",
-                           "Number of distinct people in the cohort"),
-      cell = function(value) {
-        if(is.null(value)){return('< min threshold')}
-        if(is.na(value)){return('< min threshold')}
-        if (value >= 0) value else paste0('< ', abs(value))
-      }
-    )
-  )
-  return(result)
-}
-
 characteriationRiskFactorColDefs <- function(
     elementId
     ){
@@ -777,6 +815,7 @@ characteriationRiskFactorColDefs <- function(
       minWidth = 300
     ),
     minPriorObservation = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Min Prior Observation",
                            "Minimum prior observation time (days)"),
       filterable = T,
@@ -793,6 +832,7 @@ characteriationRiskFactorColDefs <- function(
       }
       ), 
     outcomeWashoutDays = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Outcome Washout Days",
                            "Number of days for the outcome washout"),
       filterable = T,
@@ -896,9 +936,10 @@ characteriationRiskFactorContColDefs <- function(
       minWidth = 300
     ),
     covariateId = reactable::colDef(
-      show = F
+      show = FALSE
     ),
     minPriorObservation = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Min Prior Observation",
                            "Minimum prior observation time (days)"),
       filterable = T,
@@ -915,6 +956,7 @@ characteriationRiskFactorContColDefs <- function(
       }
     ), 
     outcomeWashoutDays = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Outcome Washout Days",
                            "Number of days for the outcome washout"),
       filterable = T,
@@ -930,9 +972,10 @@ characteriationRiskFactorContColDefs <- function(
         )
       }
     ),
-    countValue = reactable::colDef(
-        header = withTooltip("# with Feature",
-                             "Number with feature"),
+    
+    caseCountValue = reactable::colDef(
+        header = withTooltip("Number",
+                             "Case number with feature"),
         filterable = T
       , 
       format = reactable::colFormat(
@@ -945,62 +988,152 @@ characteriationRiskFactorContColDefs <- function(
         if (value >=0) value else paste0('< ', abs(value))
       }
     ),
-    averageValue = reactable::colDef(
-      header = withTooltip("Mean Feature Value",
-                           "Mean value of the feature in the population"), 
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
-    ), 
-    standardDeviation = reactable::colDef(
-      header = withTooltip("SD Feature Value",
-                           "Standard deviation of the feature value in the population"), 
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
-    ), 
-    medianValue  = reactable::colDef(
-      header = withTooltip("Median Feature Value",
-                           "Median of the feature value"), 
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
+    targetCountValue = reactable::colDef(
+      header = withTooltip("Number",
+                           "Target number with feature"),
+      filterable = T
+      , 
+      format = reactable::colFormat(
+        percent = F,
+        separators = TRUE
+      ),
+      cell = function(value) {
+        if(is.null(value)){return('< min threshold')}
+        if(is.na(value)){return('< min threshold')}
+        if (value >=0) value else paste0('< ', abs(value))
+      }
     ),
-    p10Value  = reactable::colDef(
+    
+    caseAverageValue = reactable::colDef(
+      header = withTooltip("Mean",
+                           "Mean value of the feature in the case population"), 
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    targetAverageValue = reactable::colDef(
+      header = withTooltip("Mean",
+                           "Mean value of the feature in the target population"), 
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    
+    caseStandardDeviation = reactable::colDef(
+      header = withTooltip("StDev",
+                           "Standard deviation of the feature value in the case population"), 
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    targetStandardDeviation = reactable::colDef(
+      header = withTooltip("StDev",
+                           "Standard deviation of the feature value in the target population"), 
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    
+    caseMedianValue  = reactable::colDef(
+      header = withTooltip("Median",
+                           "Median of the feature value in the cases"), 
+      filterable = TRUE, 
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ),
+    targetMedianValue  = reactable::colDef(
+      header = withTooltip("Median",
+                           "Median of the feature value in the targets"), 
+      filterable = TRUE, 
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ),
+    
+    caseP10Value  = reactable::colDef(
+      show = FALSE,
       header = withTooltip("10th %ile Feature Value",
                            "10th percentile of the feature value"), 
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
+      filterable = TRUE, 
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ),
-    p25Value  = reactable::colDef(
+    targetP10Value  = reactable::colDef(
+      show = FALSE,
+      header = withTooltip("10th %ile Feature Value",
+                           "10th percentile of the feature value"), 
+      filterable = TRUE, 
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ),
+    
+    caseP25Value  = reactable::colDef(
+      show = FALSE,
       header = withTooltip("25th %tile Feature Value",
                            "25th percentile of the feature value"), 
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
+      filterable = TRUE, 
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ),
-    p75Value  = reactable::colDef(
+    targetP25Value  = reactable::colDef(
+      show = FALSE,
+      header = withTooltip("25th %tile Feature Value",
+                           "25th percentile of the feature value"), 
+      filterable = TRUE, 
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ),
+    
+    caseP75Value  = reactable::colDef(
+      show = FALSE,
       header = withTooltip("75th %tile Feature Value",
                            "75th percentile of the feature value"), 
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
+      filterable = TRUE, 
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ),
-    p90Value  = reactable::colDef(
+    targetP75Value  = reactable::colDef(
+      show = FALSE,
+      header = withTooltip("75th %tile Feature Value",
+                           "75th percentile of the feature value"), 
+      filterable = TRUE, 
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ),
+    
+    caseP90Value  = reactable::colDef(
+      show = FALSE,
       header = withTooltip("90th %tile Feature Value",
                            "90th percentile of the feature value"), 
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
+      filterable = TRUE, 
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ),
-    maxValue  = reactable::colDef(
-      header = withTooltip("Max Feature Value",
-                           "Maximum of the feature value"), 
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
+    targetP90Value  = reactable::colDef(
+      show = FALSE,
+      header = withTooltip("90th %tile Feature Value",
+                           "90th percentile of the feature value"), 
+      filterable = TRUE, 
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ),
-    minValue  = reactable::colDef(
-      header = withTooltip("Min Feature Value",
-                           "Minimum of the feature value"), 
-      filterable = T, 
-      format = reactable::colFormat(digits = 2, percent = F)
+    
+    caseMaxValue  = reactable::colDef(
+      header = withTooltip("Max",
+                           "Maximum of the feature value in the cases"), 
+      filterable = TRUE, 
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ),
-    boxPlot = reactable::colDef(
-      show = F
+    targetMaxValue  = reactable::colDef(
+      header = withTooltip("Max",
+                           "Maximum of the feature value in the targets"), 
+      filterable = TRUE, 
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ),
+    
+    caseMinValue  = reactable::colDef(
+      header = withTooltip("Min",
+                           "Minimum of the feature value in the cases"), 
+      filterable = TRUE, 
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ),
+    targetMinValue  = reactable::colDef(
+      header = withTooltip("Min",
+                           "Minimum of the feature value in the targets"), 
+      filterable = TRUE, 
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ),
+    
+    caseBoxPlot = reactable::colDef(
+      show = FALSE
+    ),
+    targetBoxPlot = reactable::colDef(
+      show = FALSE
     ),
     #targetBoxPlot = reactable::colDef(cell = function(value, index) {
     #  ggplot2::ggplot() +
