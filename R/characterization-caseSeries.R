@@ -36,10 +36,12 @@ characterizationCaseSeriesViewer <- function(id) {
         width = "100%",
         # Title can include an icon
         title = shiny::tagList(shiny::icon("gear"), "Case Series"),
-        shiny::tabPanel("Binary Feature Table", 
+        shiny::tabPanel("Binary Feature Table",
+                        shiny::uiOutput(outputId = ns('helpTextBinary')),
                         resultTableViewer(ns('binaryTable'))
         ),
         shiny::tabPanel("Continuous Feature Table", 
+                        shiny::uiOutput(outputId = ns('helpTextCont')),
                         resultTableViewer(ns('continuousTable'))
         )
       )
@@ -56,7 +58,8 @@ characterizationCaseSeriesServer <- function(
     resultDatabaseSettings,
     reactiveTargetRow,
     reactiveOutcomeRow,
-    reactiveOutcomeTar
+    reactiveOutcomeTar,
+    reactiveOutcomeWashout
 ) {
   shiny::moduleServer(
     id,
@@ -115,6 +118,14 @@ characterizationCaseSeriesServer <- function(
             )
           ),
           
+          shiny::selectInput(
+            inputId = session$ns('outcomeWashout'),
+            label = 'Outcome washout: ',
+            choices = reactiveOutcomeWashout(),
+            selected = reactiveOutcomeWashout()[1],
+            multiple = F
+          ),
+          
           shiny::helpText('View features that occur before target index, between target index and outcome and after outcome for patients with the outcome during the time-at-risk.'),
           
           
@@ -145,9 +156,12 @@ characterizationCaseSeriesServer <- function(
             
             output$showCaseSeries  <- shiny::reactive(1)
             
-            selected(data.frame( #TODO add outcome and target here
-              database = input$databaseName,
-              time_at_risk = names(reactiveOutcomeTar()$tarInds)[which(input$tarInd == reactiveOutcomeTar()$tarInds)]
+            selected(data.frame( 
+              Target = reactiveTargetRow()$cohortName,
+              Outcome = reactiveOutcomeRow()$cohortName,
+              Database = input$databaseName,
+              `Time-at-risk` = names(reactiveOutcomeTar()$tarInds)[which(input$tarInd == reactiveOutcomeTar()$tarInds)],
+              OutcomeWashoutDays = input$outcomeWashout
             ))
             
             inputSelectionDfServer(
@@ -165,14 +179,50 @@ characterizationCaseSeriesServer <- function(
               tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
             )
             
+            # get case count
+            counts <- characterizationGetCaseSeriesCounts(
+              connectionHandler = connectionHandler,
+              resultDatabaseSettings = resultDatabaseSettings,
+              targetId = reactiveTargetRow()$cohortId,
+              outcomeId = reactiveOutcomeRow()$cohortId,
+              databaseId = databaseIds()[input$databaseName == databaseNames()],
+              tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
+            )
+            N <- counts$personCount[1]
+            
+            # get the settings to show in the help text
+            # minPriorObservation,casePostOutcomeDuration,casePreTargetDuration
+            
+            minPriorObservation <- allData$binary$minPriorObservation[1]
+            casePostOutcomeDuration <- allData$binary$casePostOutcomeDuration[1]
+            casePreTargetDuration <- allData$binary$casePreTargetDuration[1]
+            
+            helpTextValue <- paste0('A summary of what the ',N,' cases had ',casePreTargetDuration,' days before target index ',
+                                    ' and up to target index (pre-exposure), after target index and before outcome index (between exposure and outcome) and',
+                                    ' from outcome index up to ', casePostOutcomeDuration, 
+                                    ' days after outcome index (post-outcome).',
+                                    ' Cases are patients in the target cohort for the first time, with',
+                                    ' a minimun of ', minPriorObservation, ' days observation prior to target index',
+                                    ' and who had the outcome recorded during the time-at-risk period.')
+            output$helpTextBinary <- shiny::renderUI(shiny::helpText(helpTextValue))
+            output$helpTextCont <- shiny::renderUI(shiny::helpText(helpTextValue))
+            
             binTableOutputs <- resultTableServer(
               id = "binaryTable", 
-              df = allData$binary, 
+              df = allData$binary %>%
+                dplyr::filter(.data$minPriorObservation == !!minPriorObservation) %>%
+                dplyr::filter(.data$casePostOutcomeDuration == !!casePostOutcomeDuration) %>%
+                dplyr::filter(.data$casePreTargetDuration == !!casePreTargetDuration), 
               details = data.frame(
                 Database = input$databaseName,
                 TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
                 target = reactiveTargetRow()$cohortName,
                 outcome = reactiveOutcomeRow()$cohortName,
+                minPriorObservation = minPriorObservation,
+                casePostOutcomeDuration = casePostOutcomeDuration,
+                casePreTargetDuration = casePreTargetDuration,
+                outcomeWashoutDays = input$outcomeWashout,
+                caseN = N,
                 description = "Case series binary features before target index, during exposure and after outcome index"
               ),
               downloadedFileName = 'case_series_binary',
@@ -180,17 +230,48 @@ characterizationCaseSeriesServer <- function(
                 elementId = session$ns('binary-table-filter')
               ), # function below
               addActions = NULL,
-              elementId = session$ns('binary-table-filter')
+              elementId = session$ns('binary-table-filter'), 
+              columnGroups = list(
+                reactable::colGroup(
+                  name = paste0('Pre-exposure'), 
+                  columns = c(
+                    'sumValueBefore',
+                    'averageValueBefore'
+                    )
+              ),
+              reactable::colGroup(
+                name = paste0('Between exposure & outcome'), 
+                columns = c(
+                  'sumValueDuring',
+                  'averageValueDuring'
+                )
+              ),
+              reactable::colGroup(
+                name = paste0('Post-outcome'), 
+                columns = c(
+                  'sumValueAfter',
+                  'averageValueAfter'
+                )
+              )
+            )
             )
             
             conTableOutputs <- resultTableServer(
               id = "continuousTable", 
-              df = allData$continuous,
+              df = allData$continuous %>%
+                dplyr::filter(.data$minPriorObservation == !!minPriorObservation) %>%
+                dplyr::filter(.data$casePostOutcomeDuration == !!casePostOutcomeDuration) %>%
+                dplyr::filter(.data$casePreTargetDuration == !!casePreTargetDuration), ,
               details = data.frame(
                 Database = input$databaseName,
                 TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
                 target = reactiveTargetRow()$cohortName,
                 outcome = reactiveOutcomeRow()$cohortName,
+                minPriorObservation = minPriorObservation,
+                casePostOutcomeDuration = casePostOutcomeDuration,
+                casePreTargetDuration = casePreTargetDuration,
+                outcomeWashoutDays = input$outcomeWashout,
+                caseN = N,
                 description = "Case series continuous features before target index, during exposure and after outcome index"
               ),
               downloadedFileName = 'case_series_continuous',
@@ -430,26 +511,14 @@ caseSeriesTable <- function(
   # Before Index Cases
   beforeData <- data %>% 
     dplyr::filter(.data$type == 'Before') 
-  Nbefore <- getCountFromFE(
-    sumValue = beforeData$sumValue, 
-    averageValue = beforeData$averageValue
-    )
 
   # After Index Cases
   afterData <- data %>% 
     dplyr::filter(.data$type == 'After') 
-  Nafter <- getCountFromFE(
-    sumValue = afterData$sumValue, 
-    averageValue = afterData$averageValue
-  )
   
   # During Index Cases
   duringData <- data %>% 
     dplyr::filter(.data$type == 'During') 
-  Nduring <- getCountFromFE(
-    sumValue = duringData$sumValue, 
-    averageValue = duringData$averageValue
-  )
   
   beforeData <- beforeData %>%
     dplyr::mutate(
@@ -471,7 +540,6 @@ caseSeriesTable <- function(
       averageValueDuring = .data$averageValue,
     ) %>%
     dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration', "sumValueDuring", "averageValueDuring")
-  
   
   
   allResults <- beforeData %>% 
@@ -501,6 +569,7 @@ colDefsBinary <- function(
       show = F
     ),
     minPriorObservation = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Min Prior Observation",
                            "Minimum prior observation time (days)"),
       filterable = T,
@@ -517,6 +586,7 @@ colDefsBinary <- function(
       }
     ), 
     outcomeWashoutDays = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Outcome Washout Days",
                            "Number of days for the outcome washout"),
       filterable = T,
@@ -533,17 +603,19 @@ colDefsBinary <- function(
       }
     ),
     casePostOutcomeDuration = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Days Post-outcome Covariate Window",
                            "Number of days after the outcome we look for the covariate"),
       filterable = T
     ), 
     casePreTargetDuration = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Days Pre-exposure Covariate Window",
                            "Number of days before the exposure we look for the covariate"),
       filterable = T
     ),
     sumValueBefore = reactable::colDef(
-      header = withTooltip("# Cases with Feature Pre-exposure",
+      header = withTooltip("No.",
                            "Number of cases with the covariate prior to exposure"),
       filterable = T,
       format = reactable::colFormat(digits = 2, percent = F),
@@ -554,13 +626,13 @@ colDefsBinary <- function(
       }
     ), 
     averageValueBefore = reactable::colDef(
-      header = withTooltip("% of Cases with Feature Pre-exposure",
+      header = withTooltip("Percent",
                            "Percent of cases with the covariate prior to exposure"),
       filterable = T,
       format = reactable::colFormat(digits = 2, percent = T)
     ), 
     sumValueDuring = reactable::colDef(
-      header = withTooltip("# of Cases with Feature Between Exposure & Outcome",
+      header = withTooltip("No.",
                            "Number of cases with the covariate between the exposure and outcome"),
       filterable = T,
       format = reactable::colFormat(digits = 2, percent = F),
@@ -571,13 +643,13 @@ colDefsBinary <- function(
       }
     ), 
     averageValueDuring = reactable::colDef(
-      header = withTooltip("% of Cases with Feature Between Exposure & Outcome",
+      header = withTooltip("Percent",
                            "Percent of cases with the covariate between the exposure and outcome"),
       filterable = T,
       format = reactable::colFormat(digits = 2, percent = T)
     ), 
     sumValueAfter = reactable::colDef(
-      header = withTooltip("# of Cases with Feature Post-outcome",
+      header = withTooltip("No.",
                            "Number of cases with the covariate after the outcome"),
       filterable = T,
       format = reactable::colFormat(digits = 2, percent = F),
@@ -588,7 +660,7 @@ colDefsBinary <- function(
       }
     ), 
     averageValueAfter = reactable::colDef(
-      header = withTooltip("% of Cases with Feature Post-outcome",
+      header = withTooltip("Percent",
                            "Percent of cases with the covariate after the outcome"),
       filterable = T,
       format = reactable::colFormat(digits = 2, percent = T)
@@ -647,6 +719,7 @@ colDefsContinuous <- function(
       show = F
     ),
     minPriorObservation = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Min Prior Observation",
                            "Minimum prior observation time (days)"),
       filterable = T,
@@ -663,6 +736,7 @@ colDefsContinuous <- function(
       }
     ), 
     outcomeWashoutDays = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Outcome Washout Days",
                            "Number of days for the outcome washout"),
       filterable = T,
@@ -678,7 +752,9 @@ colDefsContinuous <- function(
         )
       }
     ),
+    
     casePostOutcomeDuration = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Days Post-outcome Covariate Window",
                            "Number of days after the outcome we look for the covariate"),
       filterable = T,
@@ -695,6 +771,7 @@ colDefsContinuous <- function(
       }
     ), 
     casePreTargetDuration = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Days Pre-exposure Covariate Window",
                            "Number of days before the exposure we look for the covariate"),
       filterable = T,
@@ -779,18 +856,49 @@ colDefsContinuous <- function(
 }
 
 
-
-getCountFromFE <- function(
-  sumValue, 
-  averageValue
+characterizationGetCaseSeriesCounts <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    targetId,
+    outcomeId,
+    databaseId,
+    tar
 ){
   
-  Ns <- sumValue/averageValue
-  if(sum(is.finite(Ns)) > 0 ){
-    maxN <- max(Ns[is.finite(Ns)])
-  } else{
-    message('Issue calculating N')
-    maxN <- 0
-  }
-  return(maxN)
+  sql <- "SELECT 
+          min_prior_observation,	
+          outcome_washout_days,
+          row_count,
+          person_count 
+          
+          from
+          @schema.@c_table_prefixcohort_counts
+          where database_id = '@database_id'
+          and target_cohort_id = @target_id
+          and outcome_cohort_id in (@outcome_id)
+          and (risk_window_start = @risk_window_start)
+          and (risk_window_end = @risk_window_end)
+          and (start_anchor = '@start_anchor')
+          and (end_anchor = '@end_anchor')
+          and cohort_type in ('Cases')
+  ;"
+  
+  counts <- connectionHandler$queryDb(
+    sql = sql, 
+    schema = resultDatabaseSettings$schema,
+    c_table_prefix = resultDatabaseSettings$cTablePrefix,
+    database_id = databaseId,
+    target_id = targetId,
+    outcome_id = outcomeId,
+    risk_window_start = tar$riskWindowStart,
+    start_anchor = tar$startAnchor,
+    risk_window_end = tar$riskWindowEnd,
+    end_anchor = tar$endAnchor
+  )
+  
+  return(counts)
+  
 }
+
+
+

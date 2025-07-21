@@ -399,7 +399,8 @@ characterizationServer <- function(
         resultDatabaseSettings = resultDatabaseSettings,
         reactiveTargetRow = reactiveTargetRow,
         reactiveOutcomeRow = reactiveOutcomeRow,
-        reactiveOutcomeTar = reactiveOutcomeTar
+        reactiveOutcomeTar = reactiveOutcomeTar,
+        reactiveOutcomeWashout = reactiveOutcomeWashout
       )
       
       characterizationIncidenceServer(
