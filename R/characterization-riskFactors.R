@@ -59,7 +59,8 @@ characterizationRiskFactorServer <- function(
     connectionHandler,
     resultDatabaseSettings,
     reactiveTargetRow,
-    reactiveOutcomeRow,
+    outcomeTable,
+    reactiveOutcomeRowId,
     reactiveOutcomeTar,
     reactiveOutcomeWashout
 ) {
@@ -74,7 +75,7 @@ characterizationRiskFactorServer <- function(
       shiny::observeEvent(reactiveTargetRow(), {
         output$showRiskFactors <- shiny::reactive(0)
       })
-      shiny::observeEvent(reactiveOutcomeRow(), {
+      shiny::observeEvent(reactiveOutcomeRowId(), {
         output$showRiskFactors <- shiny::reactive(0)
       })
       
@@ -84,7 +85,10 @@ characterizationRiskFactorServer <- function(
         
       output$inputs <- shiny::renderUI({ # need to make reactive?
         
-        shiny::div(
+        shiny::div( # TODO make this an options box that can be collapsed
+          
+          tableSelectionViewer(id = session$ns('outcome-table-select-risk')),
+            
           shiny::selectInput(
             inputId = session$ns('databaseName'),
             label = 'Database: ',
@@ -119,21 +123,38 @@ characterizationRiskFactorServer <- function(
         
       })
       
+      # server for outcome seleciton table
+      tableSelectionServer(
+        id = 'outcome-table-select-risk',
+        table = shiny::reactive(outcomeTable() %>%
+                                  dplyr::select("parentName", "cohortName", "cohortId") %>%
+                                  dplyr::relocate("parentName", .before = "cohortName") %>%
+                                  dplyr::relocate("cohortId", .after = "cohortName")
+        ), 
+        selectedRowId = reactiveOutcomeRowId,
+        selectMultiple = FALSE, 
+        elementId = session$ns('table-outcome-selector'),
+        inputColumns = characterizationOutcomeDisplayColumns(),
+        displayColumns = characterizationOutcomeDisplayColumns(), 
+        selectButtonText = 'Select Outcome'
+      )
+      
       # save the selections
       selected <- shiny::reactiveVal(value = NULL)
       
       shiny::observeEvent(input$generate, {
         
         # add target, outcome, database and tar check
+        reactiveOutcomeRow <- outcomeTable()[reactiveOutcomeRowId(),]
         
-        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow()) |
+        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow) |
            is.null(reactiveOutcomeTar()$tarList[[1]]) | is.null(input$databaseName)){
           
           output$showRiskFactors <- shiny::reactive(0)
           shiny::showNotification('Need to set all inputs')
         } else{
           
-          if(nrow(reactiveTargetRow()) == 0 | nrow(reactiveOutcomeRow()) == 0){
+          if(nrow(reactiveTargetRow()) == 0 | nrow(reactiveOutcomeRow) == 0){
             output$showRiskFactors <- shiny::reactive(0)
             shiny::showNotification('Need to pick a target and outcome')
           } else{
@@ -142,7 +163,7 @@ characterizationRiskFactorServer <- function(
             selected(
               data.frame(
                 Target = reactiveTargetRow()$cohortName,
-                Outcome = reactiveOutcomeRow()$cohortName,
+                Outcome = reactiveOutcomeRow$cohortName,
                 Database = input$databaseName,
                 `Time-at-risk` = names(reactiveOutcomeTar()$tarInds)[which(input$tarInd == reactiveOutcomeTar()$tarInds)],
                 OutcomeWashoutDays = input$outcomeWashout
@@ -159,13 +180,11 @@ characterizationRiskFactorServer <- function(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
               targetId = reactiveTargetRow()$cohortId,
-              outcomeId = reactiveOutcomeRow()$cohortId,
+              outcomeId = reactiveOutcomeRow$cohortId,
               databaseId = databaseIds()[input$databaseName == databaseNames()],
               tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
             )
-            
-            #print(countTable)
-            
+
             output$helpTextBinary <- shiny::renderUI(
               shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts (restricted to first index date and requiring ",
                                      countTable$minPriorObservation[1]," days observation prior to index) stratified by whether they had the outcome during the time-at-risk with a history of each binary features across databases."))
@@ -246,7 +265,7 @@ characterizationRiskFactorServer <- function(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
               targetId = reactiveTargetRow()$cohortId,
-              outcomeId = reactiveOutcomeRow()$cohortId,
+              outcomeId = reactiveOutcomeRow$cohortId,
               databaseId = databaseIds()[input$databaseName == databaseNames()],
               tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
             )
@@ -257,7 +276,7 @@ characterizationRiskFactorServer <- function(
                 dplyr::filter(.data$outcomeWashoutDays == !!input$outcomeWashout),
               details = data.frame(
                 target = reactiveTargetRow()$cohortName,
-                outcome = reactiveOutcomeRow()$cohortName,
+                outcome = reactiveOutcomeRow$cohortName,
                 caseN = caseN,
                 nonCaseN = nonCaseN,
                 Database = input$databaseName,
@@ -283,10 +302,6 @@ characterizationRiskFactorServer <- function(
                   paste0('caseAverageValue'),
                   paste0('caseStandardDeviation'),
                   paste0('caseMedianValue')
-                  #paste0('caseP10Value'),
-                  #paste0('caseP25Value'),
-                  #paste0('caseP75Value'),
-                  #paste0('caseP90Value')
                   )
               ),
               reactable::colGroup(
@@ -298,10 +313,6 @@ characterizationRiskFactorServer <- function(
                   paste0('targetAverageValue'),
                   paste0('targetStandardDeviation'),
                   paste0('targetMedianValue')
-                  #paste0('targetP10Value'),
-                  #paste0('targetP25Value'),
-                  #paste0('targetP75Value'),
-                  #paste0('targetP90Value')
                 )
             )
             )
@@ -311,7 +322,7 @@ characterizationRiskFactorServer <- function(
               df = allData$continuous,
               details = data.frame(
                 target = reactiveTargetRow()$cohortName,
-                outcome = reactiveOutcomeRow()$cohortName,
+                outcome = reactiveOutcomeRow$cohortName,
                 caseN = caseN,
                 targetN = targetN,
                 Database = input$databaseName,

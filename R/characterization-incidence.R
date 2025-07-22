@@ -384,13 +384,20 @@ characterizationIncidenceServer <- function(
         )
       })
       
-      reactiveOutcomeRows <- tableSelectionServer(
+      reactiveOutcomeRowIds <- shiny::reactiveVal(NULL)
+      reactiveOutcomeRows <- shiny::reactive({
+        outcomeTable()[reactiveOutcomeRowIds(),]
+      })
+      
+      tableSelectionServer(
         id = 'outcome-table-select',
         table = shiny::reactive(outcomeTable() %>%
                                   dplyr::filter(.data$cohortIncidence == 1) %>%
+                                  dplyr::select('parentName','cohortName','cohortId') %>%
                                   dplyr::relocate("parentName", .before = "cohortName") %>%
                                   dplyr::relocate("cohortId", .after = "cohortName")
         ), 
+        selectedRow = reactiveOutcomeRowIds,
         selectMultiple = TRUE, 
         elementId = session$ns('table-selector'),
         inputColumns = characterizationOutcomeDisplayColumns(),

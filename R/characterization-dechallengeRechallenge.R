@@ -21,11 +21,7 @@ characterizationDechallengeRechallengeViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    shiny::helpText('View how often the outcome occurs just before the target stops (a positive dechallenge) and how often the outcome restarts shortly after the target restarts (positive rechallenge)'),
-    shiny::actionButton(
-      inputId = ns('generate'), 
-      label = 'Generate'
-      ),
+    shiny::uiOutput(ns("inputs")),
     
     shiny::conditionalPanel(
       condition = 'output.showDechalRechal != 0', 
@@ -50,7 +46,8 @@ characterizationDechallengeRechallengeServer <- function(
   connectionHandler,
   resultDatabaseSettings,
   reactiveTargetRow,
-  reactiveOutcomeRow
+  outcomeTable,
+  reactiveOutcomeRowId
 ) {
   shiny::moduleServer(
     id,
@@ -65,9 +62,42 @@ characterizationDechallengeRechallengeServer <- function(
       shiny::observeEvent(reactiveTargetRow(), {
         output$showDechalRechal <- shiny::reactive(0)
       })
-      shiny::observeEvent(reactiveOutcomeRow(), {
+      shiny::observeEvent(reactiveOutcomeRowId(), {
         output$showDechalRechal <- shiny::reactive(0)
       })
+      
+      
+      # INPUTS
+      output$inputs <- shiny::renderUI({ # need to make reactive?
+        
+        shiny::div(
+          
+          shiny::helpText('View how often the outcome occurs just before the target stops (a positive dechallenge) and how often the outcome restarts shortly after the target restarts (positive rechallenge)'),
+          
+          tableSelectionViewer(id = session$ns('outcome-table-select-dechal')),
+            
+          shiny::actionButton(
+            inputId = session$ns('generate'), 
+            label = 'Generate'
+          )
+        )
+      })
+      
+      # server for outcome seleciton table
+      tableSelectionServer(
+        id = 'outcome-table-select-dechal',
+        table = shiny::reactive(outcomeTable() %>%
+                                  dplyr::select("parentName", "cohortName", "cohortId") %>%
+                                  dplyr::relocate("parentName", .before = "cohortName") %>%
+                                  dplyr::relocate("cohortId", .after = "cohortName")
+        ), 
+        selectedRowId = reactiveOutcomeRowId,
+        selectMultiple = FALSE, 
+        elementId = session$ns('table-outcome-selector'),
+        inputColumns = characterizationOutcomeDisplayColumns(),
+        displayColumns = characterizationOutcomeDisplayColumns(), 
+        selectButtonText = 'Select Outcome'
+      )
       
       # show selected inputs to user
       selected <- shiny::reactiveVal()
@@ -81,27 +111,29 @@ characterizationDechallengeRechallengeServer <- function(
       # wait for generate to extract data
       shiny::observeEvent(input$generate, {
         
-        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow())){
+        reactiveOutcomeRow <- outcomeTable()[reactiveOutcomeRowId(),]
+        
+        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow)){
           output$showTimeToEvent <- shiny::reactive(0)
           allData(NULL)
           return(NULL)
         } else{
           
-          if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveOutcomeRow()) > 0 ){
+          if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveOutcomeRow) > 0 ){
             
             output$showDechalRechal <- shiny::reactive(1)
             
             selected(
               data.frame(
                 Target = reactiveTargetRow()$cohortName,
-                Outcome = reactiveOutcomeRow()$cohortName
+                Outcome = reactiveOutcomeRow$cohortName
               )
             )
             
             allData(
               getDechalRechalInputsData(
                 targetId = reactiveTargetRow()$cohortId,
-                outcomeId = reactiveOutcomeRow()$cohortId,
+                outcomeId = reactiveOutcomeRow$cohortId,
                 connectionHandler = connectionHandler,
                 resultDatabaseSettings
               )
@@ -119,7 +151,7 @@ characterizationDechallengeRechallengeServer <- function(
             outcomeUniquePeople <- isCohortUniquePeople(
                 connectionHandler = connectionHandler, 
                 resultDatabaseSettings = resultDatabaseSettings,
-                cohortId = reactiveOutcomeRow()$cohortId
+                cohortId = reactiveOutcomeRow$cohortId
               )
             
             output$warning <- shiny::renderUI(
@@ -144,6 +176,7 @@ characterizationDechallengeRechallengeServer <- function(
                 shiny::renderUI(shiny::div())
               }
             )
+            
             #========
             
           } else{
@@ -154,28 +187,28 @@ characterizationDechallengeRechallengeServer <- function(
         }
         })
       
-      
-
+      # make details reactive and move this outside observe event
       tableOutputs <- resultTableServer(
         id = "tableResults", 
         df = allData,
-        details = data.frame(
+        details = shiny::reactive(data.frame(
           target = reactiveTargetRow()$cohortName,
-          outcome = reactiveOutcomeRow()$chortName,
+          outcome = outcomeTable()[reactiveOutcomeRowId(),]$chortName,
           Analysis = 'Exposed Cases Summary - Dechallenge-Rechallenge'
-        ),
+        ))(),
         downloadedFileName = 'dechallege-rechallenge',
         colDefsInput = characteriationDechalRechalColDefs(),
         addActions = c('fails')
       )
       
+
       failData <- shiny::reactiveVal(NULL)
       shiny::observeEvent(tableOutputs$actionCount(), {
         if(!is.null(tableOutputs$actionType())){
           if(tableOutputs$actionType() == 'fails'){
             result <- getDechalRechalFailData(
               targetId = reactiveTargetRow()$cohortId,
-              outcomeId = reactiveOutcomeRow()$cohortId,
+              outcomeId = outcomeTable()[reactiveOutcomeRowId(),]$cohortId,
               databaseId = allData()$databaseId[tableOutputs$actionIndex()$index], # update?
               dechallengeStopInterval = allData()$dechallengeStopInterval[tableOutputs$actionIndex()$index],
               dechallengeEvaluationWindow = allData()$dechallengeEvaluationWindow[tableOutputs$actionIndex()$index],

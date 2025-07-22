@@ -57,7 +57,8 @@ characterizationCaseSeriesServer <- function(
     connectionHandler,
     resultDatabaseSettings,
     reactiveTargetRow,
-    reactiveOutcomeRow,
+    outcomeTable,
+    reactiveOutcomeRowId,
     reactiveOutcomeTar,
     reactiveOutcomeWashout
 ) {
@@ -72,7 +73,7 @@ characterizationCaseSeriesServer <- function(
       shiny::observeEvent(reactiveTargetRow(), {
         output$showCaseSeries <- shiny::reactive(0)
       })
-      shiny::observeEvent(reactiveOutcomeRow(), {
+      shiny::observeEvent(reactiveOutcomeRowId(), {
         output$showCaseSeries <- shiny::reactive(0)
       })
       
@@ -80,10 +81,12 @@ characterizationCaseSeriesServer <- function(
       databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseString, split = ', ')))
       databaseIds <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseIdString, split = ', ')))
       
-      
       output$inputs <- shiny::renderUI({ # need to make reactive?
         
         shiny::div(
+          
+          tableSelectionViewer(id = session$ns('outcome-table-select-case')),
+          
           shinyWidgets::pickerInput(
             inputId = session$ns('databaseName'),
             label = 'Database: ',
@@ -137,19 +140,37 @@ characterizationCaseSeriesServer <- function(
         
       })
       
+      # server for outcome seleciton table
+      tableSelectionServer(
+        id = 'outcome-table-select-case',
+        table = shiny::reactive(outcomeTable() %>%
+                                  dplyr::select("parentName", "cohortName", "cohortId") %>%
+                                  dplyr::relocate("parentName", .before = "cohortName") %>%
+                                  dplyr::relocate("cohortId", .after = "cohortName")
+        ), 
+        selectedRowId = reactiveOutcomeRowId,
+        selectMultiple = FALSE, 
+        elementId = session$ns('table-outcome-selector'),
+        inputColumns = characterizationOutcomeDisplayColumns(),
+        displayColumns = characterizationOutcomeDisplayColumns(), 
+        selectButtonText = 'Select Outcome'
+      )
+      
       # save the selections
       selected <- shiny::reactiveVal(NULL)
       
       shiny::observeEvent(input$generate, {
         
-        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow()) |
+        reactiveOutcomeRow <- outcomeTable()[reactiveOutcomeRowId(),]
+        
+        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow) |
            is.null(reactiveOutcomeTar()$tarList[[1]]) | is.null(input$databaseName)){
           
           output$showCaseSeries  <- shiny::reactive(0)
           shiny::showNotification('Need to set all inputs')
         } else{
           
-          if(nrow(reactiveTargetRow()) == 0 | nrow(reactiveOutcomeRow()) == 0){
+          if(nrow(reactiveTargetRow()) == 0 | nrow(reactiveOutcomeRow) == 0){
             output$showCaseSeries  <- shiny::reactive(0)
             shiny::showNotification('Need to pick a target and outcome')
           } else{
@@ -158,7 +179,7 @@ characterizationCaseSeriesServer <- function(
             
             selected(data.frame( 
               Target = reactiveTargetRow()$cohortName,
-              Outcome = reactiveOutcomeRow()$cohortName,
+              Outcome = reactiveOutcomeRow$cohortName,
               Database = input$databaseName,
               `Time-at-risk` = names(reactiveOutcomeTar()$tarInds)[which(input$tarInd == reactiveOutcomeTar()$tarInds)],
               OutcomeWashoutDays = input$outcomeWashout
@@ -174,7 +195,7 @@ characterizationCaseSeriesServer <- function(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
               targetId = reactiveTargetRow()$cohortId,
-              outcomeId = reactiveOutcomeRow()$cohortId,
+              outcomeId = reactiveOutcomeRow$cohortId,
               databaseId = databaseIds()[input$databaseName == databaseNames()],
               tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
             )
@@ -184,7 +205,7 @@ characterizationCaseSeriesServer <- function(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
               targetId = reactiveTargetRow()$cohortId,
-              outcomeId = reactiveOutcomeRow()$cohortId,
+              outcomeId = reactiveOutcomeRow$cohortId,
               databaseId = databaseIds()[input$databaseName == databaseNames()],
               tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
             )
@@ -217,7 +238,7 @@ characterizationCaseSeriesServer <- function(
                 Database = input$databaseName,
                 TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
                 target = reactiveTargetRow()$cohortName,
-                outcome = reactiveOutcomeRow()$cohortName,
+                outcome = reactiveOutcomeRow$cohortName,
                 minPriorObservation = minPriorObservation,
                 casePostOutcomeDuration = casePostOutcomeDuration,
                 casePreTargetDuration = casePreTargetDuration,
@@ -266,7 +287,7 @@ characterizationCaseSeriesServer <- function(
                 Database = input$databaseName,
                 TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
                 target = reactiveTargetRow()$cohortName,
-                outcome = reactiveOutcomeRow()$cohortName,
+                outcome = reactiveOutcomeRow$cohortName,
                 minPriorObservation = minPriorObservation,
                 casePostOutcomeDuration = casePostOutcomeDuration,
                 casePreTargetDuration = casePreTargetDuration,

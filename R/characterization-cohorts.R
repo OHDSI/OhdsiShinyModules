@@ -97,13 +97,15 @@ characterizationCohortComparisonServer <- function(
       databaseIds <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseIdString, split = ', ')))
       
       # add the server for the comparator table select
-      reactiveComparatorRow <- tableSelectionServer(
+      reactiveComparatorRowId <- shiny::reactiveVal(NULL)
+      tableSelectionServer(
         id = 'comparator-selector', 
         table = shiny::reactive(targetTable %>%
                                   dplyr::filter(.data$cohortComparator == 1) %>%
                                   dplyr::filter(.data$cohortId != reactiveTargetRow()$cohortId) %>%
                                   dplyr::select("parentName", "cohortName", "cohortId")
                                 ), 
+        selectedRow = reactiveComparatorRowId,
         selectMultiple = FALSE, 
         elementId = session$ns('comp-selector'),
         inputColumns = list(
@@ -124,7 +126,7 @@ characterizationCohortComparisonServer <- function(
       )
       
       # hide results if reactiveComparatorRow changes
-      shiny::observeEvent(reactiveComparatorRow(),{
+      shiny::observeEvent(reactiveComparatorRowId(),{
         output$showCohortComp <- shiny::reactive(0)
       })
       
@@ -173,21 +175,26 @@ characterizationCohortComparisonServer <- function(
       #get results
       selected <- shiny::reactiveVal()
       shiny::observeEvent(input$generate,{
-        
+      
+        # got to apply same filter  
+      filteredTable <- targetTable %>%
+          dplyr::filter(.data$cohortComparator == 1) %>%
+          dplyr::filter(.data$cohortId != reactiveTargetRow()$cohortId)
+      reactiveComparatorRow <- filteredTable[reactiveComparatorRowId(),]
         
         # TODO update logic for running 
-        if(is.null(reactiveComparatorRow()) | is.null(reactiveTargetRow())){
+        if(is.null(reactiveComparatorRow) | is.null(reactiveTargetRow())){
           output$showCohortComp <- shiny::reactive(0)
           shiny::showNotification('Must select a comparison')
         } else{
-          if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveComparatorRow()) > 0){
+          if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveComparatorRow) > 0){
             
             output$showCohortComp <- shiny::reactive(1)
             
             selected(
               data.frame(
                 Target = reactiveTargetRow()$cohortName,
-                Comparator = reactiveComparatorRow()$cohortName,
+                Comparator = reactiveComparatorRow$cohortName,
                 Database = input$databaseName
               )
             )
@@ -195,7 +202,7 @@ characterizationCohortComparisonServer <- function(
             resultTable <- characterizatonGetCohortData(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
-              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow()$cohortId),
+              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow$cohortId),
               databaseIds = databaseIds()[databaseNames() == input$databaseName],
               minThreshold = 0.01,
               addSMD = T
@@ -204,7 +211,7 @@ characterizationCohortComparisonServer <- function(
             countTable <- characterizatonGetCohortCounts(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
-              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow()$cohortId),
+              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow$cohortId),
               databaseIds = databaseIds()[databaseNames() == input$databaseName]
             )
             
@@ -220,7 +227,7 @@ characterizationCohortComparisonServer <- function(
             continuousTable <- characterizatonGetCohortComparisonDataContinuous(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
-              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow()$cohortId),
+              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow$cohortId),
               databaseIds = databaseIds()[databaseNames() == input$databaseName]
             )
             
@@ -255,7 +262,7 @@ characterizationCohortComparisonServer <- function(
                 dplyr::filter(.data$minPriorObservation == countTable$minPriorObservation[1]),
               details = data.frame(
                 Target = reactiveTargetRow()$cohortName,
-                Comparator = reactiveComparatorRow()$cohortName,
+                Comparator = reactiveComparatorRow$cohortName,
                 Database = input$databaseName,
                 Analysis = 'Cohort comparison within database'
               ),
@@ -274,7 +281,7 @@ characterizationCohortComparisonServer <- function(
                 dplyr::filter(.data$minPriorObservation == countTable$minPriorObservation[1]),
               details = data.frame(
                 Target = reactiveTargetRow()$cohortName,
-                Comparator = reactiveComparatorRow()$cohortName,
+                Comparator = reactiveComparatorRow$cohortName,
                 Database = input$databaseName,
                 Analysis = 'Cohort comparison within database'
               ),

@@ -54,19 +54,10 @@ characterizationViewer <- function(id=1) {
     tableSelectionViewer(id = ns('target-table-select')),
     
     shiny::uiOutput(outputId = ns('analysesOptions')),
-    
-    shiny::conditionalPanel(
-      condition = 'output.showOutcomeSelector == true', 
-      ns = ns,
-      #shiny::h1('made up')
-      tableSelectionViewer(id = ns('outcome-table-select'))
-    ),
+  
     shiny::uiOutput(outputId = ns('analysesResults'))
     
-    
   )
-  
-  
 }
 
 #' The module server for exploring characterization studies
@@ -108,17 +99,19 @@ characterizationServer <- function(
       
       resultType <- shiny::reactiveVal("")
       outcomeTable <- shiny::reactiveVal(NULL)
-      outcomeTableReset <- shiny::reactive(0)
-      output$showOutcomeSelector <- shiny::reactive(FALSE)
-      shiny::outputOptions(output, "showOutcomeSelector", suspendWhenHidden = FALSE)
+
+      # create reactive that saves selected rowIds for targetTable and outcomeTable
+      reactiveTargetRowId <- shiny::reactiveVal(NULL)
+      reactiveOutcomeRowId <- shiny::reactiveVal(NULL)
       
-      reactiveTargetRow <- tableSelectionServer(
+      tableSelectionServer(
         id = 'target-table-select',
         table = shiny::reactive(targetTable %>%
           dplyr::select(-"cohortMethod", -"selfControlledCaseSeries", -"prediction") %>%
           dplyr::relocate("parentName", .before = "cohortName") %>%
           dplyr::relocate("cohortId", .after = "cohortName")
           ), 
+        selectedRowId = reactiveTargetRowId,
         selectMultiple = FALSE, 
         elementId = session$ns('table-selector'),
         inputColumns = characterizationTargetInputColumns(),
@@ -127,10 +120,12 @@ characterizationServer <- function(
         )
       
       # react to the target being set
-      shiny::observeEvent(reactiveTargetRow(),{
+      reactiveTargetRow <- shiny::reactiveVal(NULL)
+      shiny::observeEvent(reactiveTargetRowId(),{
         
-        # change the outcomeTableReset to reset the outcome selection
-        outcomeTableReset <- shiny::reactive(outcomeTableReset()+1)
+        reactiveTargetRow(targetTable[reactiveTargetRowId(),])
+        # reset the outcome row id
+        reactiveOutcomeRowId(0)
         
         if(nrow(reactiveTargetRow()) > 0){
           
@@ -219,7 +214,6 @@ characterizationServer <- function(
         } else{ # if no target selected set outcome table to null
           outcomeTable(NULL)
           output$analysesOptions <- NULL
-          output$showOutcomeSelector <- shiny::reactive(FALSE)
           resultType("") # update resultType to get UI to change 
         }
 
@@ -232,19 +226,6 @@ characterizationServer <- function(
       
       # listen to the radio seleciton 
       shiny::observeEvent(resultType(),{
-        
-        # show/hide outcome input depending on what 
-        # analysis is selected 
-        if(resultType() %in% c(
-          'Dechallenge Rechallenge',
-          'Risk Factors',
-          'Time-to-event',
-          'Case Series'
-        )){
-          output$showOutcomeSelector <- shiny::reactive(TRUE)
-        } else{
-          output$showOutcomeSelector <- shiny::reactive(FALSE)
-        }
         
         # check the UI based on the analysis
         if(resultType() == 'Cohort Incidence'){
@@ -296,16 +277,6 @@ characterizationServer <- function(
       })
 
       
-      # observe outcomeRow for the exposed cases summary
-      # outcomeTable is reactive
-      reactiveOutcomeRow <- tableSelectionServer(
-          id = 'outcome-table-select',
-          table = outcomeTable, 
-          selectButtonText = 'Select Outcome', 
-          inputColumns = characterizationOutcomeDisplayColumns(),
-          tableReset = outcomeTableReset
-        )
-      
       # find tars and washout when outcome is selected
       reactiveOutcomeTar <- shiny::reactiveVal(
         list(
@@ -315,9 +286,12 @@ characterizationServer <- function(
       reactiveOutcomeWashout <- shiny::reactiveVal(NULL)
       
       shiny::observeEvent(
-        eventExpr = reactiveOutcomeRow(), {
+        eventExpr = reactiveOutcomeRowId(), {
           
-          if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow())){
+          print('changed')
+          print(reactiveOutcomeRowId())
+          
+          if(is.null(targetTable[reactiveTargetRowId(),]) | is.null(outcomeTable()[reactiveOutcomeRowId(),])){
             reactiveOutcomeTar(list(
               tarList = c(),
               tarInds = c()
@@ -325,7 +299,7 @@ characterizationServer <- function(
             reactiveOutcomeWashout(NULL)
           } else{
             
-            if(nrow(reactiveTargetRow()) == 0 | nrow(reactiveOutcomeRow()) == 0){
+            if(nrow(targetTable[reactiveTargetRowId(),]) == 0 | nrow(outcomeTable()[reactiveOutcomeRowId(),]) == 0){
               reactiveOutcomeTar(list(
                 tarList = c(),
                 tarInds = c()
@@ -337,14 +311,14 @@ characterizationServer <- function(
                 connectionHandler = connectionHandler,
                 resultDatabaseSettings = resultDatabaseSettings,
                 targetId = reactiveTargetRow()$cohortId,
-                outcomeId = reactiveOutcomeRow()$cohortId
+                outcomeId = outcomeTable()[reactiveOutcomeRowId(),]$cohortId
               ))
               reactiveOutcomeWashout(
                 characterizationGetCaseSeriesWashout(
                   connectionHandler = connectionHandler,
                   resultDatabaseSettings = resultDatabaseSettings,
                   targetId = reactiveTargetRow()$cohortId,
-                  outcomeId = reactiveOutcomeRow()$cohortId
+                  outcomeId = outcomeTable()[reactiveOutcomeRowId(),]$cohortId
                 )
               )
             }
@@ -372,7 +346,8 @@ characterizationServer <- function(
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
         reactiveTargetRow = reactiveTargetRow,
-        reactiveOutcomeRow = reactiveOutcomeRow
+        outcomeTable = outcomeTable,
+        reactiveOutcomeRowId = reactiveOutcomeRowId
       )
       
       characterizationDechallengeRechallengeServer(
@@ -380,7 +355,8 @@ characterizationServer <- function(
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
         reactiveTargetRow = reactiveTargetRow,
-        reactiveOutcomeRow = reactiveOutcomeRow
+        outcomeTable = outcomeTable,
+        reactiveOutcomeRowId = reactiveOutcomeRowId
       )
       
       characterizationRiskFactorServer(
@@ -388,7 +364,8 @@ characterizationServer <- function(
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
         reactiveTargetRow = reactiveTargetRow,
-        reactiveOutcomeRow = reactiveOutcomeRow,
+        outcomeTable = outcomeTable,
+        reactiveOutcomeRowId = reactiveOutcomeRowId,
         reactiveOutcomeTar = reactiveOutcomeTar,
         reactiveOutcomeWashout = reactiveOutcomeWashout
       )
@@ -398,7 +375,8 @@ characterizationServer <- function(
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
         reactiveTargetRow = reactiveTargetRow,
-        reactiveOutcomeRow = reactiveOutcomeRow,
+        outcomeTable = outcomeTable,
+        reactiveOutcomeRowId = reactiveOutcomeRowId,
         reactiveOutcomeTar = reactiveOutcomeTar,
         reactiveOutcomeWashout = reactiveOutcomeWashout
       )
@@ -410,6 +388,7 @@ characterizationServer <- function(
         reactiveTargetRow = reactiveTargetRow,
         outcomeTable = outcomeTable
         )
+
  
     }
   )
@@ -565,12 +544,7 @@ characterizationTargetDisplayColumns <- function(){
 characterizationOutcomeDisplayColumns <- function(){
   return(
     list(
-      databaseString  = reactable::colDef(show = FALSE),
-      numDatabase = reactable::colDef(show = FALSE),
-      minSubjectCount = reactable::colDef(show = FALSE),
-      maxSubjectCount = reactable::colDef(show = FALSE),
-      minEntryCount = reactable::colDef(show = FALSE),
-      maxEntryCount = reactable::colDef(show = FALSE),
+
       cohortId = reactable::colDef(
         show = TRUE,
         name = 'Cohort ID'
@@ -583,30 +557,8 @@ characterizationOutcomeDisplayColumns <- function(){
       cohortName = reactable::colDef(
         name = 'Subset',
         minWidth = 300
-      ),
-      subsetParent = reactable::colDef(show = FALSE),
-      subsetDefinitionId = reactable::colDef(show = FALSE),
-      
-      databaseIdString = reactable::colDef(show = FALSE),
-      
-      databaseStringCount  = reactable::colDef(
-        show = FALSE
-      ),
-      timeToEvent = reactable::colDef(
-        show = FALSE
-      ), 
-      dechalRechal = reactable::colDef(
-        show = FALSE
-      ), 
-      riskFactors = reactable::colDef(
-        show = FALSE
-      ), 
-      caseSeries = reactable::colDef(
-        show = FALSE
-      ),
-      cohortIncidence = reactable::colDef(
-        show = FALSE
       )
+      
     )
   )
 }

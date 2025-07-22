@@ -21,10 +21,7 @@ characterizationTimeToEventViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    shiny::helpText('View the timing of all outcomes relative to the target index date and whether the outcome was the frist or subsequent.'),
-    shiny::actionButton(inputId = ns('generate'), label = 'Generate'),
-    
-    # TODO: add database selection here?
+    shiny::uiOutput(ns("inputs")),
     
     shiny::conditionalPanel(
       condition = 'output.showTimeToEvent != 0', 
@@ -71,7 +68,9 @@ characterizationTimeToEventServer <- function(
   connectionHandler,
   resultDatabaseSettings,
   reactiveTargetRow,
-  reactiveOutcomeRow
+  outcomeTable,
+  reactiveOutcomeRowId,
+  outcomeRow
 ) {
   shiny::moduleServer(
     id,
@@ -85,9 +84,40 @@ characterizationTimeToEventServer <- function(
       shiny::observeEvent(reactiveTargetRow(), {
         output$showTimeToEvent <- shiny::reactive(0)
       })
-      shiny::observeEvent(reactiveOutcomeRow(), {
+      shiny::observeEvent(reactiveOutcomeRowId(), {
         output$showTimeToEvent <- shiny::reactive(0)
       })
+      
+      # inputs
+      output$inputs <- shiny::renderUI({ # need to make reactive?
+        
+        shiny::div(
+          shiny::helpText('View the timing of all outcomes relative to the target index date and whether the outcome was the frist or subsequent.'),
+          
+          tableSelectionViewer(id = session$ns('outcome-table-select-tte')),
+
+          shiny::actionButton(
+            inputId = session$ns('generate'), 
+            label = 'Generate'
+            ),
+        )})
+      
+      
+      # server for outcome seleciton table
+      tableSelectionServer(
+        id = 'outcome-table-select-tte',
+        table = shiny::reactive(outcomeTable() %>%
+                                  dplyr::select("parentName", "cohortName", "cohortId") %>%
+                                  dplyr::relocate("parentName", .before = "cohortName") %>%
+                                  dplyr::relocate("cohortId", .after = "cohortName")
+        ), 
+        selectedRowId = reactiveOutcomeRowId,
+        selectMultiple = FALSE, 
+        elementId = session$ns('table-outcome-selector'),
+        inputColumns = characterizationOutcomeDisplayColumns(),
+        displayColumns = characterizationOutcomeDisplayColumns(), 
+        selectButtonText = 'Select Outcome'
+      )
       
       # show selected inputs to user
       selected <- shiny::reactiveVal()
@@ -99,19 +129,21 @@ characterizationTimeToEventServer <- function(
       
       # wait for generate to extract data
       shiny::observeEvent(input$generate, {
-
-        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow())){
+        
+        reactiveOutcomeRow <- outcomeTable()[reactiveOutcomeRowId(),]
+        
+        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow)){
           output$showTimeToEvent <- shiny::reactive(0)
           allData(NULL)
           return(NULL)
         } else{
           
-          if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveOutcomeRow()) > 0 ){
+          if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveOutcomeRow) > 0 ){
             
             selected(
               data.frame(
                 Target = reactiveTargetRow()$cohortName,
-                Outcome = reactiveOutcomeRow()$cohortName
+                Outcome = reactiveOutcomeRow$cohortName
               )
             )
             
@@ -121,16 +153,30 @@ characterizationTimeToEventServer <- function(
             
             allData(getTimeToEventData(
               targetId = reactiveTargetRow()$cohortId,
-              outcomeId = reactiveOutcomeRow()$cohortId,
+              outcomeId = reactiveOutcomeRow$cohortId,
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings
             ) %>%
               dplyr::mutate(targetName = reactiveTargetRow()$cohortName,
-                            outcomeName = reactiveOutcomeRow()$cohortName) %>%
+                            outcomeName = reactiveOutcomeRow$cohortName) %>%
               dplyr::relocate("databaseName", .before = "databaseId") %>%
               dplyr::relocate("targetName", .after = "databaseName") %>%
               dplyr::relocate("outcomeName", .after = "targetName")
             )
+            
+            # make details reactive and this can move outside the observe
+            resultTableServer(
+              id = "tableResults", 
+              df = allData,
+              details = data.frame( # PROBLEM this is not reactive
+                target = reactiveTargetRow()$cohortName,
+                outcome = reactiveOutcomeRow$cohortName,
+                Analysis = 'Exposed Cases Summary - Time-to-event'
+              ),
+              downloadedFileName = 'time_to_event',
+              colDefsInput = characterizationTimeToEventColDefs()
+            )
+            
           } else{
             shiny::showNotification('Must have target and outcome set')
           }
@@ -138,18 +184,6 @@ characterizationTimeToEventServer <- function(
       }
       )
       
-      
-      tableOutputs <- resultTableServer(
-        id = "tableResults", 
-        df = allData,
-        details = data.frame(
-          target = reactiveTargetRow()$cohortName,
-          outcome = reactiveOutcomeRow()$cohortName,
-          Analysis = 'Exposed Cases Summary - Time-to-event'
-        ),
-        downloadedFileName = 'time_to_event',
-        colDefsInput = characterizationTimeToEventColDefs()
-      )
       
       output$timeToEventPlotInputs <- shiny::renderUI({
         
