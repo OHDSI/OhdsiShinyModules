@@ -222,16 +222,19 @@ characterizationRiskFactorServer <- function(
             
             }
             
+            caseN <- getDbCount('Case',countTable$minPriorObservation[1], input$outcomeWashout)
+            nonCaseN <- getDbCount('Non Case',countTable$minPriorObservation[1], input$outcomeWashout)
+            targetN <- getDbCount('Target',countTable$minPriorObservation[1], input$outcomeWashout)
             
             groupColumns <- list(
               reactable::colGroup(
-                name = paste0('Case ', ' (N = ',getDbCount('Case',countTable$minPriorObservation[1], input$outcomeWashout),')'), 
+                name = paste0('Case ', ' (N = ',caseN,')'), 
                 columns = c(
                   paste0('caseSumValue'), 
                   paste0('caseAverageValue'))
               ),
               reactable::colGroup(
-                name = paste0('Non Case ', ' (N = ',getDbCount('Non Case',countTable$minPriorObservation[1], input$outcomeWashout),')'), 
+                name = paste0('Non Case ', ' (N = ',nonCaseN,')'), 
                 columns = c(
                   paste0('nonCaseSumValue'), 
                   paste0('nonCaseAverageValue'))
@@ -255,6 +258,8 @@ characterizationRiskFactorServer <- function(
               details = data.frame(
                 target = reactiveTargetRow()$cohortName,
                 outcome = reactiveOutcomeRow()$cohortName,
+                caseN = caseN,
+                nonCaseN = nonCaseN,
                 Database = input$databaseName,
                 TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
                 Analysis = 'Exposed Cases Summary - Risk Factor'
@@ -270,7 +275,7 @@ characterizationRiskFactorServer <- function(
             
             groupColumnsContinuous <- list(
               reactable::colGroup(
-                name = paste0('Case ', ' (N = ',getDbCount('Case',countTable$minPriorObservation[1], input$outcomeWashout),')'), 
+                name = paste0('Case ', ' (N = ',caseN ,')'), 
                 columns = c(
                   paste0('caseCountValue'), 
                   paste0('caseMinValue'), 
@@ -285,7 +290,7 @@ characterizationRiskFactorServer <- function(
                   )
               ),
               reactable::colGroup(
-                name = paste0('Target ', ' (N = ',getDbCount('Target',countTable$minPriorObservation[1], input$outcomeWashout),')'), 
+                name = paste0('Target ', ' (N = ',targetN,')'), 
                 columns = c(
                   paste0('targetCountValue'), 
                   paste0('targetMinValue'), 
@@ -304,6 +309,16 @@ characterizationRiskFactorServer <- function(
             conTableOutputs <- resultTableServer(
               id = "continuousTable", 
               df = allData$continuous,
+              details = data.frame(
+                target = reactiveTargetRow()$cohortName,
+                outcome = reactiveOutcomeRow()$cohortName,
+                caseN = caseN,
+                targetN = targetN,
+                Database = input$databaseName,
+                TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
+                Analysis = 'Exposed Cases Summary - Risk Factor continuous'
+              ),
+              downloadedFileName = 'risk_factor_continuous',
               colDefsInput = characteriationRiskFactorContColDefs(
                 elementId = session$ns('continuous-table-filter')
               ), # function below
