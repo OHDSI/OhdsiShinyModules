@@ -140,6 +140,20 @@ characterizationServer <- function(
             
             output$analysesOptions <- shiny::renderUI(
               shiny::div(
+                # add a note showing what analyses are not available
+                shiny::helpText(
+                  ifelse(sum(analysesWithResults) != 7,
+                         paste0('Note: ', paste0(c('Database Comparison',
+                                                   'Cohort Comparison',
+                                                   'Dechallenge Rechallenge',
+                                                   'Risk Factors',
+                                                   'Time-to-event',
+                                                   'Case Series',
+                                                   'Cohort Incidence'
+                         )[analysesWithResults == 0], collapse = '/') ,' not available.'),
+                         ''
+                  )
+                ),
                 shinyWidgets::radioGroupButtons(
                   inputId = session$ns("resultType"), 
                   label = "Choose Analysis:", 
@@ -152,20 +166,6 @@ characterizationServer <- function(
                               'Case Series',
                               'Cohort Incidence'
                               )[analysesWithResults]
-                ),
-                # add a note showing what analyses are not available
-                shiny::helpText(
-                  ifelse(sum(analysesWithResults) != 7,
-                  paste0('Note: ', paste0(c('Database Comparison',
-                                            'Cohort Comparison',
-                                            'Dechallenge Rechallenge',
-                                            'Risk Factors',
-                                            'Time-to-event',
-                                            'Case Series',
-                                            'Cohort Incidence'
-                  )[analysesWithResults == 0], collapse = '/') ,' not available.'),
-                  ''
-                  )
                 )
               )
             )
@@ -275,56 +275,6 @@ characterizationServer <- function(
         }
 
       })
-
-      
-      # find tars and washout when outcome is selected
-      reactiveOutcomeTar <- shiny::reactiveVal(
-        list(
-        tarList = c(),
-        tarInds = c()
-      ))
-      reactiveOutcomeWashout <- shiny::reactiveVal(NULL)
-      
-      shiny::observeEvent(
-        eventExpr = reactiveOutcomeRowId(), {
-          
-          print('changed')
-          print(reactiveOutcomeRowId())
-          
-          if(is.null(targetTable[reactiveTargetRowId(),]) | is.null(outcomeTable()[reactiveOutcomeRowId(),])){
-            reactiveOutcomeTar(list(
-              tarList = c(),
-              tarInds = c()
-            ))
-            reactiveOutcomeWashout(NULL)
-          } else{
-            
-            if(nrow(targetTable[reactiveTargetRowId(),]) == 0 | nrow(outcomeTable()[reactiveOutcomeRowId(),]) == 0){
-              reactiveOutcomeTar(list(
-                tarList = c(),
-                tarInds = c()
-              ))
-              reactiveOutcomeWashout(NULL)
-            } else{
-            reactiveOutcomeTar(
-              characterizationGetCaseSeriesTars(
-                connectionHandler = connectionHandler,
-                resultDatabaseSettings = resultDatabaseSettings,
-                targetId = reactiveTargetRow()$cohortId,
-                outcomeId = outcomeTable()[reactiveOutcomeRowId(),]$cohortId
-              ))
-              reactiveOutcomeWashout(
-                characterizationGetCaseSeriesWashout(
-                  connectionHandler = connectionHandler,
-                  resultDatabaseSettings = resultDatabaseSettings,
-                  targetId = reactiveTargetRow()$cohortId,
-                  outcomeId = outcomeTable()[reactiveOutcomeRowId(),]$cohortId
-                )
-              )
-            }
-          }
-        }
-        )
     
       # add the servers
       characterizationDatabaseComparisonServer(
@@ -365,9 +315,7 @@ characterizationServer <- function(
         resultDatabaseSettings = resultDatabaseSettings,
         reactiveTargetRow = reactiveTargetRow,
         outcomeTable = outcomeTable,
-        reactiveOutcomeRowId = reactiveOutcomeRowId,
-        reactiveOutcomeTar = reactiveOutcomeTar,
-        reactiveOutcomeWashout = reactiveOutcomeWashout
+        reactiveOutcomeRowId = reactiveOutcomeRowId
       )
       
       characterizationCaseSeriesServer(
@@ -376,9 +324,7 @@ characterizationServer <- function(
         resultDatabaseSettings = resultDatabaseSettings,
         reactiveTargetRow = reactiveTargetRow,
         outcomeTable = outcomeTable,
-        reactiveOutcomeRowId = reactiveOutcomeRowId,
-        reactiveOutcomeTar = reactiveOutcomeTar,
-        reactiveOutcomeWashout = reactiveOutcomeWashout
+        reactiveOutcomeRowId = reactiveOutcomeRowId
       )
       
       characterizationIncidenceServer(

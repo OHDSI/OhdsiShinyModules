@@ -21,7 +21,14 @@ characterizationTimeToEventViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    shiny::uiOutput(ns("inputs")),
+    shiny::helpText('View the timing of all outcomes relative to the target index date and whether the outcome was the frist or subsequent.'),
+    
+    shinydashboard::box(
+      collapsible = TRUE,
+      title = "Options",
+      width = "100%",
+      shiny::uiOutput(ns("inputs"))
+    ),
     
     shiny::conditionalPanel(
       condition = 'output.showTimeToEvent != 0', 
@@ -92,7 +99,6 @@ characterizationTimeToEventServer <- function(
       output$inputs <- shiny::renderUI({ # need to make reactive?
         
         shiny::div(
-          shiny::helpText('View the timing of all outcomes relative to the target index date and whether the outcome was the frist or subsequent.'),
           
           tableSelectionViewer(id = session$ns('outcome-table-select-tte')),
 

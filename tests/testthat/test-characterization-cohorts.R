@@ -76,10 +76,6 @@ test_that("Test characterizationCohortsColumns", {
   testthat::expect_true(inherits(cols, 'list'))
 })
 
-test_that("Test characteriationCountTableColDefs", {
-  cols <- characteriationCountTableColDefs()
-  testthat::expect_true(inherits(cols, 'list'))
-})
 
 test_that("Test characterizationCohortsColumnsContinuous", {
   cols <- characterizationCohortsColumnsContinuous()

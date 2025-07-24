@@ -23,8 +23,15 @@ characterizationRiskFactorViewer <- function(id) {
   
   shiny::div(
     
+    shiny::helpText('View features that are associated with having or not having the outcome during the time-at-risk.'),
+    
     # module that does input selection for a single row DF
-    shiny::uiOutput(ns("inputs")),
+    shinydashboard::box(
+      collapsible = TRUE,
+      title = "Options",
+      width = "100%",
+      shiny::uiOutput(ns("inputs"))
+    ),
     
     
     shiny::conditionalPanel(
@@ -60,9 +67,7 @@ characterizationRiskFactorServer <- function(
     resultDatabaseSettings,
     reactiveTargetRow,
     outcomeTable,
-    reactiveOutcomeRowId,
-    reactiveOutcomeTar,
-    reactiveOutcomeWashout
+    reactiveOutcomeRowId
 ) {
   shiny::moduleServer(
     id,
@@ -75,8 +80,47 @@ characterizationRiskFactorServer <- function(
       shiny::observeEvent(reactiveTargetRow(), {
         output$showRiskFactors <- shiny::reactive(0)
       })
+      
+      reactiveOutcomeTar <- shiny::reactiveVal(NULL)
+      reactiveOutcomeTarValues <- shiny::reactiveVal(NULL)
+      reactiveOutcomeWashout <- shiny::reactiveVal(NULL)
+      
       shiny::observeEvent(reactiveOutcomeRowId(), {
         output$showRiskFactors <- shiny::reactive(0)
+        
+        if(reactiveOutcomeRowId() != 0){
+          
+          tarNames <- strsplit(
+            x = outcomeTable()[reactiveOutcomeRowId(),]$tarNames, 
+            split = ':'
+          )[[1]]
+          reactiveOutcomeTar(tarNames)
+          
+          tarStrings <- lapply(strsplit(
+            x = outcomeTable()[reactiveOutcomeRowId(),]$tarStrings, 
+            split = ':'
+          )[[1]], function(x){
+            vals <- strsplit(x = x, split = '/')[[1]]
+            list(
+              riskWindowStart = vals[1],
+              startAnchor = vals[2],
+              riskWindowEnd = vals[3],
+              endAnchor = vals[4]
+            )
+          })
+          reactiveOutcomeTarValues(tarStrings)
+          
+          outcomeWashoutDays <- strsplit(
+            x = outcomeTable()[reactiveOutcomeRowId(),]$outcomeWashoutDays, 
+            split = ':'
+          )[[1]]
+          reactiveOutcomeWashout(outcomeWashoutDays)
+          
+        } else{
+          reactiveOutcomeTar(NULL)
+          reactiveOutcomeWashout(NULL)
+        }
+        
       })
       
       # get databases
@@ -100,8 +144,8 @@ characterizationRiskFactorServer <- function(
           shiny::selectInput(
             inputId = session$ns('tarInd'),
             label = 'Time-at-risk: ',
-            choices = reactiveOutcomeTar()$tarInds,
-            selected = reactiveOutcomeTar()$tarInds[1],
+            choices = reactiveOutcomeTar(),
+            selected = reactiveOutcomeTar()[1],
             multiple = F
           ),
           
@@ -112,8 +156,6 @@ characterizationRiskFactorServer <- function(
             selected = reactiveOutcomeWashout()[1],
             multiple = F
           ),
-          
-          shiny::helpText('View features that are associated with having or not having the outcome during the time-at-risk.'),
           
           shiny::actionButton(
             inputId = session$ns('generate'), 
@@ -148,7 +190,7 @@ characterizationRiskFactorServer <- function(
         reactiveOutcomeRow <- outcomeTable()[reactiveOutcomeRowId(),]
         
         if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow) |
-           is.null(reactiveOutcomeTar()$tarList[[1]]) | is.null(input$databaseName)){
+           is.null(input$tarInd) | is.null(input$databaseName)){
           
           output$showRiskFactors <- shiny::reactive(0)
           shiny::showNotification('Need to set all inputs')
@@ -165,7 +207,7 @@ characterizationRiskFactorServer <- function(
                 Target = reactiveTargetRow()$cohortName,
                 Outcome = reactiveOutcomeRow$cohortName,
                 Database = input$databaseName,
-                `Time-at-risk` = names(reactiveOutcomeTar()$tarInds)[which(input$tarInd == reactiveOutcomeTar()$tarInds)],
+                `Time-at-risk` = input$tarInd,
                 OutcomeWashoutDays = input$outcomeWashout
               )
             )
@@ -182,7 +224,7 @@ characterizationRiskFactorServer <- function(
               targetId = reactiveTargetRow()$cohortId,
               outcomeId = reactiveOutcomeRow$cohortId,
               databaseId = databaseIds()[input$databaseName == databaseNames()],
-              tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
+              tar = reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]
             )
 
             output$helpTextBinary <- shiny::renderUI(
@@ -267,7 +309,7 @@ characterizationRiskFactorServer <- function(
               targetId = reactiveTargetRow()$cohortId,
               outcomeId = reactiveOutcomeRow$cohortId,
               databaseId = databaseIds()[input$databaseName == databaseNames()],
-              tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
+              tar = reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]
             )
             
             binTableOutputs <- resultTableServer(

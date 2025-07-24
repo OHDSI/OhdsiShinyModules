@@ -21,7 +21,14 @@ characterizationDechallengeRechallengeViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     
-    shiny::uiOutput(ns("inputs")),
+    shiny::helpText('View how often the outcome occurs just before the target stops (a positive dechallenge) and how often the outcome restarts shortly after the target restarts (positive rechallenge)'),
+    
+    shinydashboard::box(
+      collapsible = TRUE,
+      title = "Options",
+      width = "100%",
+      shiny::uiOutput(ns("inputs"))
+    ),
     
     shiny::conditionalPanel(
       condition = 'output.showDechalRechal != 0', 
@@ -71,8 +78,6 @@ characterizationDechallengeRechallengeServer <- function(
       output$inputs <- shiny::renderUI({ # need to make reactive?
         
         shiny::div(
-          
-          shiny::helpText('View how often the outcome occurs just before the target stops (a positive dechallenge) and how often the outcome restarts shortly after the target restarts (positive rechallenge)'),
           
           tableSelectionViewer(id = session$ns('outcome-table-select-dechal')),
             

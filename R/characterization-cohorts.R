@@ -24,6 +24,8 @@ characterizationCohortComparisonViewer <- function(id) {
     # module that does input selection for a single row DF
     shiny::div(
       
+      shiny::helpText('Compare covariates at index between two cohorts within the same database.'),
+      
       # UI for inputs
       # summary table
       shinydashboard::box(
@@ -298,7 +300,11 @@ characterizationCohortComparisonServer <- function(
             if(nrow(resultTable) > 0){
               plotDf <- resultTable
               if(sum(is.na(plotDf)) > 0){
-                plotDf <- plotDf[is.na(plotDf)] <- 0
+                plotDf <- plotDf %>%
+                  tidyr::replace_na(list(
+                    averageValue_1 = 0,
+                    averageValue_2 = 0
+                ))
               }
             plotDf <- plotDf %>%
               dplyr::mutate(domain = dplyr::case_when(
@@ -480,49 +486,6 @@ characterizationCohortsColumns <- function(
   return(res)
 }
 
-characteriationCountTableColDefs <- function(
-    elementId
-    ){
-  result <- list(
-    selection = reactable::colDef(
-      filterable = T
-    ),
-    cohortName = reactable::colDef(
-      header = withTooltip("Cohort",
-                           "Name of the cohort"),
-      filterable = T
-    ),
-    minPriorObservation = reactable::colDef(
-      header = withTooltip(
-        "Min Prior Obs",
-        "The minimum prior observation a patient in the target 
-        population must have to be included."),
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
-    ), 
-    rowCount = reactable::colDef(
-      header = withTooltip("Record Count",
-                           "Count of the number of records"),
-      filterable = T
-    ), 
-    personCount = reactable::colDef(
-      header = withTooltip("Person Count",
-                           "Count of the number of persons"),
-      filterable = T
-    )
-  )
-  return(result)
-}
 
 characterizationCohortsColumnsContinuous <- function(
     addExtras = F,
@@ -588,18 +551,7 @@ characterizationCohortsColumnsContinuous <- function(
       cell = function(value) {
         if (value >= 0) value else '< min threshold'
       },
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
+      filterable = T
     ),
     averageValue = reactable::colDef(
       header = withTooltip("Mean",
