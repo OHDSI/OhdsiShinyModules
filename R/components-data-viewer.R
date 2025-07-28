@@ -1,26 +1,4 @@
 
-
-#inputs: data, named list of colDef options, where name is name of each column,
-#potentially:
-#output: download buttons, table, and column selector
-
-
-filteredDownloadButton <- function(
-    tableId, 
-    label = "Download (Filtered)", 
-    filename = "filteredData.csv", 
-    icon = shiny::icon("download")
-    ) {
-  shiny::tags$div(class = "col-sm-3",
-    htmltools::tags$button(
-      class = "btn btn-default",
-      shiny::tags$i(class = "fas fa-download", role = "presentation", "aria-label" = "download icon"),
-      label,
-      onclick = sprintf("Reactable.downloadDataCSV('%s', '%s')", tableId, filename)
-    )
-  )
-}
-
 #' Result Table Viewer
 #'
 #' @param id string
@@ -32,7 +10,7 @@ filteredDownloadButton <- function(
 #' @export
 resultTableViewer <- function(
     id = "result-table",
-    downloadedFileName = NULL,
+    downloadedFileName = NULL, # move to server
     boxTitle = 'Table'
     ) {
   ns <- shiny::NS(id)
@@ -69,7 +47,7 @@ resultTableViewer <- function(
           shiny::column(
             width = 3,
             htmltools::browsable(
-              htmltools::tagList(
+              htmltools::tagList( #TODO move to server so this uses elementId
                 filteredDownloadButton("resultDataFiltered", "Download (Filtered)",
                                        filename = paste('result-data-filtered-', downloadedFileName, Sys.Date(), '.csv', sep = ''),
               )
@@ -94,81 +72,6 @@ resultTableViewer <- function(
 
 
 
-#tooltip function
-withTooltip <- function(value, tooltip, ...) {
-  shiny::div(
-    style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
-    tippy::tippy(value, tooltip, ...)
-    )
-}
-
-# customColDefs needs to be named list of colDefs
-# example usage:
-# Define custom colDefs for the Name and Age columns
-# custom_colDefs <- list(
-#   mpg = reactable::colDef(align = "left",
-#                format = reactable::colFormat(digits = 2),
-#                header = withTooltip("MPG column name", "MPG tooltip")),
-#   disp = reactable::colDef(align = "center",
-#                 header = withTooltip("Disp column name", "Disp tooltip"))
-# )
-
-
-create_colDefs_list <- function(
-    df, 
-    customColDefs = NULL
-    ) {
-  # Get the column names of the input data frame
-  col_names <- colnames(df)
-  
-  # Create an empty list to store the colDefs
-  colDefs_list <- vector("list", length = length(col_names))
-  names(colDefs_list) <- col_names
-  
-  # Define custom colDefs for each column if provided
-  if (!is.null(customColDefs)) {
-    for (col in seq_along(col_names)) {
-      if (col_names[col] %in% names(customColDefs)) {
-        colDefs_list[[col]] <- customColDefs[[col_names[col]]]
-      } else {
-        colDefs_list[[col]] <- reactable::colDef(name = col_names[col])
-      }
-      
-      if (!is.null(customColDefs[[col_names[col]]]$header)) {
-        colDefs_list[[col]]$header <- customColDefs[[col_names[col]]]$header
-      }
-      
-      if (!is.null(customColDefs[[col_names[col]]]$tooltip)) {
-        colDefs_list[[col]]$header <-
-          withTooltip(colDefs_list[[col]]$header, customColDefs[[col_names[col]]]$tooltip)
-      }
-    }
-  } else {
-    # Define default colDefs if customColDefs is not provided
-    for (col in seq_along(col_names)) {
-      colDefs_list[[col]] <- reactable::colDef(name = col_names[col])
-    }
-  }
-  
-  # Return the list of colDefs
-  return(colDefs_list)
-}
-
-ohdsiReactableTheme <- reactable::reactableTheme(
-  color = "white",
-  backgroundColor = "#003142",
-  stripedColor = "#333333",
-  highlightColor = "#f19119",
-  style = list(
-    fontFamily = "-apple-system, BlinkMacSystemFont, Segoe UI,
-    Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, 
-    Segoe UI Emoji, Segoe UI Symbol"
-  )
-  #,
-  #headerStyle = list(
-  #)
-)
-
 
 
 #' Result Table Server
@@ -181,15 +84,14 @@ ohdsiReactableTheme <- reactable::reactableTheme(
 #' @param selectedCols string vector of columns the reactable should display to start by default. Defaults to ALL if not specified.
 #' @param sortedCols string vector of columns the reactable should sort by by default. Defaults to no sort if not specified.
 #' @param elementId optional string vector of element Id name for custom dropdown filtering if present in the customColDef list. Defaults to NULL.
-#' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #' @param addActions add a button row selector column to the table to a column called 'actions'.  
 #'                   actions must be a column in df
 #' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #' @param groupBy The columns to group by 
-#' @family {Utils}
+#' 
 #' @return shiny module server
 #' @family {Utils}
-resultTableServer <- function(
+resultTableServer <- function( # add column for selected columns as a reactive
     id, #string
     df, #data.frame
     colDefsInput,
@@ -419,7 +321,7 @@ fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
                     height = height
                     ),
 
-                  elementId = 'resultDataFiltered'
+                  elementId = elementId #'resultDataFiltered'
                   #, experimental
                   #theme = ohdsiReactableTheme
                 )
@@ -531,3 +433,92 @@ addTableActions <- function(
   
   return(colDefsInput)
 }
+
+# customColDefs needs to be named list of colDefs
+# example usage:
+# Define custom colDefs for the Name and Age columns
+# custom_colDefs <- list(
+#   mpg = reactable::colDef(align = "left",
+#                format = reactable::colFormat(digits = 2),
+#                header = withTooltip("MPG column name", "MPG tooltip")),
+#   disp = reactable::colDef(align = "center",
+#                 header = withTooltip("Disp column name", "Disp tooltip"))
+# )
+
+filteredDownloadButton <- function(
+    tableId, 
+    label = "Download (Filtered)", 
+    filename = "filteredData.csv", 
+    icon = shiny::icon("download")
+) {
+  shiny::tags$div(class = "col-sm-3",
+                  htmltools::tags$button(
+                    class = "btn btn-default",
+                    shiny::tags$i(class = "fas fa-download", role = "presentation", "aria-label" = "download icon"),
+                    label,
+                    onclick = sprintf("Reactable.downloadDataCSV('%s', '%s')", tableId, filename)
+                  )
+  )
+}
+#tooltip function
+withTooltip <- function(value, tooltip, ...) {
+  shiny::div(
+    style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
+    tippy::tippy(value, tooltip, ...)
+  )
+}
+
+create_colDefs_list <- function(
+    df, 
+    customColDefs = NULL
+) {
+  # Get the column names of the input data frame
+  col_names <- colnames(df)
+  
+  # Create an empty list to store the colDefs
+  colDefs_list <- vector("list", length = length(col_names))
+  names(colDefs_list) <- col_names
+  
+  # Define custom colDefs for each column if provided
+  if (!is.null(customColDefs)) {
+    for (col in seq_along(col_names)) {
+      if (col_names[col] %in% names(customColDefs)) {
+        colDefs_list[[col]] <- customColDefs[[col_names[col]]]
+      } else {
+        colDefs_list[[col]] <- reactable::colDef(name = col_names[col])
+      }
+      
+      if (!is.null(customColDefs[[col_names[col]]]$header)) {
+        colDefs_list[[col]]$header <- customColDefs[[col_names[col]]]$header
+      }
+      
+      if (!is.null(customColDefs[[col_names[col]]]$tooltip)) {
+        colDefs_list[[col]]$header <-
+          withTooltip(colDefs_list[[col]]$header, customColDefs[[col_names[col]]]$tooltip)
+      }
+    }
+  } else {
+    # Define default colDefs if customColDefs is not provided
+    for (col in seq_along(col_names)) {
+      colDefs_list[[col]] <- reactable::colDef(name = col_names[col])
+    }
+  }
+  
+  # Return the list of colDefs
+  return(colDefs_list)
+}
+
+ohdsiReactableTheme <- reactable::reactableTheme(
+  color = "white",
+  backgroundColor = "#003142",
+  stripedColor = "#333333",
+  highlightColor = "#f19119",
+  style = list(
+    fontFamily = "-apple-system, BlinkMacSystemFont, Segoe UI,
+    Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, 
+    Segoe UI Emoji, Segoe UI Symbol"
+  )
+  #,
+  #headerStyle = list(
+  #)
+)

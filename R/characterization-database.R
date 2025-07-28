@@ -617,7 +617,7 @@ getMinCovaraiteThreshold <- function(
   connectionHandler,
   resultDatabaseSettings ){
   
-  sql <- "select min(min_characterization_mean) val from
+  sql <- "select top 1  min_characterization_mean val from
      @schema.@c_table_prefixcovariates;"
   
   res <- connectionHandler$queryDb(

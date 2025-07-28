@@ -107,7 +107,7 @@ characterizationCohortComparisonServer <- function(
                                   dplyr::filter(.data$cohortId != reactiveTargetRow()$cohortId) %>%
                                   dplyr::select("parentName", "cohortName", "cohortId")
                                 ), 
-        selectedRow = reactiveComparatorRowId,
+        selectedRowId = reactiveComparatorRowId,
         selectMultiple = FALSE, 
         elementId = session$ns('comp-selector'),
         inputColumns = list(
