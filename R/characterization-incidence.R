@@ -63,20 +63,6 @@ characterizationIncidenceViewer <- function(id) {
           shiny::conditionalPanel(
             condition = 'output.showPlot != 0',
             ns = ns,
-            #shiny::fluidPage(
-            #shiny::fluidRow(
-            #  shiny::column(width = 9, offset = 0, style='padding:0px;'),
-            #  shiny::column(width = 3,
-            #                shiny::div(
-            #                  style = "display:inline-block; float:right",
-            #                  shiny::downloadButton(ns("downloadPlotStandardAge"),
-            #                                        "Download Plot",
-            #                                        icon = shiny::icon("download")
-            #                  )
-            #                )
-            #  ) 
-            #)
-            #),
             shinycssloaders::withSpinner(
               shiny::plotOutput(
                 ns('incidencePlot'),
@@ -223,7 +209,7 @@ characterizationIncidenceServer <- function(
                                   dplyr::relocate("parentName", .before = "cohortName") %>%
                                   dplyr::relocate("cohortId", .after = "cohortName")
         ), 
-        selectedRow = reactiveOutcomeRowIds,
+        selectedRowId = reactiveOutcomeRowIds,
         selectMultiple = TRUE, 
         #elementId = session$ns('table-selector'),
         inputColumns = characterizationOutcomeDisplayColumns(),
@@ -279,15 +265,15 @@ characterizationIncidenceServer <- function(
       # ageGroupName genderName startYear
       if(!input$ageStratify){
         data <- data %>%
-          filter(.data$ageGroupName == 'Any')
+          dplyr::filter(.data$ageGroupName == 'Any')
       }
       if(!input$sexStratify){
         data <- data %>%
-          filter(.data$genderName == 'Any')
+          dplyr::filter(.data$genderName == 'Any')
       }
       if(!input$yearStratify){
         data <- data %>%
-          filter(.data$startYear == 'Any')
+          dplyr::filter(.data$startYear == 'Any')
       }
       
       incidenceTableData(data)
@@ -378,6 +364,17 @@ characterizationIncidenceServer <- function(
                 value = TRUE
               )
             )
+            
+            #  shiny::column(width = 3,
+            #                shiny::div(
+            #                  style = "display:inline-block; float:right",
+            #                  shiny::downloadButton(ns("downloadPlotStandardAge"),
+            #                                        "Download Plot",
+            #                                        icon = shiny::icon("download")
+            #                  )
+            #                )
+            #  ) 
+            
           ),
           
           shiny::actionButton(
@@ -403,22 +400,22 @@ characterizationIncidenceServer <- function(
         scaleVal <- ifelse(input$scaleVal,'fixed','free_y')
         
         if(input$xAxis == 'Age'){
-          plotData<- plotData %>% 
+          plotData <- plotData %>% 
             dplyr::filter(.data$ageGroupName != 'Any' &
                           .data$startYear == 'Any')
           xAxis <- 'ageGroupName'
           xName <- 'Age'
         } else{
-          plotData<- plotData %>% 
+          plotData <- plotData %>% 
             dplyr::filter(.data$ageGroupName == 'Any' &
                             .data$startYear != 'Any')
         }
         
         if(!input$sexStratifyPlot){
-          plotData<- plotData %>% 
+          plotData <- plotData %>% 
             dplyr::filter(.data$genderName == 'Any')
         } else{
-          plotData<- plotData %>% 
+          plotData <- plotData %>% 
             dplyr::filter(.data$genderName != 'Any')
           color <- 'genderName'
           colorName <- "Sex"

@@ -16,8 +16,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-
 characterizationCaseSeriesViewer <- function(id) {
   ns <- shiny::NS(id)
   
@@ -355,88 +353,6 @@ characterizationCaseSeriesServer <- function(
   )
 }
 
-
-characterizationGetCaseSeriesTars <- function(
-  connectionHandler,
-  resultDatabaseSettings,
-  targetId,
-  outcomeId
-){
-  
-  sql <- "SELECT distinct
-          s.setting_id, 
-          s.RISK_WINDOW_START,	s.RISK_WINDOW_END,	
-          s.START_ANCHOR, s.END_ANCHOR
-          
-          from
-          @schema.@c_table_prefixsettings s
-          inner join @schema.@c_table_prefixcohort_details cd
-          on s.setting_id = cd.setting_id
-          and s.database_id = cd.database_id
-          and cd.target_cohort_id = @target_id
-          and cd.outcome_cohort_id = @outcome_id
-          and cd.cohort_type = 'Cases'
-          
-  ;"
-  
-  options <- connectionHandler$queryDb(
-    sql = sql, 
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    target_id = targetId,
-    outcome_id = outcomeId
-  )
-  
-
-  tar <- unique(options[,c('startAnchor','riskWindowStart', 'endAnchor', 'riskWindowEnd')])
-  tarList <- lapply(1:nrow(tar), function(i) as.list(tar[i,]))
-  tarInds <- 1:nrow(tar)
-  names(tarInds) <- unique(paste0('(', tar$startAnchor, ' + ', tar$riskWindowStart, ') - (', 
-                       tar$endAnchor, ' + ', tar$riskWindowEnd, ')'
-                       ))
-  
-  return(
-    list(
-      tarInds = tarInds,
-      tarList = tarList
-    )
-  )
-  
-}
-
-
-characterizationGetCaseSeriesWashout <- function(
-    connectionHandler,
-    resultDatabaseSettings,
-    targetId,
-    outcomeId
-){
-  
-  sql <- "SELECT distinct
-          s.outcome_washout_days
-          
-          from
-          @schema.@c_table_prefixsettings s
-          inner join @schema.@c_table_prefixcohort_details cd
-          on s.setting_id = cd.setting_id
-          and s.database_id = cd.database_id
-          and cd.target_cohort_id = @target_id
-          and cd.outcome_cohort_id = @outcome_id
-          and cd.cohort_type = 'Cases'
-          
-  ;"
-  
-  options <- connectionHandler$queryDb(
-    sql = sql, 
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    target_id = targetId,
-    outcome_id = outcomeId
-  )
-  
-return(options$outcomeWashoutDays)
-  
-}
 
 
 characterizationGetCaseSeriesData <- function(

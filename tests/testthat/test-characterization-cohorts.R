@@ -25,7 +25,7 @@ shiny::testServer(
     )
     
     # set reactiveComparatorRow() to second row 
-    reactiveComparatorRow(targetTable[2,])
+    reactiveComparatorRowId(2)
     
     # test generate
     session$setInputs(

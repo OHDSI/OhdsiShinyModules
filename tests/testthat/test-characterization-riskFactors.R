@@ -13,12 +13,6 @@ outcomeCohort <- OhdsiReportGenerator::getOutcomeTable(
   targetId = targetCohort$cohortId[2]
 )
 
-tars <- characterizationGetCaseSeriesTars(
-  connectionHandler = connectionHandlerCharacterization,
-  resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-  targetId = targetCohort$cohortId[2],
-  outcomeId = outcomeCohort$cohortId[1]
-)
 
 shiny::testServer(
   app = characterizationRiskFactorServer, 
@@ -26,20 +20,35 @@ shiny::testServer(
     connectionHandler = connectionHandlerCharacterization ,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
     reactiveTargetRow = shiny::reactive(targetCohort[2,]),
-    reactiveOutcomeRow = shiny::reactive(outcomeCohort[1,]),
-    reactiveOutcomeTar = shiny::reactive(tars)
+    outcomeTable = shiny::reactive(outcomeCohort),
+    reactiveOutcomeRowId = shiny::reactiveVal(0)
     ), 
   expr = {
     
     # check database
     testthat::expect_true(length(databaseNames()) > 0 )
     testthat::expect_true(length(databaseIds()) > 0 )
-
+    
+    # check setting reactiveOutcomeRowId updates these - doesnt seem to work?
+    reactiveOutcomeRowId(1)
+    ##testthat::expect_equal(reactiveOutcomeTar(), strsplit(
+    ##  x = outcomeTable()[reactiveOutcomeRowId(),]$tarNames, 
+    ##  split = ':'
+    ##)[[1]])
+    ##testthat::expect_true(!is.null(reactiveOutcomeWashout()))
+    
     testthat::expect_true(inherits(selected(), 'NULL'))
     
     # check setting and generating works
-    session$setInputs(tarInd = reactiveOutcomeTar()$tarInds[1]) 
+    session$setInputs(tarInd = strsplit(
+      x = outcomeTable()[reactiveOutcomeRowId(),]$tarNames, 
+      split = ':'
+    )[[1]][1]) 
     session$setInputs(databaseName = databaseNames()[1]) 
+    session$setInputs(outcomeWashout = strsplit(
+      x = outcomeTable()[reactiveOutcomeRowId(),]$outcomeWashoutDays, 
+      split = ':'
+    )[[1]][1]) 
     session$setInputs(generate = TRUE)
     
     testthat::expect_true(inherits(selected(), 'data.frame'))

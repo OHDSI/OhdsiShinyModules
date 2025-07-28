@@ -20,7 +20,8 @@ shiny::testServer(
     connectionHandler = connectionHandlerCharacterization,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
     reactiveTargetRow = shiny::reactive(targetCohort[2,]),
-    reactiveOutcomeRow = shiny::reactive(outcomeCohort[1,])
+    outcomeTable = shiny::reactive(outcomeCohort),
+    reactiveOutcomeRowId = shiny::reactiveVal(0)
   ), 
   expr = {
     
@@ -29,6 +30,7 @@ shiny::testServer(
     testthat::expect_true(inherits(characterizationTimeToEventColDefs(), 'list'))
     
     # data extracted when generate is set
+    reactiveOutcomeRowId(1)
     session$setInputs(generate = TRUE)
     testthat::expect_true( nrow(allData()) > 0 )
     
@@ -39,11 +41,11 @@ shiny::testServer(
       outcomeTypes = unique(allData()$outcomeType)[1],
       targetOutcomeTypes = unique(allData()$targetOutcomeType)[1]
       )
-    
+  
     
     data <- getTimeToEventData(
       targetId = reactiveTargetRow()$cohortId,
-      outcomeId = reactiveOutcomeRow()$cohortId,
+      outcomeId = outcomeTable()[reactiveOutcomeRowId(),]$cohortId,
       connectionHandler = connectionHandlerCharacterization,
       resultDatabaseSettings = resultDatabaseSettingsCharacterization
     )
