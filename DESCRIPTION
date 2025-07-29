@@ -18,7 +18,6 @@ Language: EN-US
 Imports:
     checkmate,
     CirceR,
-    cowplot,
     DatabaseConnector,
     dplyr,
     DT,

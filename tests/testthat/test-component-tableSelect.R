@@ -9,12 +9,13 @@ shiny::testServer(
         id = 2:6
       )
     ),
+    selectedRowId = shiny::reactiveVal(0),
     selectButtonText = 'abc',
     helpText = 'help'
   ), 
   expr = {
     
-    testthat::expect_true(is.null(selectedRow()))
+    testthat::expect_true(selectedRowId() == 0)
     testthat::expect_true(selection == 'single')
     testthat::expect_true(selectButtonText() == 'abc')
     testthat::expect_true(helpTextReactive() == 'help')

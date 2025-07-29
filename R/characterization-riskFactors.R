@@ -23,8 +23,15 @@ characterizationRiskFactorViewer <- function(id) {
   
   shiny::div(
     
+    shiny::helpText('View features that are associated with having or not having the outcome during the time-at-risk.'),
+    
     # module that does input selection for a single row DF
-    shiny::uiOutput(ns("inputs")),
+    shinydashboard::box(
+      collapsible = TRUE,
+      title = "Options",
+      width = "100%",
+      shiny::uiOutput(ns("inputs"))
+    ),
     
     
     shiny::conditionalPanel(
@@ -59,9 +66,8 @@ characterizationRiskFactorServer <- function(
     connectionHandler,
     resultDatabaseSettings,
     reactiveTargetRow,
-    reactiveOutcomeRow,
-    reactiveOutcomeTar,
-    reactiveOutcomeWashout
+    outcomeTable,
+    reactiveOutcomeRowId
 ) {
   shiny::moduleServer(
     id,
@@ -74,8 +80,47 @@ characterizationRiskFactorServer <- function(
       shiny::observeEvent(reactiveTargetRow(), {
         output$showRiskFactors <- shiny::reactive(0)
       })
-      shiny::observeEvent(reactiveOutcomeRow(), {
+      
+      reactiveOutcomeTar <- shiny::reactiveVal(NULL)
+      reactiveOutcomeTarValues <- shiny::reactiveVal(NULL)
+      reactiveOutcomeWashout <- shiny::reactiveVal(NULL)
+      
+      shiny::observeEvent(reactiveOutcomeRowId(), {
         output$showRiskFactors <- shiny::reactive(0)
+        
+        if(reactiveOutcomeRowId() != 0){
+          
+          tarNames <- strsplit(
+            x = outcomeTable()[reactiveOutcomeRowId(),]$tarNames, 
+            split = ':'
+          )[[1]]
+          reactiveOutcomeTar(tarNames)
+          
+          tarStrings <- lapply(strsplit(
+            x = outcomeTable()[reactiveOutcomeRowId(),]$tarStrings, 
+            split = ':'
+          )[[1]], function(x){
+            vals <- strsplit(x = x, split = '/')[[1]]
+            list(
+              riskWindowStart = vals[1],
+              startAnchor = vals[2],
+              riskWindowEnd = vals[3],
+              endAnchor = vals[4]
+            )
+          })
+          reactiveOutcomeTarValues(tarStrings)
+          
+          outcomeWashoutDays <- strsplit(
+            x = outcomeTable()[reactiveOutcomeRowId(),]$outcomeWashoutDays, 
+            split = ':'
+          )[[1]]
+          reactiveOutcomeWashout(outcomeWashoutDays)
+          
+        } else{
+          reactiveOutcomeTar(NULL)
+          reactiveOutcomeWashout(NULL)
+        }
+        
       })
       
       # get databases
@@ -84,7 +129,10 @@ characterizationRiskFactorServer <- function(
         
       output$inputs <- shiny::renderUI({ # need to make reactive?
         
-        shiny::div(
+        shiny::div( # TODO make this an options box that can be collapsed
+          
+          tableSelectionViewer(id = session$ns('outcome-table-select-risk')),
+            
           shiny::selectInput(
             inputId = session$ns('databaseName'),
             label = 'Database: ',
@@ -96,8 +144,8 @@ characterizationRiskFactorServer <- function(
           shiny::selectInput(
             inputId = session$ns('tarInd'),
             label = 'Time-at-risk: ',
-            choices = reactiveOutcomeTar()$tarInds,
-            selected = reactiveOutcomeTar()$tarInds[1],
+            choices = reactiveOutcomeTar(),
+            selected = reactiveOutcomeTar()[1],
             multiple = F
           ),
           
@@ -109,8 +157,6 @@ characterizationRiskFactorServer <- function(
             multiple = F
           ),
           
-          shiny::helpText('View features that are associated with having or not having the outcome during the time-at-risk.'),
-          
           shiny::actionButton(
             inputId = session$ns('generate'), 
             label = 'Generate'
@@ -119,21 +165,38 @@ characterizationRiskFactorServer <- function(
         
       })
       
+      # server for outcome seleciton table
+      tableSelectionServer(
+        id = 'outcome-table-select-risk',
+        table = shiny::reactive(outcomeTable() %>%
+                                  dplyr::select("parentName", "cohortName", "cohortId") %>%
+                                  dplyr::relocate("parentName", .before = "cohortName") %>%
+                                  dplyr::relocate("cohortId", .after = "cohortName")
+        ), 
+        selectedRowId = reactiveOutcomeRowId,
+        selectMultiple = FALSE, 
+        elementId = session$ns('table-outcome-selector'),
+        inputColumns = characterizationOutcomeDisplayColumns(),
+        displayColumns = characterizationOutcomeDisplayColumns(), 
+        selectButtonText = 'Select Outcome'
+      )
+      
       # save the selections
       selected <- shiny::reactiveVal(value = NULL)
       
       shiny::observeEvent(input$generate, {
         
         # add target, outcome, database and tar check
+        reactiveOutcomeRow <- outcomeTable()[reactiveOutcomeRowId(),]
         
-        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow()) |
-           is.null(reactiveOutcomeTar()$tarList[[1]]) | is.null(input$databaseName)){
+        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow) |
+           is.null(input$tarInd) | is.null(input$databaseName)){
           
           output$showRiskFactors <- shiny::reactive(0)
           shiny::showNotification('Need to set all inputs')
         } else{
           
-          if(nrow(reactiveTargetRow()) == 0 | nrow(reactiveOutcomeRow()) == 0){
+          if(nrow(reactiveTargetRow()) == 0 | nrow(reactiveOutcomeRow) == 0){
             output$showRiskFactors <- shiny::reactive(0)
             shiny::showNotification('Need to pick a target and outcome')
           } else{
@@ -142,9 +205,9 @@ characterizationRiskFactorServer <- function(
             selected(
               data.frame(
                 Target = reactiveTargetRow()$cohortName,
-                Outcome = reactiveOutcomeRow()$cohortName,
+                Outcome = reactiveOutcomeRow$cohortName,
                 Database = input$databaseName,
-                `Time-at-risk` = names(reactiveOutcomeTar()$tarInds)[which(input$tarInd == reactiveOutcomeTar()$tarInds)],
+                `Time-at-risk` = input$tarInd,
                 OutcomeWashoutDays = input$outcomeWashout
               )
             )
@@ -159,13 +222,11 @@ characterizationRiskFactorServer <- function(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
               targetId = reactiveTargetRow()$cohortId,
-              outcomeId = reactiveOutcomeRow()$cohortId,
+              outcomeId = reactiveOutcomeRow$cohortId,
               databaseId = databaseIds()[input$databaseName == databaseNames()],
-              tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
+              tar = reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]
             )
-            
-            #print(countTable)
-            
+
             output$helpTextBinary <- shiny::renderUI(
               shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts (restricted to first index date and requiring ",
                                      countTable$minPriorObservation[1]," days observation prior to index) stratified by whether they had the outcome during the time-at-risk with a history of each binary features across databases."))
@@ -246,9 +307,9 @@ characterizationRiskFactorServer <- function(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
               targetId = reactiveTargetRow()$cohortId,
-              outcomeId = reactiveOutcomeRow()$cohortId,
+              outcomeId = reactiveOutcomeRow$cohortId,
               databaseId = databaseIds()[input$databaseName == databaseNames()],
-              tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
+              tar = reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]
             )
             
             binTableOutputs <- resultTableServer(
@@ -257,7 +318,7 @@ characterizationRiskFactorServer <- function(
                 dplyr::filter(.data$outcomeWashoutDays == !!input$outcomeWashout),
               details = data.frame(
                 target = reactiveTargetRow()$cohortName,
-                outcome = reactiveOutcomeRow()$cohortName,
+                outcome = reactiveOutcomeRow$cohortName,
                 caseN = caseN,
                 nonCaseN = nonCaseN,
                 Database = input$databaseName,
@@ -283,10 +344,6 @@ characterizationRiskFactorServer <- function(
                   paste0('caseAverageValue'),
                   paste0('caseStandardDeviation'),
                   paste0('caseMedianValue')
-                  #paste0('caseP10Value'),
-                  #paste0('caseP25Value'),
-                  #paste0('caseP75Value'),
-                  #paste0('caseP90Value')
                   )
               ),
               reactable::colGroup(
@@ -298,10 +355,6 @@ characterizationRiskFactorServer <- function(
                   paste0('targetAverageValue'),
                   paste0('targetStandardDeviation'),
                   paste0('targetMedianValue')
-                  #paste0('targetP10Value'),
-                  #paste0('targetP25Value'),
-                  #paste0('targetP75Value'),
-                  #paste0('targetP90Value')
                 )
             )
             )
@@ -311,7 +364,7 @@ characterizationRiskFactorServer <- function(
               df = allData$continuous,
               details = data.frame(
                 target = reactiveTargetRow()$cohortName,
-                outcome = reactiveOutcomeRow()$cohortName,
+                outcome = reactiveOutcomeRow$cohortName,
                 caseN = caseN,
                 targetN = targetN,
                 Database = input$databaseName,

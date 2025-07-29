@@ -24,6 +24,8 @@ characterizationCohortComparisonViewer <- function(id) {
     # module that does input selection for a single row DF
     shiny::div(
       
+      shiny::helpText('Compare covariates at index between two cohorts within the same database.'),
+      
       # UI for inputs
       # summary table
       shinydashboard::box(
@@ -97,13 +99,15 @@ characterizationCohortComparisonServer <- function(
       databaseIds <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseIdString, split = ', ')))
       
       # add the server for the comparator table select
-      reactiveComparatorRow <- tableSelectionServer(
+      reactiveComparatorRowId <- shiny::reactiveVal(NULL)
+      tableSelectionServer(
         id = 'comparator-selector', 
         table = shiny::reactive(targetTable %>%
                                   dplyr::filter(.data$cohortComparator == 1) %>%
                                   dplyr::filter(.data$cohortId != reactiveTargetRow()$cohortId) %>%
                                   dplyr::select("parentName", "cohortName", "cohortId")
                                 ), 
+        selectedRowId = reactiveComparatorRowId,
         selectMultiple = FALSE, 
         elementId = session$ns('comp-selector'),
         inputColumns = list(
@@ -124,7 +128,7 @@ characterizationCohortComparisonServer <- function(
       )
       
       # hide results if reactiveComparatorRow changes
-      shiny::observeEvent(reactiveComparatorRow(),{
+      shiny::observeEvent(reactiveComparatorRowId(),{
         output$showCohortComp <- shiny::reactive(0)
       })
       
@@ -173,21 +177,26 @@ characterizationCohortComparisonServer <- function(
       #get results
       selected <- shiny::reactiveVal()
       shiny::observeEvent(input$generate,{
-        
+      
+        # got to apply same filter  
+      filteredTable <- targetTable %>%
+          dplyr::filter(.data$cohortComparator == 1) %>%
+          dplyr::filter(.data$cohortId != reactiveTargetRow()$cohortId)
+      reactiveComparatorRow <- filteredTable[reactiveComparatorRowId(),]
         
         # TODO update logic for running 
-        if(is.null(reactiveComparatorRow()) | is.null(reactiveTargetRow())){
+        if(is.null(reactiveComparatorRow) | is.null(reactiveTargetRow())){
           output$showCohortComp <- shiny::reactive(0)
           shiny::showNotification('Must select a comparison')
         } else{
-          if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveComparatorRow()) > 0){
+          if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveComparatorRow) > 0){
             
             output$showCohortComp <- shiny::reactive(1)
             
             selected(
               data.frame(
                 Target = reactiveTargetRow()$cohortName,
-                Comparator = reactiveComparatorRow()$cohortName,
+                Comparator = reactiveComparatorRow$cohortName,
                 Database = input$databaseName
               )
             )
@@ -195,7 +204,7 @@ characterizationCohortComparisonServer <- function(
             resultTable <- characterizatonGetCohortData(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
-              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow()$cohortId),
+              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow$cohortId),
               databaseIds = databaseIds()[databaseNames() == input$databaseName],
               minThreshold = 0.01,
               addSMD = T
@@ -204,7 +213,7 @@ characterizationCohortComparisonServer <- function(
             countTable <- characterizatonGetCohortCounts(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
-              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow()$cohortId),
+              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow$cohortId),
               databaseIds = databaseIds()[databaseNames() == input$databaseName]
             )
             
@@ -220,7 +229,7 @@ characterizationCohortComparisonServer <- function(
             continuousTable <- characterizatonGetCohortComparisonDataContinuous(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
-              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow()$cohortId),
+              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow$cohortId),
               databaseIds = databaseIds()[databaseNames() == input$databaseName]
             )
             
@@ -255,7 +264,7 @@ characterizationCohortComparisonServer <- function(
                 dplyr::filter(.data$minPriorObservation == countTable$minPriorObservation[1]),
               details = data.frame(
                 Target = reactiveTargetRow()$cohortName,
-                Comparator = reactiveComparatorRow()$cohortName,
+                Comparator = reactiveComparatorRow$cohortName,
                 Database = input$databaseName,
                 Analysis = 'Cohort comparison within database'
               ),
@@ -274,7 +283,7 @@ characterizationCohortComparisonServer <- function(
                 dplyr::filter(.data$minPriorObservation == countTable$minPriorObservation[1]),
               details = data.frame(
                 Target = reactiveTargetRow()$cohortName,
-                Comparator = reactiveComparatorRow()$cohortName,
+                Comparator = reactiveComparatorRow$cohortName,
                 Database = input$databaseName,
                 Analysis = 'Cohort comparison within database'
               ),
@@ -291,7 +300,11 @@ characterizationCohortComparisonServer <- function(
             if(nrow(resultTable) > 0){
               plotDf <- resultTable
               if(sum(is.na(plotDf)) > 0){
-                plotDf <- plotDf[is.na(plotDf)] <- 0
+                plotDf <- plotDf %>%
+                  tidyr::replace_na(list(
+                    averageValue_1 = 0,
+                    averageValue_2 = 0
+                ))
               }
             plotDf <- plotDf %>%
               dplyr::mutate(domain = dplyr::case_when(
@@ -473,49 +486,6 @@ characterizationCohortsColumns <- function(
   return(res)
 }
 
-characteriationCountTableColDefs <- function(
-    elementId
-    ){
-  result <- list(
-    selection = reactable::colDef(
-      filterable = T
-    ),
-    cohortName = reactable::colDef(
-      header = withTooltip("Cohort",
-                           "Name of the cohort"),
-      filterable = T
-    ),
-    minPriorObservation = reactable::colDef(
-      header = withTooltip(
-        "Min Prior Obs",
-        "The minimum prior observation a patient in the target 
-        population must have to be included."),
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
-    ), 
-    rowCount = reactable::colDef(
-      header = withTooltip("Record Count",
-                           "Count of the number of records"),
-      filterable = T
-    ), 
-    personCount = reactable::colDef(
-      header = withTooltip("Person Count",
-                           "Count of the number of persons"),
-      filterable = T
-    )
-  )
-  return(result)
-}
 
 characterizationCohortsColumnsContinuous <- function(
     addExtras = F,
@@ -581,18 +551,7 @@ characterizationCohortsColumnsContinuous <- function(
       cell = function(value) {
         if (value >= 0) value else '< min threshold'
       },
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
+      filterable = T
     ),
     averageValue = reactable::colDef(
       header = withTooltip("Mean",

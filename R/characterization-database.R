@@ -23,6 +23,8 @@ characterizationDatabaseComparisonViewer <- function(id) {
   
   shiny::div(
     
+    shiny::helpText('Compare covariates at index between two databases for the same cohort.'),
+    
     # UI for inputs
     # summary table
     shinydashboard::box(
@@ -431,7 +433,12 @@ characterizationDatabaseComparisonServer <- function(
               }
               
               # Replace NA values with 0
-              plotDf[is.na(plotDf)] <- 0
+              #plotDf[is.na(plotDf)] <- 0
+              #plotDf <- plotDf %>%
+              #  tidyr::replace_na(list(
+              #    averageValue = 0
+              #  ))
+              
               plotDf <- plotDf %>%
                 #replace(is.na(.), 0) %>%
                 dplyr::mutate(domain = dplyr::case_when(
@@ -610,7 +617,7 @@ getMinCovaraiteThreshold <- function(
   connectionHandler,
   resultDatabaseSettings ){
   
-  sql <- "select min(min_characterization_mean) val from
+  sql <- "select top 1  min_characterization_mean val from
      @schema.@c_table_prefixcovariates;"
   
   res <- connectionHandler$queryDb(

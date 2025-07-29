@@ -20,13 +20,16 @@ shiny::testServer(
     connectionHandler = connectionHandlerCharacterization,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
     reactiveTargetRow = shiny::reactive(targetCohort[2,]),
-    reactiveOutcomeRow = shiny::reactive(outcomeCohort[1,])
+    outcomeTable = shiny::reactive(outcomeCohort),
+    reactiveOutcomeRowId = shiny::reactiveVal(0)
   ), 
   expr = {
     
     # allData null initially
     testthat::expect_true(is.null(allData()) )
     
+    # select the first outcome
+    reactiveOutcomeRowId(1) 
     session$setInputs(generate = TRUE)
     # check generate works
     testthat::expect_true(nrow(allData()) > 0 )
@@ -45,7 +48,7 @@ shiny::testServer(
     
     fails <- getDechalRechalFailData(
       targetId = reactiveTargetRow()$cohortId,
-      outcomeId = reactiveOutcomeRow()$cohortId,
+      outcomeId = outcomeTable()[reactiveOutcomeRowId(),]$cohortId,
       databaseId = 'eunomia',
       dechallengeStopInterval = 30,
       dechallengeEvaluationWindow = 30,

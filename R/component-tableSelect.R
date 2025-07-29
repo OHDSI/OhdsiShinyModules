@@ -20,6 +20,7 @@ tableSelectionViewer <- function(id = "input-selection") {
 tableSelectionServer <- function(
     id, 
     table, # must be reactive
+    selectedRowId, # must be reactive
     helpText = 'Click the button to make your selection',
     selectMultiple = FALSE,
     inputColumns = NULL,
@@ -33,13 +34,13 @@ tableSelectionServer <- function(
     function(input, output, session) {
       
       # defaults
-      selectedRow <- shiny::reactiveVal(NULL)
+      ##selectedRow <- shiny::reactiveVal(NULL)
       selection <- ifelse(selectMultiple, 'multiple','single')
       selectButtonText <- shiny::reactiveVal(selectButtonText)
       helpTextReactive <- shiny::reactiveVal(helpText)
       icon <- shiny::reactiveVal('plus')
       
-      # reset if table changes
+      # reset if table changes - TODO remove this?
       shiny::observeEvent(tableReset(),{
         icon('plus')
         helpTextReactive(helpText)
@@ -58,8 +59,6 @@ tableSelectionServer <- function(
           width = "100%",
           shiny::helpText(helpTextReactive()),
           shiny::uiOutput(session$ns('selectedRow'))
-          
-          
         )
       )
       
@@ -82,6 +81,20 @@ tableSelectionServer <- function(
             )
           )
           
+          # ?add code to set the row if selectedRow() is not NULL
+          if(!is.null(selectedRowId())){
+            if(sum(selectedRowId()) == 0){
+              reactable::updateReactable(
+                outputId = 'inputTable', 
+                selected = NA
+              )
+            } else{
+              reactable::updateReactable(
+                outputId = 'inputTable', 
+                selected = selectedRowId()
+              )
+            }
+          }
         }
         )
       
@@ -94,56 +107,80 @@ tableSelectionServer <- function(
            data = table(), 
            columns = inputColumns,
            striped = TRUE, 
+           pagination = TRUE,
+           showPagination = TRUE,
+           showPageInfo = TRUE,
+           showPageSizeOptions = TRUE,
+           pageSizeOptions = c(5,25,50,500),
            defaultPageSize = 5, 
            selection = selection, 
            highlight = TRUE, 
            filterable = TRUE, 
            compact = TRUE, 
+           onClick = "select",
            elementId = elementId
            ))} else{
            return(NULL)
          }
       )
        
-       # when modal button is clicked update the selected output
+       # when modal button is clicked update the selected row and 
+       # remove model
        shiny::observeEvent(input$confirmInput,{
          shiny::removeModal() # close the modal
          
          rowId <- reactable::getReactableState(outputId = 'inputTable', name = 'selected')
-         selectedRow(table()[rowId,])
-         
-         # TODO add check for row selected 
-         if(nrow(selectedRow())>0){
-           # update the icon if a row is selected
-           icon('redo')
-           helpTextReactive("")
-          
-           output$selectedRow <- shiny::renderUI(
-             shiny::div(
-               #shiny::h4('Selected: '),
-               reactable::reactable(
-                 data = table()[rowId,], 
-                 columns = displayColumns,
-                 sortable = FALSE,
-                 filterable = FALSE, 
-                 searchable = FALSE, 
-                 compact = TRUE,
-                 pagination = FALSE,
-                 showPageInfo = FALSE
-               )
-             )
-           )
-           
+         if(!is.null(rowId)){
+           selectedRowId(rowId)
          } else{
+           selectedRowId(0)
+         }
+         
+       }
+         
+       )
+       
+       
+       # observe the row change to update the selected
+       # need this for it to work across servers
+       shiny::observeEvent(selectedRowId(), {
+         
+         if(sum(selectedRowId()) == 0){
            icon('plus')
            helpTextReactive(helpText)
            output$selectedRow <- NULL
+         } else{
+           if(nrow(table()[selectedRowId(),]) > 0){
+             # update the icon if a row is selected
+             icon('redo')
+             helpTextReactive("")
+             
+             output$selectedRow <- shiny::renderUI(
+               shiny::div(
+                 #shiny::h4('Selected: '),
+                 reactable::reactable(
+                   data = table()[selectedRowId(),], 
+                   columns = displayColumns,
+                   sortable = FALSE,
+                   filterable = FALSE, 
+                   searchable = FALSE, 
+                   compact = TRUE,
+                   pagination = FALSE,
+                   showPageInfo = FALSE
+                 )
+               )
+             )
+             
+           } else{
+             icon('plus')
+             helpTextReactive(helpText)
+             output$selectedRow <- NULL
+           }
          }
        }
+         
        )
        
-       # the selected table row/s
-       return(invisible(selectedRow))
       
     }
   )

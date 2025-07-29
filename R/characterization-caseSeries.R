@@ -16,15 +16,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-
 characterizationCaseSeriesViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
     
+    shiny::helpText('View features that occur before target index, between target index and outcome and after outcome for patients with the outcome during the time-at-risk.'),
+    
     # module that does input selection for a single row DF
-    shiny::uiOutput(ns("inputs")),
+    shinydashboard::box(
+      collapsible = TRUE,
+      title = "Options",
+      width = "100%",
+      shiny::uiOutput(ns("inputs"))
+    ),
     
     shiny::conditionalPanel(
       condition = 'output.showCaseSeries != 0',
@@ -57,9 +62,8 @@ characterizationCaseSeriesServer <- function(
     connectionHandler,
     resultDatabaseSettings,
     reactiveTargetRow,
-    reactiveOutcomeRow,
-    reactiveOutcomeTar,
-    reactiveOutcomeWashout
+    outcomeTable,
+    reactiveOutcomeRowId
 ) {
   shiny::moduleServer(
     id,
@@ -72,18 +76,60 @@ characterizationCaseSeriesServer <- function(
       shiny::observeEvent(reactiveTargetRow(), {
         output$showCaseSeries <- shiny::reactive(0)
       })
-      shiny::observeEvent(reactiveOutcomeRow(), {
+      
+      
+      reactiveOutcomeTar <- shiny::reactiveVal(NULL)
+      reactiveOutcomeTarValues <- shiny::reactiveVal(NULL)
+      reactiveOutcomeWashout <- shiny::reactiveVal(NULL)
+      
+      shiny::observeEvent(reactiveOutcomeRowId(), {
         output$showCaseSeries <- shiny::reactive(0)
+        
+        if(reactiveOutcomeRowId() != 0){
+          
+          tarNames <- strsplit(
+            x = outcomeTable()[reactiveOutcomeRowId(),]$tarNames, 
+            split = ':'
+          )[[1]]
+          reactiveOutcomeTar(tarNames)
+          
+          tarStrings <- lapply(strsplit(
+            x = outcomeTable()[reactiveOutcomeRowId(),]$tarStrings, 
+            split = ':'
+          )[[1]], function(x){
+            vals <- strsplit(x = x, split = '/')[[1]]
+            list(
+              riskWindowStart = vals[1],
+              startAnchor = vals[2],
+              riskWindowEnd = vals[3],
+              endAnchor = vals[4]
+            )
+          })
+          reactiveOutcomeTarValues(tarStrings)
+          
+          outcomeWashoutDays <- strsplit(
+            x = outcomeTable()[reactiveOutcomeRowId(),]$outcomeWashoutDays, 
+            split = ':'
+          )[[1]]
+          reactiveOutcomeWashout(outcomeWashoutDays)
+          
+        } else{
+          reactiveOutcomeTar(NULL)
+          reactiveOutcomeWashout(NULL)
+        }
+        
       })
       
       # get databases
       databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseString, split = ', ')))
       databaseIds <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseIdString, split = ', ')))
       
-      
       output$inputs <- shiny::renderUI({ # need to make reactive?
         
         shiny::div(
+          
+          tableSelectionViewer(id = session$ns('outcome-table-select-case')),
+          
           shinyWidgets::pickerInput(
             inputId = session$ns('databaseName'),
             label = 'Database: ',
@@ -104,8 +150,8 @@ characterizationCaseSeriesServer <- function(
           shinyWidgets::pickerInput(
             inputId = session$ns('tarInd'),
             label = 'Time-at-risk: ',
-            choices = reactiveOutcomeTar()$tarInds,
-            selected = reactiveOutcomeTar()$tarInds[1],
+            choices = reactiveOutcomeTar(),
+            selected = reactiveOutcomeTar()[1],
             multiple = F,
             options = shinyWidgets::pickerOptions(
               actionsBox = TRUE,
@@ -126,9 +172,6 @@ characterizationCaseSeriesServer <- function(
             multiple = F
           ),
           
-          shiny::helpText('View features that occur before target index, between target index and outcome and after outcome for patients with the outcome during the time-at-risk.'),
-          
-          
           shiny::actionButton(
             inputId = session$ns('generate'), 
             label = 'Generate'
@@ -137,19 +180,37 @@ characterizationCaseSeriesServer <- function(
         
       })
       
+      # server for outcome seleciton table
+      tableSelectionServer(
+        id = 'outcome-table-select-case',
+        table = shiny::reactive(outcomeTable() %>%
+                                  dplyr::select("parentName", "cohortName", "cohortId") %>%
+                                  dplyr::relocate("parentName", .before = "cohortName") %>%
+                                  dplyr::relocate("cohortId", .after = "cohortName")
+        ), 
+        selectedRowId = reactiveOutcomeRowId,
+        selectMultiple = FALSE, 
+        elementId = session$ns('table-outcome-selector'),
+        inputColumns = characterizationOutcomeDisplayColumns(),
+        displayColumns = characterizationOutcomeDisplayColumns(), 
+        selectButtonText = 'Select Outcome'
+      )
+      
       # save the selections
       selected <- shiny::reactiveVal(NULL)
       
       shiny::observeEvent(input$generate, {
         
-        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow()) |
-           is.null(reactiveOutcomeTar()$tarList[[1]]) | is.null(input$databaseName)){
+        reactiveOutcomeRow <- outcomeTable()[reactiveOutcomeRowId(),]
+        
+        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow) |
+           is.null(input$tarInd) | is.null(input$databaseName)){
           
           output$showCaseSeries  <- shiny::reactive(0)
           shiny::showNotification('Need to set all inputs')
         } else{
           
-          if(nrow(reactiveTargetRow()) == 0 | nrow(reactiveOutcomeRow()) == 0){
+          if(nrow(reactiveTargetRow()) == 0 | nrow(reactiveOutcomeRow) == 0){
             output$showCaseSeries  <- shiny::reactive(0)
             shiny::showNotification('Need to pick a target and outcome')
           } else{
@@ -158,9 +219,9 @@ characterizationCaseSeriesServer <- function(
             
             selected(data.frame( 
               Target = reactiveTargetRow()$cohortName,
-              Outcome = reactiveOutcomeRow()$cohortName,
+              Outcome = reactiveOutcomeRow$cohortName,
               Database = input$databaseName,
-              `Time-at-risk` = names(reactiveOutcomeTar()$tarInds)[which(input$tarInd == reactiveOutcomeTar()$tarInds)],
+              `Time-at-risk` = input$tarInd,
               OutcomeWashoutDays = input$outcomeWashout
             ))
             
@@ -174,9 +235,9 @@ characterizationCaseSeriesServer <- function(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
               targetId = reactiveTargetRow()$cohortId,
-              outcomeId = reactiveOutcomeRow()$cohortId,
+              outcomeId = reactiveOutcomeRow$cohortId,
               databaseId = databaseIds()[input$databaseName == databaseNames()],
-              tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
+              tar = reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]
             )
             
             # get case count
@@ -184,9 +245,9 @@ characterizationCaseSeriesServer <- function(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
               targetId = reactiveTargetRow()$cohortId,
-              outcomeId = reactiveOutcomeRow()$cohortId,
+              outcomeId = reactiveOutcomeRow$cohortId,
               databaseId = databaseIds()[input$databaseName == databaseNames()],
-              tar = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]]
+              tar = reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]
             )
             N <- counts$personCount[1]
             
@@ -217,7 +278,7 @@ characterizationCaseSeriesServer <- function(
                 Database = input$databaseName,
                 TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
                 target = reactiveTargetRow()$cohortName,
-                outcome = reactiveOutcomeRow()$cohortName,
+                outcome = reactiveOutcomeRow$cohortName,
                 minPriorObservation = minPriorObservation,
                 casePostOutcomeDuration = casePostOutcomeDuration,
                 casePreTargetDuration = casePreTargetDuration,
@@ -266,7 +327,7 @@ characterizationCaseSeriesServer <- function(
                 Database = input$databaseName,
                 TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
                 target = reactiveTargetRow()$cohortName,
-                outcome = reactiveOutcomeRow()$cohortName,
+                outcome = reactiveOutcomeRow$cohortName,
                 minPriorObservation = minPriorObservation,
                 casePostOutcomeDuration = casePostOutcomeDuration,
                 casePreTargetDuration = casePreTargetDuration,
@@ -292,88 +353,6 @@ characterizationCaseSeriesServer <- function(
   )
 }
 
-
-characterizationGetCaseSeriesTars <- function(
-  connectionHandler,
-  resultDatabaseSettings,
-  targetId,
-  outcomeId
-){
-  
-  sql <- "SELECT distinct
-          s.setting_id, 
-          s.RISK_WINDOW_START,	s.RISK_WINDOW_END,	
-          s.START_ANCHOR, s.END_ANCHOR
-          
-          from
-          @schema.@c_table_prefixsettings s
-          inner join @schema.@c_table_prefixcohort_details cd
-          on s.setting_id = cd.setting_id
-          and s.database_id = cd.database_id
-          and cd.target_cohort_id = @target_id
-          and cd.outcome_cohort_id = @outcome_id
-          and cd.cohort_type = 'Cases'
-          
-  ;"
-  
-  options <- connectionHandler$queryDb(
-    sql = sql, 
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    target_id = targetId,
-    outcome_id = outcomeId
-  )
-  
-
-  tar <- unique(options[,c('startAnchor','riskWindowStart', 'endAnchor', 'riskWindowEnd')])
-  tarList <- lapply(1:nrow(tar), function(i) as.list(tar[i,]))
-  tarInds <- 1:nrow(tar)
-  names(tarInds) <- unique(paste0('(', tar$startAnchor, ' + ', tar$riskWindowStart, ') - (', 
-                       tar$endAnchor, ' + ', tar$riskWindowEnd, ')'
-                       ))
-  
-  return(
-    list(
-      tarInds = tarInds,
-      tarList = tarList
-    )
-  )
-  
-}
-
-
-characterizationGetCaseSeriesWashout <- function(
-    connectionHandler,
-    resultDatabaseSettings,
-    targetId,
-    outcomeId
-){
-  
-  sql <- "SELECT distinct
-          s.outcome_washout_days
-          
-          from
-          @schema.@c_table_prefixsettings s
-          inner join @schema.@c_table_prefixcohort_details cd
-          on s.setting_id = cd.setting_id
-          and s.database_id = cd.database_id
-          and cd.target_cohort_id = @target_id
-          and cd.outcome_cohort_id = @outcome_id
-          and cd.cohort_type = 'Cases'
-          
-  ;"
-  
-  options <- connectionHandler$queryDb(
-    sql = sql, 
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    target_id = targetId,
-    outcome_id = outcomeId
-  )
-  
-return(options$outcomeWashoutDays)
-  
-}
 
 
 characterizationGetCaseSeriesData <- function(
