@@ -1104,7 +1104,8 @@ getCohortGenerationAttritionTable <- function(
     
   }
   
-  attritionTableDistinct <- dplyr::distinct(attritionTable)
+  # change to unique as dplyr::distinct gave weird error
+  attritionTableDistinct <- unique(attritionTable)
 
   
   #adding drop counts
