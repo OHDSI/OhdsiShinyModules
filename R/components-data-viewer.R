@@ -46,12 +46,13 @@ resultTableViewer <- function(
           
           shiny::column(
             width = 3,
-            htmltools::browsable(
-              htmltools::tagList( #TODO move to server so this uses elementId
-                filteredDownloadButton("resultDataFiltered", "Download (Filtered)",
-                                       filename = paste('result-data-filtered-', downloadedFileName, Sys.Date(), '.csv', sep = ''),
+            shiny::column(
+              width = 2,
+              shiny::downloadButton(
+                ns('downloadDataFiltered'), # have an action for this
+                label = "Download (Filtered)",
+                icon = shiny::icon("download")
               )
-             )
             )
           )
         ),
@@ -295,9 +296,6 @@ fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
         } else{
           height <- NULL
         }
-          # htmltools::browsable(
-          #   tagList(
-          #     matchSorterDep,
                 reactable::reactable(
                   data,
                   columns = colDefs(),
@@ -325,8 +323,6 @@ fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
                   #, experimental
                   #theme = ohdsiReactableTheme
                 )
-          #   )
-          # )
         })
       
       output$downloadDataFiltered <- shiny::downloadHandler(
@@ -452,7 +448,7 @@ filteredDownloadButton <- function(
     icon = shiny::icon("download")
 ) {
   shiny::tags$div(class = "col-sm-3",
-                  htmltools::tags$button(
+                  shiny::tags$button(
                     class = "btn btn-default",
                     shiny::tags$i(class = "fas fa-download", role = "presentation", "aria-label" = "download icon"),
                     label,

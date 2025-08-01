@@ -183,12 +183,17 @@ characterizationDatabaseComparisonServer <- function(
 
 
         #get results
-          countTable <- characterizatonGetCohortCounts(
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings,
-            targetIds = reactiveTargetRow()$cohortId,
-            databaseIds = databaseIds()[databaseNames() %in% input$databaseNames]
-          )
+        
+        result <- characterizatonGetCohortData(
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          targetIds = reactiveTargetRow()$cohortId,
+          databaseIds = databaseIds()[databaseNames() %in% input$databaseNames],
+          minThreshold = input$minThreshold
+        )
+        
+        resultTable <- result$covariates
+        countTable <- result$covRef
           
           output$helpTextBinary <- shiny::renderUI(
             shiny::helpText(paste0("This analysis shows the fraction of patients in the target cohort (restricted to first index date and requiring ",
@@ -199,78 +204,63 @@ characterizationDatabaseComparisonServer <- function(
                                    countTable$minPriorObservation[1]," days observation prior to index) with a history of each continuous features across databases."))
           )
           
-          result <- characterizatonGetDatabaseComparisonData(
+          # this will pivot now and needs addressing
+          continuous <- characterizatonGetCohortComparisonDataContinuous(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
             targetIds = reactiveTargetRow()$cohortId,
-            databaseIds = databaseIds()[databaseNames() %in% input$databaseNames],
-            minThreshold = input$minThreshold
+            databaseIds = databaseIds()[databaseNames() %in% input$databaseNames]
           )
           
-          continuousTable <- characterizatonGetCohortComparisonDataContinuous(
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings,
-            targetIds = reactiveTargetRow()$cohortId,
-            databaseIds = databaseIds()[databaseNames() %in% input$databaseNames],
-            pivot = F
-          )
+          continuousTable <- continuous$covariates
           
-          databaseNamesResult <- result$databaseNames
+          #databaseNamesResult <- result$databaseNames
           
-          meanColumns <- lapply(1:nrow(databaseNamesResult), function(i){
+          # figure out the column names and how to present them to reactable
+          meanColumns <- lapply(1:nrow(countTable), function(i){
             reactable::colDef(
               header = withTooltip(
                 paste0('%'),
-                paste0("The percentage of the target population in database ", databaseNamesResult$databaseName[i], ' who had the covariate prior.')
+                paste0("The percentage of the target population in database ", countTable$databaseName[i], ' who had the covariate prior.')
               ),
               cell = function(value) {
                 if (value >= 0) paste0(round(value*100, digits = 3),' %') else '< min threshold'
               }
             )
           })
-          names(meanColumns) <- unlist(lapply(1:nrow(databaseNamesResult), function(i) paste0('averageValue_',databaseNamesResult$id[i])))
+          names(meanColumns) <- unlist(lapply(countTable$id, function(i) paste0('averageValue_',i)))
           
-          sumColumns <- lapply(1:nrow(databaseNamesResult), function(i){
+          sumColumns <- lapply(1:nrow(countTable), function(i){
             reactable::colDef(
               header = withTooltip(
                 paste0("Count"),
-                paste0("The number of people in the target cohort in database ", databaseNamesResult$databaseName[i], ' who have the covariate prior.')
+                paste0("The number of people in the target cohort in database ", countTable$databaseName[i], ' who have the covariate prior.')
               ),
               cell = function(value) {
                 if (value >= 0) value else '< min threshold'
               }
             )
           })
-          names(sumColumns) <- unlist(lapply(1:nrow(databaseNamesResult), function(i) paste0('sumValue_',databaseNamesResult$id[i])))
+          names(sumColumns) <- unlist(lapply(countTable$id, function(i) paste0('sumValue_',i)))
         
           # group columns with the counts
           
-          getDbCount <- function(databaseName,minPriorObservation){
-            countOfInt <- countTable %>% 
-              dplyr::filter(.data$selection == !!databaseName) %>%
-              dplyr::filter(.data$minPriorObservation == !!minPriorObservation) %>%
-              dplyr::select("personCount")
-            
-            return(countOfInt$personCount)
+          
+          groupColumns <- list()
+          
+          for(i in 1:nrow(countTable)){
+            groupColumns[[length(groupColumns) + 1]] <- reactable::colGroup(
+              name = paste0(countTable$databaseName[i], ' with ',countTable$minPriorObservation[i] ,' days prior obs (N = ',countTable$n[i],')'), 
+              columns = c(
+                paste0('sumValue_',countTable$id[i]), 
+                paste0('averageValue_',countTable$id[i]))
+            )
           }
           
-          groupColumns <- lapply(
-            1:nrow(databaseNamesResult),
-            function(i){
-              reactable::colGroup(
-                name = paste0(databaseNamesResult$databaseName[i], ' (N = ',getDbCount(databaseNamesResult$databaseName[i],countTable$minPriorObservation[1]),')'), 
-                columns = c(
-                  paste0('sumValue_',databaseNamesResult$id[i]), 
-                  paste0('averageValue_',databaseNamesResult$id[i]))
-                )
-            }
-          )
-
           # how to add counts here - in details?
           resultTableServer(
             id = 'mainTable',
-            df = result$table %>% 
-              dplyr::filter(.data$minPriorObservation == countTable$minPriorObservation[1]),
+            df = resultTable,
             details = data.frame(
               Target = reactiveTargetRow()$cohortName,
               Databases = selectedDatabases,
@@ -291,10 +281,103 @@ characterizationDatabaseComparisonServer <- function(
             elementId = session$ns('main-table-filter')
           )
           
+          
+          # create group columns for continuous
+          groupColumnsContinuous <- list()
+          continuousCols <- characterizationCohortsColumnsContinuous()
+          
+          for(i in 1:nrow(countTable)){
+            groupColumnsContinuous[[length(groupColumnsContinuous) + 1]] <- reactable::colGroup(
+              name = paste0(countTable$databaseName[i], ' with ',countTable$minPriorObservation[i] ,' days prior obs (N = ',countTable$n[i],')'), 
+              columns = c(
+                paste0('countValue_',countTable$id[i]), 
+                paste0('averageValue_',countTable$id[i]),
+                paste0('standardDeviation_',countTable$id[i]),
+                paste0('medianValue_',countTable$id[i]),
+                paste0('minValue_',countTable$id[i]),
+                paste0('maxValue_',countTable$id[i])
+            )
+            )
+            
+            newCols <- list(
+              countValue = reactable::colDef(
+                header = withTooltip("Count",
+                                     "Number of people with the covariate in the cohort."),
+                cell = function(value) {
+                  if (value >= 0) value else paste0('< ', abs(value))
+                },
+                filterable = T
+              ),
+              averageValue = reactable::colDef(
+                header = withTooltip("Mean",
+                                     "The mean value of the covariate in the cohort"),
+                cell = function(value) {
+                  if (value >= 0) round(value, digits = 3) else paste0('< ', abs(round(value, digits = 3)))
+                }
+              ),
+              standardDeviation = reactable::colDef(
+                header = withTooltip("StDev",
+                                     "The standard deviation value of the covariate in the cohort"),
+                cell = function(value) {
+                  if (value >= 0) round(value, digits = 3) else paste0('< ', abs(round(value, digits = 3)))
+                }
+              ),
+              medianValue = reactable::colDef(
+                header = withTooltip("Median",
+                                     "The median value of the covariate in the cohort."),
+                cell = function(value) {
+                  round(value, digits = 3)
+                }
+              ),
+              minValue = reactable::colDef(
+                header = withTooltip("Min Value",
+                                     "Minimum value of the covariate in the cohort"),
+                format = reactable::colFormat(digits = 3)
+              ),
+              maxValue = reactable::colDef(
+                header = withTooltip("Max Value",
+                                     "Maximum value the covariate in the cohort"),
+                format = reactable::colFormat(digits = 3)
+              ),
+              p25Value = reactable::colDef(
+                show = FALSE,
+                header = withTooltip("25th %tile",
+                                     "25th percentile value of the covariate in the cohort"),
+                format = reactable::colFormat(digits = 3)
+              ),
+              p75Value = reactable::colDef(
+                show = FALSE,
+                header = withTooltip("75th %tile",
+                                     "75th percentile value of the covariate in the cohort"),
+                format = reactable::colFormat(digits = 3)
+              ),
+              p10Value = reactable::colDef(
+                show = FALSE,
+                header = withTooltip("10th %tile",
+                                     "10th percentile value of the covariate in the cohort"),
+                format = reactable::colFormat(digits = 3)
+              ),
+              p90Value = reactable::colDef(
+                show = FALSE,
+                header = withTooltip("90th %tile",
+                                     "90th percentile value of the covariate in the cohort"),
+                format = reactable::colFormat(digits = 3)
+              )
+            )
+            names(newCols) <- paste0(names(newCols),'_',countTable$id[i])
+            
+            continuousCols <- append(
+              continuousCols, 
+              newCols
+              )
+
+          }
+          
+          
+          
           resultTableServer(
             id = 'continuousTable',
-            df = continuousTable %>% 
-              dplyr::filter(.data$minPriorObservation == countTable$minPriorObservation[1]),
+            df = continuousTable, 
             details = data.frame(
               Target = reactiveTargetRow()$cohortName,
               Databases = selectedDatabases,
@@ -302,30 +385,17 @@ characterizationDatabaseComparisonServer <- function(
               Analysis = 'Cohort comparison across databases'
             ),
             downloadedFileName = 'database_comparison_cont',
-            colDefsInput = characterizationCohortsColumnsContinuous(
-              elementId = session$ns('continuous-table-filter')
-            ),
+            colDefsInput = continuousCols, 
+            columnGroups = groupColumnsContinuous,
             elementId = session$ns('continuous-table-filter')
           )
           
-        
-          # get plot data - TODO replace this to do one data extraction!
-          plotResult(characterizatonGetDatabaseComparisonDataRaw(
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings,
-            targetIds = reactiveTargetRow()$cohortId,
-            databaseIds = databaseIds()[databaseNames() %in% input$databaseNames],
-            minThreshold = input$minThreshold
-          ))
-          
+          plotResult(result)
         }
         }
       })
       
       
-      
-          
-          
           
           #scatterplots
           output$plotInputs <- shiny::renderUI({
@@ -335,8 +405,8 @@ characterizationDatabaseComparisonServer <- function(
                               shinyWidgets::pickerInput(
                                 inputId = session$ns('xAxis'), 
                                 label = 'X-Axis Database: ',
-                                choices = unique(plotResult()$cdmSourceAbbreviation),
-                                selected = unique(plotResult()$cdmSourceAbbreviation)[1],
+                                choices = unique(plotResult()$covRef$databaseName),
+                                selected = unique(plotResult()$covRef$databaseName)[1],
                                 multiple = F,
                                 options = shinyWidgets::pickerOptions(
                                   actionsBox = TRUE,
@@ -353,8 +423,8 @@ characterizationDatabaseComparisonServer <- function(
                               shinyWidgets::pickerInput(
                                 inputId = session$ns('yAxis'), 
                                 label = 'Y-Axis Database: ',
-                                choices = unique(plotResult()$cdmSourceAbbreviation),
-                                selected = unique(plotResult()$cdmSourceAbbreviation)[2],
+                                choices = unique(plotResult()$covRef$databaseName),
+                                selected = unique(plotResult()$covRef$databaseName)[2],
                                 multiple = F,
                                 options = shinyWidgets::pickerOptions(
                                   actionsBox = TRUE,
@@ -386,61 +456,10 @@ characterizationDatabaseComparisonServer <- function(
             
             # TODO add a check to make sure plotResult() has results
             
-            plotDf <- plotResult() %>%
-                dplyr::filter(.data$cdmSourceAbbreviation %in% c(input$xAxis, input$yAxis))
-              
-              # Group and split the data by cdmSourceAbbreviation
-              plotDf <- plotDf %>%
-                dplyr::group_by(.data$cdmSourceAbbreviation) %>%
-                dplyr::group_split()
-              
-              # Initialize an empty list to store the processed dataframes
-              processedDfs <- list()
-              
-              # Loop over the split datasets and process each one
-              for (i in seq_along(plotDf)) {
-                
-                currentDbDf <- plotDf[[i]] %>%
-                  dplyr::select("cdmSourceAbbreviation",
-                                "covariateName",
-                                "averageValue")
-                
-                # Ensure only rows with selected xAxis or yAxis inputs are kept
-                currentDbDf <- currentDbDf %>%
-                  dplyr::filter(.data$cdmSourceAbbreviation %in% c(input$xAxis, input$yAxis))
-                
-                # Get the name for this database (should be unique after filtering)
-                dbName <- unique(currentDbDf$cdmSourceAbbreviation)
-                
-                # Rename the averageValue column based on the database name
-                colnames(currentDbDf) <- c("cdmSourceAbbreviation", "covariateName", paste0(dbName, "_avg"))
-                
-                # Remove the cdmSourceAbbreviation column for joining later
-                currentDbDf <- currentDbDf %>%
-                  dplyr::select(-"cdmSourceAbbreviation")
-                
-                # Append the processed dataframe to the list
-                processedDfs[[i]] <- currentDbDf
-              }
-              
-              # Check if there's at least one dataframe to join
-              if (length(processedDfs) > 1) {
-                # Perform a left join across all processed dataframes
-                plotDf <- Reduce(function(x, y) dplyr::left_join(x, y, by = "covariateName"), processedDfs)
-              } else {
-                # If there's only one dataframe, no need for joining
-                plotDf <- processedDfs[[1]]
-              }
-              
-              # Replace NA values with 0
-              #plotDf[is.na(plotDf)] <- 0
-              #plotDf <- plotDf %>%
-              #  tidyr::replace_na(list(
-              #    averageValue = 0
-              #  ))
-              
-              plotDf <- plotDf %>%
-                #replace(is.na(.), 0) %>%
+            countInd1 <- which.max(plotResult()$covRef$databaseName == input$xAxis)
+            countInd2 <- which.max(plotResult()$covRef$databaseName == input$yAxis)
+            
+            plotData <- plotResult()$covariates %>%
                 dplyr::mutate(domain = dplyr::case_when(
                   grepl("condition_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "condition" ~ "Condition",
                   grepl("drug_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "drug" ~ "Drug",
@@ -456,42 +475,25 @@ characterizationDatabaseComparisonServer <- function(
           #plot
           output$scatterPlot <- plotly::renderPlotly({
               
-              # Get the filtered and processed plot data
-              plotData <- plotDf
-              
-              # Ensure that the reactive inputs are valid and accessible
-              xAxisInput <- input$xAxis
-              yAxisInput <- input$yAxis
-              
-              # Sanitize the xAxis and yAxis input values by replacing spaces with underscores
-              xAxisSafe <- gsub(" ", "_", xAxisInput)
-              yAxisSafe <- gsub(" ", "_", yAxisInput)
-              
-              # Sanitize column names in plotData to replace spaces with underscores
-              colnames(plotData) <- gsub(" ", "_", colnames(plotData))
-              
-              # Ensure that the column names exist in plotData
-              if (!all(c(paste0(xAxisSafe, "_avg"), paste0(yAxisSafe, "_avg")) %in% colnames(plotData))) {
-                stop("Selected columns not found in data.")
-              }
-              
+              # TODO - edit this to jsut use plotly...
+            
               # Create hover text for plotly
               plotData$hoverText <- paste(
                 "Covariate Name:", plotData$covariateName, 
-                "<br>", xAxisInput, ":", scales::percent(plotData[[paste0(xAxisSafe, "_avg")]]), 
-                "<br>", yAxisInput, ":", scales::percent(plotData[[paste0(yAxisSafe, "_avg")]])
+                "<br>", plotResult()$covRef$databaseName[countInd1], ":", scales::percent(plotData[[paste0("averageValue_",plotResult()$covRef$id[countInd1])]]), 
+                "<br>", plotResult()$covRef$databaseName[countInd2], ":", scales::percent(plotData[[paste0("averageValue_",plotResult()$covRef$id[countInd2])]])
               )
               
               # Create the scatter plot with the diagonal line (x = y)
-              p <- ggplot2::ggplot(plotData, ggplot2::aes_string(x = paste0(xAxisSafe, "_avg"),
-                                                                 y = paste0(yAxisSafe, "_avg"),
+              p <- ggplot2::ggplot(plotData, ggplot2::aes_string(x = paste0("averageValue_",plotResult()$covRef$id[countInd1]),
+                                                                 y = paste0("averageValue_",plotResult()$covRef$id[countInd2]),
                                                                  color = "domain",
                                                                  text = "hoverText")) +  # Use hoverText for hover labels
                 ggplot2::geom_point(size = 2) +    # Smaller point size
                 ggplot2::geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +  # Diagonal x=y line in black
                 ggplot2::labs(
-                  x = paste0(xAxisInput, " %"),
-                  y = paste0(yAxisInput, " %"),
+                  x = paste0(plotResult()$covRef$databaseName[countInd1], " %"),
+                  y = paste0(plotResult()$covRef$databaseName[countInd2], " %"),
                   color = "Domain"
                 ) +
                 ggplot2::theme_minimal() +          # Optional: use a clean theme
@@ -514,101 +516,6 @@ characterizationDatabaseComparisonServer <- function(
       
     }) #end server
   
-}
-
-characterizatonGetDatabaseComparisonData <- function(
-    connectionHandler,
-    resultDatabaseSettings,
-    targetIds,
-    databaseIds,
-    minThreshold
-){
-  
-  result <- characterizatonGetCohortData(
-    connectionHandler = connectionHandler,
-    resultDatabaseSettings = resultDatabaseSettings,
-    targetIds = targetIds,
-    databaseIds = databaseIds,
-    minThreshold = minThreshold,
-    addSMD = length(databaseIds) == 2
-  )
-  
-  databaseNames <- connectionHandler$queryDb(
-    sql = "select cdm_source_abbreviation as database_name, database_id
-     from @schema.@database_table;",
-    schema = resultDatabaseSettings$schema,
-    database_table = resultDatabaseSettings$databaseTable
-  )
-  
-  databaseNames <- merge(
-    databaseNames,
-    data.frame(
-      id = 1:length(databaseIds),
-      databaseId = databaseIds
-    ), 
-    by = 'databaseId'
-  )
-  
-  return(
-    list(
-      table = result, 
-      databaseNames = databaseNames
-    )
-  )
-  
-}
-
-characterizatonGetDatabaseComparisonDataRaw <- function(
-    connectionHandler,
-    resultDatabaseSettings,
-    targetIds,
-    databaseIds,
-    minThreshold = 0.01,
-    addSMD = F
-){
-  
-  if(is.null(targetIds) |  is.null(databaseIds)){
-    warning('Ids cannot be NULL')
-    return(NULL)
-  }
-  
-  sql <- "select  d.cdm_source_abbreviation,
-          ref.covariate_name, 
-          s.min_prior_observation,
-          cov.target_cohort_id as cohort_definition_id,
-          cov.* from   
-    @schema.@c_table_prefixCOVARIATES cov 
-    inner join 
-    @schema.@c_table_prefixcovariate_ref ref
-    on cov.covariate_id = ref.covariate_id
-    and cov.setting_id = ref.setting_id
-    and cov.database_id = ref.database_id
-    inner join 
-    @schema.@c_table_prefixsettings s
-    on s.database_id = cov.database_id
-    and s.setting_id = cov.setting_id
-    inner join 
-    @schema.@database_table d
-    on cov.database_id = d.database_id
-    
-    where 
-    cov.target_cohort_id in (@target_ids) 
-    and cov.cohort_type = 'Target'
-    AND cov.database_id in (@database_ids)
-    AND cov.average_value >= @min_threshold;"
-  
-  # settings.min_characterization_mean needed?
-  res <- connectionHandler$queryDb(
-    sql = sql,
-    target_ids = paste0(targetIds, collapse = ','),
-    database_ids = paste0("'",databaseIds,"'", collapse = ','),
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    min_threshold = minThreshold,
-    database_table = resultDatabaseSettings$databaseTable
-  )
-  
-  return(res)
 }
 
 

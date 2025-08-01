@@ -179,7 +179,7 @@ dataDiagnosticDrillServer <- function(
                   view = reactable::colDef(
                   name = "",
                   sortable = FALSE,
-                  cell = function() htmltools::tags$button("View")
+                  cell = function() shiny::tags$button("View")
                 )), 
                 columnFormat2
               ),

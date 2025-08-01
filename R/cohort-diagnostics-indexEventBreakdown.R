@@ -43,7 +43,7 @@ indexEventBreakdownView <- function(id) {
     shinydashboard::box(
       width = NULL,
       title = NULL,
-      htmltools::withTags(
+      shiny::withTags(
         table(
           width = "100%",
           shiny::tags$tr(

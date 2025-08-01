@@ -238,7 +238,7 @@ characterizationIncidenceServer <- function(
           } else {
           
           # TODO check nrow > 0 for t and o
-          data <- OhdsiReportGenerator::getIncidenceRates(
+          data <- getCharacterizationIncidence(
             connectionHandler = connectionHandler, 
             schema = resultDatabaseSettings$schema, 
             ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
@@ -246,7 +246,8 @@ characterizationIncidenceServer <- function(
             databaseTable = resultDatabaseSettings$databaseTable, 
             targetIds = reactiveTargetRow()$cohortId, 
             outcomeIds = reactiveOutcomeRows()$cohortId
-              ) 
+          ) 
+        
           incidenceFullData(data)
           
         }
@@ -342,7 +343,7 @@ characterizationIncidenceServer <- function(
               width = 4,
               shiny::selectInput(
                 inputId = session$ns('xAxis'), 
-                label = 'X-axis', 
+                label = 'Report Type:', 
                 choices = c('Age', 'Year'), 
                 selected = 'Age', 
                 multiple = FALSE
@@ -448,6 +449,7 @@ characterizationIncidenceServer <- function(
               ggplot2::geom_line() +
               ggplot2::facet_grid(
                 .data$databaseName ~ paste0(.data$outcomeName," (clean win ",.data$cleanWindow,"): ",.data$tar),
+                #. ~ paste0(.data$outcomeName," (clean win ",.data$cleanWindow,"): ",.data$tar),
                 scales = scaleVal
                 ) +
               ggplot2::scale_y_continuous(
@@ -591,4 +593,37 @@ characterizationIncidenceColumnDefs <- function(elementId){
     )
   )
   
+}
+
+
+
+getCharacterizationIncidence <- function(
+    connectionHandler, 
+    schema, 
+    ciTablePrefix,
+    cgTablePrefix, 
+    databaseTable, 
+    targetIds, 
+    outcomeIds
+){
+  
+  shiny::withProgress(message = 'Incidence rate...', value = 0, {
+    
+    shiny::incProgress(1/4, detail = paste("Extracting data"))
+    
+    
+    result <- OhdsiReportGenerator::getIncidenceRates(
+      connectionHandler = connectionHandler, 
+      schema = schema, 
+      ciTablePrefix = ciTablePrefix,
+      cgTablePrefix = cgTablePrefix, 
+      databaseTable = databaseTable, 
+      targetIds = targetIds, 
+      outcomeIds = outcomeIds
+    )
+    
+    shiny::incProgress(4/4, detail = paste("Done"))
+  })
+  
+  return(result)
 }

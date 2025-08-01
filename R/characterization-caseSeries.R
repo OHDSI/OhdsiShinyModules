@@ -240,7 +240,7 @@ characterizationCaseSeriesServer <- function(
               tar = reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]
             )
             
-            # get case count
+            # !!TODO - replace this?get case count
             counts <- characterizationGetCaseSeriesCounts(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
@@ -296,22 +296,22 @@ characterizationCaseSeriesServer <- function(
                 reactable::colGroup(
                   name = paste0('Pre-exposure'), 
                   columns = c(
-                    'sumValueBefore',
-                    'averageValueBefore'
+                    'sumValue_Before',
+                    'averageValue_Before'
                     )
               ),
               reactable::colGroup(
                 name = paste0('Between exposure & outcome'), 
                 columns = c(
-                  'sumValueDuring',
-                  'averageValueDuring'
+                  'sumValue_During',
+                  'averageValue_During'
                 )
               ),
               reactable::colGroup(
                 name = paste0('Post-outcome'), 
                 columns = c(
-                  'sumValueAfter',
-                  'averageValueAfter'
+                  'sumValue_After',
+                  'averageValue_After'
                 )
               )
             )
@@ -336,9 +336,42 @@ characterizationCaseSeriesServer <- function(
                 description = "Case series continuous features before target index, during exposure and after outcome index"
               ),
               downloadedFileName = 'case_series_continuous',
-              colDefsInput = colDefsContinuous(
-                elementId = session$ns('continuous-table-filter')
-              ), # function below
+              colDefsInput = colDefsContinuous(), 
+              columnGroups = list(
+                reactable::colGroup(
+                  name = paste0('Pre-exposure'), 
+                  columns = c(
+                    'countValue_Before',
+                    'averageValue_Before',
+                    'standardDeviation_Before',
+                    'medianValue_Before',
+                    'minValue_Before',
+                    'maxValue_Before'
+                  )
+                ),
+                reactable::colGroup(
+                  name = paste0('Between exposure & outcome'), 
+                  columns = c(
+                    'countValue_During',
+                    'averageValue_During',
+                    'standardDeviation_During',
+                    'medianValue_During',
+                    'minValue_During',
+                    'maxValue_During'
+                  )
+                ),
+                reactable::colGroup(
+                  name = paste0('Post-outcome'), 
+                  columns = c(
+                    'countValue_After',
+                    'averageValue_After',
+                    'standardDeviation_After',
+                    'medianValue_After',
+                    'minValue_After',
+                    'maxValue_After'
+                  )
+                )
+              ),
               addActions = NULL,
               elementId = session$ns('continuous-table-filter')
             )
@@ -364,109 +397,61 @@ characterizationGetCaseSeriesData <- function(
   tar
 ){
   
+  
   shiny::withProgress(message = 'Getting case series data', value = 0, {
     shiny::incProgress(1/4, detail = paste("Extracting binary"))
     
-  sql <- "SELECT 
-  case 
-  when cov.cohort_type = 'CasesBefore' then 'Before'
-  when cov.cohort_type = 'CasesBetween' then 'During'
-  when cov.cohort_type = 'CaseAfter' then 'After'
-  end as type, 
-  cr.covariate_name, 
-  s.min_prior_observation, s.outcome_washout_days,
-  s.case_post_outcome_duration, s.case_pre_target_duration,
-  cov.covariate_id, cov.sum_value, cov.average_value 
-          from
-          @schema.@c_table_prefixcovariates cov
-          inner join  @schema.@c_table_prefixcovariate_ref cr
-          on cov.setting_id = cr.setting_id and 
-          cov.database_id = cr.database_id and 
-          cov.covariate_id = cr.covariate_id
-          
-          inner join @schema.@c_table_prefixsettings s
-          on cov.setting_id = s.setting_id
-          and cov.database_id = s.database_id
-
-          where cov.target_cohort_id = @target_id
-          and cov.outcome_cohort_id = @outcome_id
-          and cov.cohort_type in ('CasesBetween','CasesAfter','CasesBefore')
-          --and cov.setting_id = @setting_id
-          and s.risk_window_start = @risk_window_start
-          and s.risk_window_end = @risk_window_end
-          and s.start_anchor = '@start_anchor'
-          and s.end_anchor = '@end_anchor'
-          and cov.database_id = '@database_id'
-          and cr.analysis_id in (109, 110, 217, 218, 305, 417, 418, 505, 605, 713, 805, 926, 927)
-  ;"
-
-  binary <- connectionHandler$queryDb(
-    sql = sql, 
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    target_id = targetId,
-    outcome_id = outcomeId,
-    risk_window_start = tar$riskWindowStart,
-    risk_window_end = tar$riskWindowEnd,
-    start_anchor = tar$startAnchor,
-    end_anchor = tar$endAnchor,
-    database_id = databaseId
-  )
+    binary <-   OhdsiReportGenerator::getBinaryCaseSeries(
+      connectionHandler = connectionHandler,
+      schema = resultDatabaseSettings$schema,
+      cTablePrefix = resultDatabaseSettings$cTablePrefix,
+      cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+      databaseTable = resultDatabaseSettings$databaseTable,
+      targetId = targetId,
+      outcomeId = outcomeId,
+      riskWindowStart = tar$riskWindowStart,
+      riskWindowEnd = tar$riskWindowEnd,
+      startAnchor = tar$startAnchor,
+      endAnchor = tar$endAnchor,
+      databaseIds = databaseId
+    )
+    
+    binary <- binary %>% tidyr::pivot_wider(
+      id_cols = c('covariateName', 'covariateId', 
+                  'minPriorObservation', 'outcomeWashoutDays', 'casePostOutcomeDuration',
+                  'casePreTargetDuration'), 
+      names_from = 'type', 
+      values_from = c('sumValue', 'averageValue'), 
+      values_fill = 0
+        )
   
-  # now process into table
-  binary <- caseSeriesTable(
-    data = binary
-  )
   
   shiny::incProgress(3/4, detail = paste("Extracting continuous"))
 
-  sql <- "SELECT
-    case 
-  when cov.cohort_type = 'CasesBefore' then 'Before'
-  when cov.cohort_type = 'CasesBetween' then 'During'
-  when cov.cohort_type = 'CasesAfter' then 'After'
-  end as type, 
-  cr.covariate_name, 
-    s.min_prior_observation, s.outcome_washout_days, 
-    s.case_post_outcome_duration, s.case_pre_target_duration,
-    cov.covariate_id, 
-          cov.count_value, cov.min_value, cov.max_value, cov.average_value,
-          cov.standard_deviation, cov.median_value, cov.p_10_value,
-          cov.p_25_value, cov.p_75_value, cov.p_90_value
-          from
-          @schema.@c_table_prefixcovariates_continuous cov
-          inner join  @schema.@c_table_prefixcovariate_ref cr
-          on cov.setting_id = cr.setting_id and 
-          cov.database_id = cr.database_id and 
-          cov.covariate_id = cr.covariate_id
-          
-          inner join @schema.@c_table_prefixsettings s
-          on cov.setting_id = s.setting_id
-          and cov.database_id = s.database_id
-          
-          where cov.target_cohort_id = @target_id
-          and cov.outcome_cohort_id = @outcome_id
-          and cov.cohort_type in ('CasesBetween','CasesAfter','CasesBefore')
-          and s.risk_window_start = @risk_window_start
-          and s.risk_window_end = @risk_window_end
-          and s.start_anchor = '@start_anchor'
-          and s.end_anchor = '@end_anchor'
-          and cov.database_id = '@database_id'
-          and cr.analysis_id in (109, 110, 217, 218, 305, 417, 418, 505, 605, 713, 805, 926, 927)
-  ;"
-  
-  # TODO - how to remove prior outcomes??
-  continuous <- connectionHandler$queryDb(
-    sql = sql, 
+  continuous <- OhdsiReportGenerator::getContinuousCaseSeries(
+    connectionHandler = connectionHandler,
     schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    target_id = targetId,
-    outcome_id = outcomeId,
-    risk_window_start = tar$riskWindowStart,
-    risk_window_end = tar$riskWindowEnd,
-    start_anchor = tar$startAnchor,
-    end_anchor = tar$endAnchor,
-    database_id = databaseId
+    cTablePrefix = resultDatabaseSettings$cTablePrefix,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    targetId = targetId,
+    outcomeId = outcomeId,
+    riskWindowStart = tar$riskWindowStart,
+    riskWindowEnd = tar$riskWindowEnd,
+    startAnchor = tar$startAnchor,
+    endAnchor = tar$endAnchor,
+    databaseIds = databaseId
+  )
+  
+  continuous <- continuous %>% tidyr::pivot_wider(
+    id_cols = c('covariateName', 'covariateId', 
+                'minPriorObservation', 'outcomeWashoutDays', 'casePostOutcomeDuration',
+                'casePreTargetDuration'), 
+    names_from = 'type', 
+    values_from = c('countValue', 'minValue', 'maxValue',
+                    'averageValue', 'standardDeviation', 'medianValue'
+    ), 
+    values_fill = 0
   )
   
   shiny::incProgress(4/4, detail = paste("Done"))
@@ -481,58 +466,6 @@ characterizationGetCaseSeriesData <- function(
   )
 }
 
-
-# now process into table
-caseSeriesTable <- function(
-  data
-){
-  
-  # Before Index Cases
-  beforeData <- data %>% 
-    dplyr::filter(.data$type == 'Before') 
-
-  # After Index Cases
-  afterData <- data %>% 
-    dplyr::filter(.data$type == 'After') 
-  
-  # During Index Cases
-  duringData <- data %>% 
-    dplyr::filter(.data$type == 'During') 
-  
-  beforeData <- beforeData %>%
-    dplyr::mutate(
-      sumValueBefore = .data$sumValue,
-      averageValueBefore = .data$averageValue,
-    ) %>%
-    dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration', "sumValueBefore", "averageValueBefore")
-  
-  afterData <-afterData %>%
-    dplyr::mutate(
-      sumValueAfter = .data$sumValue,
-      averageValueAfter = .data$averageValue,
-    ) %>%
-    dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration', "sumValueAfter", "averageValueAfter")
-  
-  duringData <- duringData %>%
-    dplyr::mutate(
-      sumValueDuring = .data$sumValue,
-      averageValueDuring = .data$averageValue,
-    ) %>%
-    dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration', "sumValueDuring", "averageValueDuring")
-  
-  
-  allResults <- beforeData %>% 
-    dplyr::full_join(
-      y = duringData, 
-      by = c("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration')
-    ) %>% 
-    dplyr::full_join(
-      y = afterData, 
-      by = c("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration')
-    ) 
-  
-  return(allResults)
-}
 
 colDefsBinary <- function(
     elementId
@@ -593,7 +526,7 @@ colDefsBinary <- function(
                            "Number of days before the exposure we look for the covariate"),
       filterable = T
     ),
-    sumValueBefore = reactable::colDef(
+    sumValue_Before = reactable::colDef(
       header = withTooltip("No.",
                            "Number of cases with the covariate prior to exposure"),
       filterable = T,
@@ -604,13 +537,13 @@ colDefsBinary <- function(
         if (value >= 0) value else paste0('<', abs(value))
       }
     ), 
-    averageValueBefore = reactable::colDef(
+    averageValue_Before = reactable::colDef(
       header = withTooltip("Percent",
                            "Percent of cases with the covariate prior to exposure"),
       filterable = T,
       format = reactable::colFormat(digits = 2, percent = T)
     ), 
-    sumValueDuring = reactable::colDef(
+    sumValue_During = reactable::colDef(
       header = withTooltip("No.",
                            "Number of cases with the covariate between the exposure and outcome"),
       filterable = T,
@@ -621,13 +554,13 @@ colDefsBinary <- function(
         if (value >= 0) value else paste0('<', abs(value))
       }
     ), 
-    averageValueDuring = reactable::colDef(
+    averageValue_During = reactable::colDef(
       header = withTooltip("Percent",
                            "Percent of cases with the covariate between the exposure and outcome"),
       filterable = T,
       format = reactable::colFormat(digits = 2, percent = T)
     ), 
-    sumValueAfter = reactable::colDef(
+    sumValue_After = reactable::colDef(
       header = withTooltip("No.",
                            "Number of cases with the covariate after the outcome"),
       filterable = T,
@@ -638,7 +571,7 @@ colDefsBinary <- function(
         if (value >= 0) value else paste0('<', abs(value))
       }
     ), 
-    averageValueAfter = reactable::colDef(
+    averageValue_After = reactable::colDef(
       header = withTooltip("Percent",
                            "Percent of cases with the covariate after the outcome"),
       filterable = T,
@@ -663,174 +596,148 @@ colDefsBinary <- function(
   return(result)
 }
 
-colDefsContinuous <- function(
-    elementId
-    ){
+colDefsContinuous <- function(){
   result <- list(
     cohortDefinitionId = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Cohort ID",
                            "Unique identifier of the cohort"),
-      filterable = T
-    ),
-    type = reactable::colDef(
-      header = withTooltip("Time of Cases Relative to Index",
-                           "Time period relative to index date for cases for the covariate"),
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
+      filterable = TRUE
     ),
     covariateName = reactable::colDef(
       header = withTooltip("Covariate Name",
                            "Name of the covariate"),
-      filterable = T,
+      filterable = TRUE,
       minWidth = 300
     ),
     covariateId = reactable::colDef(
-      show = F
+      show = TRUE
     ),
     minPriorObservation = reactable::colDef(
-      show = FALSE,
-      header = withTooltip("Min Prior Observation",
-                           "Minimum prior observation time (days)"),
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
+      show = FALSE
     ), 
     outcomeWashoutDays = reactable::colDef(
-      show = FALSE,
-      header = withTooltip("Outcome Washout Days",
-                           "Number of days for the outcome washout"),
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
+      show = FALSE
     ),
-    
     casePostOutcomeDuration = reactable::colDef(
-      show = FALSE,
-      header = withTooltip("Days Post-outcome Covariate Window",
-                           "Number of days after the outcome we look for the covariate"),
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
+      show = FALSE
     ), 
     casePreTargetDuration = reactable::colDef(
-      show = FALSE,
-      header = withTooltip("Days Pre-exposure Covariate Window",
-                           "Number of days before the exposure we look for the covariate"),
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
+      show = FALSE
     ),
-    countValue = reactable::colDef(
+    
+    # After
+    countValue_After = reactable::colDef(
       header = withTooltip("# Cases with Feature",
-                           "Number of cases with the covariate"),
-      filterable = T,
+                           "Number of cases with the covariate after outcome"),
       format = reactable::colFormat(digits = 2, percent = F),
       cell = function(value) {
-        # Add < if cencored
-        if (value < 0 ) paste("<", abs(value)) else abs(value)
+        if(!is.null(value)){
+          if( value < 0 ){paste("<", abs(value))}else{abs(value)}
+        }
       }
     ), 
-    minValue = reactable::colDef(
+    minValue_After = reactable::colDef(
       header = withTooltip("Min Value",
-                           "Minimum value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+                           "Minimum value of the covariate after outcome"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    maxValue = reactable::colDef(
+    maxValue_After = reactable::colDef(
       header = withTooltip("Max Value",
-                           "Maximum value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+                           "Maximum value of the covariate after outcome"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    averageValue = reactable::colDef(
+    averageValue_After = reactable::colDef(
       header = withTooltip("Average Value",
-                           "Average value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+                           "Average value of the covariate after outcome"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    standardDeviation = reactable::colDef(
+    standardDeviation_After = reactable::colDef(
       header = withTooltip("SD",
-                           "Standard deviation of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+                           "Standard deviation of the covariate after outcome"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    medianValue = reactable::colDef(
+    medianValue_After = reactable::colDef(
       header = withTooltip("Median Value",
-                           "Median value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+                           "Median value of the covariate after outcome"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    p10Value = reactable::colDef(
-      header = withTooltip("10th %tile",
-                           "10th percentile value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+    
+    
+    countValue_During = reactable::colDef(
+      header = withTooltip("# Cases with Feature",
+                           "Number of cases with the covariate between target and outcome index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE),
+      cell = function(value){
+        if(!is.null(value)){
+         if( value < 0 ){paste("<", abs(value))}else{abs(value)}
+        }
+      }
     ), 
-    p25Value = reactable::colDef(
-      header = withTooltip("25th %tile",
-                           "25th percentile value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+    minValue_During = reactable::colDef(
+      header = withTooltip("Min Value",
+                           "Minimum value of the covariate between target and outcome index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    p75Value = reactable::colDef(
-      header = withTooltip("75th %tile",
-                           "75th percentile value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+    maxValue_During = reactable::colDef(
+      header = withTooltip("Max Value",
+                           "Maximum value of the covariate between target and outcome index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    p90Value = reactable::colDef(
-      header = withTooltip("90th %tile",
-                           "90th percentile value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+    averageValue_During = reactable::colDef(
+      header = withTooltip("Average Value",
+                           "Average value of the covariate between target and outcome index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    standardDeviation_During = reactable::colDef(
+      header = withTooltip("SD",
+                           "Standard deviation of the covariate between target and outcome index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    medianValue_During = reactable::colDef(
+      header = withTooltip("Median Value",
+                           "Median value of the covariate between target and outcome index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    
+    
+    countValue_Before = reactable::colDef(
+      header = withTooltip("# Cases with Feature",
+                           "Number of cases with the covariate before target index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE),
+      cell = function(value){
+        if(!is.null(value)){
+          if( value < 0 ){paste("<", abs(value))}else{abs(value)}
+        }
+      }
+    ), 
+    minValue_Before = reactable::colDef(
+      header = withTooltip("Min Value",
+                           "Minimum value of the covariate before target index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    maxValue_Before = reactable::colDef(
+      header = withTooltip("Max Value",
+                           "Maximum value of the covariate before target index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    averageValue_Before = reactable::colDef(
+      header = withTooltip("Average Value",
+                           "Average value of the covariate before target index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    standardDeviation_Before = reactable::colDef(
+      header = withTooltip("SD",
+                           "Standard deviation of the covariate before target index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    medianValue_Before = reactable::colDef(
+      header = withTooltip("Median Value",
+                           "Median value of the covariate before target index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     )
-    )
+    
+  )
   return(result)
 }
 

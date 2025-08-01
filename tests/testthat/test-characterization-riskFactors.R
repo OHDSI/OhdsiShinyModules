@@ -65,7 +65,7 @@ shiny::testServer(
       outcomeId = 3,
       databaseId = 'eunomia',
       tar = list(
-        riskWindowStart = 0,
+        riskWindowStart = 1,
         riskWindowEnd = 365,
         startAnchor = 'cohort start',
         endAnchor = 'cohort start'

@@ -612,10 +612,10 @@ getPhevalModelCovars <- function(
     pv_table_prefix = resultDatabaseSettings$pvTablePrefix
   )
   
-  df$databaseId = stringi::stri_trans_general(df$databaseId, "latin-ascii")
-  df$phenotype = stringi::stri_trans_general(df$phenotype, "latin-ascii")
-  df$analysisName = stringi::stri_trans_general(df$analysisName, "latin-ascii")
-  df$covariateName = stringi::stri_trans_general(df$covariateName, "latin-ascii")
+  #df$databaseId = stringi::stri_trans_general(df$databaseId, "latin-ascii")
+  #df$phenotype = stringi::stri_trans_general(df$phenotype, "latin-ascii")
+  #df$analysisName = stringi::stri_trans_general(df$analysisName, "latin-ascii")
+  #df$covariateName = stringi::stri_trans_general(df$covariateName, "latin-ascii")
   
   return(
     df
@@ -636,10 +636,10 @@ getPhevalModelCovarSummary <- function(
     pv_table_prefix = resultDatabaseSettings$pvTablePrefix
   )
   
-  df$databaseId = stringi::stri_trans_general(df$databaseId, "latin-ascii")
-  df$phenotype = stringi::stri_trans_general(df$phenotype, "latin-ascii")
-  df$analysisName = stringi::stri_trans_general(df$analysisName, "latin-ascii")
-  df$covariateName = stringi::stri_trans_general(df$covariateName, "latin-ascii")
+  #df$databaseId = stringi::stri_trans_general(df$databaseId, "latin-ascii")
+  #df$phenotype = stringi::stri_trans_general(df$phenotype, "latin-ascii")
+  #df$analysisName = stringi::stri_trans_general(df$analysisName, "latin-ascii")
+  #df$covariateName = stringi::stri_trans_general(df$covariateName, "latin-ascii")
   
   return(
     df
@@ -717,11 +717,11 @@ getPhevalTestSubjectsCovars <- function(
     pv_table_prefix = resultDatabaseSettings$pvTablePrefix
   )
   
-  df$databaseId = stringi::stri_trans_general(df$databaseId, "latin-ascii")
-  df$phenotype = stringi::stri_trans_general(df$phenotype, "latin-ascii")
-  df$analysisName = stringi::stri_trans_general(df$analysisName, "latin-ascii")
-  df$type = stringi::stri_trans_general(df$type, "latin-ascii")
-  df$covariateName = stringi::stri_trans_general(df$covariateName, "latin-ascii")
+  #df$databaseId = stringi::stri_trans_general(df$databaseId, "latin-ascii")
+  #df$phenotype = stringi::stri_trans_general(df$phenotype, "latin-ascii")
+  #df$analysisName = stringi::stri_trans_general(df$analysisName, "latin-ascii")
+  #df$type = stringi::stri_trans_general(df$type, "latin-ascii")
+  #df$covariateName = stringi::stri_trans_general(df$covariateName, "latin-ascii")
   
   return(
     df

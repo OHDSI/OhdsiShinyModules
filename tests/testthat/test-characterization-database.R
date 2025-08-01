@@ -31,35 +31,25 @@ shiny::testServer(
     
     testthat::expect_true(inherits(selected(),'data.frame'))
     
-    resultTable <- characterizatonGetDatabaseComparisonData(
+    resultTable <- characterizatonGetCohortData(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
       targetIds = c(1),
       databaseIds = databaseIds()[1],
       minThreshold = 0.02
     )
-    testthat::expect_true(inherits(resultTable$table , 'data.frame'))
-    testthat::expect_true(nrow(resultTable$table ) > 0)
-    testthat::expect_true(inherits(resultTable$databaseNames , 'data.frame'))
-    testthat::expect_true(nrow(resultTable$databaseNames ) > 0)
-    
-    countTable <- characterizatonGetCohortCounts(
-      connectionHandler = connectionHandler,
-      resultDatabaseSettings = resultDatabaseSettings,
-      targetIds = c(1),
-      databaseIds = databaseIds()[1]
-    )
-    testthat::expect_true(nrow(countTable) > 0)
-    
+    testthat::expect_true(inherits(resultTable$covariates , 'data.frame'))
+    testthat::expect_true(nrow(resultTable$covariates ) > 0)
+    testthat::expect_true(inherits(resultTable$covRef , 'data.frame'))
+    testthat::expect_true(nrow(resultTable$covRef ) > 0)
     
     continuousTable <- characterizatonGetCohortComparisonDataContinuous(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
       targetIds = c(1),
-      databaseIds = databaseIds()[1],
-      pivot = F
+      databaseIds = databaseIds()[1]
     )
-    testthat::expect_true(nrow(continuousTable) > 0)
+    testthat::expect_true(nrow(continuousTable$covariates) > 0)
     
   
   })

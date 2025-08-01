@@ -90,7 +90,7 @@ test_that("Test colDefsBinary", {
 })
 
 test_that("Test colDefsContinuous", {
-  colDefs <- colDefsContinuous('test')
+  colDefs <- colDefsContinuous()
   testthat::expect_true(inherits( colDefs, 'list'))
   testthat::expect_true(length(colDefs) > 0 )
 })

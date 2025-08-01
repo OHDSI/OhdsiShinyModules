@@ -107,5 +107,5 @@ createCustomColDefList <- function(rawColNames, niceColNames = NULL,
 #' 
 #' @export
 makeButtonLabel <- function(label) {
-  as.character(htmltools::tags$div(htmltools::tags$button(paste(label))))
+  as.character(shiny::tags$div(shiny::tags$button(paste(label))))
 }

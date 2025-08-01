@@ -283,31 +283,23 @@ getTimeToEventData <- function(
   }
   
   shiny::withProgress(message = 'Extracting time to event data', value = 0, {
-  
-  sql <- "SELECT tte.*, d.CDM_SOURCE_ABBREVIATION as database_name 
-          FROM @schema.@c_table_prefixTIME_TO_EVENT tte
-          inner join @schema.@database_table d
-          on tte.database_id = d.database_id
-          where tte.TARGET_COHORT_DEFINITION_ID = @target_id
-          and tte.OUTCOME_COHORT_DEFINITION_ID = @outcome_id;"
-
+    
   shiny::incProgress(1/3, detail = paste("Fetching data"))
   
-  data <- connectionHandler$queryDb(
-    sql = sql, 
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    target_id = targetId,
-    outcome_id = outcomeId,
-    database_table = resultDatabaseSettings$databaseTable
-  )
+    data <- OhdsiReportGenerator::getTimeToEvent(
+      connectionHandler = connectionHandler, 
+      schema = resultDatabaseSettings$schema, 
+      cTablePrefix = resultDatabaseSettings$cTablePrefix, 
+      cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+      databaseTable = resultDatabaseSettings$databaseTable, 
+      targetIds = targetId, 
+      outcomeIds = outcomeId
+    ) 
   
   shiny::incProgress(3/3, detail = paste("Finished"))
   
   })
-  
-  #write.csv(data,'/Users/jreps/Documents/tte_data.csv')
-  
+
   return(data)
 }
 
@@ -396,55 +388,47 @@ characterizationTimeToEventColDefs <- function(){
     databaseName = reactable::colDef(
       header = withTooltip("Database",
                            "Name of the database"),
-      filterable = T
+      filterable = TRUE
     ),
     databaseId = reactable::colDef(
-      header = withTooltip("Database ID",
-                           "Unique ID of the database"),
-      filterable = T,
-      show = F
+      show = FALSE
     ),
-    targetCohortDefinitionId = reactable::colDef(
-      header = withTooltip("Target ID",
-                           "Unique ID of the target cohort"),
-      filterable = T,
-      show = F
+    targetId = reactable::colDef(
+      show = FALSE
     ),
     targetName = reactable::colDef(
+      minWidth = 300,
       header = withTooltip("Target Name",
                            "Name of the target cohort"),
-      filterable = T
+      filterable = TRUE
     ),
-    outcomeCohortDefinitionId = reactable::colDef(
-      header = withTooltip("Outcome ID",
-                           "Unique ID of the outcome cohort"),
-      filterable = T,
-      show = F
+    outcomeId = reactable::colDef(
+      show = FALSE
     ),
     outcomeName = reactable::colDef(
       header = withTooltip("Outcome Name",
                            "Name of the outcome cohort"),
-      filterable = T
+      filterable = TRUE
     ),
     outcomeType = reactable::colDef(
       header = withTooltip("Outcome Type",
                            "Type of the outcome, either first or subsequent occurrence"),
-      filterable = T
+      filterable = TRUE
     ),
     targetOutcomeType = reactable::colDef(
       header = withTooltip("Target-Outcome Type",
                            "The timing of the event relative to the target era"),
-      filterable = T
+      filterable = TRUE
     ),
     timeToEvent = reactable::colDef(
       header = withTooltip("Time (in days) To Event",
                            "The time in days relative to target index until the event occurred"),
-      filterable = T
+      filterable = TRUE
     ),
     numEvents = reactable::colDef(
       header = withTooltip("# of Events",
                            "The number of events that occurred"),
-      filterable = T,
+      filterable = TRUE,
       cell = function(value) {
         # Add < if cencored
         if (value < 0 ) paste("<", abs(value)) else value
@@ -453,7 +437,7 @@ characterizationTimeToEventColDefs <- function(){
     timeScale = reactable::colDef(
       header = withTooltip("Time Scale",
                            "The time scale in which the events occurred"),
-      filterable = T
+      filterable = TRUE
     )
   )
   return(result)
