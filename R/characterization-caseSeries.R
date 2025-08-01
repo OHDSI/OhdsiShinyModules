@@ -270,10 +270,11 @@ characterizationCaseSeriesServer <- function(
             
             binTableOutputs <- resultTableServer(
               id = "binaryTable", 
-              df = allData$binary %>%
+              df = tryCatch({allData$binary %>%
                 dplyr::filter(.data$minPriorObservation == !!minPriorObservation) %>%
                 dplyr::filter(.data$casePostOutcomeDuration == !!casePostOutcomeDuration) %>%
-                dplyr::filter(.data$casePreTargetDuration == !!casePreTargetDuration), 
+                dplyr::filter(.data$casePreTargetDuration == !!casePreTargetDuration)},
+              error = function(e){return(NULL)}), 
               details = data.frame(
                 Database = input$databaseName,
                 TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
@@ -319,10 +320,11 @@ characterizationCaseSeriesServer <- function(
             
             conTableOutputs <- resultTableServer(
               id = "continuousTable", 
-              df = allData$continuous %>%
+              df = tryCatch({allData$continuous %>%
                 dplyr::filter(.data$minPriorObservation == !!minPriorObservation) %>%
                 dplyr::filter(.data$casePostOutcomeDuration == !!casePostOutcomeDuration) %>%
-                dplyr::filter(.data$casePreTargetDuration == !!casePreTargetDuration), ,
+                dplyr::filter(.data$casePreTargetDuration == !!casePreTargetDuration)},
+                error = function(e){return(NULL)}), 
               details = data.frame(
                 Database = input$databaseName,
                 TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],

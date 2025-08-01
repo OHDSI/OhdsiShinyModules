@@ -296,8 +296,9 @@ characterizationRiskFactorServer <- function(
             
             binTableOutputs <- resultTableServer(
               id = "binaryTable", 
-              df = allData$binary %>%
-                dplyr::filter(.data$outcomeWashoutDays == !!input$outcomeWashout),
+              df = tryCatch({allData$binary %>%
+                dplyr::filter(.data$outcomeWashoutDays == !!input$outcomeWashout)},
+              error = function(e){return(NULL)}),
               details = data.frame(
                 target = reactiveTargetRow()$cohortName,
                 outcome = reactiveOutcomeRow$cohortName,
@@ -343,8 +344,9 @@ characterizationRiskFactorServer <- function(
             
             conTableOutputs <- resultTableServer(
               id = "continuousTable", 
-              df = allData$continuous %>%
-                dplyr::filter(.data$outcomeWashoutDays == !!input$outcomeWashout),
+              df = tryCatch({allData$continuous %>%
+                dplyr::filter(.data$outcomeWashoutDays == !!input$outcomeWashout)},
+                error = function(e){return(NULL)}),
               details = data.frame(
                 target = reactiveTargetRow()$cohortName,
                 outcome = reactiveOutcomeRow$cohortName,
