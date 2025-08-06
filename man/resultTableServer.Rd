@@ -5,9 +5,9 @@
 \title{Result Table Server}
 \usage{
 resultTableServer(
-  id,
+  id = "result-table",
   df,
-  colDefsInput,
+  colDefsInput = NULL,
   columnGroups = NULL,
   details = data.frame(),
   selectedCols = NULL,

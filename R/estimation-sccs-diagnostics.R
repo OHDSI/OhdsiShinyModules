@@ -271,7 +271,96 @@ estimationGetSccsDiagnosticColDefs <- function(){
         "unblind",
         "If the value is 1 then the diagnostics passed and results can be unblinded"
       )
+    ),
+    
+    unblindForEvidenceSynthesis = reactable::colDef(
+      name = "Unblind for evidence synthesis",
+      header = withTooltip(
+        "Unblind for evidence synthesis",
+        "If the value is 1 then the diagnostics passed all diagnostics except power"
+      )
+    ),
+    
+    timeStabilityP = reactable::colDef(
+      name = "timeStabilityP",
+      header = withTooltip(
+        "timeStabilityP",
+        "The ..."
+      )
+    ),
+    
+    timeStabilityDiagnostic = reactable::colDef(
+      name = "timeStabilityDiagnostic",
+      header = withTooltip(
+        "timeStabilityDiagnostic",
+        "The ..."
+      )
+    ),
+    
+    eventExposureLb = reactable::colDef(
+      name = "eventExposureLb",
+      header = withTooltip(
+        "eventExposureLb",
+        "The ..."
+      )
+    ),
+    
+    eventExposureUb = reactable::colDef(
+      name = "eventExposureUb",
+      header = withTooltip(
+        "eventExposureUb",
+        "The ..."
+      )
+    ),
+    
+    eventExposureDiagnostic = reactable::colDef(
+      name = "eventExposureDiagnostic",
+      header = withTooltip(
+        "eventExposureDiagnostic",
+        "The ..."
+      )
+    ),
+    
+    eventObservationLb = reactable::colDef(
+      name = "eventObservationLb",
+      header = withTooltip(
+        "eventObservationLb",
+        "The ..."
+      )
+    ), 
+    
+    eventObservationUb = reactable::colDef(
+      name = "eventObservationUb",
+      header = withTooltip(
+        "eventObservationUb",
+        "The ..."
+      )
+    ), 
+    
+    eventObservationDiagnostic = reactable::colDef(
+      name = "eventObservationDiagnostic",
+      header = withTooltip(
+        "eventObservationDiagnostic",
+        "The ..."
+      )
+    ), 
+    
+    rareOutcomePrevalence = reactable::colDef(
+      name = "rareOutcomePrevalence",
+      header = withTooltip(
+        "rareOutcomePrevalence",
+        "The ..."
+      )
+    ), 
+    
+    rareOutcomeDiagnostic = reactable::colDef(
+      name = "rareOutcomeDiagnostic",
+      header = withTooltip(
+        "rareOutcomeDiagnostic",
+        "The ..."
+      )
     )
+    
   )
   
   return(result)

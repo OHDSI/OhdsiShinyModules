@@ -107,7 +107,7 @@ estimationSccsResultsServer <- function(
 estimationGetSccsResultSummaryTableColDef <- function(){
   
   results <- list(
-    
+    covariateName = reactable::colDef(show = FALSE),
     databaseId = reactable::colDef(show = FALSE),
     covariateId = reactable::colDef(show = FALSE),
     eraId = reactable::colDef(show = FALSE),

@@ -159,6 +159,72 @@ patientLevelPredictionModelSummaryServer <- function(
         ),
         developmentDatabaseId = reactable::colDef( 
           show = FALSE
+        ),
+        
+        AUROC = reactable::colDef( 
+          name = "AUROC", 
+          filterable = TRUE,
+          header = withTooltip(
+            "AUROC", 
+            "A common measure of model discrimination"
+          ),
+          sortable = TRUE
+        ),
+        
+        AUPRC = reactable::colDef( 
+          name = "AUPRC", 
+          filterable = TRUE,
+          header = withTooltip(
+            "AUPRC", 
+            "A measure of model discrimination that is useful when the outcome is rare"
+          ),
+          sortable = TRUE
+        ),
+        
+        `T Size` = reactable::colDef( 
+          name = "T size", 
+          filterable = TRUE,
+          header = withTooltip(
+            "T size", 
+            "The number of patients in the target population"
+          ),
+          sortable = TRUE
+        ), 
+        `O Count` = reactable::colDef( 
+          name = "O Count", 
+          filterable = TRUE,
+          header = withTooltip(
+            "O Count", 
+            "The number of patients in the target population with the outcome during TAR"
+          ),
+          sortable = TRUE
+        ), 
+        `Val (%)`= reactable::colDef( 
+          name = "Val (%)", 
+          filterable = TRUE,
+          header = withTooltip(
+            "Val (%)", 
+            "The percentage of the target population used to validate the model"
+          ),
+          sortable = TRUE
+        ),  
+        `O Incidence (%)`= reactable::colDef( 
+          name = "O Incidence (%)", 
+          filterable = TRUE,
+          header = withTooltip(
+            "O Incidence (%)", 
+            "The percentage of patients in the target population who had the outcome during TAR"
+          ),
+          sortable = TRUE
+        ), 
+        timeStamp = reactable::colDef( 
+          name = "timeStamp", 
+          filterable = TRUE,
+          header = withTooltip(
+            "timeStamp", 
+            "The date and time that the model was developed"
+          ),
+          sortable = TRUE
         )
       )
       
