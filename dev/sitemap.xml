@@ -52,7 +52,6 @@
 <url><loc>/dev/reference/compareCohortCharacterizationView.html</loc></url>
 <url><loc>/dev/reference/conceptsInDataSourceView.html</loc></url>
 <url><loc>/dev/reference/createCdDatabaseDataSource.html</loc></url>
-<url><loc>/dev/reference/createCustomColDefList.html</loc></url>
 <url><loc>/dev/reference/createLargeSqlQueryDt.html</loc></url>
 <url><loc>/dev/reference/dataDiagnosticDrillServer.html</loc></url>
 <url><loc>/dev/reference/dataDiagnosticDrillViewer.html</loc></url>
@@ -81,7 +80,6 @@
 <url><loc>/dev/reference/indexEventBreakdownView.html</loc></url>
 <url><loc>/dev/reference/largeTableServer.html</loc></url>
 <url><loc>/dev/reference/largeTableView.html</loc></url>
-<url><loc>/dev/reference/makeButtonLabel.html</loc></url>
 <url><loc>/dev/reference/orpahanConceptsView.html</loc></url>
 <url><loc>/dev/reference/patientLevelPredictionCalibrationServer.html</loc></url>
 <url><loc>/dev/reference/patientLevelPredictionCalibrationViewer.html</loc></url>
