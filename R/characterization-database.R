@@ -219,6 +219,7 @@ characterizationDatabaseComparisonServer <- function(
           # figure out the column names and how to present them to reactable
           meanColumns <- lapply(1:nrow(countTable), function(i){
             reactable::colDef(
+              name = '%',
               header = withTooltip(
                 paste0('%'),
                 paste0("The percentage of the target population in database ", countTable$databaseName[i], ' who had the covariate prior.')
@@ -232,6 +233,7 @@ characterizationDatabaseComparisonServer <- function(
           
           sumColumns <- lapply(1:nrow(countTable), function(i){
             reactable::colDef(
+              name = 'Count',
               header = withTooltip(
                 paste0("Count"),
                 paste0("The number of people in the target cohort in database ", countTable$databaseName[i], ' who have the covariate prior.')
@@ -301,6 +303,7 @@ characterizationDatabaseComparisonServer <- function(
             
             newCols <- list(
               countValue = reactable::colDef(
+                name = 'Count',
                 header = withTooltip("Count",
                                      "Number of people with the covariate in the cohort."),
                 cell = function(value) {
@@ -309,6 +312,7 @@ characterizationDatabaseComparisonServer <- function(
                 filterable = T
               ),
               averageValue = reactable::colDef(
+                name = 'Mean',
                 header = withTooltip("Mean",
                                      "The mean value of the covariate in the cohort"),
                 cell = function(value) {
@@ -316,6 +320,7 @@ characterizationDatabaseComparisonServer <- function(
                 }
               ),
               standardDeviation = reactable::colDef(
+                name = "StDev",
                 header = withTooltip("StDev",
                                      "The standard deviation value of the covariate in the cohort"),
                 cell = function(value) {
@@ -323,6 +328,7 @@ characterizationDatabaseComparisonServer <- function(
                 }
               ),
               medianValue = reactable::colDef(
+                name = 'Median',
                 header = withTooltip("Median",
                                      "The median value of the covariate in the cohort."),
                 cell = function(value) {
@@ -330,11 +336,13 @@ characterizationDatabaseComparisonServer <- function(
                 }
               ),
               minValue = reactable::colDef(
+                name = "Min Value",
                 header = withTooltip("Min Value",
                                      "Minimum value of the covariate in the cohort"),
                 format = reactable::colFormat(digits = 3)
               ),
               maxValue = reactable::colDef(
+                name = "Max Value",
                 header = withTooltip("Max Value",
                                      "Maximum value the covariate in the cohort"),
                 format = reactable::colFormat(digits = 3)

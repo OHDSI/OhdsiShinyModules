@@ -180,7 +180,8 @@ characterizationTimeToEventServer <- function(
                 Analysis = 'Exposed Cases Summary - Time-to-event'
               ),
               downloadedFileName = 'time_to_event',
-              colDefsInput = characterizationTimeToEventColDefs()
+              colDefsInput = characterizationTimeToEventColDefs(),
+              elementId = session$ns('tte-main')
             )
             
           } else{
@@ -386,6 +387,7 @@ plotTimeToEvent <- function(
 characterizationTimeToEventColDefs <- function(){
   result <- list(
     databaseName = reactable::colDef(
+      name = "Database",
       header = withTooltip("Database",
                            "Name of the database"),
       filterable = TRUE
@@ -397,6 +399,7 @@ characterizationTimeToEventColDefs <- function(){
       show = FALSE
     ),
     targetName = reactable::colDef(
+      name = "Target Name",
       minWidth = 300,
       header = withTooltip("Target Name",
                            "Name of the target cohort"),
@@ -406,26 +409,31 @@ characterizationTimeToEventColDefs <- function(){
       show = FALSE
     ),
     outcomeName = reactable::colDef(
+      name = "Outcome Name",
       header = withTooltip("Outcome Name",
                            "Name of the outcome cohort"),
       filterable = TRUE
     ),
     outcomeType = reactable::colDef(
+      name = "Outcome Type",
       header = withTooltip("Outcome Type",
                            "Type of the outcome, either first or subsequent occurrence"),
       filterable = TRUE
     ),
     targetOutcomeType = reactable::colDef(
+      name = "Target-Outcome Type",
       header = withTooltip("Target-Outcome Type",
                            "The timing of the event relative to the target era"),
       filterable = TRUE
     ),
     timeToEvent = reactable::colDef(
+      name = "Time (in days) To Event",
       header = withTooltip("Time (in days) To Event",
                            "The time in days relative to target index until the event occurred"),
       filterable = TRUE
     ),
     numEvents = reactable::colDef(
+      name = "# of Events",
       header = withTooltip("# of Events",
                            "The number of events that occurred"),
       filterable = TRUE,
@@ -435,6 +443,7 @@ characterizationTimeToEventColDefs <- function(){
       }
     ),
     timeScale = reactable::colDef(
+      name = "Time Scale",
       header = withTooltip("Time Scale",
                            "The time scale in which the events occurred"),
       filterable = TRUE

@@ -145,7 +145,8 @@ patientLevelPredictionCalibrationServer <- function(
         id = "calTable",
         colDefsInput = NULL,
         df = sumTable,
-        addActions = c('performance')
+        addActions = c('performance'),
+        elementId = session$ns('calTable')
       )
       
       calibrationSummary <- shiny::reactiveVal(NULL)

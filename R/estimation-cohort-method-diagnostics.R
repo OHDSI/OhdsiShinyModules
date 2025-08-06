@@ -40,7 +40,8 @@ estimationCmDiagnosticServer <- function(
           'target',
           'comparator',
           'summaryValue'
-        )
+        ),
+        elementId = session$ns('cmDiagnosticsTable')
       )
       
       
@@ -141,6 +142,7 @@ estimationGetCmDiagnostics <- function(
 estimationGetCmDiagnosticColDefs <- function(){
   result <- list(
     databaseName = reactable::colDef(
+      name = "Database",
       header = withTooltip(
         "Database",
         "The database name"
@@ -148,6 +150,7 @@ estimationGetCmDiagnosticColDefs <- function(){
       sticky = "left"
     ),
     target = reactable::colDef(
+      name = "Target",
       header = withTooltip(
         "Target",
         "The target cohort of interest"
@@ -155,6 +158,7 @@ estimationGetCmDiagnosticColDefs <- function(){
       sticky = "left"
     ),
     comparator = reactable::colDef(
+      name = "Comparator",
       header = withTooltip(
         "Comparator",
         "The comparator cohort of interest"
@@ -162,9 +166,10 @@ estimationGetCmDiagnosticColDefs <- function(){
       sticky = "left"
     ),
     outcome = reactable::colDef(
-      show = F
+      show = FALSE
     ),
     summaryValue =  reactable::colDef(
+      name = "Diagnostic",
       header = withTooltip(
         "Diagnostic",
         "The overall result of the diagostics"
@@ -182,6 +187,7 @@ estimationGetCmDiagnosticColDefs <- function(){
       }
     ),
     analysis = reactable::colDef(
+      name = "Analysis",
       header = withTooltip(
         "Analysis",
         "The analysis name"
@@ -189,6 +195,7 @@ estimationGetCmDiagnosticColDefs <- function(){
     ),
     
     mdrr = reactable::colDef(
+      name = "MDRR",
       header = withTooltip(
         "MDRR",
         "The minimum detectible relative risk"
@@ -196,6 +203,7 @@ estimationGetCmDiagnosticColDefs <- function(){
       format = reactable::colFormat(digits = 4)
     ),
     ease = reactable::colDef(
+      name = "EASE",
       header = withTooltip(
         "EASE",
         "The expected absolute systematic error"
@@ -203,6 +211,7 @@ estimationGetCmDiagnosticColDefs <- function(){
       format = reactable::colFormat(digits = 4)
     ),
     maxSdm = reactable::colDef(
+      name = "Max SDM",
       header = withTooltip(
         "Max SDM",
         "The maximum absolute standardized difference of mean"
@@ -210,6 +219,7 @@ estimationGetCmDiagnosticColDefs <- function(){
       format = reactable::colFormat(digits = 4)
     ),
     sharedMaxSdm = reactable::colDef(
+      name = "Shared Max SDM",
       header = withTooltip(
         "Shared Max SDM",
         "The maximum absolute standardized difference of mean of the shared balance (shared across outcomes)"
@@ -217,6 +227,7 @@ estimationGetCmDiagnosticColDefs <- function(){
       format = reactable::colFormat(digits = 4)
     ),
     equipoise = reactable::colDef(
+      name = "Equipoise",
       header = withTooltip(
         "Equipoise",
         "The fraction of the study population with a preference score between 0.3 and 0.7"
@@ -224,6 +235,7 @@ estimationGetCmDiagnosticColDefs <- function(){
       format = reactable::colFormat(digits = 4)
     ),
     generalizabilityMaxSdm = reactable::colDef(
+      name = "Generalizability Max SDM",
       header = withTooltip(
         "Generalizability Max SDM",
         "The maximum absolute standardized difference of mean comparing before to after adjustment."
@@ -231,36 +243,42 @@ estimationGetCmDiagnosticColDefs <- function(){
       format = reactable::colFormat(digits = 4)
     ),
     balanceDiagnostic = reactable::colDef(
+      name = "Balance Diagnostic",
       header = withTooltip(
         "Balance Diagnostic",
         "Pass / warning / fail classification of the balance diagnostic (Max SDM)"
       )
     ),
     mdrrDiagnostic = reactable::colDef(
+      name = "MDRR Diagnostic",
       header = withTooltip(
         "MDRR Diagnostic",
         "Pass / warning / fail classification of the MDRR diagnostic"
       )
     ),
     sharedBalanceDiagnostic = reactable::colDef(
+      name = "Shared Balance Diagnostic",
       header = withTooltip(
         "Shared Balance Diagnostic",
         "Pass / warning / fail classification of the shared balance diagnostic (Shared Max SDM)"
       )
     ),
     generalizabilityDiagnostic = reactable::colDef(
+      name = "Generalizability Diagnostic",
       header = withTooltip(
         "Generalizability Diagnostic",
         "Pass / warning / fail classification of the generalizability diagnostic."
       )
     ),
     easeDiagnostic = reactable::colDef(
+      name = "Ease Diagnostic",
       header = withTooltip(
         "Ease Diagnostic",
         "Pass / warning / fail classification of the EASE diagnostic"
       )
     ),
     equipoiseDiagnostic = reactable::colDef(
+      name = "Equipoise Diagnostic",
       header = withTooltip(
         "Equipoise Diagnostic",
         "Pass / warning / fail classification of the equipoise diagnostic"
@@ -268,6 +286,7 @@ estimationGetCmDiagnosticColDefs <- function(){
     ),
     
     unblind = reactable::colDef(
+      name = "Unblind",
       header = withTooltip(
         "Unblind",
         "If the value is 1 then the diagnostics passed and results can be unblinded"
@@ -275,6 +294,7 @@ estimationGetCmDiagnosticColDefs <- function(){
     ),
     
     unblindForEvidenceSynthesis = reactable::colDef(
+      name = "Unblind for Evidence Synthesis",
       header = withTooltip(
         "Unblind for Evidence Synthesis",
         "Is unblinding the result for inclusion in evidence synthesis recommended? This ignores the MDRR diagnostic. (1 = yes, 0 = no)"

@@ -2,7 +2,6 @@
 #' Result Table Viewer
 #'
 #' @param id string
-#' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #' @param boxTitle the title added to the box 
 #' @family Utils
 #' @return shiny module UI
@@ -10,7 +9,6 @@
 #' @export
 resultTableViewer <- function(
     id = "result-table",
-    downloadedFileName = NULL, # move to server
     boxTitle = 'Table'
     ) {
   ns <- shiny::NS(id)
@@ -33,26 +31,11 @@ resultTableViewer <- function(
             )
           ),
           
-          # shiny::column(
-          #   width = 3,
-          #   shiny::downloadButton(
-          #     ns('downloadDataFiltered'),
-          #     label = "Download (Filtered)",
-          #     icon = shiny::icon("download"),
-          #     onClick = "Shiny.setInputValue('table_state:to_csv',
-          #     Reactable.getState('resultData').sortedData)"
-          #   )
-          # )
-          
           shiny::column(
             width = 3,
             shiny::column(
               width = 2,
-              shiny::downloadButton(
-                ns('downloadDataFiltered'), # have an action for this
-                label = "Download (Filtered)",
-                icon = shiny::icon("download")
-              )
+              shiny::uiOutput(outputId = ns('filterButton'))
             )
           )
         ),
@@ -83,7 +66,6 @@ resultTableViewer <- function(
 #' @param columnGroups list specifying how to group columns 
 #' @param details The details of the results such as cohort names and database names
 #' @param selectedCols string vector of columns the reactable should display to start by default. Defaults to ALL if not specified.
-#' @param sortedCols string vector of columns the reactable should sort by by default. Defaults to no sort if not specified.
 #' @param elementId optional string vector of element Id name for custom dropdown filtering if present in the customColDef list. Defaults to NULL.
 #' @param addActions add a button row selector column to the table to a column called 'actions'.  
 #'                   actions must be a column in df
@@ -99,7 +81,6 @@ resultTableServer <- function( # add column for selected columns as a reactive
     columnGroups = NULL,
     details = data.frame(), # details about the data.frame such as target and database name
     selectedCols = NULL,
-    sortedCols = NULL,
     elementId = NULL,
     addActions = NULL,
     downloadedFileName = NULL,
@@ -109,59 +90,18 @@ resultTableServer <- function( # add column for selected columns as a reactive
     id,
     function(input, output, session) {
       
-      
-      # find the columns that are set to show=F
-      colNames <- names(colDefsInput)
-      hideCol <- unlist(lapply(colDefsInput, function(x) ifelse(is.null(x$show), F, !x$show)))
-      hideColNames <- colNames[hideCol]
-
+      print(elementId)
       
       # convert a data.frame to a reactive
       if(!inherits(df, 'reactive')){
         df <- shiny::reactiveVal(df)
       }
       
-      # initialize the reactables
-      actionCount <- shiny::reactiveVal(0)
-      actionIndex <- shiny::reactiveVal(0)
-      actionType <- shiny::reactiveVal('none')
-        
-      # add action column to data
-      newdf <- shiny::reactive({
-        if(!is.null(nrow(df())) & !is.null(addActions)){
-          cbind(
-            actions = rep("", nrow(df())),
-            df()
-          )} else{
-            df()
-          }
-      })
-      
-      selectedColumns <- shiny::reactive({
-        if(!is.null(selectedCols)){
-          intersect(colnames(newdf()), selectedCols)
-        }
-        else{ # edited to restrict to colDef - show = T columns
-          setdiff(colnames(newdf()), hideColNames)
-        }
-      })
-      
-      sortedColumns <- shiny::reactive({
-        if(!is.null(sortedCols)){
-          sortedCols
-        }
-        else{
-          NULL
-        }
-      })
-      
-      elementIdName <- shiny::reactive({
-        if(!is.null(elementId)){
-          elementId
-        }
-        else{
-          NULL
-        }
+      # add action column to df()
+      dfWithActions <- shiny::reactive({
+        cbind(actions = rep("", nrow(df())),
+              df()
+        )
       })
       
       # add a new entry to colDefs with an action dropdown menu
@@ -181,22 +121,87 @@ resultTableServer <- function( # add column for selected columns as a reactive
           colDefsInput = colDefsInput,
           addActions = addActions,
           session = session
-          )
-      
+        )
+        
       } else{
         onClick <- NULL
+        
+        # add action colDef with show = FALSE
+        colDefsInput[[length(colDefsInput) + 1 ]] <- reactable::colDef(
+          show = FALSE
+        ) 
+        names(colDefsInput)[length(colDefsInput)] <- 'actions'
       }
       
+      # initialize the reactables
+      actionCount <- shiny::reactiveVal(0)
+      actionIndex <- shiny::reactiveVal(0)
+      actionType <- shiny::reactiveVal('none')
 
+      # find the column info 
+      columnInfo <- shiny::reactive(
+        if(!is.null(df())){
+          extractColumnRelations(
+            data = df(),
+            columnDef = colDefsInput, 
+            columnGroups = columnGroups,
+            selectedCols = selectedCols
+          )} else{
+            NULL
+          }
+        )
+      
+      # reactable to store the column selection options
+      columnsToSelectOptions <- shiny::reactive(
+        if(!is.null(columnInfo())){
+          unique(columnInfo()$friendlyName[columnInfo()$show])
+        } else{
+          NULL
+        }
+      )
+      
+      # reactable to save the initially selected columns
+      tableSelected <- shiny::reactive(
+        if(!is.null(columnInfo())){
+        unique(columnInfo()$friendlyName[columnInfo()$show & columnInfo()$selectedInitially])
+        } else{
+          NULL
+        }
+        )
+      
+      # react to df, columnInfo and input
+      # MAIN REACTIVE
+      colDefsInputReactive <- shiny::reactive({
+        colDefsInputTemp <- colDefsInput
+        removeExtras <- names(colDefsInput)[!names(colDefsInput) %in% names(dfWithActions())]
+        # remove extra columnDefs
+        if(length(removeExtras) > 0){
+          for(extra in removeExtras){
+            colDefsInputTemp[extra] <- NULL
+          }
+        }
+        
+        columnIdsToDisplay <- columnInfo()$columnId[columnInfo()$friendlyName %in% input$dataCols]
+        
+        # update the colDef to show only selected columns
+        for(col in names(colDefsInputTemp)){
+          colDefsInputTemp[[col]]$show <- col %in% c(ifelse(is.null(addActions), '','actions'), columnIdsToDisplay)
+        }
+        
+        return(colDefsInputTemp)
+        
+        })
+      
+      # code for the column selection
       output$columnSelector <- shiny::renderUI({
         
         shinyWidgets::pickerInput(
           inputId = session$ns('dataCols'),
           label = 'Select Columns to Display: ',
-          choices = setdiff(colnames(newdf()), hideColNames), # edited to only show columns show = T
-          selected = selectedColumns(),
+          choices = columnsToSelectOptions(), 
+          selected = tableSelected(),
           choicesOpt = list(style = rep_len("color: black;", 999)),
-          multiple = T,
+          multiple = TRUE,
           options = shinyWidgets::pickerOptions(
             actionsBox = TRUE,
             liveSearch = TRUE,
@@ -211,64 +216,8 @@ resultTableServer <- function( # add column for selected columns as a reactive
       })
 
       
-      #need to try adding browser() to all reactives to see why selected cols isnt working
-      
-      colDefs <- shiny::reactive(
-        if(!is.null(newdf())){
-          create_colDefs_list(
-            df = newdf()[, input$dataCols],
-            customColDefs = colDefsInput
-          )
-        } else{
-          NULL
-        }
-      )
-      
-      js_code <- "
-// Custom range filter with value label
-function rangeFilter(column, state) {
-  // Get min and max values from raw table data
-  let min = Infinity;
-  let max = 0;
-  state.data.forEach(function(row) {
-    const value = row[column.id];
-    if (value < min) {
-      min = Math.floor(value);
-    } else if (value > max) {
-      max = Math.ceil(value);
-    }
-  });
-
-  const filterValue = column.filterValue || min;
-  const input = React.createElement('input', {
-    type: 'range',
-    value: filterValue,
-    min: min,
-    max: max,
-    onChange: function(event) {
-      // Set to undefined to clear the filter
-      column.setFilter(event.target.value || undefined);
-    },
-    style: { width: '100%', marginRight: '8px' },
-    'aria-label': 'Filter ' + column.name
-  });
-
-  return React.createElement(
-    'div',
-    { style: { display: 'flex', alignItems: 'center', height: '100%' } },
-    [input, filterValue]
-  );
-}
-
-// Filter method that filters numeric columns by minimum value
-function filterMinValue(rows, columnId, filterValue) {
-  return rows.filter(function(row) {
-    return row.values[columnId] >= filterValue;
-  });
-}
-"
 #use fuzzy text matching for global table search
-fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
+fuzzySearch <- reactable::JS('function(rows, columnIds, filterValue) {
 
   // Create a case-insensitive RegEx pattern that performs a fuzzy search.
   const pattern = new RegExp(filterValue, "i");
@@ -282,23 +231,20 @@ fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
 
 
       output$resultData <- reactable::renderReactable({
-          if (is.null(input$dataCols)) {
-            data = newdf()
-          }
-          else{
-            data = newdf()[, input$dataCols, drop = FALSE]
-          }
         # Display message when dat is empty
-        shiny::validate(shiny::need(hasData(data), "No data for selection"))
+        shiny::validate(shiny::need(hasData(df()), "No data for selection"))
         # set row height based on nchar of table
-        if(max(apply(data, 1, function(x) max(nchar(x))), na.rm = T) < 120){
-          height <- 40*3
-        } else{
-          height <- NULL
+        height <- NULL
+        maxMinWidth <- max(unlist(lapply(colDefsInputReactive(), function(x) x$minWidth)))
+        maxMinWidth <- ifelse(is.finite(maxMinWidth),maxMinWidth, 40)
+        if(max(apply(df(), 1, function(x) max(nchar(x))), na.rm = TRUE) < maxMinWidth*3){
+          if(!is.null(addActions)){
+            height <- 40*3#length(addActions)
+          }
         }
                 reactable::reactable(
-                  data,
-                  columns = colDefs(),
+                  data = dfWithActions(),
+                  columns = colDefsInputReactive(),
                   columnGroups = columnGroups,
                   onClick = onClick,
                   groupBy = groupBy,
@@ -313,28 +259,22 @@ fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
                   showSortIcon = TRUE,
                   striped = TRUE,
                   highlight = TRUE,
-                  #defaultColDef = reactable::colDef(align = "left"),
-                  defaultSorted = sortedColumns(),
                   rowStyle = list(
                     height = height
                     ),
-
-                  elementId = elementId #'resultDataFiltered'
-                  #, experimental
-                  #theme = ohdsiReactableTheme
+                  elementId = elementId
                 )
         })
       
-      output$downloadDataFiltered <- shiny::downloadHandler(
-        filename = function() {
-          paste("result-data-filtered-", Sys.Date(), ".csv", sep = "")
-        },
-        content = function(file) {
-          data <- input$table_state
-          utils::write.csv(data, file)
-        }
-      )
       
+      output$filterButton <- shiny::renderUI(
+        shiny::tags$button(
+          class = "btn btn-default",
+          shiny::tags$i(class = "fas fa-download", role = "presentation", "aria-label" = "download icon"),
+          "Download (Filtered)",
+          onclick = sprintf("Reactable.downloadDataCSV('%s', '%s')", elementId, paste0('result-data-filtered-',downloadedFileName, Sys.Date(), '.csv', sep = ''))
+        )
+      )
       
       # download full data button
       output$downloadDataFull <- shiny::downloadHandler(
@@ -369,6 +309,13 @@ fuzzySearch<- reactable::JS('function(rows, columnIds, filterValue) {
           actionCount = actionCount 
         )
       )
+      #} else{
+      #  return(list(
+      #    actionType = shiny::reactiveVal(NULL), 
+      #    actionIndex = shiny::reactiveVal(NULL),
+      #    actionCount = shiny::reactiveVal(NULL) 
+      #  ))
+      #}
     })
 
 
@@ -430,32 +377,7 @@ addTableActions <- function(
   return(colDefsInput)
 }
 
-# customColDefs needs to be named list of colDefs
-# example usage:
-# Define custom colDefs for the Name and Age columns
-# custom_colDefs <- list(
-#   mpg = reactable::colDef(align = "left",
-#                format = reactable::colFormat(digits = 2),
-#                header = withTooltip("MPG column name", "MPG tooltip")),
-#   disp = reactable::colDef(align = "center",
-#                 header = withTooltip("Disp column name", "Disp tooltip"))
-# )
 
-filteredDownloadButton <- function(
-    tableId, 
-    label = "Download (Filtered)", 
-    filename = "filteredData.csv", 
-    icon = shiny::icon("download")
-) {
-  shiny::tags$div(class = "col-sm-3",
-                  shiny::tags$button(
-                    class = "btn btn-default",
-                    shiny::tags$i(class = "fas fa-download", role = "presentation", "aria-label" = "download icon"),
-                    label,
-                    onclick = sprintf("Reactable.downloadDataCSV('%s', '%s')", tableId, filename)
-                  )
-  )
-}
 #tooltip function
 withTooltip <- function(value, tooltip, ...) {
   shiny::div(
@@ -464,57 +386,54 @@ withTooltip <- function(value, tooltip, ...) {
   )
 }
 
-create_colDefs_list <- function(
-    df, 
-    customColDefs = NULL
-) {
-  # Get the column names of the input data frame
-  col_names <- colnames(df)
+
+extractColumnRelations <- function(
+    data,
+    columnDef,
+    columnGroups,
+    selectedCols = NULL
+    ){
   
-  # Create an empty list to store the colDefs
-  colDefs_list <- vector("list", length = length(col_names))
-  names(colDefs_list) <- col_names
+  columnDf <- NULL
   
-  # Define custom colDefs for each column if provided
-  if (!is.null(customColDefs)) {
-    for (col in seq_along(col_names)) {
-      if (col_names[col] %in% names(customColDefs)) {
-        colDefs_list[[col]] <- customColDefs[[col_names[col]]]
+  if(!is.null(data)){
+    if(nrow(data) > 0 ){
+      columnDf <- data.frame(
+        columnId = colnames(data)
+      )
+      
+      if(is.null(columnDef)){
+        columnDf$show <- TRUE
+        columnDf$friendlyName <- columnDf$columnId
       } else {
-        colDefs_list[[col]] <- reactable::colDef(name = col_names[col])
+        
+        columnDf <- columnDf %>% 
+          dplyr::left_join(
+            data.frame(
+              columnId = names(columnDef),
+              show = unlist(lapply(columnDef, function(x) ifelse(is.null(x$show), TRUE, x$show))),
+              friendlyName = unlist(lapply(columnDef, function(x) ifelse(is.null(x$name), NA ,x$name) ))
+            ), 
+            by = 'columnId'
+          )
+        
+        if(length(is.na(columnDf$show)) > 0){
+          columnDf$show[is.na(columnDf$show)] <- TRUE
+        }
+        if(length(is.na(columnDf$friendlyName)) > 0){
+          columnDf$friendlyName[is.na(columnDf$friendlyName)] <- columnDf$columnId[is.na(columnDf$friendlyName)]
+        }
       }
       
-      if (!is.null(customColDefs[[col_names[col]]]$header)) {
-        colDefs_list[[col]]$header <- customColDefs[[col_names[col]]]$header
+      if(!is.null(selectedCols)){
+        columnDf$selectedInitially <- columnDf$columnId %in% selectedCols
+      } else{
+        columnDf$selectedInitially <- TRUE
       }
-      
-      if (!is.null(customColDefs[[col_names[col]]]$tooltip)) {
-        colDefs_list[[col]]$header <-
-          withTooltip(colDefs_list[[col]]$header, customColDefs[[col_names[col]]]$tooltip)
-      }
-    }
-  } else {
-    # Define default colDefs if customColDefs is not provided
-    for (col in seq_along(col_names)) {
-      colDefs_list[[col]] <- reactable::colDef(name = col_names[col])
-    }
+    
+    } 
   }
   
-  # Return the list of colDefs
-  return(colDefs_list)
+  return(columnDf)
+  
 }
-
-ohdsiReactableTheme <- reactable::reactableTheme(
-  color = "white",
-  backgroundColor = "#003142",
-  stripedColor = "#333333",
-  highlightColor = "#f19119",
-  style = list(
-    fontFamily = "-apple-system, BlinkMacSystemFont, Segoe UI,
-    Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, 
-    Segoe UI Emoji, Segoe UI Symbol"
-  )
-  #,
-  #headerStyle = list(
-  #)
-)

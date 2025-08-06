@@ -106,16 +106,19 @@ patientLevelPredictionValidationServer <- function(
         df = validationTable,
         colDefsInput = list(
         performanceId = reactable::colDef( 
-          show = F
+          show = FALSE
         ),
         T = reactable::colDef( 
+          name = 'Target',
           minWidth = 300
         ),
         O = reactable::colDef( 
+          name = 'Outcome',
           minWidth = 300
         )
         ),
-        addActions = c('add', 'remove')
+        addActions = c('add', 'remove'),
+        elementId = session$ns('validationTable')
         )
       
       # listen to actions to create list of selected rows

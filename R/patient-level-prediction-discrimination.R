@@ -201,10 +201,6 @@ patientLevelPredictionDiscriminationServer <- function(
           values_from = 'value'
         )
         
-        ##cbind(
-        ##  actions = rep('', nrow(data)),
-        ##  data
-        ##  )
         data
 
       })
@@ -213,7 +209,8 @@ patientLevelPredictionDiscriminationServer <- function(
         id = "summaryTable",
         colDefsInput = NULL,
         df = sumTable,
-        addActions = c('performance')
+        addActions = c('performance'),
+        elementId = session$ns('summaryTable')
       )
       
 

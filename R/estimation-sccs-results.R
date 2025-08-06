@@ -77,7 +77,8 @@ estimationSccsResultsServer <- function(
       id = "resultSummaryTable",
       df = data,
       colDefsInput = estimationGetSccsResultSummaryTableColDef(), 
-      addActions = c('results')
+      addActions = c('results'),
+      elementId = session$ns('resultSummaryTable')
     )
     
     selectedRow <- shiny::reactiveVal(value = NULL)
@@ -107,32 +108,33 @@ estimationGetSccsResultSummaryTableColDef <- function(){
   
   results <- list(
     
-    databaseId = reactable::colDef(show = F),
-    covariateId = reactable::colDef(show = F),
-    eraId = reactable::colDef(show = F),
-    covariateAnalysisId = reactable::colDef(show = F),
-    analysisId = reactable::colDef(show = F),
-    outcomeId = reactable::colDef(show = F),
-    indicationId = reactable::colDef(show = F),
-    outcomeSubjects = reactable::colDef(show = F),
-    outcomeEvents = reactable::colDef(show = F),
-    outcomeObservationPeriods = reactable::colDef(show = F),
-    covariateSubjects = reactable::colDef(show = F),
-    covariateDays = reactable::colDef(show = F),
-    covariateEras = reactable::colDef(show = F),
-    covariateOutcomes = reactable::colDef(show = F),
-    observedDays = reactable::colDef(show = F),
-    mdrr = reactable::colDef(show = F),
-    unblind = reactable::colDef(show = F),
-    exposuresOutcomeSetId = reactable::colDef(show = F),
+    databaseId = reactable::colDef(show = FALSE),
+    covariateId = reactable::colDef(show = FALSE),
+    eraId = reactable::colDef(show = FALSE),
+    covariateAnalysisId = reactable::colDef(show = FALSE),
+    analysisId = reactable::colDef(show = FALSE),
+    outcomeId = reactable::colDef(show = FALSE),
+    indicationId = reactable::colDef(show = FALSE),
+    outcomeSubjects = reactable::colDef(show = FALSE),
+    outcomeEvents = reactable::colDef(show = FALSE),
+    outcomeObservationPeriods = reactable::colDef(show = FALSE),
+    covariateSubjects = reactable::colDef(show = FALSE),
+    covariateDays = reactable::colDef(show = FALSE),
+    covariateEras = reactable::colDef(show = FALSE),
+    covariateOutcomes = reactable::colDef(show = FALSE),
+    observedDays = reactable::colDef(show = FALSE),
+    mdrr = reactable::colDef(show = FALSE),
+    unblind = reactable::colDef(show = FALSE),
+    exposuresOutcomeSetId = reactable::colDef(show = FALSE),
     
-    logRr = reactable::colDef(show = F),
-    seLogRr = reactable::colDef(show = F),
-    calibratedLogRr = reactable::colDef(show = F),
-    calibratedSeLogRr = reactable::colDef(show = F),
-    llr = reactable::colDef(show = F),
+    logRr = reactable::colDef(show = FALSE),
+    seLogRr = reactable::colDef(show = FALSE),
+    calibratedLogRr = reactable::colDef(show = FALSE),
+    calibratedSeLogRr = reactable::colDef(show = FALSE),
+    llr = reactable::colDef(show = FALSE),
 
-    description = reactable::colDef( 
+    description = reactable::colDef(
+      name = "Analysis",
       filterable = TRUE,
       header = withTooltip(
         "Analysis", 
@@ -141,12 +143,14 @@ estimationGetSccsResultSummaryTableColDef <- function(){
       minWidth = 300
       ),
     databaseName = reactable::colDef( 
+      name = "Data source",
       filterable = TRUE,
       header = withTooltip(
         "Data source", 
         "Data source"
       )),
     target = reactable::colDef( 
+      name = "Target", 
       filterable = TRUE,
       header = withTooltip(
         "Target", 
@@ -155,6 +159,7 @@ estimationGetSccsResultSummaryTableColDef <- function(){
       minWidth = 300
     ),
     indication = reactable::colDef( 
+      name = "Indication", 
       filterable = TRUE,
       header = withTooltip(
         "Indication", 
@@ -163,6 +168,7 @@ estimationGetSccsResultSummaryTableColDef <- function(){
       minWidth = 300
     ),
     outcome = reactable::colDef( 
+      name = "Outcome",
       filterable = TRUE,
       header = withTooltip(
         "Outcome", 
@@ -171,6 +177,7 @@ estimationGetSccsResultSummaryTableColDef <- function(){
       minWidth = 300
     ),
     rr = reactable::colDef( 
+      name = "IRR", 
       header = withTooltip(
         "IRR", 
         "Incidence rate ratio (uncalibrated)"
@@ -179,6 +186,7 @@ estimationGetSccsResultSummaryTableColDef <- function(){
       na = "-"
       ),
     ci95Lb = reactable::colDef( 
+      name = "LB", 
       header = withTooltip(
         "LB", 
         "Lower bound of the 95 percent confidence interval (uncalibrated)"
@@ -187,6 +195,7 @@ estimationGetSccsResultSummaryTableColDef <- function(){
       na = "-"
       ),
     ci95Ub = reactable::colDef( 
+      name = "UB",
       header = withTooltip(
         "UB", 
         "Upper bound of the 95 percent confidence interval (uncalibrated)"
@@ -195,6 +204,7 @@ estimationGetSccsResultSummaryTableColDef <- function(){
       na = "-"
       ),
     p = reactable::colDef( 
+      name = "P",
       header = withTooltip(
         "P", 
         "Two-sided p-value (uncalibrated)"
@@ -203,6 +213,7 @@ estimationGetSccsResultSummaryTableColDef <- function(){
       na = "-"
       ),
     calibratedRr = reactable::colDef( 
+      name = "Cal.IRR", 
       header = withTooltip(
         "Cal.IRR", 
         "Incidence rate ratio (calibrated)"
@@ -211,6 +222,7 @@ estimationGetSccsResultSummaryTableColDef <- function(){
       na = "-"
       ),
     calibratedCi95Lb = reactable::colDef( 
+      name = "Cal.LB", 
       header = withTooltip(
         "Cal.LB", 
         "Lower bound of the 95 percent confidence interval (calibrated)"
@@ -219,6 +231,7 @@ estimationGetSccsResultSummaryTableColDef <- function(){
       na = "-"
       ),
     calibratedCi95Ub = reactable::colDef( 
+      name = "Cal.UB", 
       header = withTooltip(
         "Cal.UB", 
         "Upper bound of the 95 percent confidence interval (calibrated)"
@@ -227,6 +240,7 @@ estimationGetSccsResultSummaryTableColDef <- function(){
       na = "-"
       ),
     calibratedP = reactable::colDef( 
+      name = "Cal.P",
       header = withTooltip(
         "Cal.P", 
         "Two-sided p-value (calibrated)"

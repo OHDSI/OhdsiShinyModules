@@ -87,30 +87,42 @@ characterizationCaseSeriesServer <- function(
         
         if(reactiveOutcomeRowId() != 0){
           
-          tarNames <- strsplit(
-            x = outcomeTable()[reactiveOutcomeRowId(),]$tarNames, 
-            split = ':'
-          )[[1]]
+          if(inherits(outcomeTable()[reactiveOutcomeRowId(),]$tarNames, 'character')){
+            tarNames <- strsplit(
+              x = outcomeTable()[reactiveOutcomeRowId(),]$tarNames, 
+              split = ':'
+            )[[1]]
+          } else{
+            tarNames <- NULL
+          }
           reactiveOutcomeTar(tarNames)
           
-          tarStrings <- lapply(strsplit(
-            x = outcomeTable()[reactiveOutcomeRowId(),]$tarStrings, 
-            split = ':'
-          )[[1]], function(x){
-            vals <- strsplit(x = x, split = '/')[[1]]
-            list(
-              riskWindowStart = vals[1],
-              startAnchor = vals[2],
-              riskWindowEnd = vals[3],
-              endAnchor = vals[4]
-            )
-          })
+          if(inherits(outcomeTable()[reactiveOutcomeRowId(),]$tarStrings, 'character')){
+            tarStrings <- lapply(strsplit(
+              x = outcomeTable()[reactiveOutcomeRowId(),]$tarStrings, 
+              split = ':'
+            )[[1]], function(x){
+              vals <- strsplit(x = x, split = '/')[[1]]
+              list(
+                riskWindowStart = vals[1],
+                startAnchor = vals[2],
+                riskWindowEnd = vals[3],
+                endAnchor = vals[4]
+              )
+            })
+          } else{
+            tarStrings <- NULL
+          }
           reactiveOutcomeTarValues(tarStrings)
           
-          outcomeWashoutDays <- strsplit(
-            x = outcomeTable()[reactiveOutcomeRowId(),]$outcomeWashoutDays, 
-            split = ':'
-          )[[1]]
+          if(inherits(outcomeTable()[reactiveOutcomeRowId(),]$outcomeWashoutDays, 'character')){
+            outcomeWashoutDays <- strsplit(
+              x = outcomeTable()[reactiveOutcomeRowId(),]$outcomeWashoutDays, 
+              split = ':'
+            )[[1]]
+          } else{
+            outcomeWashoutDays <- NULL
+          }
           reactiveOutcomeWashout(outcomeWashoutDays)
           
         } else{
@@ -204,7 +216,8 @@ characterizationCaseSeriesServer <- function(
         reactiveOutcomeRow <- outcomeTable()[reactiveOutcomeRowId(),]
         
         if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow) |
-           is.null(input$tarInd) | is.null(input$databaseName)){
+           is.null(input$tarInd) | is.null(input$databaseName) |
+           ifelse(is.null(input$outcomeWashout),"",input$outcomeWashout) == ""){
           
           output$showCaseSeries  <- shiny::reactive(0)
           shiny::showNotification('Need to set all inputs')
@@ -474,19 +487,20 @@ colDefsBinary <- function(
     ){
   result <- list(
     covariateName = reactable::colDef(
+      name = "Covariate Name",
       header = withTooltip("Covariate Name",
                            "Name of the covariate"),
-      filterable = T,
+      filterable = TRUE,
       minWidth = 300
     ),
     covariateId = reactable::colDef(
-      show = F
+      show = FALSE
     ),
     minPriorObservation = reactable::colDef(
       show = FALSE,
       header = withTooltip("Min Prior Observation",
                            "Minimum prior observation time (days)"),
-      filterable = T,
+      filterable = TRUE,
       filterInput = function(values, name) {
         shiny::tags$select(
           # Set to undefined to clear the filter
@@ -503,7 +517,7 @@ colDefsBinary <- function(
       show = FALSE,
       header = withTooltip("Outcome Washout Days",
                            "Number of days for the outcome washout"),
-      filterable = T,
+      filterable = TRUE,
       filterInput = function(values, name) {
         shiny::tags$select(
           # Set to undefined to clear the filter
@@ -520,19 +534,20 @@ colDefsBinary <- function(
       show = FALSE,
       header = withTooltip("Days Post-outcome Covariate Window",
                            "Number of days after the outcome we look for the covariate"),
-      filterable = T
+      filterable = TRUE
     ), 
     casePreTargetDuration = reactable::colDef(
       show = FALSE,
       header = withTooltip("Days Pre-exposure Covariate Window",
                            "Number of days before the exposure we look for the covariate"),
-      filterable = T
+      filterable = TRUE
     ),
     sumValue_Before = reactable::colDef(
+      name = "No.",
       header = withTooltip("No.",
                            "Number of cases with the covariate prior to exposure"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F),
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = FALSE),
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
         if(is.na(value)){return('< min threshold')}
@@ -540,16 +555,18 @@ colDefsBinary <- function(
       }
     ), 
     averageValue_Before = reactable::colDef(
+      name = "Percent",
       header = withTooltip("Percent",
                            "Percent of cases with the covariate prior to exposure"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = T)
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = TRUE)
     ), 
     sumValue_During = reactable::colDef(
+      name = "No.",
       header = withTooltip("No.",
                            "Number of cases with the covariate between the exposure and outcome"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F),
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = FALSE),
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
         if(is.na(value)){return('< min threshold')}
@@ -557,16 +574,18 @@ colDefsBinary <- function(
       }
     ), 
     averageValue_During = reactable::colDef(
+      name = "Percent",
       header = withTooltip("Percent",
                            "Percent of cases with the covariate between the exposure and outcome"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = T)
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = TRUE)
     ), 
     sumValue_After = reactable::colDef(
+      name = "No.",
       header = withTooltip("No.",
                            "Number of cases with the covariate after the outcome"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F),
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = FALSE),
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
         if(is.na(value)){return('< min threshold')}
@@ -574,14 +593,16 @@ colDefsBinary <- function(
       }
     ), 
     averageValue_After = reactable::colDef(
+      name = "Percent",
       header = withTooltip("Percent",
                            "Percent of cases with the covariate after the outcome"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = T)
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = TRUE)
     ), 
     
     analysisName = reactable::colDef(
-      filterable = T,
+      name = 'Analysis',
+      filterable = TRUE,
       filterInput = function(values, name) {
         shiny::tags$select(
           # Set to undefined to clear the filter
@@ -607,12 +628,14 @@ colDefsContinuous <- function(){
       filterable = TRUE
     ),
     covariateName = reactable::colDef(
+      name = "Covariate Name",
       header = withTooltip("Covariate Name",
                            "Name of the covariate"),
       filterable = TRUE,
       minWidth = 300
     ),
     covariateId = reactable::colDef(
+      "Covariate ID",
       show = TRUE
     ),
     minPriorObservation = reactable::colDef(
@@ -630,6 +653,7 @@ colDefsContinuous <- function(){
     
     # After
     countValue_After = reactable::colDef(
+      name = "# Cases with Feature",
       header = withTooltip("# Cases with Feature",
                            "Number of cases with the covariate after outcome"),
       format = reactable::colFormat(digits = 2, percent = F),
@@ -640,26 +664,31 @@ colDefsContinuous <- function(){
       }
     ), 
     minValue_After = reactable::colDef(
+      name = "Min Value",
       header = withTooltip("Min Value",
                            "Minimum value of the covariate after outcome"),
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
     maxValue_After = reactable::colDef(
+      name = "Max Value",
       header = withTooltip("Max Value",
                            "Maximum value of the covariate after outcome"),
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
     averageValue_After = reactable::colDef(
+      name = "Average Value",
       header = withTooltip("Average Value",
                            "Average value of the covariate after outcome"),
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
     standardDeviation_After = reactable::colDef(
+      name = "SD",
       header = withTooltip("SD",
                            "Standard deviation of the covariate after outcome"),
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
     medianValue_After = reactable::colDef(
+      name = "Median Value",
       header = withTooltip("Median Value",
                            "Median value of the covariate after outcome"),
       format = reactable::colFormat(digits = 2, percent = FALSE)
@@ -667,6 +696,7 @@ colDefsContinuous <- function(){
     
     
     countValue_During = reactable::colDef(
+      name = "# Cases with Feature",
       header = withTooltip("# Cases with Feature",
                            "Number of cases with the covariate between target and outcome index"),
       format = reactable::colFormat(digits = 2, percent = FALSE),
@@ -677,26 +707,31 @@ colDefsContinuous <- function(){
       }
     ), 
     minValue_During = reactable::colDef(
+      name = "Min Value",
       header = withTooltip("Min Value",
                            "Minimum value of the covariate between target and outcome index"),
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
     maxValue_During = reactable::colDef(
+      name = "Max Value",
       header = withTooltip("Max Value",
                            "Maximum value of the covariate between target and outcome index"),
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
     averageValue_During = reactable::colDef(
+      name = "Average Value",
       header = withTooltip("Average Value",
                            "Average value of the covariate between target and outcome index"),
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
     standardDeviation_During = reactable::colDef(
+      name = "SD",
       header = withTooltip("SD",
                            "Standard deviation of the covariate between target and outcome index"),
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
     medianValue_During = reactable::colDef(
+      name = "Median Value",
       header = withTooltip("Median Value",
                            "Median value of the covariate between target and outcome index"),
       format = reactable::colFormat(digits = 2, percent = FALSE)
@@ -704,6 +739,7 @@ colDefsContinuous <- function(){
     
     
     countValue_Before = reactable::colDef(
+      name = "# Cases with Feature",
       header = withTooltip("# Cases with Feature",
                            "Number of cases with the covariate before target index"),
       format = reactable::colFormat(digits = 2, percent = FALSE),
@@ -714,26 +750,31 @@ colDefsContinuous <- function(){
       }
     ), 
     minValue_Before = reactable::colDef(
+      name = "Min Value",
       header = withTooltip("Min Value",
                            "Minimum value of the covariate before target index"),
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
     maxValue_Before = reactable::colDef(
+      name = "Max Value",
       header = withTooltip("Max Value",
                            "Maximum value of the covariate before target index"),
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
     averageValue_Before = reactable::colDef(
+      name = "Average Value",
       header = withTooltip("Average Value",
                            "Average value of the covariate before target index"),
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
     standardDeviation_Before = reactable::colDef(
+      name = "SD",
       header = withTooltip("SD",
                            "Standard deviation of the covariate before target index"),
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
     medianValue_Before = reactable::colDef(
+      name = "Median Value",
       header = withTooltip("Median Value",
                            "Median value of the covariate before target index"),
       format = reactable::colFormat(digits = 2, percent = FALSE)
@@ -744,6 +785,7 @@ colDefsContinuous <- function(){
 }
 
 
+# TODO: replace with OhdsiShinyModules
 characterizationGetCaseSeriesCounts <- function(
     connectionHandler,
     resultDatabaseSettings,

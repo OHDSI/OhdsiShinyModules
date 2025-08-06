@@ -31,7 +31,6 @@ Imports:
     OhdsiReportGenerator,
     jsonlite,
     rlang,
-    rmarkdown,
     scales,
     shiny, 
     shinycssloaders,

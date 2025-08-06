@@ -62,6 +62,10 @@ patientLevelPredictionDesignSummaryServer <- function(
     id,
     function(input, output, session) {
       
+      
+      # add code to get all T/O combinations and use the table select component to pict 
+      # multiple rows
+      
       targetIds <- getPlpCohortIds(
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings,
@@ -138,23 +142,27 @@ patientLevelPredictionDesignSummaryServer <- function(
             # This button won't do anything by itself, but will trigger the custom
             # click action on the column.
             modelDesignId = reactable::colDef( 
+              name = "Design ID",
               header = withTooltip(
                 "Design ID", 
                 "A unique identifier for the model design"
               )),
             modelType = reactable::colDef( 
+              name = "Model Type", 
               header = withTooltip(
                 "Model Type", 
                 "The classifier/survivial model"
               )),
             target = reactable::colDef( 
+              name = "Target Pop", 
               header = withTooltip(
                 "Target Pop", 
                 "The patients who the risk model is applied to"
               ), 
               minWidth = 300
               ),
-            outcome = reactable::colDef( 
+            outcome = reactable::colDef(
+              name = "Outcome", 
               header = withTooltip(
                 "Outcome", 
                 "The outcome being predicted"
@@ -162,6 +170,7 @@ patientLevelPredictionDesignSummaryServer <- function(
               minWidth = 300
               ),
             TAR = reactable::colDef( 
+              name = "TAR", 
               header = withTooltip(
                 "TAR", 
                 "The time-at-risk when the outcome is being predicted relative to the target pop index"
@@ -170,6 +179,7 @@ patientLevelPredictionDesignSummaryServer <- function(
               ),
             
             diagDatabases = reactable::colDef(
+              name = "Num. Diagnostic Dbs", 
               header = withTooltip(
                 "Num. Diagnostic Dbs", 
                 "The number of databases with the model design diagnostics evaluated"
@@ -178,6 +188,7 @@ patientLevelPredictionDesignSummaryServer <- function(
               sortable = TRUE
             ),
             devDatabases = reactable::colDef(
+              name = "Num. Development Dbs", 
               header = withTooltip(
                 "Num. Development Dbs", 
                 "The number of databases where a model was developed using the design"
@@ -186,6 +197,7 @@ patientLevelPredictionDesignSummaryServer <- function(
               sortable = TRUE
             ),
             minAuroc = reactable::colDef(
+              name =  "min AUROC", 
               header = withTooltip(
                 "min AUROC", 
                 "The minimum AUROC across internal and external validations for this model design"
@@ -195,6 +207,7 @@ patientLevelPredictionDesignSummaryServer <- function(
               format = reactable::colFormat(digits = 3)
               ),
             meanAuroc = reactable::colDef(
+              name = "mean AUROC", 
               header = withTooltip(
                 "mean AUROC", 
                 "The mean AUROC across internal and external validations for this model design"
@@ -204,6 +217,7 @@ patientLevelPredictionDesignSummaryServer <- function(
               format = reactable::colFormat(digits = 3)
             ),
             maxAuroc = reactable::colDef(
+              name = "max AUROC", 
               header = withTooltip(
                 "max AUROC", 
                 "The max AUROC across internal and external validations for this model design"
@@ -213,6 +227,7 @@ patientLevelPredictionDesignSummaryServer <- function(
               format = reactable::colFormat(digits = 3)
             ),
             valDatabases = reactable::colDef(
+              name = "Num. Validation Dbs", 
               header = withTooltip(
                 "Num. Validation Dbs", 
                 "The number of databases where a model with the design was validated"
@@ -226,12 +241,12 @@ patientLevelPredictionDesignSummaryServer <- function(
         id = "designSummaryTable", # how is this working without session$ns
         df = designSummaryTable,
         colDefsInput = colDefsInput,
-        addActions = c('models', 'diagnostics', 'report')
+        addActions = c('models', 'diagnostics'),
+        elementId = session$ns('designSummaryTable')
       )
           
       # reactive of modelDesignId for exporing results
       modelDesignId <- shiny::reactiveVal(value = NULL)
-      reportId <- shiny::reactiveVal(NULL)
       diagnosticId <- shiny::reactiveVal(value = NULL)
       
       shiny::observeEvent(tableOutputs$actionCount(), {
@@ -239,10 +254,6 @@ patientLevelPredictionDesignSummaryServer <- function(
           if(tableOutputs$actionType() == 'diagnostics'){
             diagnosticId(NULL)
             diagnosticId(designSummaryTable()$modelDesignId[tableOutputs$actionIndex()$index])
-          }
-          if(tableOutputs$actionType() == 'report'){
-            reportId(NULL)
-            reportId(designSummaryTable()$modelDesignId[tableOutputs$actionIndex()$index])
           }
           if(tableOutputs$actionType() == 'models'){
             modelDesignId(NULL)
@@ -254,8 +265,7 @@ patientLevelPredictionDesignSummaryServer <- function(
       return(
         list(
           modelDesignId = modelDesignId, # a reactive 
-          diagnosticId = diagnosticId, # a reactive 
-          reportId = reportId # a reactive
+          diagnosticId = diagnosticId # a reactive 
         )
       )
       

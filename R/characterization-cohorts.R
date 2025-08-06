@@ -261,6 +261,7 @@ characterizationCohortComparisonServer <- function(
             # figure out the column names and how to present them to reactable
             binColumns <- list(
               averageValue_1 = reactable::colDef(
+                name = '%',
                 header = withTooltip(
                   paste0('%'),
                   paste0("The percentage of the target population in database who had the covariate prior.")
@@ -270,6 +271,7 @@ characterizationCohortComparisonServer <- function(
                 }
               ),
               averageValue_2 = reactable::colDef(
+                name = '%',
                 header = withTooltip(
                   paste0('%'),
                   paste0("The percentage of the comparator population in database who had the covariate prior.")
@@ -279,6 +281,7 @@ characterizationCohortComparisonServer <- function(
                 }
               ),
               sumValue_1 = reactable::colDef(
+                name = 'Count',
                 header = withTooltip(
                   paste0("Count"),
                   paste0("The number of people in the target cohort in database who have the covariate prior.")
@@ -289,6 +292,7 @@ characterizationCohortComparisonServer <- function(
               )
               ,
               sumValue_2 = reactable::colDef(
+                name = 'Count',
                 header = withTooltip(
                   paste0("Count"),
                   paste0("The number of people in the comparator cohort in database who have the covariate prior.")
@@ -351,6 +355,7 @@ characterizationCohortComparisonServer <- function(
               for(i in 1:2){
               newCols <- list(
                 countValue = reactable::colDef(
+                  name = 'Count',
                   header = withTooltip("Count",
                                        "Number of people with the covariate in the cohort."),
                   cell = function(value) {
@@ -359,6 +364,7 @@ characterizationCohortComparisonServer <- function(
                   filterable = T
                 ),
                 averageValue = reactable::colDef(
+                  name = 'Mean',
                   header = withTooltip("Mean",
                                        "The mean value of the covariate in the cohort"),
                   cell = function(value) {
@@ -366,6 +372,7 @@ characterizationCohortComparisonServer <- function(
                   }
                 ),
                 standardDeviation = reactable::colDef(
+                  name = 'StDev',
                   header = withTooltip("StDev",
                                        "The standard deviation value of the covariate in the cohort"),
                   cell = function(value) {
@@ -373,6 +380,7 @@ characterizationCohortComparisonServer <- function(
                   }
                 ),
                 medianValue = reactable::colDef(
+                  name = 'Median',
                   header = withTooltip("Median",
                                        "The median value of the covariate in the cohort."),
                   cell = function(value) {
@@ -380,11 +388,13 @@ characterizationCohortComparisonServer <- function(
                   }
                 ),
                 minValue = reactable::colDef(
+                  name = 'Min Value',
                   header = withTooltip("Min Value",
                                        "Minimum value of the covariate in the cohort"),
                   format = reactable::colFormat(digits = 3)
                 ),
                 maxValue = reactable::colDef(
+                  name = 'Max Value',
                   header = withTooltip("Max Value",
                                        "Maximum value the covariate in the cohort"),
                   format = reactable::colFormat(digits = 3)
@@ -523,6 +533,7 @@ characterizationCohortsColumns <- function(
   
   res <- list(
     covariateName = reactable::colDef(
+      name = "Covariate Name",
       header = withTooltip(
         "Covariate Name",
         "The name of the covariate"
@@ -530,7 +541,7 @@ characterizationCohortsColumns <- function(
       minWidth = 300
     ),
     covariateId = reactable::colDef(
-      show = F,
+      show = FALSE,
       header = withTooltip("Covariate ID",
                            "Unique identifier of the covariate")
     ),
@@ -538,11 +549,13 @@ characterizationCohortsColumns <- function(
       show = FALSE
     ), 
     SMD = reactable::colDef(
+      name = "SMD",
       header = withTooltip("SMD",
                            "Standardized mean difference between the target and comparator percentages"),
       format = reactable::colFormat(digits = 3)
     ),
     absSMD = reactable::colDef(
+      name = "absSMD",
       header = withTooltip("absSMD",
                            "Absolute standardized mean difference between the target and comparator percentages"),
       format = reactable::colFormat(digits = 3),
@@ -566,6 +579,7 @@ characterizationCohortsColumns <- function(
       }
     ),
     analysisName = reactable::colDef(
+      name = "Covariate Class",
       header = withTooltip(
         "Covariate Class",
         "Class/type of the covariate"
@@ -580,6 +594,7 @@ characterizationCohortsColumns <- function(
 characterizationCohortsColumnsContinuous <- function(){
   res <- list(
     covariateName = reactable::colDef(
+      name = "Covariate Name",
       header = withTooltip(
         "Covariate Name",
         "The name of the covariate"
@@ -588,7 +603,7 @@ characterizationCohortsColumnsContinuous <- function(){
       minWidth = 300,
     ),
     covariateId = reactable::colDef(
-      show = F,
+      show = FALSE,
       header = withTooltip("Covariate ID",
                            "Unique identifier of the covariate")
     ),
@@ -596,11 +611,13 @@ characterizationCohortsColumnsContinuous <- function(){
       show = FALSE
     ),
     SMD = reactable::colDef(
+      name = "SMD",
       header = withTooltip("SMD",
                            "Standardized mean difference"),
       format = reactable::colFormat(digits = 3)
     ),
     absSMD = reactable::colDef(
+      name = "absSMD",
       header = withTooltip("absSMD",
                            "Absolute standardized mean difference"),
       format = reactable::colFormat(digits = 3)

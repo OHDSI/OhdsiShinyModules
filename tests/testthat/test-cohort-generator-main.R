@@ -10,8 +10,6 @@ shiny::testServer(
     
     testthat::expect_true(inherits(connectionHandler,"ConnectionHandler"))
     
-    
-    testthat::expect_true(!is.null(inputColsCohortCounts))
     testthat::expect_true(!is.null(data))
     testthat::expect_true(!is.null(dataGen))
     testthat::expect_true(!is.null(cohortDefData))

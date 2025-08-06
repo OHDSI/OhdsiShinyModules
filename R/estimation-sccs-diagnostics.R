@@ -36,7 +36,8 @@ estimationSccsDiagnosticServer <- function(
           'target',
           'indication',
           'summaryValue'
-        )
+        ),
+        elementId = session$ns('sccsDiagnosticsTable')
       )
       
       
@@ -148,30 +149,35 @@ estimationGetSccsDiagnostics <- function(
 estimationGetSccsDiagnosticColDefs <- function(){
   result <- list(
     databaseName = reactable::colDef(
+      name = "Database",
       header = withTooltip(
         "Database",
         "The database name"
       )
     ),
     target = reactable::colDef(
+      name = "Target",
       header = withTooltip(
         "Target",
         "The target cohort of interest "
       )
     ),
     outcome = reactable::colDef(
+      name = "Outcome",
       header = withTooltip(
         "Outcome",
         "The outcome of interest "
       )
     ),
     indication = reactable::colDef(
+      name = "Indication",
       header = withTooltip(
         "Indication",
         "The indication of interest "
       )
     ),
     summaryValue =  reactable::colDef(
+      name = "Diagnostic",
       header = withTooltip(
         "Diagnostic",
         "The overall result of the diagostics"
@@ -189,60 +195,70 @@ estimationGetSccsDiagnosticColDefs <- function(){
       }
     ),
     analysis = reactable::colDef(
+      name = "Analysis",
       header = withTooltip(
         "Analysis",
         "The analysis name "
       )
     ),
     covariateName = reactable::colDef(
+      name = "Time Period",
       header = withTooltip(
         "Time Period",
         "The time period of interest"
       )
     ),
     mdrr = reactable::colDef(
+      name = "mdrr",
       header = withTooltip(
         "mdrr",
         "The minimum detectible relative risk"
       )
     ),
     ease = reactable::colDef(
+      name = "ease",
       header = withTooltip(
         "ease",
         "The ..."
       )
     ),
     timeTrendP = reactable::colDef(
+      name = "timeTrendP",
       header = withTooltip(
         "timeTrendP",
         "The ..."
       )
     ),
     preExposureP = reactable::colDef(
+      name = "preExposureP",
       header = withTooltip(
         "preExposureP",
         "The ..."
       )
     ),
     mdrrDiagnostic = reactable::colDef(
+      name = "mdrrDiagnostic",
       header = withTooltip(
         "mdrrDiagnostic",
         "The ..."
       )
     ),
     easeDiagnostic = reactable::colDef(
+      name = "easeDiagnostic",
       header = withTooltip(
         "easeDiagnostic",
         "The ..."
       )
     ),
     timeTrendDiagnostic = reactable::colDef(
+      name = "timeTrendDiagnostic",
       header = withTooltip(
         "timeTrendDiagnostic",
         "The ..."
       )
     ),
     preExposureDiagnostic = reactable::colDef(
+      name = "preExposureDiagnostic",
       header = withTooltip(
         "preExposureDiagnostic",
         "The ..."
@@ -250,6 +266,7 @@ estimationGetSccsDiagnosticColDefs <- function(){
     ),
     
     unblind = reactable::colDef(
+      name = "unblind",
       header = withTooltip(
         "unblind",
         "If the value is 1 then the diagnostics passed and results can be unblinded"

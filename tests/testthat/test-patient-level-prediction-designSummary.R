@@ -10,12 +10,8 @@ shiny::testServer(
     
     expect_true(is.null(modelDesignId()))
     
-    expect_true(is.null(reportId()))
-    
     expect_true(is.null(diagnosticId()))
-    #session$setInputs(show_diagnostic = list(index = 1))
-    #expect_true(!is.null(diagnosticId()))
-    
+
     newTars <- getPlpCohortIds(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,

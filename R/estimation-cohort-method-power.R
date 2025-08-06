@@ -36,15 +36,13 @@ cohortMethodPowerViewer <- function(id) {
       
       shiny::tabPanel(
         title = "Power Table",
-        resultTableViewer(ns("powerTable"),
-                          downloadedFileName = "powerTable-"),
+        resultTableViewer(ns("powerTable")),
         shiny::uiOutput(outputId = ns("powerTableCaption"))
       ),
       
       shiny::tabPanel(
         title = "TAR Table",
-        resultTableViewer(ns("timeAtRiskTable"),
-                          downloadedFileName = "timeAtRiskTable-"),
+        resultTableViewer(ns("timeAtRiskTable")),
         shiny::uiOutput(outputId = ns("timeAtRiskTableCaption"))
       )
       
@@ -122,57 +120,66 @@ cohortMethodPowerServer <- function(
       estimationPowerTableColDefs <- function(){
         result <- list(
           targetSubjects = reactable::colDef(
+            name = "Target Subjects",
             header = withTooltip("Target Subjects",
                                  "Number of subjects in the target cohort"),
-            filterable = T
+            filterable = TRUE
           ),
           comparatorSubjects = reactable::colDef(
+            name = "Comparator Subjects",
             header = withTooltip("Comparator Subjects",
                                  "Number of subjects in the comparator cohort"),
-            filterable = T
+            filterable = TRUE
           ),
           targetYears = reactable::colDef(
+            name = "Target Years",
             header = withTooltip("Target Years",
                                  "Number of years of follow-up time in the target cohort"),
-            filterable = T
+            filterable = TRUE
           ), 
           comparatorYears = reactable::colDef(
+            name = "Comparator Years",
             header = withTooltip("Comparator Years",
                                  "Number of years of follow-up time in the comparator cohort"),
-            filterable = T
+            filterable = TRUE
           ),
           targetEvents = reactable::colDef(
+            name = "Target Events",
             header = withTooltip("Target Events",
                                  "Distinct number of outcome events in the target cohort"),
-            filterable = T
+            filterable = TRUE
             # cell = function(value) {
             #   # Add < if cencored
             #   if (value < 0 ) paste("<", abs(value)) else abs(value)
             # }
           ),
           comparatorEvents = reactable::colDef(
+            name = "Comparator Events",
             header = withTooltip("Comparator Events",
                                  "Distinct number of outcome events in the comparator cohort"),
-            filterable = T
+            filterable = TRUE
             # cell = function(value) {
             #   # Add < if cencored
             #   if (value < 0 ) paste("<", abs(value)) else abs(value)
             # }
           ),
           targetIr = reactable::colDef(
+            name = "Target IR (per 1,000 PY)",
             header = withTooltip("Target IR (per 1,000 PY)",
                                  "Incidence rate per 1,000 person-years in the target cohort"),
-            filterable = T
+            filterable = TRUE
           ),
           comparatorIr = reactable::colDef(
+            name = "Comparator IR (per 1,000 PY)",
             header = withTooltip("Comparator IR (per 1,000 PY)",
                                  "Incidence rate per 1,000 person-years in the comparator cohort"),
-            filterable = T
+            filterable = TRUE
           ),
           mdrr = reactable::colDef(
+            name = "MDRR",
             header = withTooltip("MDRR",
                                  "The minimum detectable relative risk"),
-            filterable = T
+            filterable = TRUE
           )
         )
         return(result)
@@ -182,7 +189,8 @@ cohortMethodPowerServer <- function(
         id = "powerTable",
         df = powerTable,
         colDefsInput = estimationPowerTableColDefs(),
-        downloadedFileName = "powerTable-"
+        downloadedFileName = "powerTable-",
+        elementId = session$ns('powerTable')
       )
       
       output$timeAtRiskTableCaption <- shiny::renderUI({
@@ -220,44 +228,52 @@ cohortMethodPowerServer <- function(
       estimationTimeAtRiskTableColDefs <- function(){
         result <- list(
           Cohort = reactable::colDef(
+            name = "Cohort",
             header = withTooltip("Cohort",
                                  "Indicates which cohort (target or comparator)"),
-            filterable = T
+            filterable = TRUE
           ),
           Min = reactable::colDef(
+            name = "Min",
             header = withTooltip("Min",
                                  "Minimum time (days) at-risk"),
-            filterable = T
+            filterable = TRUE
           ),
           P10 = reactable::colDef(
+            name = "P10",
             header = withTooltip("P10",
                                  "10th percentile time (days) at-risk"),
-            filterable = T
+            filterable = TRUE
           ), 
           P25 = reactable::colDef(
+            name = "P25",
             header = withTooltip("P25",
                                  "25th percentile time (days) at-risk"),
-            filterable = T
+            filterable = TRUE
           ),
           Median = reactable::colDef(
+            name = "Median",
             header = withTooltip("Median",
                                  "Median time (days) at-risk"),
-            filterable = T
+            filterable = TRUE
           ),
           P75 = reactable::colDef(
+            name = "P75",
             header = withTooltip("P75",
                                  "75th percentile time (days) at-risk"),
-            filterable = T
+            filterable = TRUE
           ),
           P90 = reactable::colDef(
+            name = "P90",
             header = withTooltip("P90",
                                  "90th percentile time (days) at-risk"),
-            filterable = T
+            filterable = TRUE
           ),
           Max = reactable::colDef(
+            name = "Max",
             header = withTooltip("Max",
                                  "Maximum time (days) at-risk"),
-            filterable = T
+            filterable = TRUE
           )
         )
         return(result)
@@ -267,7 +283,8 @@ cohortMethodPowerServer <- function(
         id = "timeAtRiskTable",
         df = timeAtRiskTable,
         colDefsInput = estimationTimeAtRiskTableColDefs(),
-        downloadedFileName = "timeAtRiskTable-"
+        downloadedFileName = "timeAtRiskTable-",
+        elementId = session$ns('timeAtRiskTable')
       )
       
       output$timeAtRiskTableCaption <- shiny::renderUI({

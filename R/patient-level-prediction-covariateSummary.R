@@ -211,6 +211,7 @@ patientLevelPredictionCovariateSummaryServer <- function(
       # covariate table
       colDefsInput = list(
         'covariateName' = reactable::colDef( 
+          name = "Covariate Name", 
           header = withTooltip(
             "Covariate Name", 
             "The covariate name (this often includes the time period relative to index)"
@@ -218,30 +219,35 @@ patientLevelPredictionCovariateSummaryServer <- function(
           minWidth = 200
         ),
         'covariateValue' = reactable::colDef( 
+          name = "value",
           header = withTooltip(
             "value", 
             "The coeffcient for GLM or the variable importance for other models"
           )
         ),
         'covariateCount' = reactable::colDef( 
+          name = "Count",
           header = withTooltip(
             "Count", 
             "The number of patients in the data who had the covariate"
           )
         ),
         'withOutcomeCovariateMean' = reactable::colDef( 
+          name = "Outcome Mean",
           header = withTooltip(
             "Outcome Mean", 
             "The mean covariate value for patients who had the outcome during TAR"
           )
         ),
         'withNoOutcomeCovariateMean' = reactable::colDef( 
+          name = "Non-outcome Mean", 
           header = withTooltip(
             "Non-outcome Mean", 
             "The mean covariate value for patients who did not have the outcome during TAR"
           )
         ),
         'standardizedMeanDiff' = reactable::colDef( 
+          name = "Std Mean Diff",
           header = withTooltip(
             "Std Mean Diff", 
             "The standardized mean difference for the covariate comparing those who did and did not have the outcome during TAR"
@@ -253,7 +259,8 @@ patientLevelPredictionCovariateSummaryServer <- function(
         id = "modelView",
         df = covariateSummary,
         colDefsInput = colDefsInput,
-        addActions = NULL
+        addActions = NULL,
+        elementId = session$ns('modelView')
       )
       
       # covariate model plots

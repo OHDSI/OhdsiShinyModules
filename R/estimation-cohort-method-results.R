@@ -98,7 +98,8 @@ estimationCmResultsServer <- function(
         id = "resultSummaryTable",
         df = data,
         colDefsInput = estimationGetCmResultSummaryTableColDef(), 
-        addActions = c('results') # TODO wont work for esData
+        addActions = c('results'), # TODO wont work for esData
+        elementId = session$ns('resultSummaryTable')
       )
       
       selectedRow <- shiny::reactiveVal(value = NULL)
@@ -128,30 +129,35 @@ estimationCmResultsServer <- function(
 estimationGetCmResultSummaryTableColDef <- function(){
   result <- list(
     
-    analysisId = reactable::colDef(show = F),
+    analysisId = reactable::colDef(show = FALSE),
     description = reactable::colDef(
+      name = "Analysis",
       header = withTooltip(
         "Analysis",
         "The analysis description"
       ), 
       minWidth = 140
     ),
-    databaseId = reactable::colDef(show = F),
+    databaseId = reactable::colDef(show = FALSE),
     
     cdmSourceAbbreviation = reactable::colDef(
+      name = "Database",
       header = withTooltip(
         "Database",
         "The database name"
       )
     ),
     
-    targetId = reactable::colDef(header = withTooltip(
+    targetId = reactable::colDef(
+      name = "Target ID",
+      header = withTooltip(
       "Target ID",
       "The ID of the target cohort of interest"
       )
     ),
     
     target = reactable::colDef(
+      name = "Target",
       header = withTooltip(
         "Target",
         "The target cohort of interest"
@@ -159,13 +165,16 @@ estimationGetCmResultSummaryTableColDef <- function(){
       minWidth = 300
     ),
     
-    comparatorId = reactable::colDef(header = withTooltip(
+    comparatorId = reactable::colDef(
+      name = "Comparator ID",
+      header = withTooltip(
       "Comparator ID",
       "The ID of the comparator cohort of interest"
       )
     ),
     
     comparator = reactable::colDef(
+      name= "Comparator",
       header = withTooltip(
         "Comparator",
         "The comparator cohort of interest"
@@ -173,13 +182,16 @@ estimationGetCmResultSummaryTableColDef <- function(){
       minWidth = 300
     ),
     
-    outcomeId = reactable::colDef(header = withTooltip(
+    outcomeId = reactable::colDef(
+      name = "Outcome ID",
+      header = withTooltip(
       "Outcome ID",
       "The ID of the outcome of interest"
       )
     ),
     
     outcome = reactable::colDef(
+      name = "Outcome",
       header = withTooltip(
         "Outcome",
         "The outcome of interest"
@@ -188,6 +200,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
     ),
     
     rr = reactable::colDef(
+      name = "RR",
       header = withTooltip(
         "RR",
         "The estimated relative risk (e.g. the hazard ratio)"
@@ -197,6 +210,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
     ),
     
     ci95Lb = reactable::colDef(
+      name = "Lower 95% CI",
       header = withTooltip(
         "Lower 95% CI",
         "The lower bound of the 95% confidence internval of the uncalibrated relative risk"
@@ -206,6 +220,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
     ),
     
     ci95Ub = reactable::colDef(
+      name = "Upper 95% CI",
       header = withTooltip(
         "Upper 95% CI",
         "The upper bound of the 95% confidence internval of the uncalibrated relative risk"
@@ -215,6 +230,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
     ),
     
     p = reactable::colDef(
+      name = "p-val",
       header = withTooltip(
         "p-val",
         "The two-sided p-value of the uncalibrated relative risk"
@@ -224,6 +240,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
     ),
     
     calibratedRr = reactable::colDef(
+      name = "Calibrated RR",
       header = withTooltip(
         "Calibrated RR",
         "The calibrated relative risk"
@@ -233,6 +250,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
     ),
     
     calibratedCi95Lb = reactable::colDef(
+      name = "Calibrated Lower 95% CI",
       header = withTooltip(
         "Calibrated Lower 95% CI",
         "The lower bound of the 95% confidence internval of the calibrated relative risk"
@@ -242,6 +260,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
     ),
     
     calibratedCi95Ub = reactable::colDef(
+      name = "Calibrated Upper 95% CI",
       header = withTooltip(
         "Calibrated Upper 95% CI",
         "The upper bound of the 95% confidence internval of the calibrated relative risk"
@@ -251,6 +270,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
     ),
     
     calibratedP = reactable::colDef(
+      name = "Calibrated p-val",
       header = withTooltip(
         "Calibrated p-val",
         "The two-sided p-value of the calibrated relative risk"
@@ -259,18 +279,18 @@ estimationGetCmResultSummaryTableColDef <- function(){
       na = "-"
     ),
     
-    logRr = reactable::colDef(show = F),
-    seLogRr = reactable::colDef(show = F),
-    targetSubjects = reactable::colDef(show = F),
-    comparatorSubjects  = reactable::colDef(show = F),
-    targetDays = reactable::colDef(show = F),
-    comparatorDays  = reactable::colDef(show = F),
-    targetOutcomes = reactable::colDef(show = F),
-    comparatorOutcomes  = reactable::colDef(show = F),
-    calibratedLogRr = reactable::colDef(show = F),
-    calibratedSeLogRr = reactable::colDef(show = F),
-    calibratedSeLogRr = reactable::colDef(show = F),
-    unblind = reactable::colDef(show = F)
+    logRr = reactable::colDef(show = FALSE),
+    seLogRr = reactable::colDef(show = FALSE),
+    targetSubjects = reactable::colDef(show = FALSE),
+    comparatorSubjects  = reactable::colDef(show = FALSE),
+    targetDays = reactable::colDef(show = FALSE),
+    comparatorDays  = reactable::colDef(show = FALSE),
+    targetOutcomes = reactable::colDef(show = FALSE),
+    comparatorOutcomes  = reactable::colDef(show = FALSE),
+    calibratedLogRr = reactable::colDef(show = FALSE),
+    calibratedSeLogRr = reactable::colDef(show = FALSE),
+    calibratedSeLogRr = reactable::colDef(show = FALSE),
+    unblind = reactable::colDef(show = FALSE)
   )
   
   return(result)

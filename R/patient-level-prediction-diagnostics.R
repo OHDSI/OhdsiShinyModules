@@ -101,6 +101,7 @@ patientLevelPredictionDiagnosticsServer <- function(
       
       colDefsInput <- list(
         '1.1' = reactable::colDef( 
+          name = "1.1",
           header = withTooltip(
             "1.1", 
             "Participants: Were appropriate data sources used, e.g. cohort, RCT or nested case-control study data?"
@@ -112,6 +113,7 @@ patientLevelPredictionDiagnosticsServer <- function(
     }
   ")),
         '1.2' = reactable::colDef(
+          name =  "1.2", 
           header = withTooltip(
             "1.2", 
             "Participants: Were all inclusions and exclusions of participants appropriate?"
@@ -123,6 +125,7 @@ patientLevelPredictionDiagnosticsServer <- function(
     }
   ")),
         '2.1' = reactable::colDef(
+          name = "2.1", 
           header = withTooltip(
             "2.1", 
             "Predictors: Were predictors defined and assessed in a similar way for all participants?"
@@ -134,6 +137,7 @@ patientLevelPredictionDiagnosticsServer <- function(
     }
   ")),   
         '2.2' = reactable::colDef(
+          name =  "2.2",
           header = withTooltip(
             "2.2", 
             "Predictors: Were predictor assessments made without knowledge of outcome data?"
@@ -145,6 +149,7 @@ patientLevelPredictionDiagnosticsServer <- function(
     }
   ")),
         '2.3' = reactable::colDef(
+          name = "2.3", 
           header = withTooltip(
             "2.3", 
             "Predictors: Are all predictors available at the time the model is intended to be used?"
@@ -156,6 +161,7 @@ patientLevelPredictionDiagnosticsServer <- function(
     }
   ")),
         '3.4' = reactable::colDef(
+          name = "3.4", 
           header = withTooltip(
             "3.4", 
             "Outcome: Was the outcome defined and determined in a similar way for all participants?"
@@ -167,6 +173,7 @@ patientLevelPredictionDiagnosticsServer <- function(
     }
   ")),
         '3.6' = reactable::colDef(
+          name = "3.6",
           header = withTooltip(
             "3.6", 
             "Outcome: Was the time interval between predictor assessment and outcome determination appropriate?"
@@ -178,6 +185,7 @@ patientLevelPredictionDiagnosticsServer <- function(
     }
   ")),
         '4.1' = reactable::colDef(
+          name = "4.1", 
           header = withTooltip(
             "4.1", 
             "Design: Were there a reasonable number of participants with the outcome?"
@@ -194,7 +202,8 @@ patientLevelPredictionDiagnosticsServer <- function(
         id = "diagnosticSummaryTable",
         df = diagnosticTable,
         colDefsInput = colDefsInput,
-        addActions = c('participants','predictors', 'outcomes')
+        addActions = c('participants','predictors', 'outcomes'),
+        elementId = session$ns('diagnosticSummaryTable')
       )
 
       

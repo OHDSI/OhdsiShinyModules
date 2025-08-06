@@ -84,10 +84,11 @@ cohortMethodPropensityModelServer <- function(
       
       resultTableServer(
         id = 'propensityModelTable',
+        elementId = session$ns('propensityModelTable'),
         df = data, 
         colDefsInput = list(
           covariateId = reactable::colDef(
-            show = F
+            show = FALSE
             ),
           coefficient = reactable::colDef(
             name = 'Beta',

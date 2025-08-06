@@ -184,43 +184,51 @@ estimationSccsFullResultServer <- function(
       
       colDefsInput <- list(
         covariateName = reactable::colDef( 
+          name = "Variable", 
           header = withTooltip(
             "Variable", 
             "The covariate"
           )),
         outcomeSubjects = reactable::colDef( 
+          name = "Cases", 
           header = withTooltip(
             "Cases", 
             "The number of cases"
           )),
         observedDays = reactable::colDef( 
+          name = "Years observed", 
           format = reactable::colFormat(digits = 2),
           header = withTooltip(
             "Years observed", 
             "The total years observed"
           )),
         outcomeEvents = reactable::colDef( 
+          name = "Outcomes", 
           header = withTooltip(
             "Outcomes", 
             "The total number of outcomes"
           )),
         covariateSubjects = reactable::colDef( 
+          name = "Persons exposed", 
           header = withTooltip(
             "Persons exposed", 
             "The total number of people exposed"
           )),
         covariateDays = reactable::colDef( 
+          name = "Years exposed",
           format = reactable::colFormat(digits = 2),
           header = withTooltip(
             "Years exposed", 
             "The total number of years exposed"
           )),
         covariateOutcomes = reactable::colDef( 
+          name = "Outcomes while exposed", 
           header = withTooltip(
             "Outcomes while exposed", 
             "The total number of outcomes while exposed"
           )),
         mdrr = reactable::colDef( 
+          name = "MDRR", 
           format = reactable::colFormat(digits = 4),
           header = withTooltip(
             "MDRR", 
@@ -232,7 +240,8 @@ estimationSccsFullResultServer <- function(
       resultTableServer(
         id = "powerTable", # how is this working without session$ns
         df = powerTable,
-        colDefsInput = colDefsInput
+        colDefsInput = colDefsInput,
+        elementId = session$ns('powerTable')
       )
         
       output$attritionPlot <- shiny::renderPlot({

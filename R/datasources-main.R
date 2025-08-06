@@ -56,8 +56,7 @@ datasourcesViewer <- function(id) {
         
         shiny::tabPanel(
           title = "Data Source Information",
-           resultTableViewer(ns("datasourcesTable"),
-                             downloadedFileName = "datasourcesTable-")
+           resultTableViewer(ns("datasourcesTable"))
         )
        )
       )
@@ -97,83 +96,18 @@ datasourcesServer <- function(
           resultDatabaseSettings = resultDatabaseSettings
       )
       })
-      
-  # # defining column definitions
-  #     datasourcesColDefs <- createCustomColDefList(
-  #       rawColNames = colnames(datasourcesData),
-  #       niceColNames = c("DB Name",
-  #                        "DB Abbreviation",
-  #                        "DB Holder",
-  #                        "DB Description",
-  #                        "DB Description Link",
-  #                        "DB ETL Link",
-  #                        "Source Data Release Date",
-  #                        "CDM DB Release Date",
-  #                        "CDM Version",
-  #                        "Vocabulary Version",
-  #                        "DB ID",
-  #                        "Max Obs. Period End Date"),
-  #       tooltipText = c("Name of the database (DB)",
-  #                       "Abbreviation for the database (DB)",
-  #                       "Holder of the database (DB)",
-  #                       "Description of the database (DB)",
-  #                       "HTML link to the database (DB) description",
-  #                       "HTML link to the ETL for the database (DB)",
-  #                       "Date the source data was released",
-  #                       "Date the CDM database (DB) was accessible",
-  #                       "Version of the common data model (CDM)",
-  #                       "Version of the vocabulary used in the database (DB)",
-  #                       "Unique identifier (ID) of the database (DB)",
-  #                       "Maximum/Latest observation period date in the database (DB)"),
-  #       customColDefOptions = list(
-  #         list(NULL),
-  #         list(NULL),
-  #         list(NULL),
-  #         list(show = F),
-  #         list(html = TRUE, cell = htmlwidgets::JS('
-  #   function(cellInfo) {
-  #     // Render as a link
-  #     const url = cellInfo.value;
-  #     return `<a href="${url}" target="_blank">RHEALTH Description</a>`;
-  #   }
-  # ')),
-  #         list(html = TRUE, cell = htmlwidgets::JS('
-  #   function(cellInfo) {
-  #     // Render as a link
-  #     const url = cellInfo.value;
-  #     return `<a href="${url}" target="_blank">ETL</a>`;
-  #   }
-  # ')),
-  #         list(format = reactable::colFormat(date = T)),
-  #         list(format = reactable::colFormat(date = T)),
-  #         list(NULL),
-  #         list(NULL),
-  #         list(NULL),
-  #         list(NULL),
-  #         list(format = reactable::colFormat(date = T))
-  #       )
-  #     )
-  # 
-  #     #save the colDefs as json
-  #     ParallelLogger::saveSettingsToJson(datasourcesColDefs, "./inst/components-columnInformation/datasources-colDefs.json")
 
-      datasourcesColList <- ParallelLogger::loadSettingsFromJson(system.file("components-columnInformation",
-                                                                        "datasources-colDefs.json",
-                                                                        package = "OhdsiShinyModules")
+      
+      resultTableServer(
+        id = "datasourcesTable",
+        df = datasourcesData,
+        colDefsInput = datasourcesColList(),
+        selectedCols = c("databaseFullName", "databaseName", "cdmHolder",
+                         "sourceReleaseDate", "cdmReleaseDate", "cdmVersion",
+                         "vocabularyVersion", "maxObsPeriodEndDate"),
+        downloadedFileName = "datasourcesTable-", 
+        elementId = session$ns('datasourcesTable')
       )
-      
-      #need to do for any colDefs that have JS and that are getting loaded in from a JSON
-      class(datasourcesColList[["sourceDocumentationReference"]]$cell) <- "JS_EVAL"
-      class(datasourcesColList[["cdmEtlReference"]]$cell) <- "JS_EVAL"
-      
-      
-      resultTableServer(id = "datasourcesTable",
-                        df = datasourcesData,
-                        colDefsInput = datasourcesColList,
-                        selectedCols = c("cdmSourceName", "cdmSourceAbbreviation", "cdmHolder",
-                                         "sourceReleaseDate", "cdmReleaseDate", "cdmVersion",
-                                         "vocabularyVersion", "maxObsPeriodEndDate"),
-                        downloadedFileName = "datasourcesTable-")
       
       return(invisible(NULL))
       
@@ -189,18 +123,131 @@ getDatasourcesData <- function(
     resultDatabaseSettings
 ) {
   
-  sql <- "SELECT * from @schema.@database_table
-  ;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      schema = resultDatabaseSettings$schema,
-      database_table = resultDatabaseSettings$databaseTable
-    )
+  result <- OhdsiReportGenerator::getDatabaseDetails(
+    connectionHandler = connectionHandler,
+    schema = resultDatabaseSettings$schema,
+    databaseTable = resultDatabaseSettings$databaseTable
   )
+  
+  return(result)
 }
 
 
+datasourcesColList <- function(){
+  
+  result <- list(
+    databaseFullName = reactable::colDef(
+      name = "Full DB Name", 
+      header = withTooltip(
+        "Full DB Name",
+        "Name of the database (DB)"
+      )
+      ),
+    databaseName = reactable::colDef(
+      name = "DB Name", 
+      header = withTooltip(
+        "DB Name",
+        "Abbreviation for the database (DB)"
+      )
+    ),
+    cdmHolder = reactable::colDef(
+      name = "DB Holder", 
+      header = withTooltip(
+        "DB Holder",
+        "Holder of the database (DB)"
+      )
+    ),
+    sourceDescription = reactable::colDef(
+      name = "DB Description", 
+      minWidth = 500,
+      header = withTooltip(
+        "DB Description",
+        "Description of the database (DB)"
+      )
+    ),
+    sourceDocumentationReference = reactable::colDef(
+      name = "DB Description Link", 
+      header = withTooltip(
+        "DB Description Link",
+        "HTML link to the database (DB) description"
+      ),
+      html = TRUE, 
+      cell = function(value, index){
+        if(value != 'None'){
+          shiny::tagList(
+            shiny::a("RHEALTH Description", href = value, target = "_blank")
+          )
+        } else{
+          'No link available'
+        }
+      }
+    ),
 
-
+    cdmEtlReference = reactable::colDef(
+      name = "DB ETL Link", 
+      header = withTooltip(
+        "DB ETL Link",
+        "HTML link to the ETL for the database (DB)"
+      ),
+      html = TRUE, 
+      cell = function(value, index){
+        if(value != 'None'){
+          shiny::tagList(
+            shiny::a("RHEALTH Description", href = value, target = "_blank")
+          )
+        } else{
+          'No link available'
+        }
+      }
+    ),
+    sourceReleaseDate = reactable::colDef(
+      name = "Source Data Release Date", 
+      header = withTooltip(
+        "Source Data Release Date",
+        "Date the source data was released"
+      )
+    ),
+    cdmReleaseDate = reactable::colDef(
+      name = "CDM DB Release Date", 
+      header = withTooltip(
+        "CDM DB Release Date",
+        "Date the CDM database (DB) was accessible"
+      )
+    ),
+    cdmVersion = reactable::colDef(
+      name = "CDM Version", 
+      header = withTooltip(
+        "CDM Version",
+        "Version of the common data model (CDM)"
+      )
+    ),
+    cdmVersionConceptId = reactable::colDef(
+      show = FALSE
+    ),
+    vocabularyVersion = reactable::colDef(
+      name = "Vocabulary Version", 
+      header = withTooltip(
+        "Vocabulary Version",
+        "Version of the vocabulary used in the database (DB)"
+      )
+    ),
+    maxObsPeriodEndDate = reactable::colDef(
+      name = "Max Obs. Period End Date", 
+      header = withTooltip(
+        "Max Obs. Period End Date",
+        "Maximum/Latest observation period date in the database (DB)"
+      )
+    ),
+    databaseId = reactable::colDef(
+        name = "DB ID", 
+        header = withTooltip(
+          "DB ID",
+          "Unique identifier (ID) of the database (DB)"
+        )
+      )
+  )
+  
+  
+  return(result)
+}
 

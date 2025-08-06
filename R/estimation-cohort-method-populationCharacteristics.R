@@ -86,22 +86,23 @@ cohortMethodPopulationCharacteristicsServer <- function(
       
       resultTableServer(
         id = 'table1Table',
+        elementId = session$ns('table1Table'),
         df = data, 
         groupBy = 'label',
         colDefsInput = list(
-          databaseId = reactable::colDef(show = F),
-          covariateId = reactable::colDef(show = F),
+          databaseId = reactable::colDef(show = FALSE),
+          covariateId = reactable::colDef(show = FALSE),
           covariateName = reactable::colDef(
             name  = 'Covariate', 
-            sortable = F
+            sortable = FALSE
             ), 
-          analysisId = reactable::colDef(show = F),
+          analysisId = reactable::colDef(show = FALSE),
           beforePsAdjustmentMeanTreated = reactable::colDef(
             name  = 'Before PS adjustment treated mean',
             format = reactable::colFormat(
-              digits = 1, percent = T
+              digits = 1, percent = TRUE
             ),
-            sortable = F,
+            sortable = FALSE,
             cell = function(value) {
               if (value < 0) paste0("< ",abs(value*100) ,"%") else paste0(value*100, '%')
             }
@@ -109,9 +110,9 @@ cohortMethodPopulationCharacteristicsServer <- function(
           beforePsAdjustmentMeanComparator = reactable::colDef(
             name  = 'Before PS adjustment comparator mean',
             format = reactable::colFormat(
-              digits = 1, percent = T
+              digits = 1, percent = TRUE
             ),
-            sortable = F,
+            sortable = FALSE,
             cell = function(value) {
               if (value < 0) paste0("< ",abs(value*100) ,"%") else paste0(value*100, '%')
             }
@@ -121,14 +122,14 @@ cohortMethodPopulationCharacteristicsServer <- function(
             format = reactable::colFormat(
               digits = 2
             ),
-            sortable = F
+            sortable = FALSE
           ),
           afterPsAdjustmentMeanTreated = reactable::colDef(
             name  = 'After PS adjustment treated mean',
             format = reactable::colFormat(
-              digits = 1, percent = T
+              digits = 1, percent = TRUE
             ),
-            sortable = F,
+            sortable = FALSE,
             cell = function(value) {
               if (value < 0) paste0("< ",abs(value*100) ,"%") else paste0(value*100, '%')
             }
@@ -136,9 +137,9 @@ cohortMethodPopulationCharacteristicsServer <- function(
           afterPsAdjustmentMeanComparator = reactable::colDef(
             name  = 'After PS adjustment comparator mean',
             format = reactable::colFormat(
-              digits = 1, percent = T
+              digits = 1, percent = TRUE
             ),
-            sortable = F,
+            sortable = FALSE,
             cell = function(value) {
               if (value < 0) paste0("< ",abs(value*100) ,"%") else paste0(value*100, '%')
             }
@@ -148,9 +149,9 @@ cohortMethodPopulationCharacteristicsServer <- function(
             format = reactable::colFormat(
               digits = 2
             ),
-            sortable = F
+            sortable = FALSE
           ),
-          label = reactable::colDef(show = T)
+          label = reactable::colDef(show = TRUE)
           
         )
       )

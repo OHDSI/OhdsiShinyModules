@@ -38,8 +38,7 @@ cohortMethodCovariateBalanceViewer <- function(id) {
       shiny::tabPanel(
         title = "Covariate Balance Table",
         resultTableViewer(
-          ns("balanceTable"),
-          downloadedFileName = "covariateBalanceTable-"
+          ns("balanceTable")
         )
       ),
       
@@ -292,12 +291,66 @@ cohortMethodCovariateBalanceServer <- function(
         }
       )
       
-      #load custom colDefs
-      cmBalanceColList <- ParallelLogger::loadSettingsFromJson(
-        system.file("components-columnInformation",
-                    "cohortMethod-covariate-balance-colDefs.json",
-                    package = "OhdsiShinyModules"
+      #load custom colDefs - TODO replace this 
+      cmBalanceColList <- list(
+        cdmSourceAbbreviation = reactable::colDef(
+          name = "Database Name",
+          header = withTooltip(
+            'Database Name',
+            "The name of the database"
+            )
+          ),
+        covariateName = reactable::colDef(
+          name = "Covariate Name",
+          header = withTooltip(
+            'Covariate Name',
+            "The name of the covariate"
+          )
+        ),
+        beforeMatchingMeanTreated = reactable::colDef(
+          name = "Mean Target Before Matching",
+          header = withTooltip(
+            "Mean Target Before Matching",
+            "Mean (Proportion) in Target Before Matching"
+          )
+        ),
+        beforeMatchingMeanComparator = reactable::colDef(
+          name = "Mean Comparator Before Matching",
+          header = withTooltip(
+            "Mean Comparator Before Matching",
+            "Mean (Proportion) in Comparator Before Matching"
+          )
+        ),
+        absBeforeMatchingStdDiff = reactable::colDef(
+          name = "Abs Val StdDiff Before Matching",
+          header = withTooltip(
+            "Abs Val StdDiff Before Matching",
+            "Absolute Value of the Standardized Mean Difference Before Matching"
+          )
+        ),
+        afterMatchingMeanTreated = reactable::colDef(
+          name = "Mean Target After Matching",
+          header = withTooltip(
+            "Mean Target After Matching",
+            "Mean (Proportion) in Target After Matching"
+          )
+        ),
+        afterMatchingMeanComparator = reactable::colDef(
+          name = "Mean Comparator After Matching",
+          header = withTooltip(
+            "Mean Comparator After Matching",
+            "Mean (Proportion) in Comparator After Matching"
+          )
+        ),
+        
+        absAfterMatchingStdDiff = reactable::colDef(
+          name = "Abs Val StdDiff After Matching",
+          header = withTooltip(
+            "Abs Val StdDiff After Matching",
+            "Absolute Value of the Standardized Mean Difference After Matching"
+          )
         )
+        
       )
       
       #then render the balance table
@@ -311,7 +364,8 @@ cohortMethodCovariateBalanceServer <- function(
         id = "balanceTable",
         df = renderBalanceTable,
         colDefsInput = cmBalanceColList,
-        downloadedFileName = "covariateBalanceTable-"
+        downloadedFileName = "covariateBalanceTable-",
+        elementId = session$ns("covariateBalanceTable")
       )
       
       

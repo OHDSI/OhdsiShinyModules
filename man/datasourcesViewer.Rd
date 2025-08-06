@@ -17,11 +17,9 @@ The viewer function for hte datasources module
 }
 \seealso{
 Other Utils: 
-\code{\link{createCustomColDefList}()},
 \code{\link{datasourcesHelperFile}()},
 \code{\link{datasourcesServer}()},
 \code{\link{getLogoImage}()},
-\code{\link{makeButtonLabel}()},
 \code{\link{resultTableViewer}()}
 }
 \concept{Utils}

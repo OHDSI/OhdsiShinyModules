@@ -94,7 +94,10 @@ characterizationServer <- function(
         cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
         sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
         plpTablePrefix = resultDatabaseSettings$plpTablePrefix,
-        databaseTable = resultDatabaseSettings$databaseTable
+        databaseTable = resultDatabaseSettings$databaseTable, 
+        getPredictionInclusion = FALSE, 
+        getCohortMethodInclusion = FALSE, 
+        getSccsInclusion = FALSE
       )
       
       resultType <- shiny::reactiveVal("")
@@ -195,14 +198,14 @@ characterizationServer <- function(
           # TODO - figure out how to handle if CI has diff outcomes
           
           if(sum(analysesWithResultsOutcome) > 0){
- 
-          outcomeTable(OhdsiReportGenerator::getOutcomeTable(
+          
+          outcomeTable(getShinyOutcomeTable(
             connectionHandler = connectionHandler,
-            schema = resultDatabaseSettings$schema, 
-            cTablePrefix = resultDatabaseSettings$cTablePrefix,
-            cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-            ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
-            targetId = reactiveTargetRow()$cohortId[1]
+            resultDatabaseSettings = resultDatabaseSettings,
+            targetId = reactiveTargetRow()$cohortId[1],
+            getPredictionInclusion = FALSE, 
+            getCohortMethodInclusion = FALSE,
+            getSccsInclusion = FALSE
           ) %>%
             dplyr::select(-"cohortMethod", -"selfControlledCaseSeries", -"prediction") %>%
             dplyr::relocate("parentName", .before = "cohortName"))
@@ -507,4 +510,46 @@ characterizationOutcomeDisplayColumns <- function(){
       
     )
   )
+}
+
+
+# adding progress report around outcome extraction as it can be slow
+getShinyOutcomeTable <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    targetId , 
+    getIncidenceInclusion = TRUE,
+    getCharacterizationInclusion = TRUE,
+    getPredictionInclusion = TRUE, 
+    getCohortMethodInclusion = TRUE,
+    getSccsInclusion = TRUE
+){
+  
+  shiny::withProgress(message = 'Loading outcomes for selected target', value = 0, {
+    
+    shiny::incProgress(2/4, detail = paste("Extracting data"))
+    
+    result <- OhdsiReportGenerator::getOutcomeTable(
+      connectionHandler = connectionHandler,
+      schema = resultDatabaseSettings$schema, 
+      cTablePrefix = resultDatabaseSettings$cTablePrefix,
+      cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+      ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
+      targetId = targetId, 
+      getIncidenceInclusion = getIncidenceInclusion, 
+      getCharacterizationInclusion = getCharacterizationInclusion,
+      getPredictionInclusion = getPredictionInclusion, 
+      getCohortMethodInclusion = getCohortMethodInclusion,
+      getSccsInclusion = getSccsInclusion
+    )
+    
+    message(paste0('Extracted ',nrow(result),' outcomes'))
+  
+    
+    shiny::incProgress(4/4, detail = paste("Done"))
+    
+  })
+  
+  return(result)
+  
 }

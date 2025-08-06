@@ -130,7 +130,8 @@ patientLevelPredictionNbServer <- function(
         id = "nbTable",
         colDefsInput = NULL,
         df = nbData,
-        addActions = NULL
+        addActions = NULL,
+        elementId = session$ns('nbTable')
       )
       
       output$nbPlot <- shiny::renderPlot({

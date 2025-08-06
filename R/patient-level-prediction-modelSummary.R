@@ -99,18 +99,21 @@ patientLevelPredictionModelSummaryServer <- function(
       
       colDefsInput = list(
         Dev = reactable::colDef( 
+          name = "Dev Db",
           filterable = TRUE,
           header = withTooltip(
             "Dev Db", 
             "The database used to develop the model"
           )),
         Val = reactable::colDef( 
+          name = "Val Db", 
           filterable = TRUE,
           header = withTooltip(
             "Val Db", 
             "The database used to evaluate the model"
           )),
         T = reactable::colDef( 
+          name = "Target Pop",
           filterable = TRUE,
           header = withTooltip(
             "Target Pop", 
@@ -119,6 +122,7 @@ patientLevelPredictionModelSummaryServer <- function(
           minWidth = 300
           ),
         O = reactable::colDef( 
+          name = "Outcome", 
           filterable = TRUE,
           header = withTooltip(
             "Outcome", 
@@ -127,6 +131,7 @@ patientLevelPredictionModelSummaryServer <- function(
           minWidth = 300
           ),
         TAR = reactable::colDef( 
+          name = "TAR", 
           filterable = TRUE,
           header = withTooltip(
             "TAR", 
@@ -135,6 +140,7 @@ patientLevelPredictionModelSummaryServer <- function(
           sortable = TRUE
         ),
         type = reactable::colDef( 
+          name = "Type", 
           filterable = TRUE,
           header = withTooltip(
             "Type", 
@@ -143,16 +149,16 @@ patientLevelPredictionModelSummaryServer <- function(
           sortable = TRUE
         ),
         modelDevelopment = reactable::colDef( 
-          show = F
+          show = FALSE
         ),
         performanceId = reactable::colDef( 
-          show = F
+          show = FALSE
         ),
         modelDesignId = reactable::colDef( 
-          show = F
+          show = FALSE
         ),
         developmentDatabaseId = reactable::colDef( 
-          show = F
+          show = FALSE
         )
       )
       
@@ -160,7 +166,8 @@ patientLevelPredictionModelSummaryServer <- function(
         id = "performanceSummaryTable",
         df = resultTable,
         colDefsInput = colDefsInput,
-        addActions = c('results','attrition')
+        addActions = c('results','attrition'),
+        elementId = session$ns('performanceSummaryTable')
       )
       
       performanceId <- shiny::reactiveVal(value = NULL)

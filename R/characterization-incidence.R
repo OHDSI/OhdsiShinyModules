@@ -50,8 +50,7 @@ characterizationIncidenceViewer <- function(id) {
             condition = 'output.showTable != 0',
             ns = ns,
             resultTableViewer(
-              ns("incidenceRateTable"),
-              downloadedFileName = "incidenceRateTable-"
+              ns("incidenceRateTable")
             )
           )
         ),
@@ -292,7 +291,6 @@ characterizationIncidenceServer <- function(
                          "personsAtRisk","personDays","outcomes",
                          "incidenceProportionP100p", 
                          "incidenceRateP100py"),
-        sortedCols = c("ageGroupName", "genderName", "startYear", "incidenceRateP100py"),
         colDefsInput = characterizationIncidenceColumnDefs(session$ns('incidence-table')), 
         elementId = session$ns('incidence-table'),
         downloadedFileName = "incidenceRateTable-"
@@ -485,18 +483,26 @@ characterizationIncidenceColumnDefs <- function(elementId){
   
   list(
     databaseName = reactable::colDef(
+      name = "Database",
       header = withTooltip("Database",
                            "The database name")
     ), 
+    databaseId = reactable::colDef(
+      show = FALSE
+    ), 
     targetName = reactable::colDef(
+      name = "Target",
       header = withTooltip("Target",
                            "The target cohort name")
     ), 
     targetId = reactable::colDef(
+      show = FALSE,
+      name = "Target ID",
       header = withTooltip("Target ID",
                            "The target cohort unique identifier")
     ),
     outcomeName = reactable::colDef(
+      name = "Outcome",
       header = withTooltip("Outcome",
                            "The outcome name"),
       filterable = TRUE,
@@ -513,12 +519,15 @@ characterizationIncidenceColumnDefs <- function(elementId){
       }
     ), 
     outcomeId = reactable::colDef(
+      show = FALSE,
+      name = "Outcome ID",
       header = withTooltip("Outcome ID",
                            "The outcome cohort unique identifier")
     ),
     tar = reactable::colDef(
-      header = withTooltip("TAR",
-                           "Time-at-risk"),
+      name = "Time-at-risk",
+      header = withTooltip("Time-at-risk",
+                           "The time interval where a patient is at risk used to calculate the incidence"),
       filterable = TRUE,
       filterInput = function(values, name) {
         shiny::tags$select(
@@ -533,18 +542,22 @@ characterizationIncidenceColumnDefs <- function(elementId){
       }
     ), 
     ageGroupName = reactable::colDef(
+      name = "Age Group",
       header = withTooltip("Age Group",
                            "The age group when stratifying by age")
     ), 
     genderName = reactable::colDef(
+      name = "Sex",
       header = withTooltip("Sex",
                            "The sex when stratifying by sex")
     ), 
     startYear = reactable::colDef(
+      name = "Index Year",
       header = withTooltip("Index Year",
                            "The index year when stratifying by year")
     ), 
     cleanWindow = reactable::colDef(
+      name = "Clean Window",
       header = withTooltip("Clean Window",
                            "The time in days after an outcome that is ignored in the rate calculation"),
       filterable = TRUE,
@@ -560,37 +573,59 @@ characterizationIncidenceColumnDefs <- function(elementId){
         )
       }
     ), 
-    tar = reactable::colDef(
-      header = withTooltip("Time-at-risk",
-                           "The time interval where a patient is at risk used to calculate the incidence")
-    ), 
     personsAtRisk = reactable::colDef(
+      name = "No. Persons",
       filterable = FALSE,
       header = withTooltip("No. Persons",
                            "The number of people at risk")
     ),
     personDays = reactable::colDef(
+      name = "Person Days",
       filterable = FALSE,
       header = withTooltip("Person Days",
                            "The total number of days at risk for all the people at risk")
     ),
     outcomes = reactable::colDef(
+      name = "No. Outcomes",
       filterable = FALSE,
       header = withTooltip("No. Outcomes",
                            "The number of outcomes within the people at risk during time-at-risk")
     ),
     incidenceProportionP100p = reactable::colDef(
+      name = "Incidence proportion per 100 persons",
       filterable = FALSE,
       header = withTooltip("Incidence proportion per 100 persons",
                            "The number of outcomes divided by the number of patients multipled by 100"),
       format = reactable::colFormat(digits = 2)
     ), 
     incidenceRateP100py = reactable::colDef(
+      name = "Incidence rate per 100 person years",
       filterable = FALSE,
       header = withTooltip("Incidence rate per 100 person years",
                            "The number of outcomes divided by the number of person days exposed multipled by 100 times 365"), 
       format = reactable::colFormat(digits = 2)
-    )
+    ),
+    personOutcomes = reactable::colDef(
+      name = 'No. Person Outcomes'
+    ),
+    
+    personDaysPe = reactable::colDef(
+      name = 'Person Days Per Event'
+    ),
+    personOutcomesPe = reactable::colDef(
+      name = 'Person Outcomes Per Event'
+    ),
+    outcomesPe = reactable::colDef(
+      name = 'Outcomes Per Event'
+    ),
+    personsAtRiskPe = reactable::colDef(
+      name = 'Person At Risk Per Event'
+    ),
+    tarStartWith = reactable::colDef(show = FALSE),
+    tarStartOffset = reactable::colDef(show = FALSE),
+    tarEndWith = reactable::colDef(show = FALSE),
+    tarEndOffset = reactable::colDef(show = FALSE),
+    subgroupName = reactable::colDef(show = FALSE)
   )
   
 }
