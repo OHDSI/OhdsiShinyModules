@@ -75,9 +75,9 @@ resultTableViewer <- function(
 #' @return shiny module server
 #' @family {Utils}
 resultTableServer <- function( # add column for selected columns as a reactive
-    id, #string
+    id = "result-table", #string
     df, #data.frame
-    colDefsInput,
+    colDefsInput = NULL,
     columnGroups = NULL,
     details = data.frame(), # details about the data.frame such as target and database name
     selectedCols = NULL,
@@ -89,8 +89,6 @@ resultTableServer <- function( # add column for selected columns as a reactive
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      print(elementId)
       
       # convert a data.frame to a reactive
       if(!inherits(df, 'reactive')){
