@@ -426,7 +426,11 @@ characterizationGetRiskFactorData <- function(
     databaseTable = resultDatabaseSettings$databaseTable, 
     targetId =  targetId, 
     outcomeId = outcomeId, 
-    databaseId = databaseId
+    databaseId = databaseId,
+    riskWindowStart = tar$riskWindowStart,
+    riskWindowEnd = tar$riskWindowEnd,
+    startAnchor = tar$startAnchor,
+    endAnchor = tar$endAnchor
   ) 
   
   message(paste0('Extracted ',nrow(continuous),' continuous RF rows'))
