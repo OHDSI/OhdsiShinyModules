@@ -206,7 +206,7 @@ characterizationCohortComparisonServer <- function(
               resultDatabaseSettings = resultDatabaseSettings,
               targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow$cohortId),
               databaseIds = databaseIds()[databaseNames() == input$databaseName],
-              minThreshold = 0.01
+              minThreshold = 0
             )
             
             resultTable <- result$covariates
