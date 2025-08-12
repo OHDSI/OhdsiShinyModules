@@ -443,7 +443,9 @@ estimationSccsFullResultServer <- function(
             covariateId = row$covariateId,
             databaseId = row$databaseId,
             analysisId = row$analysisId,
+            indicationId = row$indicationId,
             eraId = row$eraId,
+            covariateAnalysisId = row$covariateAnalysisId,
             exposuresOutcomeSetId = row$exposuresOutcomeSetId
           )
           plotControlEstimates(
@@ -745,6 +747,8 @@ estimationGetSccsControlEstimates <- function(
     analysisId,
     covariateId,
     eraId,
+    indicationId = NULL,
+    covariateAnalysisId,
     exposuresOutcomeSetId = NULL
 ) {
   
@@ -753,7 +757,8 @@ estimationGetSccsControlEstimates <- function(
   r.calibrated_ci_95_lb, r.calibrated_ci_95_ub, r.calibrated_log_rr,
   r.calibrated_se_log_rr, r.exposures_outcome_set_id,
   e.true_effect_size, c.exposures_outcome_set_id,
-  eos.nesting_cohort_id as indication_id
+  eos.nesting_cohort_id as indication_id,
+  e.era_id
   
   FROM 
   @schema.@sccs_table_prefixresult r
@@ -777,8 +782,10 @@ estimationGetSccsControlEstimates <- function(
    AND r.analysis_id = @analysis_id
    AND r.covariate_id = @covariate_id
    AND e.true_effect_size is not NULL
+  {@use_indication_id}?{AND eos.nesting_cohort_id = @indication_id}
+   AND c.covariate_analysis_id = @covariate_analysis_id
    
-   -- AND e.era_id = @era_id
+   AND e.era_id = @era_id
   ;
   "
   
@@ -790,9 +797,13 @@ estimationGetSccsControlEstimates <- function(
     covariate_id = covariateId,
     analysis_id = analysisId,
     era_id = eraId,
+    use_indication_id = !is.null(indicationId),
+    indication_id = indicationId,
+    covariate_analysis_id = covariateAnalysisId,
     snakeCaseToCamelCase = TRUE
   )
   
+
   # get ease for the plot
   sql <- "SELECT top 1 ds.ease
   FROM @schema.@sccs_table_prefixdiagnostics_summary ds
