@@ -752,6 +752,14 @@ estimationGetSccsControlEstimates <- function(
     exposuresOutcomeSetId = NULL
 ) {
   
+  # convert any NA values to NULL
+  if(is.na(indicationId)){
+    indicationId <- NULL
+  }
+  if(is.na(exposuresOutcomeSetId)){
+    exposuresOutcomeSetId <- NULL
+  }
+  
   sql <- "
   SELECT r.ci_95_lb, r.ci_95_ub, r.log_rr, r.se_log_rr, 
   r.calibrated_ci_95_lb, r.calibrated_ci_95_ub, r.calibrated_log_rr,
