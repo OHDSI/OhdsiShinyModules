@@ -753,11 +753,10 @@ estimationGetSccsControlEstimates <- function(
 ) {
   
   # convert any NA values to NULL
-  if(is.na(indicationId)){
-    indicationId <- NULL
-  }
-  if(is.na(exposuresOutcomeSetId)){
-    exposuresOutcomeSetId <- NULL
+  if(!is.null(indicationId)){
+    if(is.na(indicationId)){
+      indicationId <- NULL
+    }
   }
   
   sql <- "

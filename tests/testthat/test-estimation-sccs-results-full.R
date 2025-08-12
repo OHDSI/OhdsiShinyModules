@@ -194,7 +194,8 @@ test_that("Test estimationGetSccsControlEstimates", {
     databaseId = 'eunomia',
     analysisId = 1,
     covariateId = 1000,
-    eraId = 3
+    eraId = 3,
+    covariateAnalysisId = 1001
 ) 
   
   testthat::expect_true(inherits(result$plotResult, 'data.frame'))
