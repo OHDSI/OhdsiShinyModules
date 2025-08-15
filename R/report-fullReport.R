@@ -349,7 +349,7 @@ fullReportServer <- function(
                 webApiPassword = NULL,
                 outputLocation = tempdir(), 
                 outputName = 'full_report.html', 
-                pathToDriver = '/Users/jreps/Documents/drivers'
+                pathToDriver = Sys.getenv("DATABASECONNECTOR_JAR_FOLDER")
               )
               showDownload(TRUE)
               shiny::incProgress(1, detail = "Done")
