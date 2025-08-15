@@ -78,7 +78,46 @@ fullReportServer <- function(
         selectedRowId = selectedTargetRowId, # must be reactive
         helpText = 'Click the button to select your targets',
         selectMultiple = FALSE,
-        inputColumns = NULL,
+        inputColumns = list(
+          cohortId = reactable::colDef(name = 'Cohort ID'),
+          cohortName = reactable::colDef(name = 'Cohort Name'),
+          indicationIds = reactable::colDef(show = FALSE),
+          cohortIncidence = reactable::colDef(
+            name = 'Incidence',
+            cell = function(value) {
+              # Render as an X mark or check mark
+              if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+            }
+          ), 
+          characterization = reactable::colDef(
+            name = 'Characterization',
+            cell = function(value) {
+              # Render as an X mark or check mark
+              if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+            }
+          ),
+          cohortMethod = reactable::colDef(
+            name = 'Cohort Method',
+            cell = function(value) {
+              # Render as an X mark or check mark
+              if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+            }
+          ),
+          selfControlledCaseSeries = reactable::colDef(
+            name = 'SCCS',
+            cell = function(value) {
+              # Render as an X mark or check mark
+              if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+            }
+          ),
+          prediction = reactable::colDef(
+            name = 'Prediction',
+            cell = function(value) {
+              # Render as an X mark or check mark
+              if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+            }
+          )
+        ),
         #displayColumns = inputColumns,
         elementId = session$ns('target-select-element'),
         selectButtonText = 'Select Target/s',
@@ -105,7 +144,45 @@ fullReportServer <- function(
         selectedRowId = selectedOutcomeRowIds, # must be reactive
         helpText = 'Click the button to select your outcome',
         selectMultiple = TRUE,
-        inputColumns = NULL,
+        inputColumns = list(
+          cohortId = reactable::colDef(name = 'Cohort ID'),
+          cohortName = reactable::colDef(name = 'Cohort Name'),
+          cohortIncidence = reactable::colDef(
+            name = 'Incidence',
+            cell = function(value) {
+              # Render as an X mark or check mark
+              if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+            }
+          ), 
+          riskFactors = reactable::colDef(
+            name = 'Risk Factors',
+            cell = function(value) {
+              # Render as an X mark or check mark
+              if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+            }
+          ),
+          cohortMethod = reactable::colDef(
+            name = 'Cohort Method',
+            cell = function(value) {
+              # Render as an X mark or check mark
+              if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+            }
+          ),
+          selfControlledCaseSeries = reactable::colDef(
+            name = 'SCCS',
+            cell = function(value) {
+              # Render as an X mark or check mark
+              if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+            }
+          ),
+          prediction = reactable::colDef(
+            name = 'Prediction',
+            cell = function(value) {
+              # Render as an X mark or check mark
+              if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+            }
+          )
+          ),
         #displayColumns = inputColumns,
         elementId = session$ns('outcome-select-element'),
         selectButtonText = 'Select Outcome/s',
@@ -180,16 +257,12 @@ fullReportServer <- function(
               }
             }
             
-            # TODO remove - used for testing
-            print(targetIds)
-            
             # get outcome options
-            outcomeVal <- OhdsiReportGenerator::getOutcomeTable(
+            outcomeVal <- getFullReportOutcomes(
               connectionHandler = connectionHandler,
-              schema = resultDatabaseSettings$schema, 
-              targetId = targetIds
-            ) %>% 
-              dplyr::select("cohortName", "cohortId", "cohortIncidence", "riskFactors", "cohortMethod", "selfControlledCaseSeries", "prediction" )
+              resultDatabaseSettings = resultDatabaseSettings,
+              targetIds = targetIds
+            )
             
             outcomes(outcomeVal)
             
@@ -198,6 +271,8 @@ fullReportServer <- function(
         }
       )
       
+      
+      fileName <- shiny::reactiveVal('full-report.html')
       
       shiny::observeEvent(
         selectedOutcomeRowIds(),
@@ -219,6 +294,13 @@ fullReportServer <- function(
             )
             selections(tempSelections)
             
+            
+            fileNameTemp <- paste0('full-report-',
+                                   paste(tempSelections$cohortId, 
+                                   collapse = '-'),
+                                   '.html')
+            fileName(fileNameTemp)
+            
           }
           
         }
@@ -232,17 +314,11 @@ fullReportServer <- function(
         
         shiny::div(
           
-          shiny::fluidRow(
-            shiny::column(
-              width = 12,
-              shiny::p('First generate the protocol and then download')
-            )
-          ),
-          
-          shiny::fluidRow(
-            shiny::column(
-              width = 12,
-              shiny::p('Selected input review: '),
+          shinydashboard::box(
+            title = 'Review Inputs', 
+            solidHeader = TRUE, 
+            width = 12, 
+            collapsible = TRUE,
               
               reactable::reactable( # replace this with selection
                 data = selections(),
@@ -264,6 +340,12 @@ fullReportServer <- function(
                   
               )
                
+            ),
+          
+          shiny::fluidRow(
+            shiny::column(
+              width = 12,
+              shiny::helpText('First generate the protocol (this can take 5+ minutes) and then click the download button that appears once the report is ready to download.')
             )
           ),
           
@@ -301,15 +383,16 @@ fullReportServer <- function(
         eventExpr = input$generate, 
         handlerExpr = {
           
-          print(names(input))
+          #print(names(input))
           #getCohortNames <- unlist(lapply(1:nrow(selections()), function(ind) input[[session$ns(paste0('names_',ind))]]))
           #print(getCohortNames)
           
           shiny::withProgress(
-            message = 'Cleaning files', value = 0, {
-              # remove file is exists
-              if(file.exists(file.path(tempdir(), 'full_report.html'))){
-                file.remove(file.path(tempdir(), 'full_report.html'))
+            message = 'Generating report', value = 0, {
+              # remove file is exists - was used when name was always the same
+              # TODO should we skip and show the generate if exists??
+              if(file.exists(file.path(tempdir(), fileName() ))){
+                file.remove(file.path(tempdir(), fileName()))
                 showDownload(FALSE)
               };
               
@@ -325,11 +408,6 @@ fullReportServer <- function(
                 }
                 indicationIds <- unique(indicationTemp$cohortId)
               }
-              
-              
-              print(fullReportTargets$cohortId[selectedTargetRowId()])
-              print(outcomes()$cohortId[selectedOutcomeRowIds()])
-              print(indicationIds)
               
               OhdsiReportGenerator::generateFullReport(
                 server = server, 
@@ -348,7 +426,7 @@ fullReportServer <- function(
                 webApiUsername = NULL,
                 webApiPassword = NULL,
                 outputLocation = tempdir(), 
-                outputName = 'full_report.html', 
+                outputName = fileName(), 
                 pathToDriver = Sys.getenv("DATABASECONNECTOR_JAR_FOLDER")
               )
               showDownload(TRUE)
@@ -361,9 +439,9 @@ fullReportServer <- function(
           paste("full_report-", Sys.Date(), ".html", sep="")
         }, 
         content = function(file){
-          if(file.exists(file.path(tempdir(), 'full_report.html'))){
+          if(file.exists(file.path(tempdir(), fileName()))){
             file.copy(
-              from = file.path(tempdir(), 'full_report.html'), 
+              from = file.path(tempdir(), fileName()), 
               to = file
             )
           }
@@ -387,14 +465,15 @@ processFullReportTargets <- function(targets){
       cohortIncidence = max(.data$cohortIncidence, na.rm = TRUE),
       characterization = max(.data$riskFactors, na.rm = TRUE),
       cohortMethod = max(.data$cohortMethod, na.rm = TRUE),
-      selfControlledCaseSeries = max(.data$selfControlledCaseSeries, na.rm = TRUE)
+      selfControlledCaseSeries = max(.data$selfControlledCaseSeries, na.rm = TRUE),
+      prediction = max(.data$prediction, na.rm = TRUE)
     ) %>%
     dplyr::rename(
       cohortName = "parentName",
       cohortId = "subsetParent"
     ) %>%
     dplyr::filter(
-      (.data$cohortIncidence + .data$characterization + .data$cohortMethod + .data$selfControlledCaseSeries) > 0
+      (.data$cohortIncidence + .data$characterization + .data$cohortMethod + .data$selfControlledCaseSeries + .data$prediction) > 0
     )
   
   return(result)
@@ -451,3 +530,28 @@ getFullReportInputs <- function(
   
 }
 
+
+getFullReportOutcomes <- function(
+    connectionHandler = connectionHandler,
+    resultDatabaseSettings = resultDatabaseSettings,
+    targetIds = targetIds
+){
+  
+  shiny::withProgress(
+    message = 'Finding outcomes', value = 0, {
+      shiny::incProgress(0.2, detail = "Looking in data")
+      
+      result <- OhdsiReportGenerator::getOutcomeTable(
+        connectionHandler = connectionHandler,
+        schema = resultDatabaseSettings$schema, 
+        targetId = targetIds
+      ) %>% 
+        dplyr::select("cohortName", "cohortId", "cohortIncidence", "riskFactors", "cohortMethod", "selfControlledCaseSeries", "prediction" ) %>%
+        dplyr::arrange(.data$cohortName)
+      
+      shiny::incProgress(1, detail = "Done")
+      
+    })
+  
+  return(result)
+}
