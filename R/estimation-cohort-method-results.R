@@ -51,7 +51,6 @@ estimationCmResultsServer <- function(
     connectionHandler,
     resultDatabaseSettings,
     targetIds,
-    comparatorIds,
     outcomeId
 ) {
   
@@ -67,31 +66,35 @@ estimationCmResultsServer <- function(
       
       # extract results from CM tables
       cmData <- shiny::reactive({
-        estimationGetCmResultData(
-          connectionHandler = connectionHandler,
-          resultDatabaseSettings = resultDatabaseSettings,
-          targetIds = targetIds,
-          comparatorIds = comparatorIds,
-          outcomeId = outcomeId
-        )
+        OhdsiReportGenerator::getCMEstimation(
+          connectionHandler = connectionHandler, 
+          schema = resultDatabaseSettings$schema, 
+          cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+          cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+          databaseTable = resultDatabaseSettings$databaseTable, 
+          targetIds = targetIds(), 
+          outcomeIds = outcomeId()
+            )
       })
         
       # extract results from ES tables if tables exist
       esData <- shiny::reactive({
         tryCatch(
           {
-            estimationGetCMMetaEstimation(
-              connectionHandler = connectionHandler,
-              resultDatabaseSettings = resultDatabaseSettings,
-              targetIds = targetIds,
-              outcomeId = outcomeId
+            OhdsiReportGenerator::getCmMetaEstimation(
+              connectionHandler = connectionHandler, 
+              schema = resultDatabaseSettings$schema, 
+              cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+              cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+              targetIds = targetIds(), 
+              outcomeIds = outcomeId()
             )
-          }, error = function(e){print('CM ES error');return(NULL)}
+          }, error = function(e){print(e);print('CM ES error');return(NULL)}
         )
       })
         
       data <- shiny::reactive({
-        rbind(cmData(), esData())
+        dplyr::bind_rows(cmData(), esData())
       })
       
       resultTableOutputs <- resultTableServer(
@@ -140,7 +143,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
     ),
     databaseId = reactable::colDef(show = FALSE),
     
-    cdmSourceAbbreviation = reactable::colDef(
+    databaseName = reactable::colDef(
       name = "Database",
       header = withTooltip(
         "Database",
@@ -156,7 +159,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
       )
     ),
     
-    target = reactable::colDef(
+    targetName = reactable::colDef(
       name = "Target",
       header = withTooltip(
         "Target",
@@ -173,7 +176,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
       )
     ),
     
-    comparator = reactable::colDef(
+    comparatorName = reactable::colDef(
       name= "Comparator",
       header = withTooltip(
         "Comparator",
@@ -190,7 +193,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
       )
     ),
     
-    outcome = reactable::colDef(
+    outcomeName = reactable::colDef(
       name = "Outcome",
       header = withTooltip(
         "Outcome",
@@ -279,6 +282,26 @@ estimationGetCmResultSummaryTableColDef <- function(){
       na = "-"
     ),
     
+    calibratedOneSidedP = reactable::colDef(
+      name = "Calibrated one-sided p-val",
+      header = withTooltip(
+        "Calibrated one-sided p-val",
+        "The one-sided p-value of the calibrated relative risk"
+      ), 
+      format = reactable::colFormat(digits = 4),
+      na = "-"
+    ),
+    nDatabases = reactable::colDef(
+      name = "No. Databases",
+      header = withTooltip(
+        "No. Databases",
+        "The number of databases used in the meta-analysis"
+      ), 
+      format = reactable::colFormat(digits = 0),
+      na = "-"
+    ),
+    
+    targetEstimator = reactable::colDef(show = FALSE),
     logRr = reactable::colDef(show = FALSE),
     seLogRr = reactable::colDef(show = FALSE),
     targetSubjects = reactable::colDef(show = FALSE),

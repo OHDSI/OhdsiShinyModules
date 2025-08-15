@@ -10,16 +10,9 @@ shiny::testServer(reportServer, args = list(
   #dbms = "postgresql"
 ), {
   
-  # input$cmTargetNext
-  # input$cmTargetPrevious
-  # input$comparatorNext
-  # input$comparatorPrevious
-  # input$outcomeNext
-  # input$outcomePrevious
-  # input$generatePrevious
+  session$setInputs(reportToShow = "Full Report")
   
-  session$setInputs(cmTargetNext = TRUE)
-  session$setInputs(cmTargetPrevious = TRUE)
+  session$setInputs(reportToShow = "Prediction Report")
   
 })
 

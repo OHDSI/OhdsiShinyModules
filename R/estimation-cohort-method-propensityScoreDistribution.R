@@ -85,9 +85,9 @@ cohortMethodPropensityScoreDistServer <- function(
             return(NULL) #TODO: handle more gracefully
           }
           
-          targetName <- row$target
+          targetName <- row$targetName
             
-          comparatorName <- row$comparator
+          comparatorName <- row$comparatorName
           
           equipoiseStatistic <- getCohortMethodEquipoise(
             connectionHandler = connectionHandler,

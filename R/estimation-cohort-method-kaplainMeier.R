@@ -82,8 +82,8 @@ cohortMethodKaplanMeierServer <- function(
           km$targetAtRisk[removeInd] <- NA
           km$comparatorAtRisk[removeInd] <- NA
           
-          targetName <- row$target
-          comparatorName <- row$comparator
+          targetName <- row$targetName
+          comparatorName <- row$comparatorName
           
           plot <- plotCohortMethodKaplanMeier(
             kaplanMeier = km,
@@ -120,7 +120,7 @@ cohortMethodKaplanMeierServer <- function(
       comparator curve (<em>%s</em>) applies reweighting to approximate the counterfactual of what the target survival
       would look like had the target cohort been exposed to the comparator instead. The shaded area denotes
       the 95 percent confidence interval."
-          return(shiny::HTML(sprintf(text, row$target, row$comparator)))
+          return(shiny::HTML(sprintf(text, row$targetName, row$comparatorName)))
         }
       })
       

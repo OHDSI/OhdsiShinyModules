@@ -93,12 +93,12 @@ cohortMethodAttritionServer <- function(
                                                                 })
       
       output$attritionPlotCaption <- shiny::renderUI({
-        if (is.null(selectedRow()$target)) {
+        if (is.null(selectedRow()$targetName)) {
           return(NULL)
         } else {
           text <- "<strong>Figure 1.</strong> Attrition diagram, showing the Number of subjects in the target (<em>%s</em>) and
       comparator (<em>%s</em>) group after various stages in the analysis."
-          return(shiny::HTML(sprintf(text, selectedRow()$target, selectedRow()$comparator)))
+          return(shiny::HTML(sprintf(text, selectedRow()$targetName, selectedRow()$comparatorName)))
         }
       })
       

@@ -14,7 +14,6 @@ shiny::testServer(
     connectionHandler = connectionHandlerEstimation,
     resultDatabaseSettings = resultDatabaseSettingsEstimation,
     targetIds = shiny::reactiveVal(1),
-    comparatorIds = shiny::reactiveVal(c(2,3)),
     outcomeId = shiny::reactiveVal(3)
   ), {
     

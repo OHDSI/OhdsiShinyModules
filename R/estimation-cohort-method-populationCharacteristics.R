@@ -66,7 +66,7 @@ cohortMethodPopulationCharacteristicsServer <- function(
           text <- "<strong>Table 2.</strong> Select characteristics before and after propensity score adjustment, showing the (weighted)
       percentage of subjects  with the characteristics in the target (<em>%s</em>) and comparator (<em>%s</em>) group, as
       well as the standardized difference of the means."
-          return(shiny::HTML(sprintf(text, row$target, row$comparator)))
+          return(shiny::HTML(sprintf(text, row$targetName, row$comparatorName)))
         }
       })
       
@@ -131,7 +131,7 @@ cohortMethodPopulationCharacteristicsServer <- function(
             ),
             sortable = FALSE,
             cell = function(value) {
-              if (value < 0) paste0("< ",abs(value*100) ,"%") else paste0(value*100, '%')
+              if (ifelse(is.na(value), 0, value) < 0) paste0("< ",abs(value*100) ,"%") else paste0(value*100, '%')
             }
           ),
           afterPsAdjustmentMeanComparator = reactable::colDef(
@@ -141,7 +141,7 @@ cohortMethodPopulationCharacteristicsServer <- function(
             ),
             sortable = FALSE,
             cell = function(value) {
-              if (value < 0) paste0("< ",abs(value*100) ,"%") else paste0(value*100, '%')
+              if (ifelse(is.na(value), 0, value) < 0) paste0("< ",abs(value*100) ,"%") else paste0(value*100, '%')
             }
           ),
           absAfterPsAdjustmentStdDiff = reactable::colDef(

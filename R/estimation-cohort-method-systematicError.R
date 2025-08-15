@@ -72,6 +72,7 @@ cohortMethodSystematicErrorServer <- function(
       systematicErrorPlot <- shiny::reactive({
         row <- selectedRow()
         if (is.null(row)) {
+          shiny::showNotification('No row selected')
           return(NULL)
         } else {
           controlResults <- getCohortMethodControlResults(
@@ -82,6 +83,11 @@ cohortMethodSystematicErrorServer <- function(
             analysisId = row$analysisId,
             databaseId = row$databaseId
             )
+          
+          if(nrow(controlResults) == 0){
+            shiny::showNotification('No result to plot')
+            return(NULL)
+          }
           
           ease <- estimationGetEase(
             connectionHandler = connectionHandler,
@@ -226,6 +232,7 @@ plotCohortMethodScatter <- function(controlResults, ease = NULL) {
   d <- d[!is.na(d$ci95Lb), ]
   d <- d[!is.na(d$ci95Ub), ]
   if (nrow(d) == 0) {
+    shiny::showNotification('No result to plot')
     return(NULL)
   }
   d$Group <- as.factor(d$trueRr)

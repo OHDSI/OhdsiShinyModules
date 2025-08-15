@@ -18,14 +18,14 @@ shiny::testServer(
     selectedRow(
       list(
         databaseId = '1', 
-        cdmSourceAbbreviation = 'Eunomia', 
+        databaseName = 'Eunomia', 
         description  = 'madeup',
-        target = 'test target',
+        targetName = 'test target',
         targetId = 1,
         comparatorId = 2, 
-        comparator = 'test comparator',
+        comparatorName = 'test comparator',
         outcomeId = 3,
-        outcome = 'test outcome',
+        outcomeName = 'test outcome',
         psStrategy = '',
         analysisId = 2, 
         psStrategy = '', 

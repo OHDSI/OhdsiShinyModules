@@ -9,10 +9,10 @@ test_that("Test cm plot ui", {
 cmData <- function()
 {
   return(data.frame(
-    databaseName = 1,
-    cdmSourceAbbreviation = 'eunomia',
-    target = 'target',
-    comparator = 'comp',
+    databaseId = 1,
+    databaseName = 'eunomia',
+    targetName = 'target',
+    comparatorName = 'comp',
     covariateName = 1,
     description = 'fgfgf',
     calibratedRr = 1.2,
@@ -62,10 +62,10 @@ test_that("Test estimationCreateCmPlot", {
   data <- function()
   {
     return(data.frame(
-      databaseName = 1,
-      cdmSourceAbbreviation = 'eunomia',
-      target = 'target',
-      comparator = 'comp',
+      databaseId = 1,
+      databaseName = 'eunomia',
+      targetName = 'target',
+      comparatorName = 'comp',
       covariateName = 1,
       description = 'fgfgf',
       calibratedRr = 1.2,

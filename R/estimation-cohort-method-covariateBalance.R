@@ -494,17 +494,6 @@ getCohortMethodCovariateBalanceSummary <- function(
   
 }
 
-# what is the purpose of below?
-cmDiagnostics <- shiny::reactive({
-  estimationGetCmDiagnostics(
-    connectionHandler = connectionHandler,
-    resultDatabaseSettings = resultDatabaseSettings,
-    targetIds =  targetIds,
-    comparatorIds = comparatorIds,
-    outcomeId = outcomeId
-  )
-})
-
 
 
 plotCohortMethodCovariateBalanceScatterPlotNew <- function(
