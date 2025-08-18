@@ -279,6 +279,7 @@ fullReportServer <- function(
         {
           
           output$showGenerate <- shiny::reactive(0)
+          showDownload(FALSE)
           
           if(selectedOutcomeRowIds()[1] != 0){
             
