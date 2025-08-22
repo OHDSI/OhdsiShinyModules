@@ -66,7 +66,7 @@ estimationCmResultsServer <- function(
       
       # extract results from CM tables
       cmData <- shiny::reactive({
-        OhdsiReportGenerator::getCMEstimation(
+        res <- OhdsiReportGenerator::getCMEstimation(
           connectionHandler = connectionHandler, 
           schema = resultDatabaseSettings$schema, 
           cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
@@ -74,7 +74,14 @@ estimationCmResultsServer <- function(
           databaseTable = resultDatabaseSettings$databaseTable, 
           targetIds = targetIds(), 
           outcomeIds = outcomeId()
-            )
+            ) 
+        if(nrow(res) > 0){
+         res <- res %>%
+          dplyr::mutate(
+            outcomes = .data$targetOutcomes  + .data$comparatorOutcomes
+          )
+        } 
+        return(res)
       })
         
       # extract results from ES tables if tables exist
@@ -315,11 +322,13 @@ estimationGetCmResultSummaryTableColDef <- function(){
     targetDays = reactable::colDef(show = FALSE),
     comparatorDays  = reactable::colDef(show = FALSE),
     targetOutcomes = reactable::colDef(
-      name = 'Target Outcome Count',
-      show = TRUE
+      show = FALSE
     ),
     comparatorOutcomes  = reactable::colDef(
-      name = 'Comparator Outcome Count',
+      show = FALSE
+    ),
+    outcomes = reactable::colDef(
+      name = 'Outcome Count',
       show = TRUE
     ),
     calibratedLogRr = reactable::colDef(show = FALSE),
