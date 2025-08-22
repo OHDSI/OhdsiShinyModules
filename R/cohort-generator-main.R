@@ -334,14 +334,22 @@ cohortGeneratorServer <- function(
       
       output$cohortDefinitionCohortSelect <- shiny::renderUI(
         shiny::tagList(
-        shiny::selectInput(
-          inputId = session$ns('selectedCohortDefRow'), 
-          label = 'Cohort:', 
-          choices = cohortDefInputs, 
-          selected = 1,
-          multiple = FALSE, 
-          selectize = FALSE
-        ),
+          shinyWidgets::pickerInput(
+            inputId = session$ns('selectedCohortDefRow'),
+            label = 'Cohort: ',
+            choices = cohortDefInputs,
+            selected = cohortDefInputs[1],
+            multiple = FALSE,
+            options = shinyWidgets::pickerOptions(
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              dropupAuto = F,
+              #size = 10,
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 500
+            )
+          ),
         shiny::actionButton(
           inputId = session$ns('generate_cohort_def'),
           label = 'Generate'
