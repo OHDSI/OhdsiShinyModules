@@ -304,12 +304,24 @@ estimationGetCmResultSummaryTableColDef <- function(){
     targetEstimator = reactable::colDef(show = FALSE),
     logRr = reactable::colDef(show = FALSE),
     seLogRr = reactable::colDef(show = FALSE),
-    targetSubjects = reactable::colDef(show = FALSE),
-    comparatorSubjects  = reactable::colDef(show = FALSE),
+    targetSubjects = reactable::colDef(
+      name = 'Target Count',
+      show = TRUE
+      ),
+    comparatorSubjects  = reactable::colDef(
+      name = 'Comparator Count',
+      show = TRUE
+    ),
     targetDays = reactable::colDef(show = FALSE),
     comparatorDays  = reactable::colDef(show = FALSE),
-    targetOutcomes = reactable::colDef(show = FALSE),
-    comparatorOutcomes  = reactable::colDef(show = FALSE),
+    targetOutcomes = reactable::colDef(
+      name = 'Target Outcome Count',
+      show = TRUE
+    ),
+    comparatorOutcomes  = reactable::colDef(
+      name = 'Comparator Outcome Count',
+      show = TRUE
+    ),
     calibratedLogRr = reactable::colDef(show = FALSE),
     calibratedSeLogRr = reactable::colDef(show = FALSE),
     calibratedSeLogRr = reactable::colDef(show = FALSE),

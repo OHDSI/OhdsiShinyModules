@@ -118,10 +118,16 @@ estimationGetSccsResultSummaryTableColDef <- function(){
     outcomeSubjects = reactable::colDef(show = FALSE),
     outcomeEvents = reactable::colDef(show = FALSE),
     outcomeObservationPeriods = reactable::colDef(show = FALSE),
-    covariateSubjects = reactable::colDef(show = FALSE),
+    covariateSubjects = reactable::colDef(
+      name = 'Persons exposed', 
+      show = TRUE
+      ), # target
     covariateDays = reactable::colDef(show = FALSE),
     covariateEras = reactable::colDef(show = FALSE),
-    covariateOutcomes = reactable::colDef(show = FALSE),
+    covariateOutcomes = reactable::colDef(
+      name = 'Outcomes while exposed', 
+      show = TRUE
+      ), # outcome
     observedDays = reactable::colDef(show = FALSE),
     mdrr = reactable::colDef(show = FALSE),
     unblind = reactable::colDef(show = FALSE),
