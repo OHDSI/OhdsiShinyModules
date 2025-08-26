@@ -206,12 +206,19 @@ characterizationRiskFactorServer <- function(
           
           output$showRiskFactors <- shiny::reactive(0)
           shiny::showNotification('Need to set all inputs')
-        } else{
-          
-          if(nrow(reactiveTargetRow()) == 0 | nrow(reactiveOutcomeRow) == 0){
+        } else if(nrow(reactiveTargetRow()) == 0 | nrow(reactiveOutcomeRow) == 0){
             output$showRiskFactors <- shiny::reactive(0)
             shiny::showNotification('Need to pick a target and outcome')
-          } else{
+        } else if(
+          is.na(reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]$startAnchor) |
+          is.na(reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]$riskWindowStart) |
+          is.na(reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]$endAnchor) |
+          is.na(reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]$riskWindowEnd)
+        ){
+          output$showRiskFactors <- shiny::reactive(0)
+          shiny::showNotification('No valid TAR')
+        } else{
+            
             output$showRiskFactors <- shiny::reactive(1)
             
             selected(
@@ -229,7 +236,6 @@ characterizationRiskFactorServer <- function(
               dataFrameRow = selected,
               ncol = 1
             )
-            
             
             caseCount <- OhdsiReportGenerator::getCaseCounts(
               connectionHandler = connectionHandler,
@@ -375,7 +381,6 @@ characterizationRiskFactorServer <- function(
             )
             
           }
-        }
         
       })
    
