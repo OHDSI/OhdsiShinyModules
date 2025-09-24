@@ -191,8 +191,6 @@ characterizationCohortComparisonServer <- function(
         } else{
           if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveComparatorRow) > 0){
             
-            output$showCohortComp <- shiny::reactive(1)
-            
             selected(
               data.frame(
                 Target = reactiveTargetRow()$cohortName,
@@ -208,10 +206,19 @@ characterizationCohortComparisonServer <- function(
               databaseIds = databaseIds()[databaseNames() == input$databaseName],
               minThreshold = 0
             )
-            
             resultTable <- result$covariates
             countTable <- result$covRef
             
+            # if no results in database
+            if(is.null(countTable)){
+              shiny::showNotification('No covariate data for selected database')
+              output$showCohortComp <- shiny::reactive(0)
+            } else if(nrow(countTable) == 1){
+              shiny::showNotification(paste0('Unable to compare as only cohort ', unique(countTable$cohortName) ,' has covariate data in selected database.'))
+              output$showCohortComp <- shiny::reactive(0)
+            } else{
+              output$showCohortComp <- shiny::reactive(1)
+          
             output$helpTextBinary <- shiny::renderUI(
               shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts (restricted to first index date and requiring ",
                                      countTable$minPriorObservation[1]," days observation prior to index) with a history of each binary features across databases."))
@@ -511,12 +518,12 @@ characterizationCohortComparisonServer <- function(
               plotly::ggplotly(p, tooltip = "text")  # Use the custom hover text
             })
             } # if nrow >0
-            
+          } # end if counts not NULL
           } else{
             shiny::showNotification('Must select a comparison and target cohort')
             output$showCohortComp <- shiny::reactive(0)
           }
-        }
+        } 
         
       })
       

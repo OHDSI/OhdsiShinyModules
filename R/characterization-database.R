@@ -169,8 +169,6 @@ characterizationDatabaseComparisonServer <- function(
           shiny::showNotification('No databases selected')
         } else {
         
-        output$showDatabase <- shiny::reactive(1)
-        
         selectedDatabases <- paste0(input$databaseNames, collapse =  ', ')
         
         selected(
@@ -194,6 +192,12 @@ characterizationDatabaseComparisonServer <- function(
         
         resultTable <- result$covariates
         countTable <- result$covRef
+        
+        if(is.null(countTable)){
+          shiny::showNotification('No covariate data for selected database/s')
+          output$showDatabase <- shiny::reactive(0)
+        } else{
+        output$showDatabase <- shiny::reactive(1)
           
           output$helpTextBinary <- shiny::renderUI(
             shiny::helpText(paste0("This analysis shows the fraction of patients in the target cohort (restricted to first index date and requiring ",
@@ -399,6 +403,7 @@ characterizationDatabaseComparisonServer <- function(
           )
           
           plotResult(result)
+        } # if countTable not NULL
         }
         }
       })
