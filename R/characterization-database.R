@@ -255,12 +255,16 @@ characterizationDatabaseComparisonServer <- function(
           groupColumns <- list()
           
           for(i in 1:nrow(countTable)){
-            groupColumns[[length(groupColumns) + 1]] <- reactable::colGroup(
-              name = paste0(countTable$databaseName[i], ' with ',countTable$minPriorObservation[i] ,' days prior obs (N = ',countTable$n[i],')'), 
-              columns = c(
-                paste0('sumValue_',countTable$id[i]), 
-                paste0('averageValue_',countTable$id[i]))
-            )
+            # check columns exist
+            columnInResultTable <- length(grep(paste0('sumValue_',countTable$id[i]), colnames(resultTable))) > 0 
+            if(columnInResultTable){
+              groupColumns[[length(groupColumns) + 1]] <- reactable::colGroup(
+                name = paste0(countTable$databaseName[i], ' with ',countTable$minPriorObservation[i] ,' days prior obs (N = ',countTable$n[i],')'), 
+                columns = c(
+                  paste0('sumValue_',countTable$id[i]), 
+                  paste0('averageValue_',countTable$id[i]))
+              )
+            }
           }
           
           # how to add counts here - in details?
@@ -293,17 +297,22 @@ characterizationDatabaseComparisonServer <- function(
           continuousCols <- characterizationCohortsColumnsContinuous()
           
           for(i in 1:nrow(countTable)){
-            groupColumnsContinuous[[length(groupColumnsContinuous) + 1]] <- reactable::colGroup(
-              name = paste0(countTable$databaseName[i], ' with ',countTable$minPriorObservation[i] ,' days prior obs (N = ',countTable$n[i],')'), 
-              columns = c(
-                paste0('countValue_',countTable$id[i]), 
-                paste0('averageValue_',countTable$id[i]),
-                paste0('standardDeviation_',countTable$id[i]),
-                paste0('medianValue_',countTable$id[i]),
-                paste0('minValue_',countTable$id[i]),
-                paste0('maxValue_',countTable$id[i])
-            )
-            )
+            
+            # check column is in continousTable
+            columnInContinuousTable <- length(grep(paste0('countValue_',countTable$id[i]), colnames(continuousTable))) > 0 
+            if(columnInContinuousTable){
+              groupColumnsContinuous[[length(groupColumnsContinuous) + 1]] <- reactable::colGroup(
+                name = paste0(countTable$databaseName[i], ' with ',countTable$minPriorObservation[i] ,' days prior obs (N = ',countTable$n[i],')'), 
+                columns = c(
+                  paste0('countValue_',countTable$id[i]), 
+                  paste0('averageValue_',countTable$id[i]),
+                  paste0('standardDeviation_',countTable$id[i]),
+                  paste0('medianValue_',countTable$id[i]),
+                  paste0('minValue_',countTable$id[i]),
+                  paste0('maxValue_',countTable$id[i])
+                )
+              )
+            }
             
             newCols <- list(
               countValue = reactable::colDef(
