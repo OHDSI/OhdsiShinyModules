@@ -3,7 +3,7 @@ test_that("Large Data Table R6 Class works", {
   # Create connection handler
   cdTest <- DatabaseConnector::createConnectionDetails(dbms = "sqlite", server = ":memory:")
   ch <- ResultModelManager::ConnectionHandler$new(cdTest)
-  on.exit(ch$finalize())
+  on.exit(ch$closeConnection())
   # 1 million random rows
   bigData <- data.frame(row_id = 1:1e6, value = stats::runif(1e6))
   DatabaseConnector::insertTable(ch$getConnection(), data = bigData, tableName = "big_table")

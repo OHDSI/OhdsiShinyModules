@@ -401,7 +401,7 @@ cohortGeneratorServer <- function(
         json <- cohortDefData$parentJson[as.double(input$selectedCohortDefRow)]
         subset <- cohortDefData$subsetJson[as.double(input$selectedCohortDefRow)]
         isSubset <- cohortDefData$cohortDefinitionId[as.double(input$selectedCohortDefRow)] != cohortDefData$subsetParent[as.double(input$selectedCohortDefRow)]
-          
+        isTemplateCohort <- cohortDefData$isTemplatedCohort[as.double(input$selectedCohortDefRow)]
         noAttritionText <- ifelse(isSubset, 'Cannot display for cohorts with subset logic', 'No attrition results to display')
         
         selectedCohortDefInputs(
@@ -422,10 +422,35 @@ cohortGeneratorServer <- function(
             )
           )
         )
-        
 
-        # get the json 
-        if(isSubset){        
+        if (isTemplateCohort) {
+          selectedJson(
+            shinydashboard::box(
+              status = 'primary',
+              solidHeader = TRUE,
+              width = "100%",
+              title = 'JSON Code',
+              collapsible = T,
+              collapsed = F,
+              shiny::renderPrint({
+                cat(templateJson, sep = "\n")
+              })
+            )
+          )
+          selectedSql(
+            shinydashboard::box(
+              status = 'primary',
+              solidHeader = TRUE,
+              width = "100%",
+              title = 'SQL Code',
+              collapsible = T,
+              collapsed = F,
+              shiny::renderPrint({
+                cat("Template sql")
+              })
+            )
+          )
+        } else if (isSubset) {
           selectedJson(
           shinydashboard::box(
             status = 'primary', 
@@ -816,7 +841,7 @@ getCohortGeneratorCohortDefinition <- function(
     schema = resultDatabaseSettings$schema,
     cg_table_prefix = resultDatabaseSettings$cgTablePrefix
   )
-  
+
   parents <- result %>%
     dplyr::filter(.data$cohortDefinitionId == .data$subsetParent) %>%
     dplyr::select("json","cohortDefinitionId") %>%
@@ -879,26 +904,28 @@ getCohortGeneratorCohortMeta <- function(
     database_table = resultDatabaseSettings$databaseTable,
     database_table_prefix = resultDatabaseSettings$databaseTablePrefix
   )
-  
-  df2 <- df %>%
-    dplyr::mutate(
-      generationDuration = dplyr::case_when(
-        generationStatus == "COMPLETE"
-        ~ tryCatch(
+
+
+  if (nrow(df) > 0) {
+    df <- df %>%
+      dplyr::mutate(
+        generationDuration = dplyr::case_when(
+          generationStatus == "COMPLETE"
+            ~ tryCatch(
           {
             difftime(
               as.POSIXct(as.numeric(.data$endTime), origin = "1970-01-01"),
               as.POSIXct(as.numeric(.data$startTime), origin = "1970-01-01"),
-              units="mins"
+              units = "mins"
             )
           },
-          error = function(e){return(NA)}
-        ),
-        T ~ NA
+            error = function(e) { return(NA) }
+          ),
+          T ~ NA
+        )
       )
-    )
-  
-  return(df2)
+  }
+  return(df)
 }
 
 getCohortGeneratorCohortInclusionSummary <- function(
@@ -1018,25 +1045,25 @@ getCohortGenerationAttritionTable <- function(
         )
       
       attritionRowsFull <- cbind(attritionRows, rule)
-      
+
       startingCountsFull <- cbind(startingCounts, rule %>% dplyr::select("cohortName")) %>%
         dplyr::filter(.data$cohortDefinitionId %in% !!attritionRows$cohortDefinitionId)
-      
+
       attritionTable <- rbind(attritionTable, attritionRowsFull, startingCountsFull)
-      
+
     }
-    
+
   }
-  
+
   # change to unique as dplyr::distinct gave weird error
   attritionTableDistinct <- unique(attritionTable)
 
-  
+
   #adding drop counts
   attritionTableFinal <- attritionTableDistinct %>%
     dplyr::group_by(
-      .data$cdmSourceName, 
-      .data$cohortDefinitionId, 
+      .data$cdmSourceName,
+      .data$cohortDefinitionId,
       .data$modeId) %>%
     dplyr::mutate(
       dropCount = dplyr::case_when(
@@ -1045,37 +1072,37 @@ getCohortGenerationAttritionTable <- function(
       ),
       dropPerc = dplyr::case_when(
         is.na(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) ~ "0.00%",
-        TRUE ~  paste(
+        TRUE ~ paste(
           round(
-            (.data$dropCount/(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) * 100), 
+            (.data$dropCount / (dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) * 100),
             digits = 2
           ),
           "%",
-          sep="")
+          sep = "")
       ),
       retainPerc = dplyr::case_when(
         is.na(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) ~ "100.00%",
         TRUE ~ paste(
           round(
-            (.data$personCount/(dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) * 100), 
+            (.data$personCount / (dplyr::lag(.data$personCount, order_by = .data$ruleSequence)) * 100),
             digits = 2
           ),
           "%",
-          sep="")
-        
+          sep = "")
+
       )
     )
   #newdata <- mtcars[order(mpg, -cyl),]
   return(attritionTableFinal[order(attritionTableFinal$ruleSequence),])
-  
+
 }
 
 
 getCohortAttritionPlot <- function(data) {
-  
+
   #colorPal <- colorRampPalette(c("darkgreen", "green", "yellow", "orange", "red"))
-  
-  fig <- plotly::plot_ly() 
+
+  fig <- plotly::plot_ly()
   fig %>%
     plotly::add_trace(
       type = "funnel",
@@ -1088,12 +1115,12 @@ getCohortAttritionPlot <- function(data) {
       ),
       connector = list(fillcolor = "#e9e9bf"),
       text = data$dropCount,
-      hoverinfo = "percent initial+percent previous" ,
-      hovertemplate='% of Previous: %{percentPrevious:.2%}<br> % of Initial: %{percentInitial:.2%}</b><extra></extra>'
+      hoverinfo = "percent initial+percent previous",
+      hovertemplate = '% of Previous: %{percentPrevious:.2%}<br> % of Initial: %{percentInitial:.2%}</b><extra></extra>'
     ) %>%
     plotly::layout(title = "Cohort Attrition by Inclusion Rules",
                    yaxis = list(categoryarray = c(order(data$personCount, decreasing = T)))
     )
-  
+
 }
 
