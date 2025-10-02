@@ -828,8 +828,13 @@ getCohortGeneratorCohortDefinition <- function(
     connectionHandler, 
     resultDatabaseSettings
 ) {
-  
-  sql <- "SELECT cd.*, csd.json as subset_json
+
+  migrations <- getMigrations(connectionHandler, resultDatabaseSettings, "cg_")
+  tplMigrationPresent <- migrationPresent(migrations, 3)
+
+  sql <- "SELECT cd.*,
+    csd.json as subset_json,
+    {!@tpl_migration_present} ? {NULL as is_templated_cohort,}
   FROM @schema.@cg_table_prefixCOHORT_DEFINITION cd
   left join 
   @schema.@cg_table_prefixcohort_subset_definition csd
@@ -839,7 +844,8 @@ getCohortGeneratorCohortDefinition <- function(
   result <- connectionHandler$queryDb(
     sql = sql,
     schema = resultDatabaseSettings$schema,
-    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
+    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+    tpl_migration_present = tplMigrationPresent
   )
 
   parents <- result %>%
@@ -889,9 +895,14 @@ getCohortGeneratorCohortMeta <- function(
     connectionHandler, 
     resultDatabaseSettings
 ) {
-  
-  sql <- "SELECT cg.cohort_id, cg.cohort_name,
-  cg.generation_status, cg.start_time, cg.end_time, dt.cdm_source_name
+
+  sql <- "SELECT
+    cg.cohort_id, cg.cohort_name,
+    cg.generation_status,
+    cg.start_time,
+    cg.end_time,
+    dt.cdm_source_name,
+    cg.end_time - cg.start_time as generation_duration
   from @schema.@cg_table_prefixCOHORT_GENERATION cg
   join @schema.@database_table_prefix@database_table dt
   on cg.database_id = dt.database_id
