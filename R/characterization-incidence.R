@@ -610,16 +610,16 @@ characterizationIncidenceColumnDefs <- function(elementId){
     ),
     
     personDaysPe = reactable::colDef(
-      name = 'Person Days Per Event'
+      name = 'Person Days Pre Exclusion'
     ),
     personOutcomesPe = reactable::colDef(
-      name = 'Person Outcomes Per Event'
+      name = 'Person Outcomes Pre Exclusion'
     ),
     outcomesPe = reactable::colDef(
-      name = 'Outcomes Per Event'
+      name = 'Outcomes Pre Exclusion'
     ),
     personsAtRiskPe = reactable::colDef(
-      name = 'Person At Risk Per Event'
+      name = 'Person At Risk Pre Exclusion'
     ),
     tarStartWith = reactable::colDef(show = FALSE),
     tarStartOffset = reactable::colDef(show = FALSE),
