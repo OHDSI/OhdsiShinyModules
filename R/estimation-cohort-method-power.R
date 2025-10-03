@@ -180,25 +180,6 @@ cohortMethodPowerServer <- function(
         }
       })
       
-      # output$timeAtRiskTable <- shiny::renderTable({
-      #   row <- selectedRow()
-      #   if (is.null(row$target)) {
-      #     return(NULL)
-      #   } else {
-      #       followUpDist <- getCmFollowUpDist(
-      #         connectionHandler = connectionHandler,
-      #         resultDatabaseSettings = resultDatabaseSettings,
-      #         targetId = row$targetId,
-      #         comparatorId = row$comparatorId,
-      #         outcomeId = row$outcomeId,
-      #         databaseId = row$databaseId,
-      #         analysisId = row$analysisId
-      #       )
-      #     
-      #     table <- prepareCohortMethodFollowUpDistTable(followUpDist)
-      #     return(table)
-      #   }
-      # })
     })
 }
 
@@ -289,61 +270,49 @@ getCohortMethodAnalyses <- function(
     connectionHandler, 
     resultDatabaseSettings
 ) {
-  sql <- "
-  SELECT
-    cma.*
-  FROM
-    @schema.@cm_table_prefixanalysis cma
-  "
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      schema = resultDatabaseSettings$schema,
-      cm_table_prefix = resultDatabaseSettings$cmTablePrefix
-    )
+  
+  result <- OhdsiReportGenerator::getCmTable(
+    connectionHandler = connectionHandler, 
+    schema = resultDatabaseSettings$schema, 
+    table = 'analysis', 
+    cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+    databaseTable = resultDatabaseSettings$databaseTable
   )
+
+  return(result)
 }
 
 getCmFollowUpDist <- function(
     connectionHandler,
     resultDatabaseSettings,
-    targetId,
-    comparatorId,
-    outcomeId,
+    targetId = NULL,
+    comparatorId = NULL,
+    outcomeId = NULL,
     databaseId = NULL,
-    analysisId
+    analysisId = NULL
 ) {
   
   if(is.null(targetId)){
     return(NULL)
   }
   
-  sql <- "
-  SELECT
-    *
-  FROM
-    @schema.@cm_table_prefixfollow_up_dist cmfud
-  WHERE
-    cmfud.target_id = @target_id
-    AND cmfud.comparator_id = @comparator_id
-    AND cmfud.outcome_id = @outcome_id
-    AND cmfud.analysis_id = @analysis_id
-  "
-  if(!is.null(databaseId)) {
-    sql <- paste(sql, paste("AND cmfud.database_id = '@database_id'"), collapse = "\n")
-  }
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      schema = resultDatabaseSettings$schema,
-      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-      target_id = targetId,
-      comparator_id = comparatorId,
-      outcome_id = outcomeId,
-      analysis_id = analysisId,
-      database_id = databaseId
-    )
+  result <- OhdsiReportGenerator::getCmTable(
+    connectionHandler = connectionHandler, 
+    schema = resultDatabaseSettings$schema, 
+    table = 'follow_up_dist', 
+    cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+    databaseTable = resultDatabaseSettings$databaseTable,
+    targetIds = targetId,
+    comparatorIds = comparatorId,
+    outcomeIds = outcomeId,
+    analysisIds = analysisId,
+    databaseIds = databaseId
   )
+  
+  return(result)
+  
 }
 
 

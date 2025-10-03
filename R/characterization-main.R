@@ -184,6 +184,10 @@ characterizationServer <- function(
             )[analysesWithResults][1])
             
           } else{
+            # set values to take you back to start
+            outcomeTable(NULL)
+            output$analysesOptions <- NULL
+            resultType("") # update resultType to get UI to change 
             output$analysesOptions <- shiny::renderUI(shiny::helpText('No analyses results to show'))
           }
           

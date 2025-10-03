@@ -649,7 +649,7 @@ getDisplayTableColumnMinMaxWidth <- function(data,
       )
     )) * pixelMultipler) + padPixel # to pad for table icon like sort
     minWidth <-
-      min(
+      min( # replace stringr::str_length with nchar()
         stringr::str_length(columnNameFormatted) * pixelMultipler,
         maxWidth
       ) + padPixel

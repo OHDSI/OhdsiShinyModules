@@ -3,8 +3,8 @@ context("estimation-cohort-method-diagnostics")
 shiny::testServer(
   app = estimationCmDiagnosticServer, 
   args = list(
-    connectionHandler = connectionHandlerEstimation, 
-    resultDatabaseSettings = resultDatabaseSettingsEstimation,
+    connectionHandler = connectionHandlerCharacterization, 
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization,
     targetIds = shiny::reactiveVal(1),
     outcomeId = shiny::reactiveVal(3)
   ), 

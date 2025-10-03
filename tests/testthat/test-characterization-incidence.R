@@ -9,7 +9,7 @@ targetCohort <- OhdsiReportGenerator::getTargetTable(
 outcomeCohort <- OhdsiReportGenerator::getOutcomeTable(
   connectionHandler = connectionHandlerCharacterization,
   schema = resultDatabaseSettingsCharacterization$schema, 
-  targetId = targetCohort$cohortId[2],
+  targetId = targetCohort$cohortId[1],
   ciTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix
 )
 
@@ -48,9 +48,9 @@ shiny::testServer(
     data <- OhdsiReportGenerator::getIncidenceRates(
       connectionHandler = connectionHandler, 
       schema = resultDatabaseSettings$schema, 
-      ciTablePrefix = 'i_', 
-      targetIds = 1, 
-      outcomeIds = 3
+      ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix, 
+      targetIds = targetCohort$cohortId[1], 
+      outcomeIds = outcomeCohort$cohortId[1]
       )
     testthat::expect_true(nrow(data) > 0 )
     incidenceFullData(data)

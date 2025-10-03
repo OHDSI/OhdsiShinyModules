@@ -2,8 +2,8 @@ context("report-main")
 
 shiny::testServer(reportServer, args = list(
   id = "testReportServer",
-  connectionHandler = connectionHandlerEstimation,
-  resultDatabaseSettings = resultDatabaseSettingsEstimation#,
+  connectionHandler = connectionHandlerCharacterization,
+  resultDatabaseSettings = resultDatabaseSettingsCharacterization#,
   #server = Sys.getenv("RESULTS_SERVER"), 
   #username = Sys.getenv("RESULTS_USER"), 
   #password = Sys.getenv("RESULTS_PASSWORD"), 

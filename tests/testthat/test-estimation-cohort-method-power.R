@@ -1,23 +1,29 @@
 context("estimation-cohort-method-Power")
 
+test_that("Test cohortMethodPowerViewer ui", {
+  # Test ui
+  ui <- cohortMethodPowerViewer(id = 'cohortMethodPowerViewer')
+  checkmate::expect_list(ui)
+})
+
 shiny::testServer(
   app = cohortMethodPowerServer, 
   args = list(
     selectedRow = shiny::reactiveVal(NULL), 
-    connectionHandler = connectionHandlerEstimation, 
-    resultDatabaseSettings = resultDatabaseSettingsEstimation
+    connectionHandler = connectionHandlerCharacterization, 
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   ), 
   expr = {
     
     #testthat::expect_true(is.null(output$powerTable))
     
     followUp <- getCmFollowUpDist(
-      connectionHandler = connectionHandlerEstimation,
-      resultDatabaseSettings = resultDatabaseSettingsEstimation,
-      targetId = 1,
-      comparatorId = 2,
+      connectionHandler = connectionHandlerCharacterization,
+      resultDatabaseSettings = resultDatabaseSettingsCharacterization,
+      targetId = 1003,
+      comparatorId = 2003,
       outcomeId = 3,
-      databaseId = 'eunomia',
+      databaseId = '388020256',
       analysisId = 2
     )
     testthat::expect_true(nrow(followUp)>0)
@@ -28,15 +34,15 @@ shiny::testServer(
     # make sure this runs if we pick the first row
     selectedRow(
       data.frame(
-        databaseId = 'eunomia', 
-        databaseName = 'Eunomia', 
+        databaseId = '388020256', 
+        databaseName = 'Synthea', 
         description  = 'madeup',
-        targetName = 'test target',
-        targetId = 1,
-        comparatorId = 2, 
-        comparatorName = 'test comparator',
+        targetName = 'Celecoxib',
+        targetId = 1003,
+        comparatorId = 2003, 
+        comparatorName = 'Diclofenac',
         outcomeId = 3,
-        outcomeName = 'test outcome',
+        outcomeName = 'GI bleed',
         psStrategy = '',
         analysisId = 2, 
         psStrategy = '', 

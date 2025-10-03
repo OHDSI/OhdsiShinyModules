@@ -309,7 +309,7 @@ prepareTable1 <- function(covariates,
       .data$covariateId
     ) %>%
     dplyr::mutate(
-      covariateName = stringr::str_replace(
+      covariateName = stringr::str_replace( # replace with gsub
         string = .data$covariateName,
         pattern = "black or african american",
         replacement = "Black or African American"

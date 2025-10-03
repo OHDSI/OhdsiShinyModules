@@ -91,12 +91,27 @@ cohortMethodPopulationCharacteristicsServer <- function(
         groupBy = 'label',
         colDefsInput = list(
           databaseId = reactable::colDef(show = FALSE),
+          databaseName = reactable::colDef(show = FALSE),
+          targetName = reactable::colDef(show = FALSE),
+          targetId = reactable::colDef(show = FALSE),
+          outcomeName = reactable::colDef(show = FALSE),
+          outcomeId = reactable::colDef(show = FALSE),
+          comparatorName = reactable::colDef(show = FALSE),
+          comparatorId = reactable::colDef(show = FALSE),
+          stdDiffBefore = reactable::colDef(show = FALSE),
+          stdDiffAfter = reactable::colDef(show = FALSE),
+          meanBefore = reactable::colDef(show = FALSE),
+          meanAfter = reactable::colDef(show = FALSE),
+          targetStdDiff = reactable::colDef(show = FALSE),
+          comparatorStdDiff = reactable::colDef(show = FALSE),
+          targetComparatorStdDiff = reactable::colDef(show = FALSE),
           covariateId = reactable::colDef(show = FALSE),
           covariateName = reactable::colDef(
             name  = 'Covariate', 
             sortable = FALSE
             ), 
           analysisId = reactable::colDef(show = FALSE),
+          analysisDescription = reactable::colDef(show = FALSE),
           beforePsAdjustmentMeanTreated = reactable::colDef(
             name  = 'Before PS adjustment treated mean',
             format = reactable::colFormat(
@@ -173,46 +188,35 @@ getCohortMethodPopChar <- function(
   
   shiny::withProgress(message = 'Extracting population summary', value = 0, {
     
-    shiny::incProgress(1/6, detail = paste("Writing sql with outcome"))
-    sql <- "
-      SELECT
-        cmcb.database_id,
-        cmcb.covariate_id,
-        cmc.covariate_name, 
-        cmc.covariate_analysis_id analysis_id,
-        cmcb.target_mean_before before_ps_adjustment_mean_treated,
-        cmcb.comparator_mean_before before_ps_adjustment_mean_comparator,
-        abs(cmcb.std_diff_before) abs_before_ps_adjustment_std_diff,
-        cmcb.target_mean_after after_ps_adjustment_mean_treated,
-        cmcb.comparator_mean_after after_ps_adjustment_mean_comparator,
-        abs(cmcb.std_diff_after) abs_after_ps_adjustment_std_diff
-      FROM
-        (select * from  @schema.@cm_table_prefixcovariate_balance 
-        WHERE target_id = @target_id
-        AND comparator_id = @comparator_id
-        AND outcome_id = @outcome_id
-        AND analysis_id = @analysis_id
-        AND database_id = '@database_id'
-        ) as cmcb
-        INNER JOIN @schema.@cm_table_prefixcovariate cmc 
-        
-        ON cmcb.covariate_id = cmc.covariate_id 
-        AND cmcb.analysis_id = cmc.analysis_id 
-        AND cmcb.database_id = cmc.database_id -- database_id optional
-          
-    "
-    
     shiny::incProgress(1/3, detail = paste("Extracting"))
-    result <- connectionHandler$queryDb(
-      sql = sql,
-      schema = resultDatabaseSettings$schema,
-      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-      target_id = targetId,
-      comparator_id = comparatorId,
-      outcome_id = outcomeId,
-      analysis_id = analysisId,
-      database_id = databaseId
+    
+    result <- OhdsiReportGenerator::getCmTable(
+      connectionHandler = connectionHandler, 
+      schema = resultDatabaseSettings$schema, 
+      table = 'covariate_balance', 
+      cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+      cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+      databaseTable = resultDatabaseSettings$databaseTable, 
+      targetIds = targetId,
+      comparatorIds = comparatorId,
+      outcomeIds = outcomeId,
+      analysisIds = analysisId,
+      databaseIds = databaseId
     )
+    
+    shiny::incProgress(2/3, detail = paste("Processing"))
+    
+    result <- result %>% 
+      dplyr::rename(
+        beforePsAdjustmentMeanTreated = "targetMeanBefore",
+        beforePsAdjustmentMeanComparator = "comparatorMeanBefore",
+        afterPsAdjustmentMeanTreated = "targetMeanAfter",
+        afterPsAdjustmentMeanComparator = "comparatorMeanAfter"
+      ) %>%
+      dplyr::mutate(
+        absBeforePsAdjustmentStdDiff = abs(.data$stdDiffBefore),
+        absAfterPsAdjustmentStdDiff = abs(.data$stdDiffAfter)
+      )
     
     shiny::incProgress(3/3, detail = paste("Done - nrows: ", nrow(result)))
   })

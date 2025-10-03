@@ -1,23 +1,30 @@
 context("cohort-method-PropensityScoreDist")
 
+test_that("Test cohortMethodPropensityScoreDistViewer ui", {
+  # Test ui
+  ui <- cohortMethodPropensityScoreDistViewer(id = 'cohortMethodPropensityScoreDistViewer')
+  checkmate::expect_list(ui)
+})
+
+
 shiny::testServer(
   app = cohortMethodPropensityScoreDistServer, 
   args = list(
     selectedRow = shiny::reactiveVal(NULL), 
-    connectionHandler = connectionHandlerEstimation, 
-    resultDatabaseSettings = resultDatabaseSettingsEstimation
+    connectionHandler = connectionHandlerCharacterization, 
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   ), 
   expr = {
     
     testthat::expect_true(is.null(psDistPlot()))
     
     ps <- getCohortMethodPs(
-      connectionHandler = connectionHandlerEstimation, 
-      resultDatabaseSettings = resultDatabaseSettingsEstimation,
-      targetId = 1, 
-      comparatorId = 2, 
+      connectionHandler = connectionHandlerCharacterization, 
+      resultDatabaseSettings = resultDatabaseSettingsCharacterization,
+      targetId = 1002, 
+      comparatorId = 2002, 
       analysisId = 2, 
-      databaseId = 'eunomia'
+      databaseId = '388020256'
     )
     
     testthat::expect_true('preferenceScore' %in% colnames(ps))
@@ -27,15 +34,15 @@ shiny::testServer(
     # make sure this runs if we pick the first row
     selectedRow(
       list(
-        databaseId = 'eunomia', 
-        databaseName = 'Eunomia', 
+        databaseId = '388020256', 
+        databaseName = 'Synthea', 
         description  = 'madeup',
-        targetName = 'test target',
-        targetId = 1,
-        comparatorId = 2, 
-        comparatorName = 'test comparator',
+        targetName = 'Celecoxib',
+        targetId = 1002,
+        comparatorId = 2002, 
+        comparatorName = 'Diclofenac',
         outcomeId = 3,
-        outcomeName = 'test outcome',
+        outcomeName = 'GI bleed',
         psStrategy = '',
         analysisId = 2, 
         psStrategy = '', 

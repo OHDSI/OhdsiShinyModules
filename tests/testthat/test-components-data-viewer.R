@@ -15,7 +15,7 @@ shiny::testServer(
   expr = {
     
     testthat::expect_true(nrow(dfWithActions()) == 5)
-    testthat::expect_true(is.null(onClick))
+    testthat::expect_true(onClick == "select")
     
     testthat::expect_true(actionCount() == 0 )
     testthat::expect_true(actionIndex() == 0 )

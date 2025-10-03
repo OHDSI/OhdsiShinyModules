@@ -6,8 +6,8 @@ shiny::testServer(
   app = cohortMethodSystematicErrorServer, 
   args = list(
     selectedRow = shiny::reactiveVal(NULL), 
-    connectionHandler = connectionHandlerEstimation, 
-    resultDatabaseSettings = resultDatabaseSettingsEstimation
+    connectionHandler = connectionHandlerCharacterization, 
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   ), 
   expr = {
     
@@ -17,15 +17,16 @@ shiny::testServer(
     # select first row 
     selectedRow(
       list(
-        databaseId = '1', 
-        databaseName = 'Eunomia', 
+        databaseId = '388020256', 
+        databaseName = 'Synthea', 
+        analysisId = 1,
         description  = 'madeup',
-        targetName = 'test target',
-        targetId = 1,
-        comparatorId = 2, 
-        comparatorName = 'test comparator',
+        targetName = 'Celecoxib',
+        targetId = 1003,
+        comparatorId = 2003, 
+        comparatorName = 'Diclofenac',
         outcomeId = 3,
-        outcomeName = 'test outcome',
+        outcomeName = 'GI bleed',
         psStrategy = '',
         analysisId = 2, 
         psStrategy = '', 

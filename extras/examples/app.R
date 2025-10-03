@@ -7,17 +7,17 @@ library(markdown)
 options(java.parameters = "-Xss5m")
 
 # makes sure you have the database connection driver folder set up
-Sys.setenv(DATABASECONNECTOR_JAR_FOLDER = './drivers')
-if(!dir.exists('./drivers')){
-  dir.create('./drivers')
+Sys.setenv(DATABASECONNECTOR_JAR_FOLDER = file.path(getwd(),'drivers'))
+if(!dir.exists(file.path(getwd(),'drivers'))){
+  dir.create(file.path(getwd(),'drivers'))
   DatabaseConnector::downloadJdbcDrivers(
     dbms = 'postgresql',
-    pathToDriver = './drivers'
+    pathToDriver = file.path(getwd(),'drivers')
     )
 }
 
 # connection details to an example sqlite database in the package
-connectionDetails <- OhdsiShinyModules::getExampleConnectionDetails()
+connectionDetails <- OhdsiReportGenerator::getExampleConnectionDetails()
 schema <- "main"
 
 #Sys.setenv(RESULTS_SERVER = system.file("extdata", "results.sqlite", package = "OhdsiShinyModules"))

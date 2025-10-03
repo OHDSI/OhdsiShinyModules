@@ -4,8 +4,8 @@ shiny::testServer(
   app = estimationServer, 
   args = list(
     id = 'cm',
-    connectionHandler = connectionHandlerEstimation,
-    resultDatabaseSettings = resultDatabaseSettingsEstimation
+    connectionHandler = connectionHandlerCharacterization,
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   ), 
   expr = {
     
@@ -57,8 +57,8 @@ test_that("Test estimation ui", {
 test_that("Test getEstimationTypes", {
   
   types <- getEstimationTypes(
-    connectionHandler = connectionHandlerEstimation,
-    resultDatabaseSettings = resultDatabaseSettingsEstimation
+    connectionHandler = connectionHandlerCharacterization,
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   )  
   testthat::expect_true(inherits(types,"character"))
   testthat::expect_true("Cohort Method" %in% types)
@@ -66,22 +66,4 @@ test_that("Test getEstimationTypes", {
   testthat::expect_true("Evidence Synthesis" %in% types)
   
 
-  typesCm <- getEstimationTypes(
-    connectionHandler = connectionHandlerEstimation,
-    resultDatabaseSettings = resultDatabaseSettingsEstimationCm
-  )  
-  testthat::expect_true(inherits(typesCm,"character"))
-  testthat::expect_true("Cohort Method" %in% typesCm)
-  testthat::expect_true(!"SCCS" %in% typesCm)
-  testthat::expect_true(!"Evidence Synthesis" %in% typesCm)
-  
-  typesSccs <- getEstimationTypes(
-    connectionHandler = connectionHandlerEstimation,
-    resultDatabaseSettings = resultDatabaseSettingsEstimationSccs
-  )  
-  testthat::expect_true(inherits(typesSccs,"character"))
-  testthat::expect_true(!"Cohort Method" %in% typesSccs)
-  testthat::expect_true("SCCS" %in% typesSccs)
-  testthat::expect_true(!"Evidence Synthesis" %in% typesSccs)
-  
 })

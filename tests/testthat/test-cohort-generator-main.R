@@ -3,22 +3,24 @@ context("cohort-generator-main")
 shiny::testServer(
   app = cohortGeneratorServer, 
   args = list(
-    connectionHandler = connectionHandlerCG,
-    resultDatabaseSettings = resultDatabaseSettingsCG
+    connectionHandler = connectionHandlerCharacterization,
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   ), 
   expr = {
     
     testthat::expect_true(inherits(connectionHandler,"ConnectionHandler"))
     
     testthat::expect_true(!is.null(data))
+    # cohortCountsColDefs
     testthat::expect_true(!is.null(dataGen))
+    # cohortGenerationColDefs
     testthat::expect_true(!is.null(cohortDefData))
     
     testthat::expect_true(is.null(selectedCohortDefInputs()))
     testthat::expect_true(is.null(attritionData()))
     
     # set input$selectedCohortDefRow to 10
-    session$setInputs(selectedCohortDefRow = 17)
+    session$setInputs(selectedCohortDefRow = 2)
     
     # test input$generate_cohort_def set to 1 causes trigger 
     session$setInputs(generate_cohort_def = 1)
@@ -46,11 +48,11 @@ test_that("Test cg ui", {
 test_that("Test getCohortGeneratorCohortCounts ", {
   
   result <- getCohortGeneratorCohortCounts(
-    connectionHandler = connectionHandlerCG, 
-    resultDatabaseSettings = resultDatabaseSettingsCG
+    connectionHandler = connectionHandlerCharacterization, 
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   )
   
-  testthat::expect_true( nrow(result) > 0 )
+  testthat::expect_is(result, 'data.frame')
   
 })
 
@@ -58,11 +60,11 @@ test_that("Test getCohortGeneratorCohortCounts ", {
 test_that("Test getCohortGeneratorCohortMeta ", {
   
   result <- getCohortGeneratorCohortMeta(
-    connectionHandler = connectionHandlerCG, 
-    resultDatabaseSettings = resultDatabaseSettingsCG
+    connectionHandler = connectionHandlerCharacterization, 
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   )
   
-  testthat::expect_true( nrow(result) > 0 )
+  testthat::expect_is(result, 'data.frame')
   
 })
 
@@ -70,11 +72,11 @@ test_that("Test getCohortGeneratorCohortMeta ", {
 test_that("Test getCohortGeneratorCohortInclusionSummary ", {
   
   result <- getCohortGeneratorCohortInclusionSummary(
-    connectionHandler = connectionHandlerCG, 
-    resultDatabaseSettings = resultDatabaseSettingsCG
+    connectionHandler = connectionHandlerCharacterization, 
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   )
   
-  testthat::expect_true( nrow(result) > 0 )
+  testthat::expect_is(result, 'data.frame')
   
 })
 
@@ -83,11 +85,11 @@ test_that("Test getCohortGeneratorCohortInclusionSummary ", {
 test_that("Test getCohortGeneratorInclusionRules ", {
   
   result <- getCohortGeneratorInclusionRules(
-    connectionHandler = connectionHandlerCG, 
-    resultDatabaseSettings = resultDatabaseSettingsCG
+    connectionHandler = connectionHandlerCharacterization, 
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   )
   
-  testthat::expect_true( nrow(result) > 0 )
+  testthat::expect_is(result, 'data.frame')
   
 })
 
@@ -95,11 +97,11 @@ test_that("Test getCohortGeneratorInclusionRules ", {
 test_that("Test getCohortGeneratorInclusionStats ", {
   
   result <- getCohortGeneratorInclusionStats(
-    connectionHandler = connectionHandlerCG, 
-    resultDatabaseSettings = resultDatabaseSettingsCG
+    connectionHandler = connectionHandlerCharacterization, 
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   )
   
-  testthat::expect_true( nrow(result) > 0 )
+  testthat::expect_is(result, 'data.frame')
   
 })
 

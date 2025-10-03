@@ -16,123 +16,101 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-#' The module viewer for exploring prediction cut-off results 
-#'
-#' @details
-#' The user specifies the id for the module
-#'
-#' @param id  the unique reference id for the module
-#' @family PatientLevelPrediction
-#' @return
-#' The user interface to the prediction cut-off module
-#'
-#' @export
 patientLevelPredictionCutoffViewer <- function(id) {
   
   ns <- shiny::NS(id)
   
-  shiny::fluidRow(
+  shiny::div(
+    shinydashboard::box(
+      width = 12,
+      title = "Cutoff Slider: ",
+      status = "info", 
+      solidHeader = TRUE,
+      
+      shiny::fluidRow(
+        shiny::column(
+          width = 8,
+          
+          shiny::sliderInput(
+            inputId = ns("slider1"), 
+            shiny::span(
+              "Pick Threshold ", 
+              shiny::textOutput('threshold'), 
+              style="font-family: Arial;font-size:14px;"
+            ), 
+            min = 1, 
+            max = 100, 
+            value = 50, 
+            ticks = F
+          )
+        ),
+        shiny::column(
+          width = 4,
+          shinydashboard::infoBoxOutput(
+            outputId = ns("performanceBoxThreshold")
+          )
+        )
+      )
+    ),
     
-    shiny::column(width = 12,
-                  
-                  shinydashboard::box(
-                    width = 12,
-                    title = "Probability threshold plot: ",
-                    status = "info", 
-                    solidHeader = TRUE,
-                    plotly::plotlyOutput(ns("ptp"))                 
-                  ),
-                  
-                  shinydashboard::box(
-                    width = 12,
-                    title = "Cutoff Slider: ",
-                    status = "info", 
-                    solidHeader = TRUE,
-                    shiny::sliderInput(
-                      ns("slider1"), 
-                      shiny::span(
-                        "Pick Threshold ", 
-                        shiny::textOutput('threshold'), 
-                        style="font-family: Arial;font-size:14px;"
-                      ), 
-                      min = 1, 
-                      max = 100, 
-                      value = 50, 
-                      ticks = F
-                    )                  
-                  ),
-                  
-                  shinydashboard::box(
-                    width = 12,
-                    title = "Dashboard",
-                    status = "warning", solidHeader = TRUE,
-                    shinydashboard::infoBoxOutput(ns("performanceBoxThreshold")),
-                    shinydashboard::infoBoxOutput(ns("performanceBoxIncidence")),
-                    shinydashboard::infoBoxOutput(ns("performanceBoxPPV")),
-                    shinydashboard::infoBoxOutput(ns("performanceBoxSpecificity")),
-                    shinydashboard::infoBoxOutput(ns("performanceBoxSensitivity")),
-                    shinydashboard::infoBoxOutput(ns("performanceBoxNPV")
-                    )
-                  ),
-                  
-                  shinydashboard::box(
-                    width = 12,
-                    title = "Cutoff Performance",
-                    status = "warning", solidHeader = TRUE,
-                    shiny::tableOutput(ns('twobytwo'))
-                  )
+    shinydashboard::box(
+      width = 12,
+      title = "Cutoff Performance",
+      status = "info", solidHeader = TRUE,
+      reactable::reactableOutput(ns('performance'))
     )
   )
+  
 }
 
-#' The module server for exploring prediction cut-off results 
-#'
-#' @details
-#' The user specifies the id for the module
-#'
-#' @param id  the unique reference id for the module
-#' @param performanceId the performance id in the database
-#' @param connectionHandler the connection to the prediction result database
-#' @param inputSingleView the current tab 
-#' @param resultDatabaseSettings a list containing the result schema and prefixes
-#' @family PatientLevelPrediction
-#' @return
-#' The server to the prediction cut-off module
-#'
-#' @export
+
 patientLevelPredictionCutoffServer <- function(
-  id, 
-  performanceId, 
-  connectionHandler,
-  inputSingleView,
-  resultDatabaseSettings
+    id, 
+    performances,
+    performanceRowIds,
+    connectionHandler,
+    resultDatabaseSettings
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      thresholdSummary <- shiny::reactive({
-        if(!is.null(performanceId()) & inputSingleView() == 'Threshold Dependant'){
-
-          value <- getPredictionResult(
-            performanceId = performanceId,
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings,
-            tableName = 'threshold_summary'
-          )
-          return(value)
-        } else{
-          return(NULL)
-        }
-        
-      })
+      thresholdSummary <- shiny::reactiveVal(NULL)
+      probabilities <- shiny::reactiveVal(NULL)
+      
+      shiny::observeEvent(
+        eventExpr = performanceRowIds(), {
+          
+          if(length(performanceRowIds()) > 0 & max(performanceRowIds()) != 0){
+            
+            result <- OhdsiReportGenerator::getPredictionPerformanceTable(
+              connectionHandler = connectionHandler, 
+              schema = resultDatabaseSettings$schema, 
+              plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
+              databaseTable = resultDatabaseSettings$databaseTable, 
+              table = 'threshold_summary', 
+              performanceIds = performances()$performanceId[performanceRowIds()]
+            )
+            
+            if( nrow(result) > 0){
+              # restrict to the selected performance/evals
+              result <- merge(
+                x = result, 
+                y = performances()[performanceRowIds(), c('performanceId','evaluation')]
+              )
+            
+              thresholdSummary(result)
+              probabilities(sort(unique(result$predictionThreshold)))
+            }
+          }
+          
+        })
       
       shiny::observeEvent(
         thresholdSummary(),
         {
           if(!is.null(thresholdSummary())){
-            n <- nrow(thresholdSummary()[thresholdSummary()$evaluation%in%c('Test','Validation'),])
+            n <- length(unique(thresholdSummary()$predictionThreshold))
           }else{
             n <- 100
           }
@@ -146,60 +124,61 @@ patientLevelPredictionCutoffServer <- function(
         }
       )
       
-      # add probability threshold plot
-      output$ptp <- plotly::renderPlotly(
-        if(is.null(thresholdSummary())){
-          return(NULL)
-        } else {
-          probThresPlot(
-            thresholdSummary = thresholdSummary(), 
-            pointOfInterest = input$slider1
-          )
-        }
-      )
-      
-      
+ 
       performance <- shiny::reactive(
         if(is.null(thresholdSummary()) | is.null(input$slider1)){
           return(NULL)
         } else {
-          intPlot <- getORC(thresholdSummary(), input$slider1)
-          
-          TP <- intPlot$TP
-          FP <- intPlot$FP
-          TN <- intPlot$TN
-          FN <- intPlot$FN
-          twobytwo <- as.data.frame(matrix(c(FP,TP,TN,FN), byrow=T, ncol=2))
-          colnames(twobytwo) <- c('Ground Truth Negative','Ground Truth Positive')
-          rownames(twobytwo) <- c('Predicted Positive','Predicted Negative')
-          
-          list(
-            threshold = intPlot$threshold, 
-            prefthreshold = intPlot$prefthreshold,
-            twobytwo = twobytwo,
-            Incidence = (TP+FN)/(TP+TN+FP+FN),
-            Threshold = intPlot$threshold,
-            Sensitivity = TP/(TP+FN),
-            Specificity = TN/(TN+FP),
-            PPV = TP/(TP+FP),
-            NPV = TN/(TN+FN) 
+          result <- processedThresholds(
+            data = thresholdSummary(),
+            probability = probabilities()[input$slider1],
+            performances = performances()[performanceRowIds(),]
           )
+          return(result)
         }
       )
       
-      
       # Do the tables and plots:
-      
-      output$performance <- shiny::renderTable(
-        performance()$performance, 
-        rownames = F, 
-        digits = 3
-      )
-      
-      output$twobytwo <- shiny::renderTable(
-        performance()$twobytwo, 
-        rownames = T, 
-        digits = 0
+      output$performance <- reactable::renderReactable(
+        reactable::reactable(
+          data = performance()$table, 
+          columns = list(
+            model = reactable::colDef(minWidth = 200),
+            incidence = reactable::colDef(show = FALSE),
+            truePositiveCount = reactable::colDef(
+              name = "TP", 
+              format = reactable::colFormat(digits = 0)
+            ),
+            falsePositiveCount = reactable::colDef(
+              name = "FP", 
+              format = reactable::colFormat(digits = 0)
+            ),
+            trueNegativeCount = reactable::colDef(
+              name = "TN", 
+              format = reactable::colFormat(digits = 0)
+            ),
+            falseNegativeCount = reactable::colDef(
+              name = "FN", 
+              format = reactable::colFormat(digits = 0)
+            ),
+            sensitivity = reactable::colDef(
+              name = "Sensitivity", 
+              format = reactable::colFormat(digits = 3)
+            ),
+            specificity = reactable::colDef(
+              name = "Specificity", 
+              format = reactable::colFormat(digits = 3)
+            ),
+            positivePredictiveValue = reactable::colDef(
+              name = "PPV", 
+              format = reactable::colFormat(digits = 3)
+            ),
+            negativePredictiveValue = reactable::colDef(
+              name = "NPV", 
+              format = reactable::colFormat(digits = 3)
+            )
+          )
+        )
       )
       
       output$threshold <- shiny::renderText(
@@ -207,155 +186,104 @@ patientLevelPredictionCutoffServer <- function(
       )
       
       # dashboard
-      
-      output$performanceBoxIncidence <- shinydashboard::renderInfoBox({
-        shinydashboard::infoBox(
-          "Incidence", paste0(round(performance()$Incidence*100, digits=3),'%'), icon = shiny::icon("ambulance"),
-          color = "green"
-        )
-      })
-      
       output$performanceBoxThreshold <- shinydashboard::renderInfoBox({
         shinydashboard::infoBox(
-          "Threshold", format((performance()$Threshold), scientific = F, digits=3), icon = shiny::icon("edit"),
-          color = "yellow"
-        )
-      })
-      
-      output$performanceBoxPPV <- shinydashboard::renderInfoBox({
-        shinydashboard::infoBox(
-          "PPV", paste0(round(performance()$PPV*1000)/10, "%"), icon = shiny::icon("thumbs-up"),
-          color = "orange"
-        )
-      })
-      
-      output$performanceBoxSpecificity <- shinydashboard::renderInfoBox({
-        shinydashboard::infoBox(
-          "Specificity", paste0(round(performance()$Specificity*1000)/10, "%"), icon = shiny::icon("bullseye"),
-          color = "purple"
-        )
-      })
-      
-      output$performanceBoxSensitivity <- shinydashboard::renderInfoBox({
-        shinydashboard::infoBox(
-          "Sensitivity", paste0(round(performance()$Sensitivity*1000)/10, "%"), icon = shiny::icon("low-vision"),
-          color = "blue"
-        )
-      })
-      
-      output$performanceBoxNPV <- shinydashboard::renderInfoBox({
-        shinydashboard::infoBox(
-          "NPV", paste0(round(performance()$NPV*1000)/10, "%"), icon = shiny::icon("minus-square"),
+          "Threshold", format((performance()$threshold), scientific = F, digits=3), icon = shiny::icon("edit"),
           color = "black"
         )
       })
+      
       
     } 
   )
 }
 
 
-
-
-getORC <- function(thresholdSummary, pointOfInterest){
+processedThresholds <- function(
+    data,
+    probability,
+    performances
+){
   
-  data <- thresholdSummary[thresholdSummary$evaluation%in%c('Test','Validation'),]
-  data <- data[order(data$predictionThreshold),]
-  pointOfInterest <- data[pointOfInterest,]
+  #get the last prob before probability
   
-  threshold <- pointOfInterest$predictionThreshold
-  TP <- pointOfInterest$truePositiveCount
-  TN <- pointOfInterest$trueNegativeCount
-  FP <- pointOfInterest$falsePositiveCount
-  FN <- pointOfInterest$falseNegativeCount
-  preferenceThreshold <- pointOfInterest$preferenceThreshold
-  return(list(threshold = threshold, prefthreshold=preferenceThreshold,
-              TP = TP, TN=TN,
-              FP= FP, FN=FN))
-}
-
-probThresPlot <- function(thresholdSummary, pointOfInterest){
+  lastRow <- data %>% 
+    dplyr::filter(.data$predictionThreshold < !!probability) %>%
+    dplyr::group_by(.data$performanceId, .data$evaluation) %>% 
+    dplyr::arrange(.data$predictionThreshold) %>%  
+    dplyr::slice(dplyr::n()) %>%
+    dplyr::mutate(
+      incidence = .data$trueCount/(.data$trueCount + .data$falseCount)
+    ) %>%
+    dplyr::select(
+      'predictionThreshold',
+      'performanceId',
+      'evaluation',
+      'incidence',
+      'truePositiveCount',
+      'falsePositiveCount',
+      'trueNegativeCount',
+      'falseNegativeCount',
+      'sensitivity',
+      'specificity',
+      'positivePredictiveValue',
+      'negativePredictiveValue'
+    )
   
-  eval <- thresholdSummary[thresholdSummary$evaluation%in%c('Test','Validation'),]
-  eval <- eval[order(eval$predictionThreshold),]
-  
-  ay <- list(
-    tickfont = list(color = "red"),
-    overlaying = "y",
-    side = "right",
-    title = "positivePredictiveValue y-axis"
+  # add databaseName, targetName, outcomeName, tar
+  lastRow <- merge(
+    x= lastRow,
+    y = unique(performances[, c('performanceId','developmentDatabase',
+                     'developmentTargetName','developmentOutcomeName',
+                     'developmentTimeAtRisk')]),
+    by = 'performanceId'
   )
-  vline <- function(x = 0, color = "green") {
-    list(
-      type = "line",
-      y0 = 0,
-      y1 = 1,
-      yref = "paper",
-      x0 = x,
-      x1 = x,
-      line = list(color = color, dash="dot")
+  
+  if(FALSE){
+  lastRow <- lastRow %>% tidyr::pivot_longer(
+    cols = c('incidence',
+             'truePositiveCount',
+             'falsePositiveCount',
+             'trueNegativeCount',
+             'falseNegativeCount',
+             'sensitivity',
+             'specificity',
+             'positivePredictiveValue',
+             'negativePredictiveValue'
+             ), 
+    names_to = 'metric', 
+    values_to = 'value'
+      ) %>%
+    tidyr::pivot_wider(
+      id_cols = 'metric', 
+      names_from = c('performanceId','evaluation', 'developmentDatabase',
+                     'developmentTargetName', 'developmentOutcomeName',
+                     'developmentTimeAtRisk'), 
+      names_glue = 'Performance {performanceId}: {evaluation} data in {developmentDatabase} for task predicting {developmentOutcomeName} in {developmentTargetName} during {developmentTimeAtRisk}',
+      values_from = 'value'
     )
-  }
-  
-  eval$popfrac <- eval$positiveCount/(eval$positiveCount+eval$negativeCount)
-  
-  fig <- plotly::plot_ly(
-    data = eval, 
-    x = ~ predictionThreshold, 
-    y = ~ sensitivity, 
-    name = 'sensitivity', 
-    color = 'blue', 
-    type = 'scatter', 
-    mode = 'lines'
-  ) %>% 
-    plotly::add_trace(
-      yaxis = "y2",
-      y = ~ positivePredictiveValue, 
-      name = 'positivePredictiveValue', 
-      color = 'red', 
-      mode = 'lines'
-    ) %>% 
-    plotly::add_trace(
-      y = ~ negativePredictiveValue, 
-      name = 'negativePredictiveValue', 
-      color = 'green', 
-      mode = 'lines'
-    ) %>% 
-    plotly::add_trace(
-      y = ~ popfrac, 
-      name = 'Fraction flagged',
-      color = 'black', 
-      mode = 'lines'
-    ) %>% 
-    plotly::layout(
-      title = "Probability Threshold Plot", 
-      yaxis2 = ay,
-      #xaxis = list(title="Prediction Threshold"),
-      #yaxis = list(title="Metric yaxis")
-      plot_bgcolor='#e5ecf6',
-      xaxis = list(
-        title = "Prediction Threshold",
-        zerolinecolor = '#ffff',
-        zerolinewidth = 2,
-        gridcolor = 'ffff'
-      ),
-      yaxis = list(
-        title = "Metric yaxis",
-        zerolinecolor = '#ffff',
-        zerolinewidth = 2,
-        gridcolor = 'ffff'
-      ),
-      shapes = list(vline(eval$predictionThreshold[pointOfInterest])),
-      margin = 1,
-      legend = list(
-        orientation = "h",   # show entries horizontally
-        xanchor = "center",  # use center of legend as anchor
-        x = 0.5
-        )
-    )
-  
-  return(fig)
-  
 }
-
-
+  
+  lastRow$model <- paste0('Performance ',lastRow$performanceId,': ',lastRow$evaluation,' data in ',lastRow$developmentDatabase,' for task predicting ',lastRow$developmentOutcomeName,' in ',lastRow$developmentTargetName,' during ',lastRow$developmentTimeAtRisk)
+  
+  lastRow <- lastRow %>% dplyr::select(
+    c('model',
+      'incidence',
+      'truePositiveCount',
+      'falsePositiveCount',
+      'trueNegativeCount',
+      'falseNegativeCount',
+      'sensitivity',
+      'specificity',
+      'positivePredictiveValue',
+      'negativePredictiveValue'
+    )
+  )
+  
+  return(
+    list(
+      table = lastRow,
+      threshold = probability
+    )
+  )
+}

@@ -141,32 +141,21 @@ getCohortMethodKaplanMeier <- function(
     analysisId
 ) {
   
-  sql <- "
-  SELECT
-    *
-  FROM
-    @schema.@cm_table_prefixkaplan_meier_dist cmkmd
-  WHERE
-    cmkmd.target_id = @target_id
-    AND cmkmd.comparator_id = @comparator_id
-    AND cmkmd.outcome_id = @outcome_id
-    AND cmkmd.analysis_id = @analysis_id
-    AND cmkmd.database_id = '@database_id';
-  "
-  
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      schema = resultDatabaseSettings$schema,
-      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-      #database_table = resultDatabaseSettings$databaseTable,
-      target_id = targetId,
-      comparator_id = comparatorId,
-      outcome_id = outcomeId,
-      analysis_id = analysisId,
-      database_id = databaseId
-    )
+  result <- OhdsiReportGenerator::getCmTable(
+    connectionHandler = connectionHandler, 
+    schema = resultDatabaseSettings$schema, 
+    table = 'kaplan_meier_dist', 
+    cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+    databaseTable = resultDatabaseSettings$databaseTable, 
+    targetIds = targetId,
+    comparatorIds = comparatorId,
+    outcomeIds = outcomeId,
+    analysisIds = analysisId,
+    databaseIds = databaseId
   )
+  
+  return(result)
 }
 
 

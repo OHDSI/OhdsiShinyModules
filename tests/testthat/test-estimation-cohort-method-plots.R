@@ -9,10 +9,14 @@ test_that("Test cm plot ui", {
 cmData <- function()
 {
   return(data.frame(
-    databaseId = 1,
-    databaseName = 'eunomia',
-    targetName = 'target',
-    comparatorName = 'comp',
+    databaseId = '388020256', 
+    databaseName = 'Synthea', 
+    analysisId = 1,
+    description  = 'madeup',
+    targetName = 'Celecoxib',
+    targetId = 1003,
+    comparatorId = 2003, 
+    comparatorName = 'Diclofenac',
     covariateName = 1,
     description = 'fgfgf',
     calibratedRr = 1.2,
@@ -26,8 +30,8 @@ shiny::testServer(
   estimationCmPlotsServer, 
   args = list(
     id = "estimationCmPlotsServer",
-    connectionHandler = connectionHandlerEstimation,
-    resultDatabaseSettings = resultDatabaseSettingsEstimation,
+    connectionHandler = connectionHandlerCharacterization,
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization,
     cmData = cmData
   ), {
   

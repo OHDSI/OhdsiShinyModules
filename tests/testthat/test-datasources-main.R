@@ -2,8 +2,8 @@ context("datasources-main")
 
 shiny::testServer(datasourcesServer, args = list(
   id = "datasourcesServer",
-  connectionHandler = connectionHandlerPV,
-  resultDatabaseSettings = resultDatabaseSettingsPlp
+  connectionHandler = connectionHandlerCharacterization,
+  resultDatabaseSettings = resultDatabaseSettingsCharacterization
 ), {
 
   testthat::expect_is(datasourcesData, 'reactive')

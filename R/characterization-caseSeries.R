@@ -287,6 +287,27 @@ characterizationCaseSeriesServer <- function(
             output$helpTextBinary <- shiny::renderUI(shiny::helpText(helpTextValue))
             output$helpTextCont <- shiny::renderUI(shiny::helpText(helpTextValue))
             
+            
+            # create the column groups based on data
+            caseColGroupsBinary <- list()
+            for(colType in c('Before', 'During', 'After')){
+              
+              colsOfIntTemp <- grep(pattern = colType, x = colnames(allData$binary))
+              if( length(colsOfIntTemp) > 0 ){
+                if(colType == 'Before'){
+                  tempname <- 'Pre-exposure'
+                }else if(colType == 'During'){
+                  tempname <- 'Between exposure & outcome'
+                } else{
+                  tempname <- 'Post-outcome'
+                }
+                caseColGroupsBinary[[length(caseColGroupsBinary) + 1]] <- reactable::colGroup(
+                  name = tempname, 
+                  columns = colnames(allData$binary)[colsOfIntTemp]
+                )
+              }
+            }
+            
             binTableOutputs <- resultTableServer(
               id = "binaryTable", 
               df = tryCatch({allData$binary %>%
@@ -312,30 +333,30 @@ characterizationCaseSeriesServer <- function(
               ), # function below
               addActions = NULL,
               elementId = session$ns('binary-table-filter'), 
-              columnGroups = list(
-                reactable::colGroup(
-                  name = paste0('Pre-exposure'), 
-                  columns = c(
-                    'sumValue_Before',
-                    'averageValue_Before'
-                    )
-              ),
-              reactable::colGroup(
-                name = paste0('Between exposure & outcome'), 
-                columns = c(
-                  'sumValue_During',
-                  'averageValue_During'
-                )
-              ),
-              reactable::colGroup(
-                name = paste0('Post-outcome'), 
-                columns = c(
-                  'sumValue_After',
-                  'averageValue_After'
-                )
-              )
+              
+              # only add groups that exist
+              columnGroups = caseColGroupsBinary
             )
-            )
+            
+            # create the column groups based on data
+            caseColGroupsContinuous <- list()
+            for(colType in c('Before', 'During', 'After')){
+              
+              colsOfIntTemp <- grep(pattern = colType, x = colnames(allData$continuous))
+              if( length(colsOfIntTemp) > 0 ){
+                if(colType == 'Before'){
+                  tempname <- 'Pre-exposure'
+                }else if(colType == 'During'){
+                  tempname <- 'Between exposure & outcome'
+                } else{
+                    tempname <- 'Post-outcome'
+                  }
+                caseColGroupsContinuous[[length(caseColGroupsContinuous) + 1]] <- reactable::colGroup(
+                  name = tempname, 
+                  columns = colnames(allData$continuous)[colsOfIntTemp]
+                )
+              }
+            }
             
             conTableOutputs <- resultTableServer(
               id = "continuousTable", 
@@ -358,41 +379,7 @@ characterizationCaseSeriesServer <- function(
               ),
               downloadedFileName = 'case_series_continuous',
               colDefsInput = colDefsContinuous(), 
-              columnGroups = list(
-                reactable::colGroup(
-                  name = paste0('Pre-exposure'), 
-                  columns = c(
-                    'countValue_Before',
-                    'averageValue_Before',
-                    'standardDeviation_Before',
-                    'medianValue_Before',
-                    'minValue_Before',
-                    'maxValue_Before'
-                  )
-                ),
-                reactable::colGroup(
-                  name = paste0('Between exposure & outcome'), 
-                  columns = c(
-                    'countValue_During',
-                    'averageValue_During',
-                    'standardDeviation_During',
-                    'medianValue_During',
-                    'minValue_During',
-                    'maxValue_During'
-                  )
-                ),
-                reactable::colGroup(
-                  name = paste0('Post-outcome'), 
-                  columns = c(
-                    'countValue_After',
-                    'averageValue_After',
-                    'standardDeviation_After',
-                    'medianValue_After',
-                    'minValue_After',
-                    'maxValue_After'
-                  )
-                )
-              ),
+              columnGroups = caseColGroupsContinuous,
               addActions = NULL,
               elementId = session$ns('continuous-table-filter')
             )
@@ -790,7 +777,6 @@ colDefsContinuous <- function(){
 }
 
 
-# TODO: replace with OhdsiShinyModules
 characterizationGetCaseSeriesCounts <- function(
     connectionHandler,
     resultDatabaseSettings,
@@ -800,38 +786,28 @@ characterizationGetCaseSeriesCounts <- function(
     tar
 ){
   
-  sql <- "SELECT 
-          min_prior_observation,	
-          outcome_washout_days,
-          row_count,
-          person_count 
-          
-          from
-          @schema.@c_table_prefixcohort_counts
-          where database_id = '@database_id'
-          and target_cohort_id = @target_id
-          and outcome_cohort_id in (@outcome_id)
-          and (risk_window_start = @risk_window_start)
-          and (risk_window_end = @risk_window_end)
-          and (start_anchor = '@start_anchor')
-          and (end_anchor = '@end_anchor')
-          and cohort_type in ('Cases')
-  ;"
+  result <- OhdsiReportGenerator::getCaseCounts(
+    connectionHandler = connectionHandler, 
+    schema = resultDatabaseSettings$schema, 
+    cTablePrefix =  resultDatabaseSettings$cTablePrefix, 
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+    databaseTable = resultDatabaseSettings$databaseTable, 
+    targetIds = targetId, 
+    outcomeIds = outcomeId, 
+    databaseIds = databaseId, 
+    riskWindowStart = tar$riskWindowStart, 
+    riskWindowEnd = tar$riskWindowEnd, 
+    startAnchor = tar$startAnchor, 
+    endAnchor = tar$endAnchor
+    ) 
   
-  counts <- connectionHandler$queryDb(
-    sql = sql, 
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    database_id = databaseId,
-    target_id = targetId,
-    outcome_id = outcomeId,
-    risk_window_start = tar$riskWindowStart,
-    start_anchor = tar$startAnchor,
-    risk_window_end = tar$riskWindowEnd,
-    end_anchor = tar$endAnchor
-  )
+  if(nrow(result) > 0){
+    result <- result %>%
+      dplyr::select("minPriorObservation", "outcomeWashoutDays",
+                    "rowCount", "personCount")
+  }
   
-  return(counts)
+  return(result)
   
 }
 

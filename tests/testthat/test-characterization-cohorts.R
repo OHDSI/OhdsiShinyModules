@@ -29,7 +29,7 @@ shiny::testServer(
     
     # test generate
     session$setInputs(
-      generate = T
+      generate = TRUE
     )
     
     testthat::expect_true(inherits(selected(),'data.frame'))
@@ -37,7 +37,7 @@ shiny::testServer(
     resultTable <- characterizatonGetCohortData(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
-      targetIds = c(1,2),
+      targetIds = unique(targetCohort$cohortId[1:nrow(targetCohort)]),
       databaseIds = databaseIds()[1],
       minThreshold = 0.01
     )
@@ -48,7 +48,7 @@ shiny::testServer(
     continuousTable <- characterizatonGetCohortComparisonDataContinuous(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
-      targetIds = c(1,2),
+      targetIds = unique(targetCohort$cohortId[1:nrow(targetCohort)]),
       databaseIds = databaseIds()[1]
     )
     testthat::expect_true(nrow(continuousTable$covariates) > 0)

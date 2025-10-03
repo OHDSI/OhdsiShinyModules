@@ -3,29 +3,35 @@ context("patient-level-prediction-main")
 shiny::testServer(
   app = patientLevelPredictionServer, 
   args = list(
-    connectionHandler = connectionHandlerPlp,
-    resultDatabaseSettings = resultDatabaseSettingsPlp
+    connectionHandler = connectionHandlerCharacterization,
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   ), 
   expr = {
     
-    expect_true(is.null(modelDesignId()))
-    # designSummary 
-    ##designSummary$modelDesignId(1)
-    ##expect_true(!is.null(modelDesignId()))
+    expect_true(performanceRowId() == 0)
+    testthat::expect_is(performances, 'data.frame')
+    expect_true(nrow(performances) > 0 )
     
-    ##designSummary$diagnosticId(1)
     
-    ##designSummary$reportId(1)
-    ##expect_true(file.exists(file.path(tempdir(), 'main.html')))
+    # set the performanceRowId()
+    performanceRowId(1)
     
-    ##performance$performanceId(1)
-    # check performanceId() and developmentDatabaseId()
-    ##expect_true(!is.null(performanceId()))
-    ##expect_true(!is.null(developmentDatabaseId()))
+    # check each view loads selects tab
+    session$setInputs(tabView = 'View Models')
+    session$flushReact()
     
-    session$setInputs(allView = 'Model Designs Summary')
-    session$setInputs(backToModelSummary = T)
-    session$setInputs(backToDesignSummary = T)
+    # add check to see whether tab changed
+    #testthat::expect_true(input$resultTab == 'View Models')
+  
+    session$setInputs(tabView = 'Generate Plots')
+    #testthat::expect_true(input$resultTab == 'Generate Plots')
+    
+    session$setInputs(tabView = 'View Threshold Performances')
+    #testthat::expect_true(input$resultTab == 'View Threshold Performances')
+    
+    session$setInputs(tabView = 'View Diagnostics')
+    #testthat::expect_true(input$resultTab == 'View Diagnostics')
+    
     
   })
 

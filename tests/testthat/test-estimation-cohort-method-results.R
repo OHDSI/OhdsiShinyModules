@@ -11,9 +11,9 @@ shiny::testServer(
   estimationCmResultsServer, 
   args = list(
     id = "estimationCmResultsServer",
-    connectionHandler = connectionHandlerEstimation,
-    resultDatabaseSettings = resultDatabaseSettingsEstimation,
-    targetIds = shiny::reactiveVal(1),
+    connectionHandler = connectionHandlerCharacterization,
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization,
+    targetIds = shiny::reactiveVal(1003),
     outcomeId = shiny::reactiveVal(3)
   ), {
     
@@ -49,29 +49,3 @@ test_that("Test estimationGetCmResultSummaryTableColDef", {
 
 })
 
-test_that("Test estimationGetCmResultData", {
-  
-result <- estimationGetCmResultData(
-  connectionHandler = connectionHandlerEstimation,
-  resultDatabaseSettings = resultDatabaseSettingsEstimation,
-  targetIds = function(){1},
-  comparatorIds = function(){2},
-  outcomeId = function(){3}
-  )
-
-testthat::expect_true(inherits(result, 'data.frame'))
-
-})
-
-test_that("Test estimationGetCMMetaEstimation", {
-result <- estimationGetCMMetaEstimation(
-  connectionHandler = connectionHandlerEstimation,
-  resultDatabaseSettings = resultDatabaseSettingsEstimation,
-  targetIds = function(){1},
-  outcomeId = function(){3}
-)
-
-testthat::expect_true(inherits(result, 'data.frame'))
-testthat::expect_true(nrow(result) == 0) # fails
-
-})

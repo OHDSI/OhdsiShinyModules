@@ -14,7 +14,14 @@ resultTableServer(
   elementId = NULL,
   addActions = NULL,
   downloadedFileName = NULL,
-  groupBy = NULL
+  groupBy = NULL,
+  selection = NULL,
+  getSelected = shiny::reactiveVal(0),
+  setSelected = shiny::reactiveVal(0),
+  selectedRowId = shiny::reactiveVal(0),
+  showPageSizeOptions = TRUE,
+  pageSizeOptions = c(10, 25, 50, 500),
+  defaultPageSize = 10
 )
 }
 \arguments{
@@ -26,7 +33,7 @@ resultTableServer(
 
 \item{columnGroups}{list specifying how to group columns}
 
-\item{details}{The details of the results such as cohort names and database names}
+\item{details}{The details of the results such as cohort names and database names used when downloading table}
 
 \item{selectedCols}{string vector of columns the reactable should display to start by default. Defaults to ALL if not specified.}
 
@@ -38,6 +45,20 @@ actions must be a column in df}
 \item{downloadedFileName}{string, desired name of downloaded data file. can use the name from the module that is being used}
 
 \item{groupBy}{The columns to group by}
+
+\item{selection}{NULL/single/multiple (whether to enable table row selection)}
+
+\item{getSelected}{A reactive that triggers an even to extract the selected rows of the table}
+
+\item{setSelected}{A reactive that triggers an even to set the selected rows of the table}
+
+\item{selectedRowId}{The selected rows}
+
+\item{showPageSizeOptions}{Show page size options?}
+
+\item{pageSizeOptions}{Page size options for the table. Defaults to 10, 25, 50, 100.}
+
+\item{defaultPageSize}{Default page size for the table. Defaults to 10.}
 }
 \value{
 shiny module server

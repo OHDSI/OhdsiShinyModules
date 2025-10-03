@@ -188,14 +188,14 @@ cohortGeneratorServer <- function(
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings
       ) %>%
-        dplyr::select("cdmSourceName",
+        dplyr::select("databaseName",
                       "cohortId",
                       "cohortName",
                       "cohortSubjects",
                       "cohortEntries")
       
       cohortCountsColDefs = list(
-        cdmSourceName = reactable::colDef(
+        databaseName = reactable::colDef(
           name = "Database Name",
           header = withTooltip(
             "Database Name",
@@ -248,7 +248,7 @@ cohortGeneratorServer <- function(
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings
       ) %>%
-        dplyr::select("cdmSourceName",
+        dplyr::select("databaseName",
                       "cohortId",
                       "cohortName",
                       "generationStatus",
@@ -258,7 +258,7 @@ cohortGeneratorServer <- function(
       
       
       cohortGenerationColDefs <- list(
-        cdmSourceName = reactable::colDef( 
+        databaseName = reactable::colDef( 
           name = "Database Name", 
           header = withTooltip(
             "Database Name", 
@@ -358,7 +358,7 @@ cohortGeneratorServer <- function(
       )
       
     # reactive vars for all the cohort def parts  
-    selectedCohortDefInputs <- shiny::reactiveVal()
+    selectedCohortDefInputs <- shiny::reactiveVal(NULL)
     selectedJson <- shiny::reactiveVal()
     selectedSql <- shiny::reactiveVal()
     selectedJsonText <- shiny::reactiveVal()
@@ -399,7 +399,7 @@ cohortGeneratorServer <- function(
         )
         
         json <- cohortDefData$parentJson[as.double(input$selectedCohortDefRow)]
-        subset <- cohortDefData$subsetJson[as.double(input$selectedCohortDefRow)]
+        subset <- cohortDefData$subsetDefinitionJson[as.double(input$selectedCohortDefRow)]
         isSubset <- cohortDefData$cohortDefinitionId[as.double(input$selectedCohortDefRow)] != cohortDefData$subsetParent[as.double(input$selectedCohortDefRow)]
           
         noAttritionText <- ifelse(isSubset, 'Cannot display for cohorts with subset logic', 'No attrition results to display')
@@ -604,7 +604,7 @@ cohortGeneratorServer <- function(
             shiny::selectInput(
               inputId = session$ns('selectedDatabaseId'), 
               label = 'Database:', 
-              choices = unique(attritionData()$cdmSourceName), 
+              choices = unique(attritionData()$databaseName), 
               selected = 1,
               multiple = F, 
               selectize=FALSE
@@ -687,7 +687,7 @@ cohortGeneratorServer <- function(
       
 
       selectedAttritionData <- attritionData() %>%
-        dplyr::filter(.data$cdmSourceName %in% input$selectedDatabaseId & 
+        dplyr::filter(.data$databaseName %in% input$selectedDatabaseId & 
                         .data$modeId %in% input$selectedModeId
         )
       
@@ -697,13 +697,13 @@ cohortGeneratorServer <- function(
             id = 'attritionTable',
             elementId = session$ns('cohort-gen-attrition'),
             df =  selectedAttritionData %>%
-              dplyr::select(c("cdmSourceName", "cohortName", "ruleName",
+              dplyr::select(c("databaseName", "cohortName", "ruleName",
                               "personCount", "dropCount",
                               "dropPerc", "retainPerc")
               )
             ,
             colDefsInput = list(
-              cdmSourceName = reactable::colDef( 
+              databaseName = reactable::colDef( 
                 name = "Database Name", 
                 filterable = TRUE,
                 header = withTooltip(
@@ -801,20 +801,15 @@ extractSubsetText <- function(subsetJson){
 
 getCohortGeneratorCohortDefinition <- function(
     connectionHandler, 
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    cohortDefinitionId = NULL
 ) {
   
-  sql <- "SELECT cd.*, csd.json as subset_json
-  FROM @schema.@cg_table_prefixCOHORT_DEFINITION cd
-  left join 
-  @schema.@cg_table_prefixcohort_subset_definition csd
-  on cd.subset_definition_id = csd.subset_definition_id
-  ;"
-  
-  result <- connectionHandler$queryDb(
-    sql = sql,
+  result <- OhdsiReportGenerator::getCohortDefinitions(
+    connectionHandler = connectionHandler,
     schema = resultDatabaseSettings$schema,
-    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    targetIds = cohortDefinitionId
   )
   
   parents <- result %>%
@@ -838,49 +833,37 @@ getCohortGeneratorCohortDefinition <- function(
 
 getCohortGeneratorCohortCounts <- function(
     connectionHandler, 
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    cohortDefinitionId = NULL
 ) {
   
-  sql <- "SELECT cc.cohort_id, cc.cohort_entries, cc.cohort_subjects,
-  dt.cdm_source_name, cd.cohort_name 
-  FROM @schema.@cg_table_prefixCOHORT_COUNT cc
-  join @schema.@database_table_prefix@database_table dt
-  on cc.database_id = dt.database_id
-  join @schema.@cg_table_prefixCOHORT_DEFINITION cd
-  on cd.cohort_definition_id = cc.cohort_id
-  ;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      schema = resultDatabaseSettings$schema,
-      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-      database_table = resultDatabaseSettings$databaseTable,
-      database_table_prefix = resultDatabaseSettings$databaseTablePrefix
-    )
+  result <- OhdsiReportGenerator::getCohortCounts(
+    connectionHandler = connectionHandler,
+    schema = resultDatabaseSettings$schema,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    cohortIds = cohortDefinitionId
   )
+  
+  return(result)
 }
 
+# is this used?
 getCohortGeneratorCohortMeta <- function(
     connectionHandler, 
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    cohortDefinitionId = NULL
 ) {
   
-  sql <- "SELECT cg.cohort_id, cg.cohort_name,
-  cg.generation_status, cg.start_time, cg.end_time, dt.cdm_source_name
-  from @schema.@cg_table_prefixCOHORT_GENERATION cg
-  join @schema.@database_table_prefix@database_table dt
-  on cg.database_id = dt.database_id
-  ;"
-  
-  df <- connectionHandler$queryDb(
-    sql = sql,
+  result <- OhdsiReportGenerator::getCohortMeta(
+    connectionHandler = connectionHandler,
     schema = resultDatabaseSettings$schema,
-    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-    database_table = resultDatabaseSettings$databaseTable,
-    database_table_prefix = resultDatabaseSettings$databaseTablePrefix
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    cohortIds = cohortDefinitionId
   )
   
-  df2 <- df %>%
+  result <- result %>%
     dplyr::mutate(
       generationDuration = dplyr::case_when(
         generationStatus == "COMPLETE"
@@ -898,31 +881,25 @@ getCohortGeneratorCohortMeta <- function(
       )
     )
   
-  return(df2)
+  return(result)
 }
 
+# is this used?
 getCohortGeneratorCohortInclusionSummary <- function(
     connectionHandler, 
-    resultDatabaseSettings
+    resultDatabaseSettings,
+    cohortDefinitionId = NULL
 ) {
   
-  sql <- "SELECT css.cohort_definition_id, css.base_count, css.final_count, css.mode_id,
-  dt.cdm_source_name, cd.cohort_name 
-  FROM @schema.@cg_table_prefixCOHORT_SUMMARY_STATS css
-  join @schema.@database_table_prefix@database_table dt
-  on css.database_id = dt.database_id
-  join @schema.@cg_table_prefixCOHORT_DEFINITION cd
-  on cd.cohort_definition_id = css.cohort_definition_id
-  ;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      schema =resultDatabaseSettings$schema,
-      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-      database_table = resultDatabaseSettings$databaseTable,
-      database_table_prefix = resultDatabaseSettings$databaseTablePrefix
-    )
+  result <- OhdsiReportGenerator::getCohortInclusionSummary(
+    connectionHandler = connectionHandler,
+    schema = resultDatabaseSettings$schema,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    cohortIds = cohortDefinitionId
   )
+
+  return(result)
 }
 
 
@@ -933,21 +910,14 @@ getCohortGeneratorInclusionRules <- function(
     cohortDefinitionId = NULL
 ) {
   
-  sql <- "SELECT ci.cohort_definition_id, ci.rule_sequence, ci.name as rule_name,
-  cd.cohort_name FROM @schema.@cg_table_prefixCOHORT_INCLUSION ci
-  join @schema.@cg_table_prefixCOHORT_DEFINITION cd
-  on cd.cohort_definition_id = ci.cohort_definition_id
-  {@use_cohort_def_id}?{ where cd.cohort_definition_id = @cohort_definition_id}
-  ;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      schema = resultDatabaseSettings$schema,
-      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-      use_cohort_def_id = !is.null(cohortDefinitionId),
-      cohort_definition_id = cohortDefinitionId
-    )
+  result <- OhdsiReportGenerator::getCohortInclusionRules(
+    connectionHandler = connectionHandler,
+    schema = resultDatabaseSettings$schema,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    cohortIds = cohortDefinitionId
   )
+  
+  return(result)
 }
 
 getCohortGeneratorInclusionStats <- function(
@@ -956,23 +926,16 @@ getCohortGeneratorInclusionStats <- function(
     cohortDefinitionId = NULL
 ) {
   
-  sql <- "SELECT cir.database_id, cir.cohort_definition_id, cir.inclusion_rule_mask, cir.person_count, cir.mode_id,
-  dt.cdm_source_name FROM @schema.@cg_table_prefixCOHORT_INC_RESULT cir
-  join @schema.@database_table_prefix@database_table dt
-  on cir.database_id = dt.database_id
-  {@use_cohort_def_id}?{ where cir.cohort_definition_id = @cohort_definition_id}
-  ;"
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      schema = resultDatabaseSettings$schema,
-      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-      database_table = resultDatabaseSettings$databaseTable,
-      database_table_prefix = resultDatabaseSettings$databaseTablePrefix,
-      use_cohort_def_id = !is.null(cohortDefinitionId),
-      cohort_definition_id = cohortDefinitionId
-    )
+  
+  result <- OhdsiReportGenerator::getCohortInclusionStats(
+    connectionHandler = connectionHandler,
+    schema = resultDatabaseSettings$schema,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    cohortIds = cohortDefinitionId
   )
+  
+  return(result)
 }
 
 getCohortGenerationAttritionTable <- function(
@@ -1004,13 +967,13 @@ getCohortGenerationAttritionTable <- function(
                         (bitwAnd(.data$inclusionRuleMask, !!testMask) == !!testMask)
         ) %>% 
         dplyr::select(-c("databaseId")) %>%
-        dplyr::group_by(.data$cdmSourceName, .data$cohortDefinitionId, .data$modeId) %>%
+        dplyr::group_by(.data$databaseName, .data$cohortDefinitionId, .data$modeId) %>%
         dplyr::summarise(personCount = sum(.data$personCount),
         )
       
       startingCounts <- stats %>%
         dplyr::select(-c("databaseId")) %>%
-        dplyr::group_by(.data$cdmSourceName, .data$cohortDefinitionId, .data$modeId) %>%
+        dplyr::group_by(.data$databaseName, .data$cohortDefinitionId, .data$modeId) %>%
         dplyr::summarise(personCount = sum(.data$personCount),
         ) %>%
         dplyr::mutate(ruleSequence = -1,
@@ -1035,7 +998,7 @@ getCohortGenerationAttritionTable <- function(
   #adding drop counts
   attritionTableFinal <- attritionTableDistinct %>%
     dplyr::group_by(
-      .data$cdmSourceName, 
+      .data$databaseName, 
       .data$cohortDefinitionId, 
       .data$modeId) %>%
     dplyr::mutate(

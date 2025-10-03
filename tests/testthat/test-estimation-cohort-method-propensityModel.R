@@ -1,11 +1,17 @@
 context("cohort-method-propensityModel")
 
+test_that("Test cohortMethodPropensityModelViewer ui", {
+  # Test ui
+  ui <- cohortMethodPropensityModelViewer(id = 'cohortMethodPropensityModelViewer')
+  checkmate::expect_list(ui)
+})
+
 shiny::testServer(
   app = cohortMethodPropensityModelServer, 
   args = list(
     selectedRow = shiny::reactiveVal(NULL), 
-    connectionHandler = connectionHandlerEstimation, 
-    resultDatabaseSettings = resultDatabaseSettingsEstimation
+    connectionHandler = connectionHandlerCharacterization, 
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   ), 
   expr = {
     
@@ -14,15 +20,16 @@ shiny::testServer(
     # make sure this runs if we pick the first row
     selectedRow(
       list(
-        databaseId = 'eunomia', 
-        databaseName = 'Eunomia', 
+        databaseId = '388020256', 
+        databaseName = 'Synthea', 
+        analysisId = 2,
         description  = 'madeup',
-        targetName = 'test target',
-        targetId = 1,
-        comparatorId = 2, 
-        comparatorName = 'test comparator',
+        targetName = 'Celecoxib',
+        targetId = 1003,
+        comparatorId = 2003, 
+        comparatorName = 'Diclofenac',
         outcomeId = 3,
-        outcomeName = 'test outcome',
+        outcomeName = 'GI bleed',
         psStrategy = '',
         analysisId = 2, 
         psStrategy = '', 

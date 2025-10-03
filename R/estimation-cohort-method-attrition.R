@@ -117,28 +117,19 @@ getCohortMethodAttrition <- function(
     return(NULL)
   }
   
-  sql <- "
-  SELECT cmat.*
-  FROM
-    @schema.@cm_table_prefixattrition cmat
-  WHERE
-  cmat.target_id = @target_id
-  AND cmat.comparator_id = @comparator_id
-  AND cmat.outcome_id = @outcome_id
-  AND cmat.analysis_id = @analysis_id
-  AND cmat.database_id = '@database_id';
-  "
-  result <- connectionHandler$queryDb(
-    sql = sql,
-    schema = resultDatabaseSettings$schema,
-    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-    #database_table = resultDatabaseSettings$databaseTable,
-    target_id = selectedRow()$targetId,
-    comparator_id = selectedRow()$comparatorId,
-    outcome_id = selectedRow()$outcomeId,
-    analysis_id = selectedRow()$analysisId,
-    database_id = selectedRow()$databaseId
-  )
+  
+  result <- OhdsiReportGenerator::getCmTable(
+    connectionHandler = connectionHandler, 
+    schema = resultDatabaseSettings$schema, 
+    table = 'attrition', 
+    cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+    targetIds = selectedRow()$targetId,
+    comparatorIds = selectedRow()$comparatorId,
+    outcomeIds = selectedRow()$outcomeId,
+    analysisIds = selectedRow()$analysisId,
+    databaseIds = selectedRow()$databaseId
+    )
+  
   targetAttrition <- result[result$exposureId == selectedRow()$targetId, ]
   comparatorAttrition <- result[result$exposureId == selectedRow()$comparatorId, ]
   colnames(targetAttrition)[colnames(targetAttrition) == "subjects"] <- "targetPersons"

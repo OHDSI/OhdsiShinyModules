@@ -410,6 +410,7 @@ fullReportServer <- function(
                 indicationIds <- unique(indicationTemp$cohortId)
               }
               
+              # add TryCatch here to prevent app crash on error
               OhdsiReportGenerator::generateFullReport(
                 server = server, 
                 username = username, 

@@ -14,7 +14,8 @@ resultTableViewer <- function(
   ns <- shiny::NS(id)
   shiny::div(# UI
     shinydashboard::box(
-      width = "100%",
+      width = "100%", 
+      collapsible = TRUE,
       title = shiny::span(shiny::icon("table"), boxTitle),
       shiny::fluidPage(
         shiny::fluidRow(
@@ -64,13 +65,20 @@ resultTableViewer <- function(
 #' @param df reactive that returns a data frame
 #' @param colDefsInput named list of reactable::colDefs
 #' @param columnGroups list specifying how to group columns 
-#' @param details The details of the results such as cohort names and database names
+#' @param details The details of the results such as cohort names and database names used when downloading table
 #' @param selectedCols string vector of columns the reactable should display to start by default. Defaults to ALL if not specified.
 #' @param elementId optional string vector of element Id name for custom dropdown filtering if present in the customColDef list. Defaults to NULL.
 #' @param addActions add a button row selector column to the table to a column called 'actions'.  
 #'                   actions must be a column in df
 #' @param downloadedFileName string, desired name of downloaded data file. can use the name from the module that is being used
 #' @param groupBy The columns to group by 
+#' @param selection NULL/single/multiple (whether to enable table row selection)
+#' @param getSelected A reactive that triggers an even to extract the selected rows of the table
+#' @param setSelected A reactive that triggers an even to set the selected rows of the table
+#' @param selectedRowId The selected rows
+#' @param showPageSizeOptions Show page size options?
+#' @param pageSizeOptions Page size options for the table. Defaults to 10, 25, 50, 100.
+#' @param defaultPageSize Default page size for the table. Defaults to 10.
 #' 
 #' @return shiny module server
 #' @family {Utils}
@@ -84,7 +92,14 @@ resultTableServer <- function( # add column for selected columns as a reactive
     elementId = NULL,
     addActions = NULL,
     downloadedFileName = NULL,
-    groupBy = NULL
+    groupBy = NULL,
+    selection = NULL,
+    getSelected = shiny::reactiveVal(0),
+    setSelected = shiny::reactiveVal(0),
+    selectedRowId = shiny::reactiveVal(0),
+    showPageSizeOptions = TRUE,
+    pageSizeOptions = c(10,25,50,500),
+    defaultPageSize = 10
 ) #list of colDefs, can use checkmate::assertList, need a check that makes sure names = columns) {
   shiny::moduleServer(
     id,
@@ -122,7 +137,7 @@ resultTableServer <- function( # add column for selected columns as a reactive
         )
         
       } else{
-        onClick <- NULL
+        onClick <- "select" #NULL
         
         # add action colDef with show = FALSE
         colDefsInput[[length(colDefsInput) + 1 ]] <- reactable::colDef(
@@ -246,13 +261,17 @@ fuzzySearch <- reactable::JS('function(rows, columnIds, filterValue) {
                   columnGroups = columnGroups,
                   onClick = onClick,
                   groupBy = groupBy,
+                  selection = selection,
+                  defaultSelected = shiny::reactive({if(max(selectedRowId()) == 0){NULL}else{selectedRowId()}})(),
                   #these can be turned on/off and will overwrite colDef args
                   sortable = TRUE,
                   resizable = TRUE,
                   filterable = TRUE,
                   searchable = TRUE,
                   searchMethod = fuzzySearch,
-                  showPageSizeOptions = TRUE,
+                  showPageSizeOptions = showPageSizeOptions,
+                  pageSizeOptions = pageSizeOptions,
+                  defaultPageSize = defaultPageSize,
                   outlined = TRUE,
                   showSortIcon = TRUE,
                   striped = TRUE,
@@ -263,6 +282,43 @@ fuzzySearch <- reactable::JS('function(rows, columnIds, filterValue) {
                   elementId = elementId
                 )
         })
+      
+      # update selected rows when getSelected changes
+      shiny::observeEvent(getSelected(), {
+        selectedTemp <- reactable::getReactableState(outputId = 'resultData', name = 'selected')
+        if(is.null(selectedTemp)){
+          selectedRowId(0)
+          reactable::updateReactable(
+            outputId = 'resultData', 
+            selected = NA
+          )
+        } else{
+          selectedRowId(selectedTemp)
+          
+          # code to set the row if selectedRow() is not NULL
+          #reactable::updateReactable(
+         #   outputId = 'resultData', 
+         #   selected = selectedRowId()
+         # )
+        }
+      })
+      
+      # add listener that update the table selected rows if 
+      # setSelected() updates
+      shiny::observeEvent(
+        eventExpr = setSelected(), {
+          
+          if(max(selectedRowId()) == 0){
+            # do nothing
+          } else{
+            # code to set the row if selectedRow() is not NULL
+            reactable::updateReactable(
+               outputId = 'resultData', 
+               selected = selectedRowId()
+             )
+          }
+        }
+      )
       
       
       output$filterButton <- shiny::renderUI(
@@ -307,13 +363,7 @@ fuzzySearch <- reactable::JS('function(rows, columnIds, filterValue) {
           actionCount = actionCount 
         )
       )
-      #} else{
-      #  return(list(
-      #    actionType = shiny::reactiveVal(NULL), 
-      #    actionIndex = shiny::reactiveVal(NULL),
-      #    actionCount = shiny::reactiveVal(NULL) 
-      #  ))
-      #}
+
     })
 
 

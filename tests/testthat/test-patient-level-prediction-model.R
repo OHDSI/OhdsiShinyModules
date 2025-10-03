@@ -1,4 +1,4 @@
-context("patient-level-prediction-diagnostics")
+context("patient-level-prediction-model")
 
 # extract performances
 performances <- OhdsiReportGenerator::getFullPredictionPerformances(
@@ -17,44 +17,42 @@ performances <- OhdsiReportGenerator::getFullPredictionPerformances(
 
 
 shiny::testServer(
-  app = patientLevelPredictionDiagnosticsServer, 
+  app = patientLevelPredictionModelServer, 
   args = list(
     performances = shiny::reactive({performances}),
-    performanceRowIds = shiny::reactiveVal(0),
+    performanceRowIds = shiny::reactiveVal(1),
     connectionHandler = connectionHandlerCharacterization,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization
   ), 
   expr = {
     
-    # check initial settings
-    testthat::expect_null(diagnosticTable())
-    testthat::expect_null(colDef())
+    # check generate works for all model views 
+    i <- 0
+    for(viewOption in c('Model Variable Importance','Univariate Variable Importance', 'Model Design', 'Hyperparameters')){
+      i <- i + 1 
+      session$setInputs(
+        view = viewOption,
+        select = i
+      )
+      session$flushReact()
     
-    # check this triggers observe event
-    performanceRowIds(1)
-    session$flushReact()
-    
-    #check results
-    diag <- OhdsiReportGenerator::getPredictionDiagnostics(
-      connectionHandler = connectionHandler, 
-      schema = resultDatabaseSettings$schema, 
-      plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
-      cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
-      databaseTable = resultDatabaseSettings$databaseTable, 
-      modelDesignIds = unique(performances()$modelDesign[performanceRowIds()])
-    )
-    
-    if(!is.null(diag)){
-      # check values update when performance is set
-      testthat::expect_is(diagnosticTable(), 'data.frame')
-      testthat::expect_true(nrow(diagnosticTable()) > 0 )
-      testthat::expect_true(length(colDef()) > 0)
     }
+
   })
 
 
-test_that("Test prediction diagnostics ui", {
+test_that("Test prediction model ui", {
   # Test ui
-  ui <- patientLevelPredictionDiagnosticsViewer(id = 'diagnostics')
+  ui <- patientLevelPredictionModelViewer(id = 'models')
   checkmate::expect_list(ui)
 })
+
+test_that("predictionModelColumns", {
+  # Test ui
+  cols <- predictionModelColumns()
+  testthat::expect_is(cols, 'list')
+})
+
+
+# TODO add test for addValidationName
+

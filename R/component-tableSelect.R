@@ -27,7 +27,9 @@ tableSelectionServer <- function(
     displayColumns = inputColumns,
     elementId = NULL,
     selectButtonText = 'Select Option',
-    tableReset = shiny::reactive(0)
+    tableReset = shiny::reactive(0),
+    groupBy = NULL,
+    columnGroups = NULL
 ) {
   shiny::moduleServer(
     id,
@@ -69,11 +71,16 @@ tableSelectionServer <- function(
           
           shiny::showModal(
             shiny::modalDialog(
-              size = 'l',
+              size = 'l', 
+              easyClose = TRUE,
             title = "Select row/s", 
             shiny::helpText('Select row/s of interest by clicking on the selector and then scroll down to the bottom of the table to hit the "Select" button and confirm your selection.  Hitting the "Select" button will close the modal.'),
-            reactable::reactableOutput(session$ns("inputTable")),
             
+            resultTableViewer(
+              id = session$ns("input-table"), 
+              boxTitle = 'Options'
+            ),
+
             footer = shiny::actionButton(
               inputId = session$ns("confirmInput"), 
               label = 'Select'
@@ -81,69 +88,52 @@ tableSelectionServer <- function(
             )
           )
           
-          # ?add code to set the row if selectedRow() is not NULL
-          if(!is.null(selectedRowId())){
-            if(sum(selectedRowId()) == 0){
-              reactable::updateReactable(
-                outputId = 'inputTable', 
-                selected = NA
-              )
-            } else{
-              reactable::updateReactable(
-                outputId = 'inputTable', 
-                selected = selectedRowId()
-              )
-            }
-          }
+          # code to update the selected rows
+          # using setSelected()
+          oldSetSelected <- setSelected()
+          setSelected(oldSetSelected + 1)
         }
         )
       
-  
-      # display the table in the model
-      # TODO how to get selected rows to persist?
-       output$inputTable <- reactable::renderReactable(
-         expr = if(!is.null(table())){
-           return(reactable::reactable(
-           data = table(), 
-           columns = inputColumns,
-           striped = TRUE, 
-           pagination = TRUE,
-           showPagination = TRUE,
-           showPageInfo = TRUE,
-           showPageSizeOptions = TRUE,
-           pageSizeOptions = c(5,25,50,500),
-           defaultPageSize = 5, 
-           selection = selection, 
-           highlight = TRUE, 
-           filterable = TRUE, 
-           compact = TRUE, 
-           onClick = "select",
-           elementId = elementId
-           ))} else{
-           return(NULL)
-         }
-      )
+      setSelected <- shiny::reactiveVal(0)
+      getSelected <- shiny::reactiveVal(0)
+       resultTableServer(
+         id = "input-table", #string
+         df = table, #data.frame
+         colDefsInput = inputColumns,
+         columnGroups = columnGroups,
+         details = data.frame(), # details about the data.frame such as target and database name
+         selectedCols = NULL,
+         elementId = elementId,
+         addActions = NULL,
+         downloadedFileName = NULL,
+         groupBy = groupBy,
+         selection = selection,
+         getSelected = getSelected,
+         selectedRowId = selectedRowId,
+         setSelected = setSelected,
+         showPageSizeOptions = TRUE,
+         pageSizeOptions = c(5,25,50,500),
+         defaultPageSize = 5 
+       )
        
        # when modal button is clicked update the selected row and 
        # remove model
        shiny::observeEvent(input$confirmInput,{
          shiny::removeModal() # close the modal
          
-         rowId <- reactable::getReactableState(outputId = 'inputTable', name = 'selected')
-         if(!is.null(rowId)){
-           selectedRowId(rowId)
-         } else{
-           selectedRowId(0)
-         }
-         
+         # change getSelected to trigger selectedRowId to update
+         oldCount <- getSelected()
+         getSelected(oldCount+1) 
        }
-         
        )
        
        
        # observe the row change to update the selected
        # need this for it to work across servers
        shiny::observeEvent(selectedRowId(), {
+         print(session$ns('In tableSelect'))
+         print(selectedRowId())
          
          if(sum(selectedRowId()) == 0){
            icon('plus')
