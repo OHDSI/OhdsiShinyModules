@@ -424,6 +424,21 @@ cohortGeneratorServer <- function(
         )
 
         if (isTemplateCohort) {
+          selectedJsonText(
+            shinydashboard::box(
+              status = 'primary',
+              solidHeader = TRUE,
+              width = "100%",
+              title = 'Cohort Definition',
+              collapsible = T,
+              collapsed = F,
+              shiny::tags$h3(cohortDefData$cohortName[as.double(input$selectedCohortDefRow)]),
+              shiny::p("Cohort is based on a non-standard sql template that may apply to other cohorts:"),
+              shiny::p(cohortDefData$templateName[as.double(input$selectedCohortDefRow)]),
+              shiny::p("View SQL/JSON for more information")
+            )
+          )
+
           selectedJson(
             shinydashboard::box(
               status = 'primary',
