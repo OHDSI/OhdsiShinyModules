@@ -433,7 +433,7 @@ cohortGeneratorServer <- function(
               collapsible = T,
               collapsed = F,
               shiny::renderPrint({
-                cat(templateJson, sep = "\n")
+                cat(cohortDefData$templateJson[as.double(input$selectedCohortDefRow)], sep = "\n")
               })
             )
           )
@@ -446,7 +446,7 @@ cohortGeneratorServer <- function(
               collapsible = T,
               collapsed = F,
               shiny::renderPrint({
-                cat("Template sql")
+                cat(cohortDefData$templateSql[as.double(input$selectedCohortDefRow)])
               })
             )
           )
@@ -834,13 +834,30 @@ getCohortGeneratorCohortDefinition <- function(
 
   sql <- "SELECT cd.*,
     csd.json as subset_json,
-    {!@tpl_migration_present} ? {NULL as is_templated_cohort,}
+    {@tpl_migration_present} ? {
+    ctd.template_name,
+    ctd.template_sql,
+    ctd.json as template_json
+     }: {
+     0 as is_templated_cohort,
+     NULL as template_name,
+     NULL as template_sql,
+     NULL as template_json
+    }
   FROM @schema.@cg_table_prefixCOHORT_DEFINITION cd
   left join 
   @schema.@cg_table_prefixcohort_subset_definition csd
   on cd.subset_definition_id = csd.subset_definition_id
+
+  {@tpl_migration_present} ? {
+  left join @schema.@cg_table_prefixcohort_template_link ctl
+  ON ctl.cohort_definition_id = cd.cohort_definition_id
+
+  left join @schema.@cg_table_prefixcohort_template_definition ctd
+  ON ctl.template_definition_id = ctd.template_definition_id
+  }
   ;"
-  
+
   result <- connectionHandler$queryDb(
     sql = sql,
     schema = resultDatabaseSettings$schema,
