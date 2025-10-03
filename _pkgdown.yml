@@ -19,6 +19,7 @@ navbar:
   components:
     home:
       icon: fa-home fa-lg
+      aria-label: 'Home'
       href: index.html
     reference:
       icon: fa-info-circle fa-lg
@@ -34,6 +35,7 @@ navbar:
       href: news/index.html
     github:
       icon: fa-github fa-lg
+      aria-label: 'GitHub'
       href: https://github.com/OHDSI/OhdsiShinyModules
     hades:
       text: hadesLogo

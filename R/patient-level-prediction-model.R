@@ -639,13 +639,7 @@ predictionModelColumns <- function(){
 }
 
 
-#' An internal helper function to add a friendly name for the prediction
-#'
-#' This function is not intended for direct use by users.
-#'
-#' @param result A data.frame with the prediction performance details
-#' @return The result with a new column called friendlyValidationName
-#' @noRd
+
 addValidationName <- function(result){
   
   if(nrow(result) > 0){
@@ -654,8 +648,8 @@ addValidationName <- function(result){
       'Predicting ', result$outcomeName, 
       ' in patients with ', result$targetName, 
       ' during ', result$timeAtRisk,
-      ##' restrict setting ', # add extraction details
-      ##result$plpDataSettingId, '-', result$populationSettingId,
+      ##  restrict setting ', # add extraction details
+      ## result$plpDataSettingId, '-', result$populationSettingId,
       ' within database ', result$validationDatabaseName,
       ' performance ', result$performanceId
       # add plpRestrict and details
