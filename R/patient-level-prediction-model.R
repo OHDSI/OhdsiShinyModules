@@ -149,7 +149,7 @@ patientLevelPredictionModelServer <- function(
       shiny::outputOptions(output, "viewHyperparameterTable", suspendWhenHidden = FALSE)
       
       hyperparameterSettings <- shiny::reactiveVal(NULL)
-      modelDesignSettings <- shiny::reactiveVal(NULL)
+      #modelDesignSettings <- shiny::reactiveVal(NULL)
       
       output$modelOptions <- shiny::renderUI(
         shinydashboard::box(
@@ -492,11 +492,11 @@ patientLevelPredictionModelServer <- function(
           ' predicting ', uniqueModels$developmentOutcomeName, ' in ', 
           uniqueModels$developmentTargetName, ' during ', uniqueModels$developmentTimeAtRisk)
           
-          modelDesignSettings(uniqueModels)
+          #modelDesignSettings(uniqueModels)
           
           modelDesignIds <- uniqueModels$modelDesignId
           names(modelDesignIds) <- uniqueModels$name
-            
+
           output$modelDesignInput <- shiny::renderUI(
             
             shiny::fluidRow(
@@ -560,7 +560,7 @@ patientLevelPredictionModelServer <- function(
         })
       
       
-      # hyperparameter table select
+      # model design table select
         singleModelDesign <- shiny::reactiveVal()
       shiny::observeEvent(input$modelDesignGenerate,{
         output$viewsettingsView <- shiny::reactive(1)
@@ -571,7 +571,7 @@ patientLevelPredictionModelServer <- function(
           schema = resultDatabaseSettings$schema, 
           plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
           cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
-          modelDesignIds = modelDesignSettings()$modelDesignId[as.double(input$modelDesign)]
+          modelDesignIds = as.double(input$modelDesign)
         )
         singleModelDesign(modelDesignTemp)
         

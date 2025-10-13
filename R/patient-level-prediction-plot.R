@@ -893,7 +893,7 @@ addGroupId <- function(data, performance, labelColumns = NULL){
         FUN = function(x) paste0(x, collapse ='-')
       )
     } else{
-      data$groupId <- data[,labelColumns]
+      data$groupId <- as.character(data[,labelColumns])
     }
   }
   
