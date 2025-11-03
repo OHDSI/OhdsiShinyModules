@@ -175,6 +175,7 @@ patientLevelPredictionPlotServer <- function(
                     schema = resultDatabaseSettings$schema, 
                     plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
                     table = 'threshold_summary', 
+                    databaseTable = resultDatabaseSettings$databaseTable, 
                     performanceIds = performances()$performanceId[performanceRowIds()][i], 
                     evaluations = performances()$evaluation[performanceRowIds()][i]
                   )}))
@@ -184,6 +185,7 @@ patientLevelPredictionPlotServer <- function(
                     connectionHandler = connectionHandler, 
                     schema = resultDatabaseSettings$schema, 
                     plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
+                    databaseTable = resultDatabaseSettings$databaseTable, 
                     table = 'prediction_distribution', 
                     performanceIds = performances()$performanceId[performanceRowIds()][i], 
                     evaluations = performances()$evaluation[performanceRowIds()][i]
@@ -194,6 +196,7 @@ patientLevelPredictionPlotServer <- function(
                     connectionHandler = connectionHandler, 
                     schema = resultDatabaseSettings$schema, 
                     plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
+                    databaseTable = resultDatabaseSettings$databaseTable, 
                     table = 'demographic_summary', 
                     performanceIds = performances()$performanceId[performanceRowIds()][i], 
                     evaluations = performances()$evaluation[performanceRowIds()][i]
@@ -204,6 +207,7 @@ patientLevelPredictionPlotServer <- function(
                     connectionHandler = connectionHandler, 
                     schema = resultDatabaseSettings$schema, 
                     plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
+                    databaseTable = resultDatabaseSettings$databaseTable, 
                     table = 'calibration_summary', 
                     performanceIds = performances()$performanceId[performanceRowIds()][i], 
                     evaluations = performances()$evaluation[performanceRowIds()][i]

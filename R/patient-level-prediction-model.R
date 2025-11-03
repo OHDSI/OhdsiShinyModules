@@ -223,6 +223,7 @@ patientLevelPredictionModelServer <- function(
             connectionHandler = connectionHandler, 
             schema = resultDatabaseSettings$schema, 
             plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
+            databaseTable = resultDatabaseSettings$databaseTable, 
             table = 'covariate_summary', 
             performanceId = unique(performances()$performanceId[performanceRowIds()])
           )
