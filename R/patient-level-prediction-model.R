@@ -80,7 +80,7 @@ patientLevelPredictionModelViewer <- function(id) {
           patientLevelPredictionSettingsViewer(ns('settingsView'))
         )
       ),
-    
+      
     ),
     
     shiny::conditionalPanel(
@@ -104,7 +104,7 @@ patientLevelPredictionModelViewer <- function(id) {
       
     )
   )
-    
+  
 }
 
 #' The module server for exploring prediction models
@@ -125,11 +125,11 @@ patientLevelPredictionModelViewer <- function(id) {
 #' @export
 #' 
 patientLevelPredictionModelServer <- function(
-  id, 
-  performances,
-  performanceRowIds,
-  connectionHandler,
-  resultDatabaseSettings
+    id, 
+    performances,
+    performanceRowIds,
+    connectionHandler,
+    resultDatabaseSettings
 ) {
   shiny::moduleServer(
     id,
@@ -158,7 +158,7 @@ patientLevelPredictionModelServer <- function(
           collapsible = TRUE,
           
           shiny::fluidRow(
-            style = "background-color: #DCDCDC;", # Apply style directly to fluidRow
+            style = "background-color: #DCDCDC; width: 98%; margin-left: 1%;margin-right: 1%;", # Apply style directly to fluidRow
             shiny::column(
               width = 8,
               shiny::selectInput(
@@ -189,7 +189,7 @@ patientLevelPredictionModelServer <- function(
       
       # hide results if models change
       shiny::observeEvent(
-        eventExpr = performanceRowIds,{
+        eventExpr = performanceRowIds(),{
           output$viewModelCoef <- shiny::reactive(0)
           output$viewModelHyperparameters <- shiny::reactive(0)
           output$viewModelDesign <- shiny::reactive(0)
@@ -214,19 +214,18 @@ patientLevelPredictionModelServer <- function(
       shiny::observeEvent(input$select, {
         
         if(input$view == 'Model Variable Importance'){
+          
+          # code to check how many performanceRowIds() and only include
+          # the top 10 with a warning message if > 10
+          if(length(performanceRowIds()) > 10){
+            shiny::showNotification('Can only view up to ten performances - filtering to first 10')
+          }
+          showId <- 1:min(10, length(performanceRowIds()))
+          
           output$viewModelCoef <- shiny::reactive(1)
           output$viewModelHyperparameters <- shiny::reactive(0)
           output$viewModelDesign <- shiny::reactive(0)
           output$viewModelSmd <- shiny::reactive(0)
-          
-          result <- OhdsiReportGenerator::getPredictionPerformanceTable(
-            connectionHandler = connectionHandler, 
-            schema = resultDatabaseSettings$schema, 
-            plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
-            databaseTable = resultDatabaseSettings$databaseTable, 
-            table = 'covariate_summary', 
-            performanceId = unique(performances()$performanceId[performanceRowIds()])
-          )
           
           result <- OhdsiReportGenerator::getPredictionCovariates(
             connectionHandler = connectionHandler, 
@@ -234,12 +233,19 @@ patientLevelPredictionModelServer <- function(
             plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
             cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
             databaseTable = resultDatabaseSettings$databaseTable,
-            performanceIds = unique(performances()$performanceId[performanceRowIds()])
+            performanceIds = unique(performances()$performanceId[performanceRowIds()[showId]])
           )
+          
+          # get columns of interest
+          result  <- result %>% 
+            dplyr::select("modelDesignId", "developmentDatabaseName",
+                          "developmentTargetName","developmentOutcomeName",
+                          "developmentTimeAtRisk",
+                          "covariateId", "covariateName", "covariateValue")
           
           if( nrow(result) > 0){
             # get intercept
-            interceptList <- lapply(performanceRowIds(), function(i){
+            interceptList <- lapply(performanceRowIds()[showId], function(i){
               OhdsiReportGenerator::getPredictionIntercept(
                 connectionHandler = connectionHandler, 
                 schema = resultDatabaseSettings$schema, 
@@ -249,22 +255,23 @@ patientLevelPredictionModelServer <- function(
               )}
             )
             
-            intercept <- data.frame(
-              modelDesignId = performances()$modelDesignId[performanceRowIds()], 
-              developmentDatabaseName = performances()$developmentDatabase[performanceRowIds()],
-              targetName = performances()$developmentTargetName[performanceRowIds()],
-              outcomeName = performances()$developmentOutcomeName[performanceRowIds()],
-              timeAtRisk = performances()$developmentTimeAtRisk[performanceRowIds()],
+            intercept <- unique(data.frame(
+              modelDesignId = performances()$modelDesignId[performanceRowIds()[showId]], 
+              developmentDatabaseName = performances()$developmentDatabase[performanceRowIds()[showId]],
+              developmentTargetName = performances()$developmentTargetName[performanceRowIds()[showId]],
+              developmentOutcomeName = performances()$developmentOutcomeName[performanceRowIds()[showId]],
+              developmentTimeAtRisk = performances()$developmentTimeAtRisk[performanceRowIds()[showId]],
               covariateId = 0,
               covariateName = 'intercept',
               covariateValue = unlist(interceptList)
-            )
+            ))
             
             # NOTE: select columns from result, rbind with interept and do this combined
             if( nrow(intercept) >0 ){
               result <- rbind(
                 result %>% dplyr::select("modelDesignId", "developmentDatabaseName",
-                                         "targetName","outcomeName","timeAtRisk",
+                                         "developmentTargetName","developmentOutcomeName",
+                                         "developmentTimeAtRisk",
                                          "covariateId", "covariateName", "covariateValue"),
                 intercept
               )
@@ -274,8 +281,8 @@ patientLevelPredictionModelServer <- function(
             result <- tidyr::pivot_wider(
               data = result, 
               id_cols = c('covariateId','covariateName'), 
-              names_from = c('developmentDatabaseName', 'modelDesignId','outcomeName', 'targetName', 'timeAtRisk'), 
-              names_glue = '{developmentDatabaseName} Model: {modelDesignId} - predicting {outcomeName} within {targetName} during {timeAtRisk}',
+              names_from = c('developmentDatabaseName', 'modelDesignId','developmentOutcomeName', 'developmentTargetName', 'developmentTimeAtRisk'), 
+              names_glue = '{developmentDatabaseName} Model: {modelDesignId} - predicting {developmentOutcomeName} within {developmentTargetName} during {developmentTimeAtRisk}',
               values_from = c('covariateValue'), 
               values_fn = max, 
               values_fill = 0
@@ -314,6 +321,13 @@ patientLevelPredictionModelServer <- function(
         
         if(input$view == 'Univariate Variable Importance'){
           
+          # code to check how many performanceRowIds() and only include
+          # the top 10 with a warning message if > 10
+          if(length(performanceRowIds()) > 10){
+            shiny::showNotification('Can only view up to ten performances - filtering to first 10')
+          }
+          showId <- 1:min(10, length(performanceRowIds()))
+          
           output$viewModelSmd <- shiny::reactive(1)
           output$viewModelCoef <- shiny::reactive(0)
           output$viewModelHyperparameters <- shiny::reactive(0)
@@ -325,7 +339,7 @@ patientLevelPredictionModelServer <- function(
             plpTablePrefix = resultDatabaseSettings$plpTablePrefix,
             cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
             databaseTable = resultDatabaseSettings$databaseTable,
-            performanceIds = unique(performances()$performanceId[performanceRowIds()])
+            performanceIds = unique(performances()$performanceId[performanceRowIds()[showId]])
           )
           
           # add validation friendly name
@@ -349,7 +363,7 @@ patientLevelPredictionModelServer <- function(
           colDefs <- list(
             covariateId = reactable::colDef(
               name = 'covariateId' 
-                ),
+            ),
             covariateName = reactable::colDef(
               name = 'Covariate', 
               minWidth = 150
@@ -386,11 +400,11 @@ patientLevelPredictionModelServer <- function(
                 )
                 names(colDefs)[length(colDefs)] <- col
               }
-            
+              
               colGroups[[length(colGroups)+1]] <- reactable::colGroup(
                 name = name, 
                 columns = colsofint 
-                  )
+              )
               
             }
           }
@@ -440,7 +454,7 @@ patientLevelPredictionModelServer <- function(
           output$hyperparametersInput <- shiny::renderUI(
             
             shiny::fluidRow(
-              style = "background-color: #DCDCDC;", # Apply style directly to fluidRow
+              style = "background-color: #DCDCDC; width: 98%; margin-left: 1%;margin-right: 1%;", # Apply style directly to fluidRow
               
               shiny::column(
                 width = 10,
@@ -457,7 +471,7 @@ patientLevelPredictionModelServer <- function(
                   )
                 )
               ),
-             
+              
               shiny::column(
                 width = 2,
                 shiny::div(
@@ -471,7 +485,7 @@ patientLevelPredictionModelServer <- function(
               
             )
           )
- 
+          
         }
         
         if(input$view == 'Model Design'){
@@ -481,27 +495,27 @@ patientLevelPredictionModelServer <- function(
           output$viewModelDesign <- shiny::reactive(1)
           
           uniqueModels <- unique(performances()[performanceRowIds(),] %>%
-            dplyr::select(
-              'modelDesignId',
-              'modelType',
-              "developmentTargetName", 
-              "developmentOutcomeName", 
-              'developmentTimeAtRisk'
-              ))
+                                   dplyr::select(
+                                     'modelDesignId',
+                                     'modelType',
+                                     "developmentTargetName", 
+                                     "developmentOutcomeName", 
+                                     'developmentTimeAtRisk'
+                                   ))
           
           uniqueModels$name <- paste0('Model ', uniqueModels$modelDesignId, ' a ', uniqueModels$modelType,
-          ' predicting ', uniqueModels$developmentOutcomeName, ' in ', 
-          uniqueModels$developmentTargetName, ' during ', uniqueModels$developmentTimeAtRisk)
+                                      ' predicting ', uniqueModels$developmentOutcomeName, ' in ', 
+                                      uniqueModels$developmentTargetName, ' during ', uniqueModels$developmentTimeAtRisk)
           
           #modelDesignSettings(uniqueModels)
           
           modelDesignIds <- uniqueModels$modelDesignId
           names(modelDesignIds) <- uniqueModels$name
-
+          
           output$modelDesignInput <- shiny::renderUI(
             
             shiny::fluidRow(
-              style = "background-color: #DCDCDC;", # Apply style directly to fluidRow
+              style = "background-color: #DCDCDC; width: 98%; margin-left: 1%;margin-right: 1%;", # Apply style directly to fluidRow
               
               shiny::column(
                 width = 10,
@@ -535,37 +549,44 @@ patientLevelPredictionModelServer <- function(
           )
         }
       })
-        
-        
-        # hyperparameter table select
-        shiny::observeEvent(input$hyperparametersGenerate,{
-          output$viewHyperparameterTable <- shiny::reactive(1)
       
-          # add code to load the hyperparamter settings
-          hyperparams <- OhdsiReportGenerator::getPredictionHyperParamSearch(
-            connectionHandler = connectionHandler, 
-            schema = resultDatabaseSettings$schema, 
-            plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
-            modelDesignId = hyperparameterSettings()$modelDesignId[as.double(input$hyperparameters)], 
-            databaseId = hyperparameterSettings()$developmentDatabaseId[as.double(input$hyperparameters)]
-          )
-          
-          # output the hyperparams as a table
-          resultTableServer(
-            id = "hyperparameterTable",
-            df = hyperparams,
-            colDefsInput = NULL,
-            addActions = NULL,
-            elementId = session$ns('hyperparameterTableElement')
-          )
-        })
+      
+      # hyperparameter table select
+      shiny::observeEvent(input$hyperparameters,{
+        output$viewHyperparameterTable <- shiny::reactive(0)
+      })
+
+      shiny::observeEvent(input$hyperparametersGenerate,{
+        output$viewHyperparameterTable <- shiny::reactive(1)
+
+        # add code to load the hyperparamter settings
+        hyperparams <- OhdsiReportGenerator::getPredictionHyperParamSearch(
+          connectionHandler = connectionHandler, 
+          schema = resultDatabaseSettings$schema, 
+          plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
+          modelDesignId = hyperparameterSettings()$modelDesignId[as.double(input$hyperparameters)], 
+          databaseId = hyperparameterSettings()$developmentDatabaseId[as.double(input$hyperparameters)]
+        )
+        
+        # output the hyperparams as a table
+        resultTableServer(
+          id = "hyperparameterTable",
+          df = hyperparams,
+          colDefsInput = NULL,
+          addActions = NULL,
+          elementId = session$ns('hyperparameterTableElement')
+        )
+      })
       
       
       # model design table select
-        singleModelDesign <- shiny::reactiveVal()
+      singleModelDesign <- shiny::reactiveVal()
+      shiny::observeEvent(input$modelDesign,{
+        output$viewsettingsView <- shiny::reactive(0)
+      })
+      
       shiny::observeEvent(input$modelDesignGenerate,{
         output$viewsettingsView <- shiny::reactive(1)
-        print('model design test')
         
         modelDesignTemp <- OhdsiReportGenerator::getPredictionModelDesigns(
           connectionHandler = connectionHandler, 
@@ -578,12 +599,12 @@ patientLevelPredictionModelServer <- function(
         
       }) # END shiny observe event
       
-
+      
       patientLevelPredictionSettingsServer(
         id = 'settingsView', 
         modelDesign = singleModelDesign
       )
-
+      
     }
   )
 }
@@ -646,9 +667,9 @@ addValidationName <- function(result){
   if(nrow(result) > 0){
     
     result$friendlyValidationName <- paste0(
-      'Predicting ', result$outcomeName, 
-      ' in patients with ', result$targetName, 
-      ' during ', result$timeAtRisk,
+      'Predicting ', result$validationOutcomeName, 
+      ' in patients with ', result$validationTargetName, 
+      ' during ', result$validationTimeAtRisk,
       ##  restrict setting ', # add extraction details
       ## result$plpDataSettingId, '-', result$populationSettingId,
       ' within database ', result$validationDatabaseName,

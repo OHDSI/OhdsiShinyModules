@@ -21,6 +21,13 @@ patientLevelPredictionCutoffViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
+    
+  shiny::uiOutput(ns('cutOffOptions')),
+  
+  shiny::conditionalPanel(
+    condition = "output.viewCutOff == 1",
+    ns = ns,
+    
     shinydashboard::box(
       width = 12,
       title = "Cutoff Slider: ",
@@ -61,6 +68,8 @@ patientLevelPredictionCutoffViewer <- function(id) {
     )
   )
   
+  )
+  
 }
 
 
@@ -75,13 +84,113 @@ patientLevelPredictionCutoffServer <- function(
     id,
     function(input, output, session) {
       
+      cutOff <- shiny::reactiveVal(NULL)
       thresholdSummary <- shiny::reactiveVal(NULL)
       probabilities <- shiny::reactiveVal(NULL)
       
+      output$viewCutOff <- shiny::reactive(0)
+      shiny::outputOptions(output, "viewCutOff", suspendWhenHidden = FALSE)
+      
+       
+      # get the performance names for the selected rows 
       shiny::observeEvent(
         eventExpr = performanceRowIds(), {
           
+          output$viewCutOff <- shiny::reactive(0)
+          
           if(length(performanceRowIds()) > 0 & max(performanceRowIds()) != 0){
+            
+            result <- performances()[performanceRowIds(),] %>%
+              dplyr::select(
+                "performanceId", "evaluation", "modelDesignId",
+                "developmentTargetName", "developmentOutcomeName",
+                "developmentTimeAtRisk", "developmentDatabase", 
+                "validationTargetName", "validationOutcomeName",
+                "validationTimeAtRisk", "validationDatabase"
+              ) %>%
+              dplyr::mutate(
+                name = paste0('Performance ',.data$performanceId, '-',.data$modelDesignId,
+                              ': model developed in ', .data$developmentTargetName, ' predict ',
+                              .data$developmentOutcomeName, ' during ',
+                              .data$developmentTimeAtRisk, ' applied to ',
+                              .data$validationTargetName, ' predicting ',
+                              .data$validationOutcomeName, ' during ',
+                              .data$validationTimeAtRisk
+                              )
+              ) %>%
+              dplyr::select("performanceId", "name")
+            
+            cutOffVal <- 1:length(result$name)
+            names(cutOffVal) <- result$name
+            
+            cutOff(cutOffVal)
+          } else{
+            cutOff(NULL)
+          }
+        }
+      )
+      
+      
+      output$cutOffOptions <- shiny::renderUI(
+        
+        shinydashboard::box(
+          title = 'Pick Performances',
+          width = 12, 
+          collapsible = TRUE,
+          
+          shiny::helpText('Pick which performances to view the cut-off performances for from those previously selected (default is all)'),
+          
+          shiny::fluidRow(
+            style = "background-color: #DCDCDC; width: 98%; margin-left: 1%;margin-right: 1%;", # Apply style directly to fluidRow
+            
+            shiny::column(
+              width = 9,
+              
+              shinyWidgets::pickerInput(
+                multiple = TRUE,
+                inputId = session$ns('pickedPerformances'),
+                label = 'Select', 
+                choices = cutOff(), 
+                selected = cutOff(), 
+                width = '100%', 
+                options = shinyWidgets::pickerOptions(
+                  liveSearch = TRUE,
+                  dropupAuto = FALSE
+                )
+              )
+              
+            ),
+            
+            shiny::column(
+              width = 3,
+              shiny::div(
+                style = "padding-top: 25px; padding-left: 10px;",
+                shiny::actionButton(
+                  inputId = session$ns('generate'), 
+                  label = 'Generate' 
+                )
+              )
+            )
+            
+          ) # fluid row
+        ) # box
+      ) # renderUI
+      
+      # hide results when performances change
+      shiny::observeEvent(
+        eventExpr = input$pickedPerformances, {
+          output$viewCutOff <- shiny::reactive(0)
+        }
+        )
+      
+      
+      # make this a button generation
+      shiny::observeEvent(
+        eventExpr = input$generate, {
+          
+          if(!is.null(cutOff())){ # check input$pickedPerformances not empty?
+            
+            output$viewCutOff <- shiny::reactive(1)
             
             result <- OhdsiReportGenerator::getPredictionPerformanceTable(
               connectionHandler = connectionHandler, 
@@ -89,14 +198,14 @@ patientLevelPredictionCutoffServer <- function(
               plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
               databaseTable = resultDatabaseSettings$databaseTable, 
               table = 'threshold_summary', 
-              performanceIds = performances()$performanceId[performanceRowIds()]
+              performanceIds = performances()$performanceId[performanceRowIds()][as.double(input$pickedPerformances)]
             )
             
             if( nrow(result) > 0){
               # restrict to the selected performance/evals
               result <- merge(
                 x = result, 
-                y = performances()[performanceRowIds(), c('performanceId','evaluation')]
+                y = performances()[performanceRowIds(),][as.double(input$pickedPerformances), c('performanceId','evaluation')]
               )
             
               thresholdSummary(result)
@@ -132,7 +241,7 @@ patientLevelPredictionCutoffServer <- function(
           result <- processedThresholds(
             data = thresholdSummary(),
             probability = probabilities()[input$slider1],
-            performances = performances()[performanceRowIds(),]
+            performances = performances()[performanceRowIds(),][as.double(input$pickedPerformances),]
           )
           return(result)
         }

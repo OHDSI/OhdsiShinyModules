@@ -34,6 +34,8 @@ The user specifies the id for the module
 }
 \seealso{
 Other PatientLevelPrediction: 
+\code{\link{patientLevelPredictionHeatmapServer}()},
+\code{\link{patientLevelPredictionHeatmapViewer}()},
 \code{\link{patientLevelPredictionHelperFile}()},
 \code{\link{patientLevelPredictionModelViewer}()},
 \code{\link{patientLevelPredictionPlotServer}()},

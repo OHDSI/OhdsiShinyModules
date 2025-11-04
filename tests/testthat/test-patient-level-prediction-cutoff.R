@@ -44,6 +44,10 @@ shiny::testServer(
       performanceIds = performances()$performanceId[performanceRowIds()]
     )
     
+    # set inputs pickedPerformances = 1 and generate = 1
+    session$setInputs(pickedPerformances  = 1)
+    session$setInputs(generate  = 1)
+    
     if(!is.null(res)){
       # check values update when performance is set
       testthat::expect_is(thresholdSummary(), 'data.frame')

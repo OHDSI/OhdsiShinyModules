@@ -94,12 +94,14 @@ patientLevelPredictionPlotServer <- function(
       
       plotList <- c('rocPlot', 'prPlot', 'f1Plot',
                     'boxPlot','predDistPlot','prefDistPlot',
+                    'probabilityThresholdPlot',
                     'demographicCalibrationPlot',
                     'smoothCalibrationPlot',
                     'netBenefitPlot'
                     )
       names(plotList) <- c('ROC Plot', 'Precision-recall Plot', 'F1-score Plot', 
                            'Prediction box-plot', 'Prediction distribution', 'Preference distribution',
+                           'Probability Threshold Plot',
                            'Demographic Calibration',
                            'Calibration',
                            'Net Benefit'
@@ -108,12 +110,12 @@ patientLevelPredictionPlotServer <- function(
       output$plotOptions <- shiny::renderUI(
         
         shinydashboard::box(
-          title = 'Discrimination Options',
+          title = 'Plot Options',
           width = 12, 
           collapsible = TRUE,
           
           shiny::fluidRow(
-            style = "background-color: #DCDCDC;", # Apply style directly to fluidRow
+            style = "background-color: #DCDCDC; width: 98%; margin-left: 1%;margin-right: 1%;", # Apply style directly to fluidRow
             
             shiny::column(
               width = 4,
@@ -157,6 +159,11 @@ patientLevelPredictionPlotServer <- function(
         ) # box
       ) # renderUI
       
+      # remove plot if the performance selection changes
+      shiny::observeEvent(
+        eventExpr = performanceRowIds(), {
+          output$viewPlot <- shiny::reactive(0)
+        })
       
       shiny::observeEvent(
         input$generatePlot,
@@ -168,7 +175,7 @@ patientLevelPredictionPlotServer <- function(
                 
                 output$viewPlot <- shiny::reactive(1)
                 
-                if(input$plotType %in% c('rocPlot', 'prPlot','f1Plot','predDistPlot','prefDistPlot', 'netBenefitPlot')){
+                if(input$plotType %in% c('rocPlot', 'prPlot','f1Plot','predDistPlot','prefDistPlot', 'netBenefitPlot', 'probabilityThresholdPlot')){
                 data <- do.call('rbind', lapply(1:length(performanceRowIds()), function(i){
                   OhdsiReportGenerator::getPredictionPerformanceTable(
                     connectionHandler = connectionHandler, 
@@ -871,8 +878,72 @@ netBenefitPlot <- function(
 }
 
 
+probabilityThresholdPlot <- function(
+    data, 
+    performance,
+    labelColumns = NULL
+){
+  
+  data <- addGroupId(
+    data = data, 
+    performance = performance, 
+    labelColumns = labelColumns
+  )
+  
+  plotResult <- ggplot2::ggplot(
+    data = data, 
+    ggplot2::aes(
+      x = .data$predictionThreshold
+    )
+  ) + 
+    ggplot2::geom_line(
+      ggplot2::aes(
+        y = .data$sensitivity,
+        color = 'sens'
+      )
+    ) +
+    ggplot2::geom_line(
+      ggplot2::aes(
+        y = .data$positivePredictiveValue,
+        color = 'ppv'
+      )
+    ) +
+    ggplot2::scale_colour_manual(
+      values=c(
+        sens = "#000066",
+        ppv = "#CC0033"
+        )
+      ) +
+    ggplot2::scale_y_continuous(
+      
+      # Features of the first axis
+      name = "Sensitivity",
+      
+      # Add a second axis and specify its features
+      sec.axis = ggplot2::sec_axis(~., name="PPV")
+    ) +
+    ggplot2::theme(
+      axis.title.y = ggplot2::element_text(color = '#000066', size=13),
+      axis.title.y.right = ggplot2::element_text(color = '#CC0033', size=13)
+    ) +
+    ggplot2::facet_grid(
+      rows = ggplot2::vars(.data$groupId), 
+      scales = 'free'
+    ) +
+    ggplot2::labs(
+      x = "Threshold"
+    )
+  
+  return(plotResult)
+}
+
+
+
 addGroupId <- function(data, performance, labelColumns = NULL){
   # merging performance to get the names for the groupId
+  
+  # convert into data.frame
+  data <- as.data.frame(data)
   
   overlappingColsInd <- colnames(performance) %in% colnames(data) & !colnames(performance) %in% c('performanceId', 'evaluation')
   if( sum(overlappingColsInd) > 0 ){
@@ -908,7 +979,7 @@ addGroupId <- function(data, performance, labelColumns = NULL){
       if(nchar(x) > 50){
         paste0(
           substr(
-            x = data$groupId, 
+            x = x, 
             start = 1, 
             stop = 50
           ), 

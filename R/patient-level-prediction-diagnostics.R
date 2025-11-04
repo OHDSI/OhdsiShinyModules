@@ -22,14 +22,24 @@ patientLevelPredictionDiagnosticsViewer <- function(id) {
   
   shiny::div(
     
-    shinydashboard::box(
-      width = "100%",
-      title = 'Diagnostic results', 
-      status = "info", 
-      solidHeader = TRUE,
+    shiny::uiOutput(ns('diagOptions')),
+    
+    shiny::conditionalPanel(
+      condition = "output.viewDiag == 1",
+      ns = ns,
       
-      resultTableViewer(ns('diagnosticSummaryTable'))
+      shinydashboard::box(
+        width = 12,
+        title = 'Diagnostic results', 
+        status = "info", 
+        solidHeader = TRUE,
+        
+        resultTableViewer(ns('diagnosticSummaryTable'))
+        
+      )
+      
     )
+    
   )
   
   
@@ -47,20 +57,118 @@ patientLevelPredictionDiagnosticsServer <- function(
     id,
     function(input, output, session) {
       
+      output$viewDiag <- shiny::reactive(0)
+      shiny::outputOptions(output, "viewDiag", suspendWhenHidden = FALSE)
+      modelOptions <- shiny::reactiveVal(NULL)
+      
       diagnosticTable <- shiny::reactiveVal(NULL)
       colDef <- shiny::reactiveVal(NULL)
       
+      # update the models that can be selected based on the choosen performances
       shiny::observeEvent(
         eventExpr = performanceRowIds(), {
           
-          if( max(performanceRowIds()) != 0){
+          output$viewDiag <- shiny::reactive(0)
+          
+          if(length(performanceRowIds()) > 0 & max(performanceRowIds()) != 0){
+            
+            result <- performances()[performanceRowIds(),] %>%
+              dplyr::select(
+                "modelDesignId",
+                "developmentTargetName", "developmentOutcomeName",
+                "developmentTimeAtRisk", "developmentDatabase"
+              ) %>%
+              dplyr::mutate(
+                name = paste0('Model design ',.data$modelDesignId,
+                              ': developed in ', .data$developmentTargetName, ' to predict ',
+                              .data$developmentOutcomeName, ' during ',
+                              .data$developmentTimeAtRisk, ' for database ',
+                              .data$developmentDatabase
+                )
+              ) %>%
+              dplyr::distinct() %>%
+              dplyr::arrange(.data$modelDesignId)
+            
+            option <- result$modelDesignId
+            names(option) <- result$name
+            modelOptions(option)
+            
+          } else{
+            modelOptions(NULL)
+          }
+        }
+      )
+      
+      # set the options to select the models of interest
+      output$diagOptions <- shiny::renderUI(
+        
+        shinydashboard::box(
+          title = 'Pick Models',
+          width = 12, 
+          collapsible = TRUE,
+          
+          shiny::div(
+            shiny::helpText("Pick which models' diagnostics to view from those previously selected (default is all)"),
+            
+            shiny::fluidRow(
+              style = "background-color: #DCDCDC; width: 98%; margin-left: 1%;margin-right: 1%;", # Apply style directly to fluidRow
+              
+              shiny::column(
+                width = 9,
+                
+                shinyWidgets::pickerInput(
+                  multiple = TRUE,
+                  inputId = session$ns('selectedModels'),
+                  label = 'Select', 
+                  choices = modelOptions(), 
+                  selected = modelOptions(), 
+                  width = '100%', 
+                  options = shinyWidgets::pickerOptions(
+                    liveSearch = TRUE,
+                    dropupAuto = FALSE
+                  )
+                )
+                
+              ),
+              
+              shiny::column(
+                width = 3,
+                shiny::div(
+                  style = "padding-top: 25px; padding-left: 10px;",
+                  shiny::actionButton(
+                    inputId = session$ns('generate'), 
+                    label = 'Generate' 
+                  )
+                )
+              )
+              
+            ) # fluid row
+          ) # div
+        ) # box
+        
+      ) # renderUI
+      
+      
+      shiny::observeEvent(
+        eventExpr = input$selectedModels, {
+          output$viewDiag <- shiny::reactive(0)
+        })
+      
+      # when generate is pressed extract diagnostics and show them
+      shiny::observeEvent(
+        eventExpr = input$generate, {
+          
+          if( max(performanceRowIds()) != 0 & (length(input$selectedModels) > 0) ){
+            
+            output$viewDiag <- shiny::reactive(1)
+            
             diagnosticTableTemp <- OhdsiReportGenerator::getPredictionDiagnostics(
               connectionHandler = connectionHandler, 
               schema = resultDatabaseSettings$schema, 
               plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
               cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
               databaseTable = resultDatabaseSettings$databaseTable, 
-              modelDesignIds = unique(performances()$modelDesign[performanceRowIds()])
+              modelDesignIds = as.double(input$selectedModels)
             )
             
             # format
@@ -108,7 +216,7 @@ patientLevelPredictionDiagnosticsServer <- function(
               colDef(colDefTemp)
               
               
-              modelTableOutputs <- resultTableServer(
+              resultTableServer(
                 id = "diagnosticSummaryTable",
                 df = diagnosticTable,
                 colDefsInput = colDef(), #colDefsInput,

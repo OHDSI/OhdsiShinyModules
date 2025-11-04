@@ -17,6 +17,8 @@ Returns the location of the prediction helper file
 }
 \seealso{
 Other PatientLevelPrediction: 
+\code{\link{patientLevelPredictionHeatmapServer}()},
+\code{\link{patientLevelPredictionHeatmapViewer}()},
 \code{\link{patientLevelPredictionModelServer}()},
 \code{\link{patientLevelPredictionModelViewer}()},
 \code{\link{patientLevelPredictionPlotServer}()},

@@ -27,7 +27,7 @@ Imports:
     plotly,
     reactable,
     readr,
-    OhdsiReportGenerator (>= 2.0.0),
+    OhdsiReportGenerator (>= 2.0.1),
     jsonlite,
     rlang,
     scales,
@@ -51,5 +51,5 @@ Suggests:
     testthat,
     withr
 Remotes:
-    ohdsi/OhdsiReportGenerator
+    ohdsi/OhdsiReportGenerator@develop
 RoxygenNote: 7.3.2

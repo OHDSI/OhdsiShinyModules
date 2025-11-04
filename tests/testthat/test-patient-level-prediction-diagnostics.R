@@ -34,6 +34,10 @@ shiny::testServer(
     performanceRowIds(1)
     session$flushReact()
     
+    # set the inputs
+    session$setInputs(selectedModels  = unique(performances()$modelDesignId))
+    session$setInputs(generate  = 1)
+    
     #check results
     diag <- OhdsiReportGenerator::getPredictionDiagnostics(
       connectionHandler = connectionHandler, 
@@ -41,7 +45,7 @@ shiny::testServer(
       plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
       cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
       databaseTable = resultDatabaseSettings$databaseTable, 
-      modelDesignIds = unique(performances()$modelDesign[performanceRowIds()])
+      modelDesignIds = unique(performances()$modelDesignId[performanceRowIds()])
     )
     
     if(!is.null(diag)){

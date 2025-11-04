@@ -75,6 +75,11 @@ patientLevelPredictionViewer <- function(id=1) {
           patientLevelPredictionPlotViewer(id = ns('prediction-plots'))
           ),
         shiny::tabPanel(
+          title = 'Generate Heatmap', 
+          shiny::helpText('This lets users plot large scale prediction impacts'),
+          patientLevelPredictionHeatmapViewer(id = ns('prediction-heatmap'))
+        ),
+        shiny::tabPanel(
           title = 'View Threshold Performances', 
           shiny::helpText("Explore the models' performances (e.g., precision, sensitivity, specificity) at different predictive thresholds."),
           patientLevelPredictionCutoffViewer(id = ns('prediction-cutoff'))
@@ -344,6 +349,7 @@ patientLevelPredictionServer <- function(
           label = 'Result: ',
           choices = c('View Models', 
                       'Generate Plots',
+                      'Generate Heatmap',
                       'View Threshold Performances', 
                       'View Diagnostics'
                       ),
@@ -396,6 +402,14 @@ patientLevelPredictionServer <- function(
       
       patientLevelPredictionModelServer(
         id = 'prediction-models',
+        performances = shiny::reactive({performances}),
+        performanceRowIds = performanceRowId,
+        connectionHandler = connectionHandler, 
+        resultDatabaseSettings = resultDatabaseSettings
+      )
+      
+      patientLevelPredictionHeatmapServer(
+        id = 'prediction-heatmap',
         performances = shiny::reactive({performances}),
         performanceRowIds = performanceRowId,
         connectionHandler = connectionHandler, 
