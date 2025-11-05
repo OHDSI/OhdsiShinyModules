@@ -91,7 +91,10 @@ patientLevelPredictionHeatmapServer <- function(
       output$plotOptions <- shiny::renderUI(
         
         shinydashboard::box(
-          title = 'Heatmap Options',
+          title = shiny::actionButton(
+            inputId = session$ns('generateHeatmap'), 
+            label = 'Generate Heatmap' 
+          ),
           width = 12, 
           collapsible = TRUE,
           
@@ -99,7 +102,16 @@ patientLevelPredictionHeatmapServer <- function(
             style = "background-color: #DCDCDC; width: 98%; margin-left: 1%;margin-right: 1%;", # Apply style directly to fluidRow
             
             shiny::column(
-              width = 3,
+              width = 12,
+              shiny::helpText('Select your options for the heatmap: ')
+            )
+          ), # fluid row
+          
+          shiny::fluidRow(
+            style = "background-color: #DCDCDC; width: 98%; margin-left: 1%;margin-right: 1%;", # Apply style directly to fluidRow
+            
+            shiny::column(
+              width = 4,
               shiny::selectInput(
                 inputId = session$ns('xAxis'),
                 label = 'xAxis', 
@@ -115,7 +127,7 @@ patientLevelPredictionHeatmapServer <- function(
             ),
             
             shiny::column(
-              width = 3,
+              width = 4,
               shiny::selectInput(
                 inputId = session$ns('yAxis'),
                 label = 'yAxis', 
@@ -131,7 +143,7 @@ patientLevelPredictionHeatmapServer <- function(
             ),
             
             shiny::column(
-              width = 3,
+              width = 4,
               shiny::selectInput(
                 inputId = session$ns('metric'),
                 label = 'Metric', 
@@ -139,21 +151,59 @@ patientLevelPredictionHeatmapServer <- function(
                 selected = 'AUROC', 
                 multiple = FALSE
               )
-            ),
+            )
+            ), # fluid row
           
+          shiny::fluidRow(
+            style = "background-color: #DCDCDC; width: 98%; margin-left: 1%;margin-right: 1%;", # Apply style directly to fluidRow
             
             shiny::column(
-              width = 3,
-              shiny::div(
-                style = "padding-top: 25px; padding-left: 10px;",
-                shiny::actionButton(
-                  inputId = session$ns('generateHeatmap'), 
-                  label = 'Generate Heatmap' 
+              width = 4,
+              shiny::checkboxInput(
+                label = 'Facets',
+                inputId = session$ns('facetGrid')
                 )
+            ),
+        
+            shiny::conditionalPanel(
+              condition = "input.facetGrid",
+              ns = session$ns,
+              
+            shiny::column(
+              width = 4,
+              shiny::selectInput(
+                inputId = session$ns('rowFacet'),
+                label = 'rowFacet', 
+                choices = c('developmentTargetName', 'validationTargetName', 
+                            'developmentOutcomeName', 'validationOutcomeName',
+                            'developmentTimeAtRisk','validationTimeAtRisk',
+                            'developmentDatabase', 'validationDatabase',
+                            'modelType', 'evaluation'
+                ),
+                selected = 'developmentDatabase', 
+                multiple = FALSE
+              )
+            ),
+            
+            shiny::column(
+              width = 4,
+              shiny::selectInput(
+                inputId = session$ns('colFacet'),
+                label = 'colFacet', 
+                choices = c('developmentTargetName', 'validationTargetName', 
+                            'developmentOutcomeName', 'validationOutcomeName',
+                            'developmentTimeAtRisk','validationTimeAtRisk',
+                            'developmentDatabase', 'validationDatabase',
+                            'modelType', 'evaluation'
+                ),
+                selected = 'validationDatabase', 
+                multiple = FALSE
               )
             )
-            
+            ) # conditional 
+
           ) # fluid row
+          
         ) # box
       ) # renderUI
       
@@ -191,19 +241,37 @@ patientLevelPredictionHeatmapServer <- function(
                         
                         data$xAxis <- unlist(lapply(data[,input$xAxis], function(x){paste(strwrap(x, width = 20), collapse = "\n")}))
                         data$yAxis <- unlist(lapply(data[,input$yAxis], function(x){paste(strwrap(x, width = 20), collapse = "\n")}))
+                        data$rowFacet <- unlist(lapply(data[,input$rowFacet], function(x){paste(strwrap(x, width = 20), collapse = "\n")}))
+                        data$colFacet <- unlist(lapply(data[,input$colFacet], function(x){paste(strwrap(x, width = 20), collapse = "\n")}))
+                        
                         data$fill <- data[,input$metric]
                         
                         
-                        
-                        ggplot2::ggplot(
-                          data = data, 
-                          mapping = ggplot2::aes(
-                            x = .data$xAxis, 
-                            y = .data$yAxis, 
-                            fill = .data$fill
+                        if(!input$facetGrid){
+                          ggplot2::ggplot(
+                            data = data, 
+                            mapping = ggplot2::aes(
+                              x = .data$xAxis, 
+                              y = .data$yAxis, 
+                              fill = .data$fill
                             )
                           ) +
-                          ggplot2::geom_tile()
+                            ggplot2::geom_tile()
+                        } else{
+                          ggplot2::ggplot(
+                            data = data, 
+                            mapping = ggplot2::aes(
+                              x = .data$xAxis, 
+                              y = .data$yAxis, 
+                              fill = .data$fill
+                            )
+                          ) +
+                            ggplot2::facet_grid(
+                              rows = ggplot2::vars(.data$rowFacet),
+                              cols = ggplot2::vars(.data$colFacet)
+                            ) +
+                            ggplot2::geom_tile()
+                        }
                       },
                       error = function(e){print(e);NULL}
                     )
