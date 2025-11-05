@@ -57,9 +57,21 @@ predictionReportServer <- function(
         helpText = 'Click button to select a model design for the report',
         inputColumns = list(
           modelDesignId = reactable::colDef(show = FALSE),
+          modelType = reactable::colDef(show = TRUE),
           developmentTargetId = reactable::colDef(show = FALSE),
+          developmentTargetName = reactable::colDef(
+            show = TRUE, 
+            name = 'Target', 
+            defaultSortOrder = 'desc'
+          ),
           developmentTargetJson = reactable::colDef(show = FALSE),
           developmentOutcomeId = reactable::colDef(show = FALSE),
+          developmentOutcomeName = reactable::colDef(
+            show = TRUE, 
+            name = 'Outcome', 
+            defaultSortOrder = 'desc'
+          ),
+          timeAtRisk = reactable::colDef(show = TRUE),
           developmentOutcomeJson = reactable::colDef(show = FALSE),
           covariateSettingsJson = reactable::colDef(show = FALSE),
           populationSettingsJson = reactable::colDef(show = FALSE),
@@ -68,32 +80,7 @@ predictionReportServer <- function(
           featureEngineeringSettingsJson = reactable::colDef(show = FALSE),
           splitSettingsJson = reactable::colDef(show = FALSE),
           sampleSettingsJson = reactable::colDef(show = FALSE),
-          modelSettingsJson = reactable::colDef(show = FALSE),
-          minAuroc = reactable::colDef(show = FALSE),
-          maxAuroc = reactable::colDef(show = FALSE),
-          noDiagnosticDatabases = reactable::colDef(show = FALSE),
-          noValidationDatabases = reactable::colDef(show = FALSE),
-          modelType = reactable::colDef(show = TRUE),
-          developmentTargetName = reactable::colDef(
-            show = TRUE, 
-            name = 'Target', 
-            defaultSortOrder = 'desc'
-            ),
-          developmentOutcomeName = reactable::colDef(
-            show = TRUE, 
-            name = 'Outcome', 
-            defaultSortOrder = 'desc'
-          ),
-          timeAtRisk = reactable::colDef(show = TRUE),
-          meanAuroc = reactable::colDef(
-            show = TRUE, 
-            name = 'Mean AUROC', 
-            format = reactable::colFormat(digits = 2)
-          ),
-          noDevelopmentDatabases = reactable::colDef(
-            show = TRUE, 
-            name = 'No. Dbs'
-          )
+          modelSettingsJson = reactable::colDef(show = FALSE)
         ),
         elementId = 'prediction-report-table',
         selectButtonText = 'Select Model Design',
