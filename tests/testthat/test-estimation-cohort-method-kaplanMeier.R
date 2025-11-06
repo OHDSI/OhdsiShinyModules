@@ -1,11 +1,11 @@
-context("estimation-cohort-method-KaplanMeier")
+testthat::context("estimation-cohort-method-KaplanMeier")
 
 shiny::testServer(
   app = cohortMethodKaplanMeierServer, 
   args = list(
     selectedRow = shiny::reactiveVal(NULL), 
-    connectionHandler = connectionHandlerEstimation, 
-    resultDatabaseSettings = resultDatabaseSettingsEstimation
+    connectionHandler = connectionHandlerCharacterization, 
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   ), 
   expr = {
     
@@ -15,16 +15,16 @@ shiny::testServer(
     # make sure this runs if we pick the first row
     selectedRow(
       list(
-        databaseId = 'eunomia', 
-        cdmSourceAbbreviation = 'Eunomia', 
+        databaseId = '388020256', 
+        databaseNAme = 'Synthea', 
         analysisId = 1,
         description  = 'madeup',
-        target = 'test target',
-        targetId = 1,
-        comparatorId = 2, 
-        comparator = 'test comparator',
+        targetName = 'Celecoxib',
+        targetId = 1003,
+        comparatorId = 2003, 
+        comparatorName = 'Diclofenac',
         outcomeId = 3,
-        outcome = 'test outcome',
+        outcomeName = 'GI bleed',
         psStrategy = ''
       )
     )
@@ -32,4 +32,5 @@ shiny::testServer(
     
     testthat::expect_true(!is.null(output$kaplanMeierPlotPlotCaption))
     
-  })
+  }
+)

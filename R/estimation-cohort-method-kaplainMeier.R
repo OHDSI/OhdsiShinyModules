@@ -82,8 +82,8 @@ cohortMethodKaplanMeierServer <- function(
           km$targetAtRisk[removeInd] <- NA
           km$comparatorAtRisk[removeInd] <- NA
           
-          targetName <- row$target
-          comparatorName <- row$comparator
+          targetName <- row$targetName
+          comparatorName <- row$comparatorName
           
           plot <- plotCohortMethodKaplanMeier(
             kaplanMeier = km,
@@ -120,7 +120,7 @@ cohortMethodKaplanMeierServer <- function(
       comparator curve (<em>%s</em>) applies reweighting to approximate the counterfactual of what the target survival
       would look like had the target cohort been exposed to the comparator instead. The shaded area denotes
       the 95 percent confidence interval."
-          return(shiny::HTML(sprintf(text, row$target, row$comparator)))
+          return(shiny::HTML(sprintf(text, row$targetName, row$comparatorName)))
         }
       })
       
@@ -141,32 +141,21 @@ getCohortMethodKaplanMeier <- function(
     analysisId
 ) {
   
-  sql <- "
-  SELECT
-    *
-  FROM
-    @schema.@cm_table_prefixkaplan_meier_dist cmkmd
-  WHERE
-    cmkmd.target_id = @target_id
-    AND cmkmd.comparator_id = @comparator_id
-    AND cmkmd.outcome_id = @outcome_id
-    AND cmkmd.analysis_id = @analysis_id
-    AND cmkmd.database_id = '@database_id';
-  "
-  
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      schema = resultDatabaseSettings$schema,
-      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-      #database_table = resultDatabaseSettings$databaseTable,
-      target_id = targetId,
-      comparator_id = comparatorId,
-      outcome_id = outcomeId,
-      analysis_id = analysisId,
-      database_id = databaseId
-    )
+  result <- OhdsiReportGenerator::getCmTable(
+    connectionHandler = connectionHandler, 
+    schema = resultDatabaseSettings$schema, 
+    table = 'kaplan_meier_dist', 
+    cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+    databaseTable = resultDatabaseSettings$databaseTable, 
+    targetIds = targetId,
+    comparatorIds = comparatorId,
+    outcomeIds = outcomeId,
+    analysisIds = analysisId,
+    databaseIds = databaseId
   )
+  
+  return(result)
 }
 
 

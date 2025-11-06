@@ -36,15 +36,13 @@ cohortMethodPowerViewer <- function(id) {
       
       shiny::tabPanel(
         title = "Power Table",
-        resultTableViewer(ns("powerTable"),
-                          downloadedFileName = "powerTable-"),
+        resultTableViewer(ns("powerTable")),
         shiny::uiOutput(outputId = ns("powerTableCaption"))
       ),
       
       shiny::tabPanel(
         title = "TAR Table",
-        resultTableViewer(ns("timeAtRiskTable"),
-                          downloadedFileName = "timeAtRiskTable-"),
+        resultTableViewer(ns("timeAtRiskTable")),
         shiny::uiOutput(outputId = ns("timeAtRiskTableCaption"))
       )
       
@@ -78,12 +76,12 @@ cohortMethodPowerServer <- function(
       
       output$powerTableCaption <- shiny::renderUI({
         row <- selectedRow()
-        if (!is.null(row$target)) {
+        if (!is.null(row$targetName)) {
           text <- "<strong>Table 1a.</strong> Number of subjects, follow-up time (in years), number of outcome
       events, and event incidence rate (IR) per 1,000 patient years (PY) in the target (<em>%s</em>) and
       comparator (<em>%s</em>) group after propensity score adjustment, as  well as the minimum detectable  relative risk (MDRR).
       Note that the IR does not account for any stratification."
-          return(shiny::HTML(sprintf(text, row$target, row$comparator)))
+          return(shiny::HTML(sprintf(text, row$targetName, row$comparatorName)))
         } else {
           return(NULL)
         }
@@ -91,7 +89,7 @@ cohortMethodPowerServer <- function(
       
       powerTable <- shiny::reactive({
         row <- selectedRow()
-        if (is.null(row$target)) {
+        if (is.null(row$targetName)) {
           return(NULL)
         } else {
           table <- prepareCohortMethodPowerTable(
@@ -99,7 +97,7 @@ cohortMethodPowerServer <- function(
             connectionHandler = connectionHandler, 
             resultDatabaseSettings = resultDatabaseSettings
           )
-          if (!row$unblind) {
+          if (row$unblind == 0) {
             table$targetOutcomes  <- NA
             table$comparatorOutcomes   <- NA
             table$targetIr   <- NA
@@ -119,79 +117,22 @@ cohortMethodPowerServer <- function(
         }
       })
       
-      estimationPowerTableColDefs <- function(){
-        result <- list(
-          targetSubjects = reactable::colDef(
-            header = withTooltip("Target Subjects",
-                                 "Number of subjects in the target cohort"),
-            filterable = T
-          ),
-          comparatorSubjects = reactable::colDef(
-            header = withTooltip("Comparator Subjects",
-                                 "Number of subjects in the comparator cohort"),
-            filterable = T
-          ),
-          targetYears = reactable::colDef(
-            header = withTooltip("Target Years",
-                                 "Number of years of follow-up time in the target cohort"),
-            filterable = T
-          ), 
-          comparatorYears = reactable::colDef(
-            header = withTooltip("Comparator Years",
-                                 "Number of years of follow-up time in the comparator cohort"),
-            filterable = T
-          ),
-          targetEvents = reactable::colDef(
-            header = withTooltip("Target Events",
-                                 "Distinct number of outcome events in the target cohort"),
-            filterable = T
-            # cell = function(value) {
-            #   # Add < if cencored
-            #   if (value < 0 ) paste("<", abs(value)) else abs(value)
-            # }
-          ),
-          comparatorEvents = reactable::colDef(
-            header = withTooltip("Comparator Events",
-                                 "Distinct number of outcome events in the comparator cohort"),
-            filterable = T
-            # cell = function(value) {
-            #   # Add < if cencored
-            #   if (value < 0 ) paste("<", abs(value)) else abs(value)
-            # }
-          ),
-          targetIr = reactable::colDef(
-            header = withTooltip("Target IR (per 1,000 PY)",
-                                 "Incidence rate per 1,000 person-years in the target cohort"),
-            filterable = T
-          ),
-          comparatorIr = reactable::colDef(
-            header = withTooltip("Comparator IR (per 1,000 PY)",
-                                 "Incidence rate per 1,000 person-years in the comparator cohort"),
-            filterable = T
-          ),
-          mdrr = reactable::colDef(
-            header = withTooltip("MDRR",
-                                 "The minimum detectable relative risk"),
-            filterable = T
-          )
-        )
-        return(result)
-      } 
       
       resultTableServer(
         id = "powerTable",
         df = powerTable,
         colDefsInput = estimationPowerTableColDefs(),
-        downloadedFileName = "powerTable-"
+        downloadedFileName = "powerTable-",
+        elementId = session$ns('powerTable')
       )
       
       output$timeAtRiskTableCaption <- shiny::renderUI({
         row <- selectedRow()
-        if (!is.null(row$target)) {
+        if (!is.null(row$targetName)) {
           text <- "<strong>Table 1b.</strong> Time (days) at risk distribution expressed as
       minimum (min), 25th percentile (P25), median, 75th percentile (P75), and maximum (max) in the target
      (<em>%s</em>) and comparator (<em>%s</em>) cohort after propensity score adjustment."
-          return(shiny::HTML(sprintf(text, row$target, row$comparator)))
+          return(shiny::HTML(sprintf(text, row$targetName, row$comparatorName)))
         } else {
           return(NULL)
         }
@@ -199,7 +140,7 @@ cohortMethodPowerServer <- function(
       
       timeAtRiskTable <- shiny::reactive({
         row <- selectedRow()
-        if (is.null(row$target)) {
+        if (is.null(row$targetName)) {
           return(NULL)
         } else {
           followUpDist <- getCmFollowUpDist(
@@ -217,90 +158,28 @@ cohortMethodPowerServer <- function(
         }
       })
       
-      estimationTimeAtRiskTableColDefs <- function(){
-        result <- list(
-          Cohort = reactable::colDef(
-            header = withTooltip("Cohort",
-                                 "Indicates which cohort (target or comparator)"),
-            filterable = T
-          ),
-          Min = reactable::colDef(
-            header = withTooltip("Min",
-                                 "Minimum time (days) at-risk"),
-            filterable = T
-          ),
-          P10 = reactable::colDef(
-            header = withTooltip("P10",
-                                 "10th percentile time (days) at-risk"),
-            filterable = T
-          ), 
-          P25 = reactable::colDef(
-            header = withTooltip("P25",
-                                 "25th percentile time (days) at-risk"),
-            filterable = T
-          ),
-          Median = reactable::colDef(
-            header = withTooltip("Median",
-                                 "Median time (days) at-risk"),
-            filterable = T
-          ),
-          P75 = reactable::colDef(
-            header = withTooltip("P75",
-                                 "75th percentile time (days) at-risk"),
-            filterable = T
-          ),
-          P90 = reactable::colDef(
-            header = withTooltip("P90",
-                                 "90th percentile time (days) at-risk"),
-            filterable = T
-          ),
-          Max = reactable::colDef(
-            header = withTooltip("Max",
-                                 "Maximum time (days) at-risk"),
-            filterable = T
-          )
-        )
-        return(result)
-      } 
+      
       
       resultTableServer(
         id = "timeAtRiskTable",
         df = timeAtRiskTable,
         colDefsInput = estimationTimeAtRiskTableColDefs(),
-        downloadedFileName = "timeAtRiskTable-"
+        downloadedFileName = "timeAtRiskTable-",
+        elementId = session$ns('timeAtRiskTable')
       )
       
       output$timeAtRiskTableCaption <- shiny::renderUI({
         row <- selectedRow()
-        if (!is.null(row$target)) {
+        if (!is.null(row$targetName)) {
           text <- "<strong>Table 1b.</strong> Time (days) at risk distribution expressed as
       minimum (min), 25th percentile (P25), median, 75th percentile (P75), and maximum (max) in the target
      (<em>%s</em>) and comparator (<em>%s</em>) cohort after propensity score adjustment."
-          return(shiny::HTML(sprintf(text, row$target, row$comparator)))
+          return(shiny::HTML(sprintf(text, row$targetName, row$comparatorName)))
         } else {
           return(NULL)
         }
       })
       
-      # output$timeAtRiskTable <- shiny::renderTable({
-      #   row <- selectedRow()
-      #   if (is.null(row$target)) {
-      #     return(NULL)
-      #   } else {
-      #       followUpDist <- getCmFollowUpDist(
-      #         connectionHandler = connectionHandler,
-      #         resultDatabaseSettings = resultDatabaseSettings,
-      #         targetId = row$targetId,
-      #         comparatorId = row$comparatorId,
-      #         outcomeId = row$outcomeId,
-      #         databaseId = row$databaseId,
-      #         analysisId = row$analysisId
-      #       )
-      #     
-      #     table <- prepareCohortMethodFollowUpDistTable(followUpDist)
-      #     return(table)
-      #   }
-      # })
     })
 }
 
@@ -391,59 +270,170 @@ getCohortMethodAnalyses <- function(
     connectionHandler, 
     resultDatabaseSettings
 ) {
-  sql <- "
-  SELECT
-    cma.*
-  FROM
-    @schema.@cm_table_prefixanalysis cma
-  "
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      schema = resultDatabaseSettings$schema,
-      cm_table_prefix = resultDatabaseSettings$cmTablePrefix
-    )
+  
+  result <- OhdsiReportGenerator::getCmTable(
+    connectionHandler = connectionHandler, 
+    schema = resultDatabaseSettings$schema, 
+    table = 'analysis', 
+    cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+    databaseTable = resultDatabaseSettings$databaseTable
   )
+
+  return(result)
 }
 
 getCmFollowUpDist <- function(
     connectionHandler,
     resultDatabaseSettings,
-    targetId,
-    comparatorId,
-    outcomeId,
+    targetId = NULL,
+    comparatorId = NULL,
+    outcomeId = NULL,
     databaseId = NULL,
-    analysisId
+    analysisId = NULL
 ) {
   
   if(is.null(targetId)){
     return(NULL)
   }
   
-  sql <- "
-  SELECT
-    *
-  FROM
-    @schema.@cm_table_prefixfollow_up_dist cmfud
-  WHERE
-    cmfud.target_id = @target_id
-    AND cmfud.comparator_id = @comparator_id
-    AND cmfud.outcome_id = @outcome_id
-    AND cmfud.analysis_id = @analysis_id
-  "
-  if(!is.null(databaseId)) {
-    sql <- paste(sql, paste("AND cmfud.database_id = '@database_id'"), collapse = "\n")
-  }
-  return(
-    connectionHandler$queryDb(
-      sql = sql,
-      schema = resultDatabaseSettings$schema,
-      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-      target_id = targetId,
-      comparator_id = comparatorId,
-      outcome_id = outcomeId,
-      analysis_id = analysisId,
-      database_id = databaseId
+  result <- OhdsiReportGenerator::getCmTable(
+    connectionHandler = connectionHandler, 
+    schema = resultDatabaseSettings$schema, 
+    table = 'follow_up_dist', 
+    cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+    databaseTable = resultDatabaseSettings$databaseTable,
+    targetIds = targetId,
+    comparatorIds = comparatorId,
+    outcomeIds = outcomeId,
+    analysisIds = analysisId,
+    databaseIds = databaseId
+  )
+  
+  return(result)
+  
+}
+
+
+estimationPowerTableColDefs <- function(){
+  result <- list(
+    targetSubjects = reactable::colDef(
+      name = "Target Subjects",
+      header = withTooltip("Target Subjects",
+                           "Number of subjects in the target cohort"),
+      filterable = TRUE
+    ),
+    comparatorSubjects = reactable::colDef(
+      name = "Comparator Subjects",
+      header = withTooltip("Comparator Subjects",
+                           "Number of subjects in the comparator cohort"),
+      filterable = TRUE
+    ),
+    targetYears = reactable::colDef(
+      name = "Target Years",
+      header = withTooltip("Target Years",
+                           "Number of years of follow-up time in the target cohort"),
+      filterable = TRUE
+    ), 
+    comparatorYears = reactable::colDef(
+      name = "Comparator Years",
+      header = withTooltip("Comparator Years",
+                           "Number of years of follow-up time in the comparator cohort"),
+      filterable = TRUE
+    ),
+    targetEvents = reactable::colDef(
+      name = "Target Events",
+      header = withTooltip("Target Events",
+                           "Distinct number of outcome events in the target cohort"),
+      filterable = TRUE
+      # cell = function(value) {
+      #   # Add < if cencored
+      #   if (value < 0 ) paste("<", abs(value)) else abs(value)
+      # }
+    ),
+    comparatorEvents = reactable::colDef(
+      name = "Comparator Events",
+      header = withTooltip("Comparator Events",
+                           "Distinct number of outcome events in the comparator cohort"),
+      filterable = TRUE
+      # cell = function(value) {
+      #   # Add < if cencored
+      #   if (value < 0 ) paste("<", abs(value)) else abs(value)
+      # }
+    ),
+    targetIr = reactable::colDef(
+      name = "Target IR (per 1,000 PY)",
+      header = withTooltip("Target IR (per 1,000 PY)",
+                           "Incidence rate per 1,000 person-years in the target cohort"),
+      filterable = TRUE
+    ),
+    comparatorIr = reactable::colDef(
+      name = "Comparator IR (per 1,000 PY)",
+      header = withTooltip("Comparator IR (per 1,000 PY)",
+                           "Incidence rate per 1,000 person-years in the comparator cohort"),
+      filterable = TRUE
+    ),
+    mdrr = reactable::colDef(
+      name = "MDRR",
+      header = withTooltip("MDRR",
+                           "The minimum detectable relative risk"),
+      filterable = TRUE
     )
   )
-}
+  return(result)
+} 
+
+estimationTimeAtRiskTableColDefs <- function(){
+  result <- list(
+    Cohort = reactable::colDef(
+      name = "Cohort",
+      header = withTooltip("Cohort",
+                           "Indicates which cohort (target or comparator)"),
+      filterable = TRUE
+    ),
+    Min = reactable::colDef(
+      name = "Min",
+      header = withTooltip("Min",
+                           "Minimum time (days) at-risk"),
+      filterable = TRUE
+    ),
+    P10 = reactable::colDef(
+      name = "P10",
+      header = withTooltip("P10",
+                           "10th percentile time (days) at-risk"),
+      filterable = TRUE
+    ), 
+    P25 = reactable::colDef(
+      name = "P25",
+      header = withTooltip("P25",
+                           "25th percentile time (days) at-risk"),
+      filterable = TRUE
+    ),
+    Median = reactable::colDef(
+      name = "Median",
+      header = withTooltip("Median",
+                           "Median time (days) at-risk"),
+      filterable = TRUE
+    ),
+    P75 = reactable::colDef(
+      name = "P75",
+      header = withTooltip("P75",
+                           "75th percentile time (days) at-risk"),
+      filterable = TRUE
+    ),
+    P90 = reactable::colDef(
+      name = "P90",
+      header = withTooltip("P90",
+                           "90th percentile time (days) at-risk"),
+      filterable = TRUE
+    ),
+    Max = reactable::colDef(
+      name = "Max",
+      header = withTooltip("Max",
+                           "Maximum time (days) at-risk"),
+      filterable = TRUE
+    )
+  )
+  return(result)
+} 

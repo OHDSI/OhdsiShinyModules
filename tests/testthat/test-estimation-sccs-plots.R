@@ -24,8 +24,8 @@ shiny::testServer(
   estimationSccsPlotsServer, 
   args = list(
     id = "estimationSccsPlotsServer",
-    connectionHandler = connectionHandlerEstimation,
-    resultDatabaseSettings = resultDatabaseSettingsEstimation,
+    connectionHandler = connectionHandlerCharacterization,
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization,
     sccsData = sccsData
   ), {
   

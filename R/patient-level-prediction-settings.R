@@ -17,17 +17,6 @@
 # limitations under the License.
 
 
-#' The module viewer for exploring prediction settings 
-#'
-#' @details
-#' The user specifies the id for the module
-#'
-#' @param id  the unique reference id for the module
-#' @family PatientLevelPrediction
-#' @return
-#' The user interface to the settings module
-#'
-#' @export
 patientLevelPredictionSettingsViewer <- function(id) {
   ns <- shiny::NS(id)
   
@@ -52,57 +41,15 @@ patientLevelPredictionSettingsViewer <- function(id) {
   )
 }
 
-#' The module server for exploring prediction settings
-#'
-#' @details
-#' The user specifies the id for the module
-#'
-#' @param id  the unique reference id for the module
-#' @param modelDesignId unique id for the model design
-#' @param developmentDatabaseId  unique id for the development database
-#' @param performanceId unique id for the performance results
-#' @param connectionHandler the connection to the prediction result database
-#' @param inputSingleView the current tab 
-#' @param resultDatabaseSettings a list containing the result schema and prefixes
-#' @family PatientLevelPrediction
-#' @return
-#' The server to the settings module
-#'
-#' @export
+
 patientLevelPredictionSettingsServer <- function(
   id,
-  modelDesignId, 
-  developmentDatabaseId, 
-  performanceId,
-  connectionHandler,
-  inputSingleView,
-  resultDatabaseSettings
+  modelDesign
 ) {
   
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      # objects
-      
-      modelDesign <- shiny::reactive({
-        getPredictionModelDesign(
-        inputSingleView = inputSingleView,
-        modelDesignId = modelDesignId,
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )})
-
-      # databases
-      databases <- shiny::reactive({
-        getPlpSettingDatabase(
-        inputSingleView = inputSingleView,
-        performanceId = performanceId,
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
-      })
-      
       
       # cohort settings
       output$cohort <- shinydashboard::renderInfoBox({
@@ -116,14 +63,12 @@ patientLevelPredictionSettingsServer <- function(
       
       shiny::observeEvent(
         input$showCohort, {
-          
+        
             shiny::showModal(shiny::modalDialog(
               title = "Cohort description",
-              shiny::p(modelDesign()$cohort$cohortJson),
+              shiny::p(paste0(as.character(modelDesign()$developmentTargetJson), collapse = ' - ')),
               easyClose = TRUE
             ))
-            
-          
         }
       )
       
@@ -140,7 +85,7 @@ patientLevelPredictionSettingsServer <- function(
         input$showOutcome, {
           shiny::showModal(shiny::modalDialog(
             title = "Cohort description",
-            shiny::p(modelDesign()$outcome$cohortJson),
+            shiny::p(paste0(as.character(modelDesign()$developmentOutcomeJson), collapse = ' - ')),
             easyClose = TRUE
           ))
         }
@@ -160,7 +105,7 @@ patientLevelPredictionSettingsServer <- function(
         input$showRestrictPlpData, {
           shiny::showModal(shiny::modalDialog(
             title = "Exclusions done during data extraction",
-            shiny::p(modelDesign()$RestrictPlpData),
+            shiny::p(paste0(as.character(modelDesign()$plpDataSettingsJson), collapse = ' - ')),
             easyClose = TRUE
           ))
         }
@@ -183,9 +128,10 @@ patientLevelPredictionSettingsServer <- function(
             title = "Population Settings - exclusions after data extraction",
             shiny::div(
               shiny::a("help", href="https://ohdsi.github.io/PatientLevelPrediction/reference/createStudyPopulation.html", target="_blank"),
-              DT::renderDataTable(
-                formatPopSettings(modelDesign()$populationSettings)
-              )
+              #DT::renderDataTable(
+                #formatPopSettings(modelDesign()$populationSettingsJson)
+              shiny::p(as.character(modelDesign()$populationSettingsJson))
+              #)
             ),
             easyClose = TRUE
           ))
@@ -207,9 +153,10 @@ patientLevelPredictionSettingsServer <- function(
             title = "Covariate Settings",
             shiny::div(
               shiny::a("help", href="http://ohdsi.github.io/FeatureExtraction/reference/createCovariateSettings.html", target="_blank"),
-              DT::renderDataTable(
-                formatCovSettings(modelDesign()$covariateSettings)
-              )
+              #DT::renderDataTable(
+              #  formatCovSettings(modelDesign()$covariateSettings)
+              #)
+              shiny::p(paste0(as.character(modelDesign()$covariateSettingsJson), collapse = ' - '))
             ),
             easyClose = TRUE
           ))
@@ -233,9 +180,10 @@ patientLevelPredictionSettingsServer <- function(
               shiny::h3('Model Settings: ',
                         shiny::a("help", href="https://ohdsi.github.io/PatientLevelPrediction/reference/index.html", target="_blank")
               ),
-              DT::renderDataTable(
-                formatModSettings(modelDesign()$modelSettings  )
-              )
+              #DT::renderDataTable(
+              #  formatModSettings(modelDesign()$modelSettings  )
+              #)
+              shiny::p(as.character(modelDesign()$modelSettingsJson))
             ),
             easyClose = TRUE
           ))
@@ -256,7 +204,7 @@ patientLevelPredictionSettingsServer <- function(
           shiny::showModal(shiny::modalDialog(
             title = "Feature Engineering Settings",
             shiny::div(
-              shiny::p(modelDesign()$featureEngineeringSettings)
+              shiny::p(paste0(as.character(modelDesign()$featureEngineeringSettingsJson ), collapse = ' - '))
             ),
             easyClose = TRUE
           ))
@@ -277,7 +225,7 @@ patientLevelPredictionSettingsServer <- function(
           shiny::showModal(shiny::modalDialog(
             title = "Preprocess Settings",
             shiny::div(
-              shiny::p(modelDesign()$preprocessSettings)
+              shiny::p(as.character(modelDesign()$tidyCovariatesSettingsJson))
             ),
             easyClose = TRUE
           ))
@@ -298,7 +246,7 @@ patientLevelPredictionSettingsServer <- function(
           shiny::showModal(shiny::modalDialog(
             title = "Split Settings",
             shiny::div(
-              shiny::p(modelDesign()$splitSettings)
+              shiny::p(as.character(modelDesign()$splitSettingsJson))
             ),
             easyClose = TRUE
           ))
@@ -319,7 +267,7 @@ patientLevelPredictionSettingsServer <- function(
           shiny::showModal(shiny::modalDialog(
             title = "Sample Settings",
             shiny::div(
-              shiny::p(modelDesign()$sampleSettings)
+              shiny::p(as.character(modelDesign()$sampleSettingsJson))
             ),
             easyClose = TRUE
           ))
@@ -332,265 +280,7 @@ patientLevelPredictionSettingsServer <- function(
 }         
 
 
-
-# helpers
-
-
-# get the databases
-
-getPlpSettingDatabase <- function(
-  inputSingleView,
-  performanceId,
-  connectionHandler,
-  resultDatabaseSettings
-){
-  
-  if(!is.null(performanceId()) & inputSingleView() == 'Design Settings'){
-    
-  sql <- "
-  
-    SELECT 
-    tempD.dev_db, 
-    tempV.val_db 
-    
-    FROM 
-    
-    (select * from @schema.@plp_table_prefixperformances
-    WHERE performance_id = @performance_id) perf
-    
-    inner join 
-    
-    (select dd.database_id, dmd.cdm_source_name as dev_db
-    from @schema.@plp_table_prefixdatabase_details as dd inner join
-    @schema.@database_table_prefixdatabase_meta_data as dmd on 
-    dd.database_meta_data_id = dmd.database_id) tempD
-    
-    on tempD.database_id = perf.development_database_id
-    
-    inner join 
-    
-    (select dd.database_id, dmd.cdm_source_name as val_db
-    from @schema.@plp_table_prefixdatabase_details as dd inner join
-    @schema.@database_table_prefixdatabase_meta_data dmd on 
-    dd.database_meta_data_id = dmd.database_id) tempV
-    
-    on tempV.database_id = perf.validation_database_id
-  
-  
-  ;"
-  
-  databaseNames <- connectionHandler$queryDb(
-    sql = sql,
-    schema = resultDatabaseSettings$schema,
-    performance_id = performanceId(),
-    plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
-    database_table_prefix = resultDatabaseSettings$databaseTablePrefix
-  )
-  
-  return(databaseNames)
-  
-  }
-  
-}
-
-
-# get the data
-getPredictionModelDesign <- function(
-    inputSingleView,
-  modelDesignId,
-  connectionHandler,
-  resultDatabaseSettings
-){
-  if(!is.null(modelDesignId()) & inputSingleView() == 'Design Settings'){
-
-    shiny::withProgress(message = 'Extracting model design', value = 0, {
-      
-    modelDesign <- list()
-    
-    shiny::incProgress(1/12, detail = paste("Extracting ids"))
-    
-    sql <- "SELECT * FROM 
-    @schema.@plp_table_prefixmodel_designs 
-    WHERE model_design_id = @model_design_id;"
-    
-    ids <- connectionHandler$queryDb(
-      sql = sql,
-      schema = resultDatabaseSettings$schema,
-      model_design_id = modelDesignId(),
-      plp_table_prefix = resultDatabaseSettings$plpTablePrefix
-    )
-    
- 
-    popSetId <- ids$populationSettingId
-    modSetId <- ids$modelSettingId
-    covSetId <- ids$covariateSettingId
-    feSetId <- ids$featureEngineeringSettingId
-    sampleSetId <- ids$sampleSettingId
-    splitId <- ids$splitSettingId
-    tId <- ids$targetId
-    oId <- ids$outcomeId
-    plpDataSettingId <- ids$plpDataSettingId
-    tidyCovariatesSettingId <- ids$tidyCovariatesSettingId
-    
-    shiny::incProgress(2/12, detail = paste("Extracting model settings"))
-    
-    sql <- "SELECT * FROM @schema.@plp_table_prefixmodel_settings WHERE model_setting_id = @model_setting_id;"
-
-    tempModSettings <- connectionHandler$queryDb(
-      sql = sql,
-      schema = resultDatabaseSettings$schema,
-      model_setting_id = modSetId,
-      plp_table_prefix = resultDatabaseSettings$plpTablePrefix
-    )
-    
-    modelDesign$modelSettings <- ParallelLogger::convertJsonToSettings(
-      tempModSettings$modelSettingsJson
-      )
-    
-    shiny::incProgress(3/12, detail = paste("Extracting  covariate settings"))
-    
-    sql <- "SELECT * FROM @schema.@plp_table_prefixcovariate_settings WHERE covariate_setting_id = @setting_id;"
-
-    tempSettings <- connectionHandler$queryDb(
-      sql = sql, 
-      schema = resultDatabaseSettings$schema,
-      setting_id = covSetId,
-      plp_table_prefix = resultDatabaseSettings$plpTablePrefix
-    )
-    modelDesign$covariateSettings <- ParallelLogger::convertJsonToSettings(
-      tempSettings$covariateSettingsJson
-      )
-    
-    
-    shiny::incProgress(4/12, detail = paste("Extracting population settings"))
-    
-    sql <- "SELECT * FROM @schema.@plp_table_prefixpopulation_settings WHERE population_setting_id = @setting_id;"
-
-    tempSettings <- connectionHandler$queryDb(
-      sql = sql, 
-      schema = resultDatabaseSettings$schema,
-      setting_id = popSetId,
-      plp_table_prefix = resultDatabaseSettings$plpTablePrefix
-    )
-    
-    modelDesign$populationSettings <- ParallelLogger::convertJsonToSettings(
-      tempSettings$populationSettingsJson
-      )
-
-    shiny::incProgress(5/12, detail = paste("Extracting feature engineering settingd"))
-    
-    sql <- "SELECT * FROM @schema.@plp_table_prefixfeature_engineering_settings WHERE feature_engineering_setting_id = @setting_id;"
-
-    tempSettings <- connectionHandler$queryDb(
-      sql = sql, 
-      schema = resultDatabaseSettings$schema,
-      setting_id = feSetId,
-      plp_table_prefix = resultDatabaseSettings$plpTablePrefix
-    )
-    modelDesign$featureEngineeringSettings <- tempSettings$featureEngineeringSettingsJson
-    
-    shiny::incProgress(6/12, detail = paste("Extracting tidy covariate settings"))
-    
-    sql <- "SELECT * FROM @schema.@plp_table_prefixtidy_covariates_settings WHERE tidy_covariates_setting_id = @setting_id;"
-
-    tempSettings <- connectionHandler$queryDb(
-      sql = sql, 
-      schema = resultDatabaseSettings$schema,
-      setting_id = tidyCovariatesSettingId,
-      plp_table_prefix = resultDatabaseSettings$plpTablePrefix
-    )
-    modelDesign$preprocessSettings <- tempSettings$tidyCovariatesSettingsJson
-    
-    
-    shiny::incProgress(7/12, detail = paste("Extracting restrict plp settings"))
-    
-    sql <- "SELECT * FROM @schema.@plp_table_prefixplp_data_settings WHERE plp_data_setting_id = @setting_id;"
-    
-    tempSettings <- connectionHandler$queryDb(
-      sql = sql, 
-      schema = resultDatabaseSettings$schema,
-      setting_id = plpDataSettingId,
-      plp_table_prefix = resultDatabaseSettings$plpTablePrefix
-    )
-    modelDesign$RestrictPlpData <- tempSettings$plpDataSettingsJson
-    
-    
-    shiny::incProgress(8/12, detail = paste("Extracting sample settings"))
-    
-    sql <- "SELECT * FROM @schema.@plp_table_prefixsample_settings WHERE sample_setting_id = @setting_id;"
-    
-    tempSettings <- connectionHandler$queryDb(
-      sql = sql, 
-      schema = resultDatabaseSettings$schema,
-      setting_id = sampleSetId,
-      plp_table_prefix = resultDatabaseSettings$plpTablePrefix
-    )
-    modelDesign$sampleSettings <- tempSettings$sampleSettingsJson
-    
-    
-    shiny::incProgress(9/12, detail = paste("Extracting split settings"))
-    
-    sql <- "SELECT * FROM @schema.@plp_table_prefixsplit_settings WHERE split_setting_id = @setting_id;"
-
-    tempSettings <- connectionHandler$queryDb(
-      sql = sql, 
-      schema = resultDatabaseSettings$schema,
-      setting_id = splitId,
-      plp_table_prefix = resultDatabaseSettings$plpTablePrefix
-    )
-    modelDesign$splitSettings <- tempSettings$splitSettingsJson
-    
-    
-    shiny::incProgress(10/12, detail = paste("Extracting target cohort"))
-    
-    sql <- "SELECT c.*, cd.json as cohort_json
-    FROM @schema.@plp_table_prefixcohorts c inner join
-    @schema.@cg_table_prefixcohort_definition cd
-    on c.cohort_definition_id = cd.cohort_definition_id
-    WHERE c.cohort_id = @setting_id;"
-    
-    tempSettings <- connectionHandler$queryDb(
-      sql = sql, 
-      schema = resultDatabaseSettings$schema,
-      setting_id = tId,
-      plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
-      cg_table_prefix = resultDatabaseSettings$cgTablePrefix
-    )
-    modelDesign$cohort <- tempSettings
-    
-    
-    shiny::incProgress(11/12, detail = paste("Extracting outcome cohort"))
-    
-    sql <- "SELECT c.*, cd.json as cohort_json
-    FROM @schema.@plp_table_prefixcohorts c inner join
-    @schema.@cg_table_prefixcohort_definition cd
-    on c.cohort_definition_id = cd.cohort_definition_id
-    WHERE c.cohort_id = @setting_id;"
-    
-    tempSettings <- connectionHandler$queryDb(
-      sql = sql, 
-      schema = resultDatabaseSettings$schema,
-      setting_id = oId,
-      plp_table_prefix = resultDatabaseSettings$plpTablePrefix,
-      cg_table_prefix = resultDatabaseSettings$cgTablePrefix
-    )
-    modelDesign$outcome <- tempSettings
-    
-    shiny::incProgress(12/12, detail = paste("Finished"))
-    
-    })
-    
-    return(modelDesign)
-  }
-  return(NULL)
-}
-
-
-
-
-
-
-# formating
+# formating helpers
 formatModSettings <- function(modelSettings){
   
   modelset <- data.frame(

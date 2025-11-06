@@ -11,8 +11,8 @@ shiny::testServer(
   estimationSccsResultsServer, 
   args = list(
     id = "estimationSccsResultsServer",
-    connectionHandler = connectionHandlerEstimation,
-    resultDatabaseSettings = resultDatabaseSettingsEstimation,
+    connectionHandler = connectionHandlerCharacterization,
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization,
     targetIds = shiny::reactive(1),
     outcomeId = shiny::reactive(3)
   ), {
@@ -52,8 +52,8 @@ test_that("Test estimationGetSccsResultSummaryTableColDef", {
 test_that("Test estimationGetSccsResults", {
   
 result <- estimationGetSccsResults(
-  connectionHandler = connectionHandlerEstimation,
-  resultDatabaseSettings = resultDatabaseSettingsEstimation,
+  connectionHandler = connectionHandlerCharacterization,
+  resultDatabaseSettings = resultDatabaseSettingsCharacterization,
   exposureIds = function(){1},
   outcomeIds = function(){3}
 )
@@ -64,8 +64,8 @@ testthat::expect_true(inherits(result, 'data.frame'))
 
 test_that("Test estimationGetSccsEsResults", {
 result <- estimationGetSccsEsResults(
-  connectionHandler = connectionHandlerEstimation,
-  resultDatabaseSettings = resultDatabaseSettingsEstimation,
+  connectionHandler = connectionHandlerCharacterization,
+  resultDatabaseSettings = resultDatabaseSettingsCharacterization,
   exposureIds = function(){1},
   outcomeIds = function(){3}
 )

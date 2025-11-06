@@ -1,51 +1,35 @@
 context("characterization-cohorts")
 
-options <- characterizationGetOptions(
+targetCohort <- OhdsiReportGenerator::getTargetTable(
   connectionHandler = connectionHandlerCharacterization,
-  resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-  includeAggregate = T,
-  includeIncidence = T
+  schema = resultDatabaseSettingsCharacterization$schema, 
+  ciTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix
 )
-parents <- characterizationGetParents(options)
-
 
 shiny::testServer(
   app = characterizationCohortComparisonServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-    options = options,
-    parents = parents,
-    parentIndex = shiny::reactive(1), # reactive
-    subTargetId = shiny::reactive(1) # reactive
+    targetTable = targetCohort,
+    reactiveTargetRow = shiny::reactive(targetCohort[1,])
     ), 
   expr = {
     
-    testthat::expect_true(inherits(inputVals(), 'list'))
-    testthat::expect_true(length(inputVals()$databaseIds) > 0)
-    
-    inputTests <- characterizationGetCohortsInputs(
-      connectionHandler = connectionHandlerCharacterization,
-      resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-      targetId = shiny::reactive(3)
-    )
-    testthat::expect_true(inherits(inputTests, 'list'))
-    
+    testthat::expect_true(length(databaseNames()) > 0)
+    testthat::expect_true(length(databaseIds()) > 0)
     
     # set inputs
     session$setInputs(
-      comparatorGroup = parents[2],
-      comparatorId = comparatorOptions[1],
-      databaseId = inputVals()$databaseIds[1]
+      databaseName = databaseNames()[1]
     )
-    testthat::expect_true(comparatorIndex() == 2)
-    testthat::expect_true(comparatorGroups() == characterizationGetChildren(options, comparatorIndex()))
     
+    # set reactiveComparatorRow() to second row 
+    reactiveComparatorRowId(2)
+    
+    # test generate
     session$setInputs(
-      comparatorId = comparatorGroups()[1]
-    )
-    session$setInputs(
-      generate = T
+      generate = TRUE
     )
     
     testthat::expect_true(inherits(selected(),'data.frame'))
@@ -53,29 +37,21 @@ shiny::testServer(
     resultTable <- characterizatonGetCohortData(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
-      targetIds = c(1,2),
-      databaseIds = input$databaseId,
-      minThreshold = 0.01,
-      addSMD = T
+      targetIds = unique(targetCohort$cohortId[1:nrow(targetCohort)]),
+      databaseIds = databaseIds()[1],
+      minThreshold = 0.01
     )
-    testthat::expect_true(nrow(resultTable) > 0)
-    
-    countTable <- characterizatonGetCohortCounts(
-      connectionHandler = connectionHandler,
-      resultDatabaseSettings = resultDatabaseSettings,
-      targetIds = c(1,2),
-      databaseIds = input$databaseId
-    )
-    testthat::expect_true(nrow(countTable) > 0)
+    testthat::expect_true(nrow(resultTable$covariates) > 0)
+    testthat::expect_true(nrow(resultTable$covRef) > 0)
     
     
     continuousTable <- characterizatonGetCohortComparisonDataContinuous(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
-      targetIds = c(1,2),
-      databaseIds = input$databaseId
+      targetIds = unique(targetCohort$cohortId[1:nrow(targetCohort)]),
+      databaseIds = databaseIds()[1]
     )
-    testthat::expect_true(nrow(continuousTable) > 0)
+    testthat::expect_true(nrow(continuousTable$covariates) > 0)
     
   
   })
@@ -92,10 +68,6 @@ test_that("Test characterizationCohortsColumns", {
   testthat::expect_true(inherits(cols, 'list'))
 })
 
-test_that("Test characteriationCountTableColDefs", {
-  cols <- characteriationCountTableColDefs()
-  testthat::expect_true(inherits(cols, 'list'))
-})
 
 test_that("Test characterizationCohortsColumnsContinuous", {
   cols <- characterizationCohortsColumnsContinuous()

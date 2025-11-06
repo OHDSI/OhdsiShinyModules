@@ -132,7 +132,7 @@ visitContextModule <- function(id = "visitContext",
       if (!hasData(selectedDatabaseIds())) {
         return(NULL)
       }
-      if (all(methods::is(dataSource, "environment"), !exists("visitContext"))) {
+      if (all(inherits(dataSource, "environment"), !exists("visitContext"))) {
         return(NULL)
       }
       visitContext <-

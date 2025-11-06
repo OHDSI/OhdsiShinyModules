@@ -14,11 +14,9 @@ Define the helper file for the module
 }
 \seealso{
 Other Utils: 
-\code{\link{createCustomColDefList}()},
 \code{\link{datasourcesServer}()},
 \code{\link{datasourcesViewer}()},
 \code{\link{getLogoImage}()},
-\code{\link{makeButtonLabel}()},
 \code{\link{resultTableViewer}()}
 }
 \concept{Utils}

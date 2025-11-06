@@ -15,14 +15,15 @@ estimationSccsDiagnosticServer <- function(
     id,
     function(input, output, session) {
       
-      
-      
       sccsDiagnostics <- shiny::reactive({
-        estimationGetSccsDiagnostics(
+        getSccsDiagnostics(
           connectionHandler = connectionHandler,
-          resultDatabaseSettings = resultDatabaseSettings,
+          schema = resultDatabaseSettings$schema, 
+          sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix, 
+          cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+          databaseTable = resultDatabaseSettings$databaseTable,
           targetIds =  targetIds,
-          outcomeId = outcomeId
+          outcomeIds = outcomeId
         )
       })
       
@@ -32,146 +33,57 @@ estimationSccsDiagnosticServer <- function(
         colDefsInput = estimationGetSccsDiagnosticColDefs(),
         selectedCols = c(
           'databaseName', 
-          'analysis',
-          'target',
-          'indication',
+          'description',
+          'targetName',
+          'indicationName',
           'summaryValue'
-        )
+        ),
+        elementId = session$ns('sccsDiagnosticsTable')
       )
       
       
     }
   )
 }
-
-
-estimationGetSccsDiagnostics <- function(
-    connectionHandler = connectionHandler,
-    resultDatabaseSettings = resultDatabaseSettings,
-    targetIds =  targetIds,
-    outcomeId = outcomeId
-){
-  targetIds <- targetIds()
-  outcomeId <- outcomeId()
-  
-  sql <- "
-  SELECT 
-  d.cdm_source_abbreviation as database_name,
-  a.description as analysis,
-  c2.cohort_name as target,
-  c3.cohort_name as indication,
-  c.cohort_name as outcome, 
-  cov.covariate_name,
-  ds.*
-  FROM @schema.@sccs_table_prefixdiagnostics_summary ds
-            inner join
-  @schema.@sccs_table_prefixexposures_outcome_set eos
-  on ds.exposures_outcome_set_id = eos.exposures_outcome_set_id
-     inner join
-   @schema.@cg_table_prefixcohort_definition as c
-   on c.cohort_definition_id = eos.outcome_id
-   
-   INNER JOIN
-  @schema.@database_table_prefix@database_table d
-  on d.database_id = ds.database_id
-  
-  INNER JOIN
-  @schema.@sccs_table_prefixanalysis a
-  on a.analysis_id = ds.analysis_id
-  
-  INNER JOIN
-  @schema.@sccs_table_prefixcovariate cov
-  on cov.covariate_id = ds.covariate_id and 
-  cov.exposures_outcome_set_id = ds.exposures_outcome_set_id and
-  cov.analysis_id = ds.analysis_id and
-  cov.database_id = ds.database_id
-  
-   inner join
-   @schema.@cg_table_prefixcohort_definition as c2
-   on cov.era_id = c2.cohort_definition_id
-   
-   left join
-   @schema.@cg_table_prefixcohort_definition as c3
-   on eos.nesting_cohort_id = c3.cohort_definition_id
-
-   where
-   
-   cov.era_id in (@target_ids)
-   and eos.outcome_id in (@outcome_ids)
-  ;
-  "
-  result <- connectionHandler$queryDb(
-    sql,
-    schema = resultDatabaseSettings$schema,
-    cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-    database_table_prefix = resultDatabaseSettings$databaseTablePrefix,
-    database_table = resultDatabaseSettings$databaseTable,
-    
-    target_ids = paste0(targetIds, collapse = ','),
-    outcome_ids = paste0(outcomeId, collapse = ','),
-    snakeCaseToCamelCase = TRUE
-  )
-  
-  result <- result %>% 
-    dplyr::select(-c("analysisId","exposuresOutcomeSetId","databaseId","covariateId"))
-  
-  result$summaryValue <- apply(
-    X = result[, grep('Diagnostic', colnames(result))], 
-    MARGIN = 1, 
-    FUN = function(x){
-      
-      if(sum(x %in% c('FAIL'))>0){
-        return('Fail')
-      } else if(sum(x %in% c('WARNING')) >0){
-        return(sum(x %in% c('WARNING'), na.rm = T))
-      } else{
-        return('Pass')
-      }
-    }
-  )
-  
-  # add summaryValue after outcome
-  result <- result %>% 
-    dplyr::relocate("summaryValue", .after = "outcome")
-  
-  return(
-    result
-  )
-  
-}
-
-
 
 
 
 estimationGetSccsDiagnosticColDefs <- function(){
   result <- list(
     databaseName = reactable::colDef(
+      name = "Database",
       header = withTooltip(
         "Database",
         "The database name"
       )
     ),
-    target = reactable::colDef(
+    databaseId = reactable::colDef(show = FALSE),
+    targetName = reactable::colDef(
+      name = "Target",
       header = withTooltip(
         "Target",
         "The target cohort of interest "
       )
     ),
-    outcome = reactable::colDef(
+    targetId = reactable::colDef(show = FALSE),
+    outcomeName = reactable::colDef(
+      name = "Outcome",
       header = withTooltip(
         "Outcome",
         "The outcome of interest "
       )
     ),
-    indication = reactable::colDef(
+    outcomeId = reactable::colDef(show = FALSE),
+    indicationName = reactable::colDef(
+      name = "Indication",
       header = withTooltip(
         "Indication",
         "The indication of interest "
       )
     ),
+    indicationId = reactable::colDef(show = FALSE),
     summaryValue =  reactable::colDef(
+      name = "Diagnostic",
       header = withTooltip(
         "Diagnostic",
         "The overall result of the diagostics"
@@ -188,61 +100,72 @@ estimationGetSccsDiagnosticColDefs <- function(){
         list(background = color)
       }
     ),
-    analysis = reactable::colDef(
+    description = reactable::colDef(
+      name = "Analysis",
       header = withTooltip(
         "Analysis",
         "The analysis name "
       )
     ),
+    analysisId = reactable::colDef(show = FALSE),
     covariateName = reactable::colDef(
+      name = "Time Period",
       header = withTooltip(
         "Time Period",
         "The time period of interest"
       )
     ),
     mdrr = reactable::colDef(
+      name = "mdrr",
       header = withTooltip(
         "mdrr",
         "The minimum detectible relative risk"
       )
     ),
     ease = reactable::colDef(
+      name = "ease",
       header = withTooltip(
         "ease",
         "The ..."
       )
     ),
     timeTrendP = reactable::colDef(
+      name = "timeTrendP",
       header = withTooltip(
         "timeTrendP",
         "The ..."
       )
     ),
     preExposureP = reactable::colDef(
+      name = "preExposureP",
       header = withTooltip(
         "preExposureP",
         "The ..."
       )
     ),
     mdrrDiagnostic = reactable::colDef(
+      name = "mdrrDiagnostic",
       header = withTooltip(
         "mdrrDiagnostic",
         "The ..."
       )
     ),
     easeDiagnostic = reactable::colDef(
+      name = "easeDiagnostic",
       header = withTooltip(
         "easeDiagnostic",
         "The ..."
       )
     ),
     timeTrendDiagnostic = reactable::colDef(
+      name = "timeTrendDiagnostic",
       header = withTooltip(
         "timeTrendDiagnostic",
         "The ..."
       )
     ),
     preExposureDiagnostic = reactable::colDef(
+      name = "preExposureDiagnostic",
       header = withTooltip(
         "preExposureDiagnostic",
         "The ..."
@@ -250,12 +173,137 @@ estimationGetSccsDiagnosticColDefs <- function(){
     ),
     
     unblind = reactable::colDef(
+      name = "unblind",
       header = withTooltip(
         "unblind",
         "If the value is 1 then the diagnostics passed and results can be unblinded"
       )
+    ),
+    
+    unblindForEvidenceSynthesis = reactable::colDef(
+      name = "Unblind for evidence synthesis",
+      header = withTooltip(
+        "Unblind for evidence synthesis",
+        "If the value is 1 then the diagnostics passed all diagnostics except power"
+      )
+    ),
+    
+    timeStabilityP = reactable::colDef(
+      name = "timeStabilityP",
+      header = withTooltip(
+        "timeStabilityP",
+        "The ..."
+      )
+    ),
+    
+    timeStabilityDiagnostic = reactable::colDef(
+      name = "timeStabilityDiagnostic",
+      header = withTooltip(
+        "timeStabilityDiagnostic",
+        "The ..."
+      )
+    ),
+    
+    eventExposureLb = reactable::colDef(
+      name = "eventExposureLb",
+      header = withTooltip(
+        "eventExposureLb",
+        "The ..."
+      )
+    ),
+    
+    eventExposureUb = reactable::colDef(
+      name = "eventExposureUb",
+      header = withTooltip(
+        "eventExposureUb",
+        "The ..."
+      )
+    ),
+    
+    eventExposureDiagnostic = reactable::colDef(
+      name = "eventExposureDiagnostic",
+      header = withTooltip(
+        "eventExposureDiagnostic",
+        "The ..."
+      )
+    ),
+    
+    eventObservationLb = reactable::colDef(
+      name = "eventObservationLb",
+      header = withTooltip(
+        "eventObservationLb",
+        "The ..."
+      )
+    ), 
+    
+    eventObservationUb = reactable::colDef(
+      name = "eventObservationUb",
+      header = withTooltip(
+        "eventObservationUb",
+        "The ..."
+      )
+    ), 
+    
+    eventObservationDiagnostic = reactable::colDef(
+      name = "eventObservationDiagnostic",
+      header = withTooltip(
+        "eventObservationDiagnostic",
+        "The ..."
+      )
+    ), 
+    
+    rareOutcomePrevalence = reactable::colDef(
+      name = "rareOutcomePrevalence",
+      header = withTooltip(
+        "rareOutcomePrevalence",
+        "The ..."
+      )
+    ), 
+    
+    rareOutcomeDiagnostic = reactable::colDef(
+      name = "rareOutcomeDiagnostic",
+      header = withTooltip(
+        "rareOutcomeDiagnostic",
+        "The ..."
+      )
     )
+    
   )
+  
+  return(result)
+}
+
+
+getSccsDiagnostics <- function(
+  connectionHandler,
+  schema, 
+  sccsTablePrefix, 
+  cgTablePrefix, 
+  databaseTable,
+  targetIds,
+  outcomeIds
+){
+  
+  targetIds <-  targetIds()
+  outcomeIds <- outcomeIds()
+
+  if(is.null(targetIds)){
+    return(NULL)
+  }
+  
+  if(is.null(outcomeIds)){
+    return(NULL)
+  }
+
+result <- OhdsiReportGenerator::getSccsDiagnosticsData(
+  connectionHandler = connectionHandler,
+  schema = schema, 
+  sccsTablePrefix = sccsTablePrefix, 
+  cgTablePrefix = cgTablePrefix, 
+  databaseTable = databaseTable,
+  targetIds = targetIds,
+  outcomeIds = outcomeIds
+)
   
   return(result)
 }

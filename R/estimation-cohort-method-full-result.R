@@ -69,18 +69,18 @@ estimationCmFullResultServer <- function(
       modifiedRow <- shiny::reactive({
         selectedRow() %>%
           dplyr::select(
-            "target",
-            "comparator",
-            "outcome",
+            "targetName",
+            "comparatorName",
+            "outcomeName",
             "description",
-            "cdmSourceAbbreviation"
+            "databaseName"
           ) %>%
           dplyr::rename(
-            Target = "target",
-            Comparator = "comparator",
-            Outcome = "outcome",
+            Target = "targetName",
+            Comparator = "comparatorName",
+            Outcome = "outcomeName",
             Analysis = "description",
-            Database = "cdmSourceAbbreviation"
+            Database = "databaseName"
           )
       })
       

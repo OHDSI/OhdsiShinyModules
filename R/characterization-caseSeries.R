@@ -16,18 +16,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-
 characterizationCaseSeriesViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
     
+    shiny::helpText('View features that occur before target index, between target index and outcome and after outcome for patients with the outcome during the time-at-risk.'),
+    
     # module that does input selection for a single row DF
-    shiny::uiOutput(ns("inputs")),
+    shinydashboard::box(
+      collapsible = TRUE,
+      title = "Options",
+      width = "100%",
+      shiny::uiOutput(ns("inputs"))
+    ),
     
     shiny::conditionalPanel(
-      condition = 'input.generate != 0',
+      condition = 'output.showCaseSeries != 0',
       ns = ns,
       
       inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
@@ -36,10 +41,12 @@ characterizationCaseSeriesViewer <- function(id) {
         width = "100%",
         # Title can include an icon
         title = shiny::tagList(shiny::icon("gear"), "Case Series"),
-        shiny::tabPanel("Binary Feature Table", 
+        shiny::tabPanel("Binary Feature Table",
+                        shiny::uiOutput(outputId = ns('helpTextBinary')),
                         resultTableViewer(ns('binaryTable'))
         ),
         shiny::tabPanel("Continuous Feature Table", 
+                        shiny::uiOutput(outputId = ns('helpTextCont')),
                         resultTableViewer(ns('continuousTable'))
         )
       )
@@ -54,31 +61,92 @@ characterizationCaseSeriesServer <- function(
     id, 
     connectionHandler,
     resultDatabaseSettings,
-    targetId, #reactive 
-    outcomeId  #reactive 
+    reactiveTargetRow,
+    outcomeTable,
+    reactiveOutcomeRowId
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
-      # get databases
-      options <- shiny::reactive({
-        characterizationGetCaseSeriesOptions(
-          connectionHandler = connectionHandler,
-          resultDatabaseSettings = resultDatabaseSettings,
-          targetId = targetId(),
-          outcomeId = outcomeId()
-        )
+      output$showCaseSeries <- shiny::reactive(0)
+      shiny::outputOptions(output, "showCaseSeries", suspendWhenHidden = FALSE)
+      
+      # if target or outcome changes hide results
+      shiny::observeEvent(reactiveTargetRow(), {
+        output$showCaseSeries <- shiny::reactive(0)
       })
+      
+      
+      reactiveOutcomeTar <- shiny::reactiveVal(NULL)
+      reactiveOutcomeTarValues <- shiny::reactiveVal(NULL)
+      reactiveOutcomeWashout <- shiny::reactiveVal(NULL)
+      
+      shiny::observeEvent(reactiveOutcomeRowId(), {
+        output$showCaseSeries <- shiny::reactive(0)
+        
+        if(reactiveOutcomeRowId() != 0){
+          
+          if(inherits(outcomeTable()[reactiveOutcomeRowId(),]$tarNames, 'character')){
+            tarNames <- strsplit(
+              x = outcomeTable()[reactiveOutcomeRowId(),]$tarNames, 
+              split = ':'
+            )[[1]]
+          } else{
+            tarNames <- NULL
+          }
+          reactiveOutcomeTar(tarNames)
+          
+          if(inherits(outcomeTable()[reactiveOutcomeRowId(),]$tarStrings, 'character')){
+            tarStrings <- lapply(strsplit(
+              x = outcomeTable()[reactiveOutcomeRowId(),]$tarStrings, 
+              split = ':'
+            )[[1]], function(x){
+              vals <- strsplit(x = x, split = '/')[[1]]
+              list(
+                riskWindowStart = vals[1],
+                startAnchor = vals[2],
+                riskWindowEnd = vals[3],
+                endAnchor = vals[4]
+              )
+            })
+          } else{
+            tarStrings <- NULL
+          }
+          reactiveOutcomeTarValues(tarStrings)
+          
+          if(inherits(outcomeTable()[reactiveOutcomeRowId(),]$outcomeWashoutDays, 'character')){
+            outcomeWashoutDays <- strsplit(
+              x = outcomeTable()[reactiveOutcomeRowId(),]$outcomeWashoutDays, 
+              split = ':'
+            )[[1]]
+          } else{
+            outcomeWashoutDays <- NULL
+          }
+          reactiveOutcomeWashout(outcomeWashoutDays)
+          
+        } else{
+          reactiveOutcomeTar(NULL)
+          reactiveOutcomeWashout(NULL)
+        }
+        
+      })
+      
+      # get databases
+      databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseString, split = ', ')))
+      databaseIds <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseIdString, split = ', ')))
       
       output$inputs <- shiny::renderUI({ # need to make reactive?
         
         shiny::div(
+          
+          tableSelectionViewer(id = session$ns('outcome-table-select-case')),
+          
           shinyWidgets::pickerInput(
-            inputId = session$ns('databaseId'),
+            inputId = session$ns('databaseName'),
             label = 'Database: ',
-            choices = options()$databaseIds,
-            selected = options()$databaseIds[1],
+            choices = databaseNames(),
+            selected = databaseNames()[1],
             multiple = F,
             options = shinyWidgets::pickerOptions(
               actionsBox = TRUE,
@@ -94,8 +162,8 @@ characterizationCaseSeriesServer <- function(
           shinyWidgets::pickerInput(
             inputId = session$ns('tarInd'),
             label = 'Time-at-risk: ',
-            choices = options()$tarInds,
-            selected = options()$tarInds[1],
+            choices = reactiveOutcomeTar(),
+            selected = reactiveOutcomeTar()[1],
             multiple = F,
             options = shinyWidgets::pickerOptions(
               actionsBox = TRUE,
@@ -108,6 +176,14 @@ characterizationCaseSeriesServer <- function(
             )
           ),
           
+          shiny::selectInput(
+            inputId = session$ns('outcomeWashout'),
+            label = 'Outcome washout: ',
+            choices = reactiveOutcomeWashout(),
+            selected = reactiveOutcomeWashout()[1],
+            multiple = F
+          ),
+          
           shiny::actionButton(
             inputId = session$ns('generate'), 
             label = 'Generate'
@@ -116,66 +192,199 @@ characterizationCaseSeriesServer <- function(
         
       })
       
+      # server for outcome seleciton table
+      tableSelectionServer(
+        id = 'outcome-table-select-case',
+        table = shiny::reactive(outcomeTable() %>%
+                                  dplyr::select("parentName", "cohortName", "cohortId") %>%
+                                  dplyr::relocate("parentName", .before = "cohortName") %>%
+                                  dplyr::relocate("cohortId", .after = "cohortName")
+        ), 
+        selectedRowId = reactiveOutcomeRowId,
+        selectMultiple = FALSE, 
+        elementId = session$ns('table-outcome-selector'),
+        inputColumns = characterizationOutcomeDisplayColumns(),
+        displayColumns = characterizationOutcomeDisplayColumns(), 
+        selectButtonText = 'Select Outcome'
+      )
+      
       # save the selections
       selected <- shiny::reactiveVal(NULL)
       
       shiny::observeEvent(input$generate, {
         
-        selected(data.frame(
-          database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
-          time_at_risk = names(options()$tarInds)[which(input$tarInd == options()$tarInds)]
-        ))
+        reactiveOutcomeRow <- outcomeTable()[reactiveOutcomeRowId(),]
         
-        inputSelectionDfServer(
-          id = 'inputSelected', 
-          dataFrameRow = selected,
-          ncol = 1
-        )
-        
-        allData <- characterizationGetCaseSeriesData(
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings,
-            targetId = targetId(),
-            outcomeId = outcomeId(),
-            databaseId = input$databaseId,
-            tar = options()$tarList[[which(options()$tarInds == input$tarInd)]]
-          )
-        
-        binTableOutputs <- resultTableServer(
-          id = "binaryTable", 
-          df = allData$binary, 
-          details = data.frame(
-            database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
-            tar = names(options()$tarInds)[which(input$tarInd == options()$tarInds)],
-            target = options()$targetName,
-            outcome = options()$outcomeName,
-            description = "Case series binary features before target index, during exposure and after outcome index"
-          ),
-          downloadedFileName = 'case_series_binary',
-          colDefsInput = colDefsBinary(
-            elementId = session$ns('binary-table-filter')
-          ), # function below
-          addActions = NULL,
-          elementId = session$ns('binary-table-filter')
-        )
-        
-        conTableOutputs <- resultTableServer(
-          id = "continuousTable", 
-          df = allData$continuous,
-          details = data.frame(
-            database = names(options()$databaseIds)[which(input$databaseId == options()$databaseIds)],
-            tar = names(options()$tarInds)[which(input$tarInd == options()$tarInds)],
-            target = options()$targetName,
-            outcome = options()$outcomeName,
-            description = "Case series continuous features before target index, during exposure and after outcome index"
-          ),
-          downloadedFileName = 'case_series_continuous',
-          colDefsInput = colDefsContinuous(
-            elementId = session$ns('continuous-table-filter')
-          ), # function below
-          addActions = NULL,
-          elementId = session$ns('continuous-table-filter')
-        )
+        if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow) |
+           is.null(input$tarInd) | is.null(input$databaseName) |
+           ifelse(is.null(input$outcomeWashout),"",input$outcomeWashout) == ""){
+          
+          output$showCaseSeries  <- shiny::reactive(0)
+          shiny::showNotification('Need to set all inputs')
+        } else if(nrow(reactiveTargetRow()) == 0 | nrow(reactiveOutcomeRow) == 0){
+          output$showCaseSeries  <- shiny::reactive(0)
+          shiny::showNotification('Need to pick a target and outcome')
+        } else if(
+          is.na(reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]$startAnchor) |
+          is.na(reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]$riskWindowStart) |
+          is.na(reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]$endAnchor) |
+          is.na(reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]$riskWindowEnd)
+        ){
+          output$showRiskFactors <- shiny::reactive(0)
+          shiny::showNotification('No valid TAR')
+        } else{
+            
+            output$showCaseSeries  <- shiny::reactive(1)
+            
+            selected(data.frame( 
+              Target = reactiveTargetRow()$cohortName,
+              Outcome = reactiveOutcomeRow$cohortName,
+              Database = input$databaseName,
+              `Time-at-risk` = input$tarInd,
+              OutcomeWashoutDays = input$outcomeWashout
+            ))
+            
+            inputSelectionDfServer(
+              id = 'inputSelected', 
+              dataFrameRow = selected,
+              ncol = 1
+            )
+            
+            allData <- characterizationGetCaseSeriesData(
+              connectionHandler = connectionHandler,
+              resultDatabaseSettings = resultDatabaseSettings,
+              targetId = reactiveTargetRow()$cohortId,
+              outcomeId = reactiveOutcomeRow$cohortId,
+              databaseId = databaseIds()[input$databaseName == databaseNames()],
+              tar = reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]
+            )
+            
+            # !!TODO - replace this?get case count
+            counts <- characterizationGetCaseSeriesCounts(
+              connectionHandler = connectionHandler,
+              resultDatabaseSettings = resultDatabaseSettings,
+              targetId = reactiveTargetRow()$cohortId,
+              outcomeId = reactiveOutcomeRow$cohortId,
+              databaseId = databaseIds()[input$databaseName == databaseNames()],
+              tar = reactiveOutcomeTarValues()[[which(input$tarInd == reactiveOutcomeTar())]]
+            )
+            N <- counts$personCount[1]
+            
+            # get the settings to show in the help text
+            # minPriorObservation,casePostOutcomeDuration,casePreTargetDuration
+            
+            minPriorObservation <- allData$binary$minPriorObservation[1]
+            casePostOutcomeDuration <- allData$binary$casePostOutcomeDuration[1]
+            casePreTargetDuration <- allData$binary$casePreTargetDuration[1]
+            
+            helpTextValue <- paste0('A summary of what the ',N,' cases had ',casePreTargetDuration,' days before target index ',
+                                    ' and up to target index (pre-exposure), after target index and before outcome index (between exposure and outcome) and',
+                                    ' from outcome index up to ', casePostOutcomeDuration, 
+                                    ' days after outcome index (post-outcome).',
+                                    ' Cases are patients in the target cohort for the first time, with',
+                                    ' a minimun of ', minPriorObservation, ' days observation prior to target index',
+                                    ' and who had the outcome recorded during the time-at-risk period.')
+            output$helpTextBinary <- shiny::renderUI(shiny::helpText(helpTextValue))
+            output$helpTextCont <- shiny::renderUI(shiny::helpText(helpTextValue))
+            
+            
+            # create the column groups based on data
+            caseColGroupsBinary <- list()
+            for(colType in c('Before', 'During', 'After')){
+              
+              colsOfIntTemp <- grep(pattern = colType, x = colnames(allData$binary))
+              if( length(colsOfIntTemp) > 0 ){
+                if(colType == 'Before'){
+                  tempname <- 'Pre-exposure'
+                }else if(colType == 'During'){
+                  tempname <- 'Between exposure & outcome'
+                } else{
+                  tempname <- 'Post-outcome'
+                }
+                caseColGroupsBinary[[length(caseColGroupsBinary) + 1]] <- reactable::colGroup(
+                  name = tempname, 
+                  columns = colnames(allData$binary)[colsOfIntTemp]
+                )
+              }
+            }
+            
+            binTableOutputs <- resultTableServer(
+              id = "binaryTable", 
+              df = tryCatch({allData$binary %>%
+                dplyr::filter(.data$minPriorObservation == !!minPriorObservation) %>%
+                dplyr::filter(.data$casePostOutcomeDuration == !!casePostOutcomeDuration) %>%
+                dplyr::filter(.data$casePreTargetDuration == !!casePreTargetDuration)},
+              error = function(e){return(NULL)}), 
+              details = data.frame(
+                Database = input$databaseName,
+                TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
+                target = reactiveTargetRow()$cohortName,
+                outcome = reactiveOutcomeRow$cohortName,
+                minPriorObservation = minPriorObservation,
+                casePostOutcomeDuration = casePostOutcomeDuration,
+                casePreTargetDuration = casePreTargetDuration,
+                outcomeWashoutDays = input$outcomeWashout,
+                caseN = N,
+                description = "Case series binary features before target index, during exposure and after outcome index"
+              ),
+              downloadedFileName = 'case_series_binary',
+              colDefsInput = colDefsBinary(
+                elementId = session$ns('binary-table-filter')
+              ), # function below
+              addActions = NULL,
+              elementId = session$ns('binary-table-filter'), 
+              
+              # only add groups that exist
+              columnGroups = caseColGroupsBinary
+            )
+            
+            # create the column groups based on data
+            caseColGroupsContinuous <- list()
+            for(colType in c('Before', 'During', 'After')){
+              
+              colsOfIntTemp <- grep(pattern = colType, x = colnames(allData$continuous))
+              if( length(colsOfIntTemp) > 0 ){
+                if(colType == 'Before'){
+                  tempname <- 'Pre-exposure'
+                }else if(colType == 'During'){
+                  tempname <- 'Between exposure & outcome'
+                } else{
+                    tempname <- 'Post-outcome'
+                  }
+                caseColGroupsContinuous[[length(caseColGroupsContinuous) + 1]] <- reactable::colGroup(
+                  name = tempname, 
+                  columns = colnames(allData$continuous)[colsOfIntTemp]
+                )
+              }
+            }
+            
+            conTableOutputs <- resultTableServer(
+              id = "continuousTable", 
+              df = tryCatch({allData$continuous %>%
+                dplyr::filter(.data$minPriorObservation == !!minPriorObservation) %>%
+                dplyr::filter(.data$casePostOutcomeDuration == !!casePostOutcomeDuration) %>%
+                dplyr::filter(.data$casePreTargetDuration == !!casePreTargetDuration)},
+                error = function(e){return(NULL)}), 
+              details = data.frame(
+                Database = input$databaseName,
+                TimeAtRisk = reactiveOutcomeTar()$tarList[[which(reactiveOutcomeTar()$tarInds == input$tarInd)]],
+                target = reactiveTargetRow()$cohortName,
+                outcome = reactiveOutcomeRow$cohortName,
+                minPriorObservation = minPriorObservation,
+                casePostOutcomeDuration = casePostOutcomeDuration,
+                casePreTargetDuration = casePreTargetDuration,
+                outcomeWashoutDays = input$outcomeWashout,
+                caseN = N,
+                description = "Case series continuous features before target index, during exposure and after outcome index"
+              ),
+              downloadedFileName = 'case_series_continuous',
+              colDefsInput = colDefsContinuous(), 
+              columnGroups = caseColGroupsContinuous,
+              addActions = NULL,
+              elementId = session$ns('continuous-table-filter')
+            )
+            
+          }
         
       })
    
@@ -184,80 +393,6 @@ characterizationCaseSeriesServer <- function(
   )
 }
 
-
-characterizationGetCaseSeriesOptions <- function(
-  connectionHandler,
-  resultDatabaseSettings,
-  targetId,
-  outcomeId
-){
-  
-  sql <- "SELECT distinct s.database_id, d.CDM_SOURCE_ABBREVIATION as database_name,
-          s.setting_id, 
-          s.RISK_WINDOW_START,	s.RISK_WINDOW_END,	
-          s.START_ANCHOR, s.END_ANCHOR,
-          ct1.cohort_name as target_name,
-          ct2.cohort_name as outcome_name
-          
-          from
-          @schema.@c_table_prefixsettings s
-          inner join @schema.@database_meta_table d 
-          on s.database_id = d.database_id
-          inner join @schema.@c_table_prefixcohort_details cd
-          on s.setting_id = cd.setting_id
-          and s.database_id = cd.database_id
-          and cd.target_cohort_id = @target_id
-          and cd.outcome_cohort_id = @outcome_id
-          and cd.cohort_type = 'Cases'
-          
-          inner join
-          @schema.@cg_table_prefixcohort_definition ct1
-          on 
-          ct1.cohort_definition_id = cd.target_cohort_id
-          
-          inner join
-          @schema.@cg_table_prefixcohort_definition ct2
-          on 
-          ct2.cohort_definition_id = cd.outcome_cohort_id
-          
-          
-  ;"
-  
-  options <- connectionHandler$queryDb(
-    sql = sql, 
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    target_id = targetId,
-    outcome_id = outcomeId,
-    database_meta_table = resultDatabaseSettings$databaseTable,
-    cg_table_prefix = resultDatabaseSettings$cgTablePrefix
-  )
-  
-  outcomeName <- unique(options$outcomeName)
-  targetName <- unique(options$targetName)
-  
-  db <- unique(options$databaseId)
-  names(db) <- unique(options$databaseName)
-  
-  tar <- unique(options[,c('startAnchor','riskWindowStart', 'endAnchor', 'riskWindowEnd')])
-  tarList <- lapply(1:nrow(tar), function(i) as.list(tar[i,]))
-  #tar <- unique(options$settingId)
-  tarInds <- 1:nrow(tar)
-  names(tarInds) <- unique(paste0('(', tar$startAnchor, ' + ', tar$riskWindowStart, ') - (', 
-                       tar$endAnchor, ' + ', tar$riskWindowEnd, ')'
-                       ))
-  
-  return(
-    list(
-      databaseIds = db,
-      tarInds = tarInds,
-      tarList = tarList,
-      outcomeName = outcomeName,
-      targetName = targetName
-    )
-  )
-  
-}
 
 
 characterizationGetCaseSeriesData <- function(
@@ -269,109 +404,61 @@ characterizationGetCaseSeriesData <- function(
   tar
 ){
   
+  
   shiny::withProgress(message = 'Getting case series data', value = 0, {
     shiny::incProgress(1/4, detail = paste("Extracting binary"))
     
-  sql <- "SELECT 
-  case 
-  when cov.cohort_type = 'CasesBefore' then 'Before'
-  when cov.cohort_type = 'CasesBetween' then 'During'
-  when cov.cohort_type = 'CaseAfter' then 'After'
-  end as type, 
-  cr.covariate_name, 
-  s.min_prior_observation, s.outcome_washout_days,
-  s.case_post_outcome_duration, s.case_pre_target_duration,
-  cov.covariate_id, cov.sum_value, cov.average_value 
-          from
-          @schema.@c_table_prefixcovariates cov
-          inner join  @schema.@c_table_prefixcovariate_ref cr
-          on cov.setting_id = cr.setting_id and 
-          cov.database_id = cr.database_id and 
-          cov.covariate_id = cr.covariate_id
-          
-          inner join @schema.@c_table_prefixsettings s
-          on cov.setting_id = s.setting_id
-          and cov.database_id = s.database_id
-
-          where cov.target_cohort_id = @target_id
-          and cov.outcome_cohort_id = @outcome_id
-          and cov.cohort_type in ('CasesBetween','CasesAfter','CasesBefore')
-          --and cov.setting_id = @setting_id
-          and s.risk_window_start = @risk_window_start
-          and s.risk_window_end = @risk_window_end
-          and s.start_anchor = '@start_anchor'
-          and s.end_anchor = '@end_anchor'
-          and cov.database_id = '@database_id'
-          and cr.analysis_id in (109, 110, 217, 218, 305, 417, 418, 505, 605, 713, 805, 926, 927)
-  ;"
-
-  binary <- connectionHandler$queryDb(
-    sql = sql, 
-    schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    target_id = targetId,
-    outcome_id = outcomeId,
-    risk_window_start = tar$riskWindowStart,
-    risk_window_end = tar$riskWindowEnd,
-    start_anchor = tar$startAnchor,
-    end_anchor = tar$endAnchor,
-    database_id = databaseId
-  )
+    binary <-   OhdsiReportGenerator::getBinaryCaseSeries(
+      connectionHandler = connectionHandler,
+      schema = resultDatabaseSettings$schema,
+      cTablePrefix = resultDatabaseSettings$cTablePrefix,
+      cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+      databaseTable = resultDatabaseSettings$databaseTable,
+      targetId = targetId,
+      outcomeId = outcomeId,
+      riskWindowStart = tar$riskWindowStart,
+      riskWindowEnd = tar$riskWindowEnd,
+      startAnchor = tar$startAnchor,
+      endAnchor = tar$endAnchor,
+      databaseIds = databaseId
+    )
+    
+    binary <- binary %>% tidyr::pivot_wider(
+      id_cols = c('covariateName', 'covariateId', 
+                  'minPriorObservation', 'outcomeWashoutDays', 'casePostOutcomeDuration',
+                  'casePreTargetDuration'), 
+      names_from = 'type', 
+      values_from = c('sumValue', 'averageValue'), 
+      values_fill = 0
+        )
   
-  # now process into table
-  binary <- caseSeriesTable(
-    data = binary
-  )
   
   shiny::incProgress(3/4, detail = paste("Extracting continuous"))
 
-  sql <- "SELECT
-    case 
-  when cov.cohort_type = 'CasesBefore' then 'Before'
-  when cov.cohort_type = 'CasesBetween' then 'During'
-  when cov.cohort_type = 'CasesAfter' then 'After'
-  end as type, 
-  cr.covariate_name, 
-    s.min_prior_observation, s.outcome_washout_days, 
-    s.case_post_outcome_duration, s.case_pre_target_duration,
-    cov.covariate_id, 
-          cov.count_value, cov.min_value, cov.max_value, cov.average_value,
-          cov.standard_deviation, cov.median_value, cov.p_10_value,
-          cov.p_25_value, cov.p_75_value, cov.p_90_value
-          from
-          @schema.@c_table_prefixcovariates_continuous cov
-          inner join  @schema.@c_table_prefixcovariate_ref cr
-          on cov.setting_id = cr.setting_id and 
-          cov.database_id = cr.database_id and 
-          cov.covariate_id = cr.covariate_id
-          
-          inner join @schema.@c_table_prefixsettings s
-          on cov.setting_id = s.setting_id
-          and cov.database_id = s.database_id
-          
-          where cov.target_cohort_id = @target_id
-          and cov.outcome_cohort_id = @outcome_id
-          and cov.cohort_type in ('CasesBetween','CasesAfter','CasesBefore')
-          and s.risk_window_start = @risk_window_start
-          and s.risk_window_end = @risk_window_end
-          and s.start_anchor = '@start_anchor'
-          and s.end_anchor = '@end_anchor'
-          and cov.database_id = '@database_id'
-          and cr.analysis_id in (109, 110, 217, 218, 305, 417, 418, 505, 605, 713, 805, 926, 927)
-  ;"
-  
-  # TODO - how to remove prior outcomes??
-  continuous <- connectionHandler$queryDb(
-    sql = sql, 
+  continuous <- OhdsiReportGenerator::getContinuousCaseSeries(
+    connectionHandler = connectionHandler,
     schema = resultDatabaseSettings$schema,
-    c_table_prefix = resultDatabaseSettings$cTablePrefix,
-    target_id = targetId,
-    outcome_id = outcomeId,
-    risk_window_start = tar$riskWindowStart,
-    risk_window_end = tar$riskWindowEnd,
-    start_anchor = tar$startAnchor,
-    end_anchor = tar$endAnchor,
-    database_id = databaseId
+    cTablePrefix = resultDatabaseSettings$cTablePrefix,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    targetId = targetId,
+    outcomeId = outcomeId,
+    riskWindowStart = tar$riskWindowStart,
+    riskWindowEnd = tar$riskWindowEnd,
+    startAnchor = tar$startAnchor,
+    endAnchor = tar$endAnchor,
+    databaseIds = databaseId
+  )
+  
+  continuous <- continuous %>% tidyr::pivot_wider(
+    id_cols = c('covariateName', 'covariateId', 
+                'minPriorObservation', 'outcomeWashoutDays', 'casePostOutcomeDuration',
+                'casePreTargetDuration'), 
+    names_from = 'type', 
+    values_from = c('countValue', 'minValue', 'maxValue',
+                    'averageValue', 'standardDeviation', 'medianValue'
+    ), 
+    values_fill = 0
   )
   
   shiny::incProgress(4/4, detail = paste("Done"))
@@ -387,88 +474,25 @@ characterizationGetCaseSeriesData <- function(
 }
 
 
-# now process into table
-caseSeriesTable <- function(
-  data
-){
-  
-  # Before Index Cases
-  beforeData <- data %>% 
-    dplyr::filter(.data$type == 'Before') 
-  Nbefore <- getCountFromFE(
-    sumValue = beforeData$sumValue, 
-    averageValue = beforeData$averageValue
-    )
-
-  # After Index Cases
-  afterData <- data %>% 
-    dplyr::filter(.data$type == 'After') 
-  Nafter <- getCountFromFE(
-    sumValue = afterData$sumValue, 
-    averageValue = afterData$averageValue
-  )
-  
-  # During Index Cases
-  duringData <- data %>% 
-    dplyr::filter(.data$type == 'During') 
-  Nduring <- getCountFromFE(
-    sumValue = duringData$sumValue, 
-    averageValue = duringData$averageValue
-  )
-  
-  beforeData <- beforeData %>%
-    dplyr::mutate(
-      sumValueBefore = .data$sumValue,
-      averageValueBefore = .data$averageValue,
-    ) %>%
-    dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration', "sumValueBefore", "averageValueBefore")
-  
-  afterData <-afterData %>%
-    dplyr::mutate(
-      sumValueAfter = .data$sumValue,
-      averageValueAfter = .data$averageValue,
-    ) %>%
-    dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration', "sumValueAfter", "averageValueAfter")
-  
-  duringData <- duringData %>%
-    dplyr::mutate(
-      sumValueDuring = .data$sumValue,
-      averageValueDuring = .data$averageValue,
-    ) %>%
-    dplyr::select("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration', "sumValueDuring", "averageValueDuring")
-  
-  
-  
-  allResults <- beforeData %>% 
-    dplyr::full_join(
-      y = duringData, 
-      by = c("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration')
-    ) %>% 
-    dplyr::full_join(
-      y = afterData, 
-      by = c("covariateName", "covariateId", 'minPriorObservation', 'outcomeWashoutDays','casePostOutcomeDuration', 'casePreTargetDuration')
-    ) 
-  
-  return(allResults)
-}
-
 colDefsBinary <- function(
     elementId
     ){
   result <- list(
     covariateName = reactable::colDef(
+      name = "Covariate Name",
       header = withTooltip("Covariate Name",
                            "Name of the covariate"),
-      filterable = T,
+      filterable = TRUE,
       minWidth = 300
     ),
     covariateId = reactable::colDef(
-      show = F
+      show = FALSE
     ),
     minPriorObservation = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Min Prior Observation",
                            "Minimum prior observation time (days)"),
-      filterable = T,
+      filterable = TRUE,
       filterInput = function(values, name) {
         shiny::tags$select(
           # Set to undefined to clear the filter
@@ -482,9 +506,10 @@ colDefsBinary <- function(
       }
     ), 
     outcomeWashoutDays = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Outcome Washout Days",
                            "Number of days for the outcome washout"),
-      filterable = T,
+      filterable = TRUE,
       filterInput = function(values, name) {
         shiny::tags$select(
           # Set to undefined to clear the filter
@@ -498,69 +523,78 @@ colDefsBinary <- function(
       }
     ),
     casePostOutcomeDuration = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Days Post-outcome Covariate Window",
                            "Number of days after the outcome we look for the covariate"),
-      filterable = T
+      filterable = TRUE
     ), 
     casePreTargetDuration = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Days Pre-exposure Covariate Window",
                            "Number of days before the exposure we look for the covariate"),
-      filterable = T
+      filterable = TRUE
     ),
-    sumValueBefore = reactable::colDef(
-      header = withTooltip("# Cases with Feature Pre-exposure",
+    sumValue_Before = reactable::colDef(
+      name = "No.",
+      header = withTooltip("No.",
                            "Number of cases with the covariate prior to exposure"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F),
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = FALSE),
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
         if(is.na(value)){return('< min threshold')}
         if (value >= 0) value else paste0('<', abs(value))
       }
     ), 
-    averageValueBefore = reactable::colDef(
-      header = withTooltip("% of Cases with Feature Pre-exposure",
+    averageValue_Before = reactable::colDef(
+      name = "Percent",
+      header = withTooltip("Percent",
                            "Percent of cases with the covariate prior to exposure"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = T)
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = TRUE)
     ), 
-    sumValueDuring = reactable::colDef(
-      header = withTooltip("# of Cases with Feature Between Exposure & Outcome",
+    sumValue_During = reactable::colDef(
+      name = "No.",
+      header = withTooltip("No.",
                            "Number of cases with the covariate between the exposure and outcome"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F),
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = FALSE),
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
         if(is.na(value)){return('< min threshold')}
         if (value >= 0) value else paste0('<', abs(value))
       }
     ), 
-    averageValueDuring = reactable::colDef(
-      header = withTooltip("% of Cases with Feature Between Exposure & Outcome",
+    averageValue_During = reactable::colDef(
+      name = "Percent",
+      header = withTooltip("Percent",
                            "Percent of cases with the covariate between the exposure and outcome"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = T)
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = TRUE)
     ), 
-    sumValueAfter = reactable::colDef(
-      header = withTooltip("# of Cases with Feature Post-outcome",
+    sumValue_After = reactable::colDef(
+      name = "No.",
+      header = withTooltip("No.",
                            "Number of cases with the covariate after the outcome"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F),
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = FALSE),
       cell = function(value) {
         if(is.null(value)){return('< min threshold')}
         if(is.na(value)){return('< min threshold')}
         if (value >= 0) value else paste0('<', abs(value))
       }
     ), 
-    averageValueAfter = reactable::colDef(
-      header = withTooltip("% of Cases with Feature Post-outcome",
+    averageValue_After = reactable::colDef(
+      name = "Percent",
+      header = withTooltip("Percent",
                            "Percent of cases with the covariate after the outcome"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = T)
+      filterable = TRUE,
+      format = reactable::colFormat(digits = 2, percent = TRUE)
     ), 
     
     analysisName = reactable::colDef(
-      filterable = T,
+      name = 'Analysis',
+      filterable = TRUE,
       filterInput = function(values, name) {
         shiny::tags$select(
           # Set to undefined to clear the filter
@@ -577,185 +611,205 @@ colDefsBinary <- function(
   return(result)
 }
 
-colDefsContinuous <- function(
-    elementId
-    ){
+colDefsContinuous <- function(){
   result <- list(
     cohortDefinitionId = reactable::colDef(
+      show = FALSE,
       header = withTooltip("Cohort ID",
                            "Unique identifier of the cohort"),
-      filterable = T
-    ),
-    type = reactable::colDef(
-      header = withTooltip("Time of Cases Relative to Index",
-                           "Time period relative to index date for cases for the covariate"),
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
+      filterable = TRUE
     ),
     covariateName = reactable::colDef(
+      name = "Covariate Name",
       header = withTooltip("Covariate Name",
                            "Name of the covariate"),
-      filterable = T,
+      filterable = TRUE,
       minWidth = 300
     ),
     covariateId = reactable::colDef(
-      show = F
+      "Covariate ID",
+      show = TRUE
     ),
     minPriorObservation = reactable::colDef(
-      header = withTooltip("Min Prior Observation",
-                           "Minimum prior observation time (days)"),
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
+      show = FALSE
     ), 
     outcomeWashoutDays = reactable::colDef(
-      header = withTooltip("Outcome Washout Days",
-                           "Number of days for the outcome washout"),
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
+      show = FALSE
     ),
     casePostOutcomeDuration = reactable::colDef(
-      header = withTooltip("Days Post-outcome Covariate Window",
-                           "Number of days after the outcome we look for the covariate"),
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
+      show = FALSE
     ), 
     casePreTargetDuration = reactable::colDef(
-      header = withTooltip("Days Pre-exposure Covariate Window",
-                           "Number of days before the exposure we look for the covariate"),
-      filterable = T,
-      filterInput = function(values, name) {
-        shiny::tags$select(
-          # Set to undefined to clear the filter
-          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
-          # "All" has an empty value to clear the filter, and is the default option
-          shiny::tags$option(value = "", "All"),
-          lapply(unique(values), shiny::tags$option),
-          "aria-label" = sprintf("Filter %s", name),
-          style = "width: 100%; height: 28px;"
-        )
-      }
+      show = FALSE
     ),
-    countValue = reactable::colDef(
+    
+    # After
+    countValue_After = reactable::colDef(
+      name = "# Cases with Feature",
       header = withTooltip("# Cases with Feature",
-                           "Number of cases with the covariate"),
-      filterable = T,
+                           "Number of cases with the covariate after outcome"),
       format = reactable::colFormat(digits = 2, percent = F),
       cell = function(value) {
-        # Add < if cencored
-        if (value < 0 ) paste("<", abs(value)) else abs(value)
+        if(!is.null(value)){
+          if( value < 0 ){paste("<", abs(value))}else{abs(value)}
+        }
       }
     ), 
-    minValue = reactable::colDef(
+    minValue_After = reactable::colDef(
+      name = "Min Value",
       header = withTooltip("Min Value",
-                           "Minimum value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+                           "Minimum value of the covariate after outcome"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    maxValue = reactable::colDef(
+    maxValue_After = reactable::colDef(
+      name = "Max Value",
       header = withTooltip("Max Value",
-                           "Maximum value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+                           "Maximum value of the covariate after outcome"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    averageValue = reactable::colDef(
+    averageValue_After = reactable::colDef(
+      name = "Average Value",
       header = withTooltip("Average Value",
-                           "Average value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+                           "Average value of the covariate after outcome"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    standardDeviation = reactable::colDef(
+    standardDeviation_After = reactable::colDef(
+      name = "SD",
       header = withTooltip("SD",
-                           "Standard deviation of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+                           "Standard deviation of the covariate after outcome"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    medianValue = reactable::colDef(
+    medianValue_After = reactable::colDef(
+      name = "Median Value",
       header = withTooltip("Median Value",
-                           "Median value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+                           "Median value of the covariate after outcome"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    p10Value = reactable::colDef(
-      header = withTooltip("10th %tile",
-                           "10th percentile value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+    
+    
+    countValue_During = reactable::colDef(
+      name = "# Cases with Feature",
+      header = withTooltip("# Cases with Feature",
+                           "Number of cases with the covariate between target and outcome index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE),
+      cell = function(value){
+        if(!is.null(value)){
+         if( value < 0 ){paste("<", abs(value))}else{abs(value)}
+        }
+      }
     ), 
-    p25Value = reactable::colDef(
-      header = withTooltip("25th %tile",
-                           "25th percentile value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+    minValue_During = reactable::colDef(
+      name = "Min Value",
+      header = withTooltip("Min Value",
+                           "Minimum value of the covariate between target and outcome index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    p75Value = reactable::colDef(
-      header = withTooltip("75th %tile",
-                           "75th percentile value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+    maxValue_During = reactable::colDef(
+      name = "Max Value",
+      header = withTooltip("Max Value",
+                           "Maximum value of the covariate between target and outcome index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    p90Value = reactable::colDef(
-      header = withTooltip("90th %tile",
-                           "90th percentile value of the covariate"),
-      filterable = T,
-      format = reactable::colFormat(digits = 2, percent = F)
+    averageValue_During = reactable::colDef(
+      name = "Average Value",
+      header = withTooltip("Average Value",
+                           "Average value of the covariate between target and outcome index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    standardDeviation_During = reactable::colDef(
+      name = "SD",
+      header = withTooltip("SD",
+                           "Standard deviation of the covariate between target and outcome index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    medianValue_During = reactable::colDef(
+      name = "Median Value",
+      header = withTooltip("Median Value",
+                           "Median value of the covariate between target and outcome index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    
+    
+    countValue_Before = reactable::colDef(
+      name = "# Cases with Feature",
+      header = withTooltip("# Cases with Feature",
+                           "Number of cases with the covariate before target index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE),
+      cell = function(value){
+        if(!is.null(value)){
+          if( value < 0 ){paste("<", abs(value))}else{abs(value)}
+        }
+      }
+    ), 
+    minValue_Before = reactable::colDef(
+      name = "Min Value",
+      header = withTooltip("Min Value",
+                           "Minimum value of the covariate before target index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    maxValue_Before = reactable::colDef(
+      name = "Max Value",
+      header = withTooltip("Max Value",
+                           "Maximum value of the covariate before target index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    averageValue_Before = reactable::colDef(
+      name = "Average Value",
+      header = withTooltip("Average Value",
+                           "Average value of the covariate before target index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    standardDeviation_Before = reactable::colDef(
+      name = "SD",
+      header = withTooltip("SD",
+                           "Standard deviation of the covariate before target index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
+    ), 
+    medianValue_Before = reactable::colDef(
+      name = "Median Value",
+      header = withTooltip("Median Value",
+                           "Median value of the covariate before target index"),
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     )
-    )
+    
+  )
   return(result)
 }
 
 
-
-getCountFromFE <- function(
-  sumValue, 
-  averageValue
+characterizationGetCaseSeriesCounts <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    targetId,
+    outcomeId,
+    databaseId,
+    tar
 ){
   
-  Ns <- sumValue/averageValue
-  if(sum(is.finite(Ns)) > 0 ){
-    maxN <- max(Ns[is.finite(Ns)])
-  } else{
-    message('Issue calculating N')
-    maxN <- 0
+  result <- OhdsiReportGenerator::getCaseCounts(
+    connectionHandler = connectionHandler, 
+    schema = resultDatabaseSettings$schema, 
+    cTablePrefix =  resultDatabaseSettings$cTablePrefix, 
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+    databaseTable = resultDatabaseSettings$databaseTable, 
+    targetIds = targetId, 
+    outcomeIds = outcomeId, 
+    databaseIds = databaseId, 
+    riskWindowStart = tar$riskWindowStart, 
+    riskWindowEnd = tar$riskWindowEnd, 
+    startAnchor = tar$startAnchor, 
+    endAnchor = tar$endAnchor
+    ) 
+  
+  if(nrow(result) > 0){
+    result <- result %>%
+      dplyr::select("minPriorObservation", "outcomeWashoutDays",
+                    "rowCount", "personCount")
   }
-  return(maxN)
+  
+  return(result)
+  
 }
+
+
+

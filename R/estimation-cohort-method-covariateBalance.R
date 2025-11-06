@@ -38,8 +38,7 @@ cohortMethodCovariateBalanceViewer <- function(id) {
       shiny::tabPanel(
         title = "Covariate Balance Table",
         resultTableViewer(
-          ns("balanceTable"),
-          downloadedFileName = "covariateBalanceTable-"
+          ns("balanceTable")
         )
       ),
       
@@ -92,11 +91,6 @@ cohortMethodCovariateBalanceServer <- function(
     id,
     function(input, output, session) {
       
-      options <- getCmOptions(
-        connectionHandler,
-        resultDatabaseSettings
-      )
-      
       balance <- shiny::reactive({
         row <- selectedRow()
         if(is.null(row$targetId)){
@@ -110,7 +104,7 @@ cohortMethodCovariateBalanceServer <- function(
           comparatorId = row$comparatorId,
           databaseId = row$databaseId,
           analysisId = row$analysisId)},
-          error = function(e){return(data.frame())}
+          error = function(e){print(e);return(data.frame())}
         )
         
         return(balance)
@@ -247,6 +241,7 @@ cohortMethodCovariateBalanceServer <- function(
         }
       })
       
+      # Is this used??
       output$balanceSummaryPlot <- shiny::renderPlot({
         balanceSummaryPlot()
       }, res = 100)
@@ -265,53 +260,93 @@ cohortMethodCovariateBalanceServer <- function(
         }
       })
       
-      output$downloadBalanceSummaryPlotPng <- shiny::downloadHandler(filename = "BalanceSummary.png",
-                                                                     contentType = "image/png",
-                                                                     content = function(file) {
-                                                                       ggplot2::ggsave(file, plot = balanceSummaryPlot(), width = 12, height = 5.5, dpi = 400)
-                                                                     })
-      
-      output$downloadBalanceSummaryPlotPdf <- shiny::downloadHandler(filename = "BalanceSummary.pdf",
-                                                                     contentType = "application/pdf",
-                                                                     content = function(file) {
-                                                                       ggplot2::ggsave(file = file, plot = balanceSummaryPlot(), width = 12, height = 5.5)
-                                                                     })
-      
+
       #covariate balance table
       
-      #first join to nice database names
-      
-      balanceNice <- shiny::reactive(
-        {
-          balance <- balance()
-          dbNames <- getDatabaseName(connectionHandler = connectionHandler,
-                                     resultDatabaseSettings = resultDatabaseSettings)
-          comb <- dplyr::inner_join(balance, dbNames) %>%
-            dplyr::relocate("cdmSourceAbbreviation", .after = "databaseId") %>% 
-            dplyr::select(-c("databaseId"))
-        }
-      )
-      
-      #load custom colDefs
-      cmBalanceColList <- ParallelLogger::loadSettingsFromJson(
-        system.file("components-columnInformation",
-                    "cohortMethod-covariate-balance-colDefs.json",
-                    package = "OhdsiShinyModules"
+
+      #load custom colDefs - TODO replace this 
+      cmBalanceColList <- list(
+        analysisDescription = reactable::colDef(show = FALSE),
+        targetName = reactable::colDef(show = FALSE),
+        comparatorName = reactable::colDef(show = FALSE),
+        databaseId = reactable::colDef(show = FALSE),
+        targetId = reactable::colDef(show = FALSE),
+        comparatorId = reactable::colDef(show = FALSE),
+        analysisId = reactable::colDef(show = FALSE),
+        stdDiffBefore = reactable::colDef(show = FALSE),
+        stdDiffAfter = reactable::colDef(show = FALSE),
+        meanBefore = reactable::colDef(show = FALSE),
+        meanAfter = reactable::colDef(show = FALSE),
+        targetStdDiff = reactable::colDef(show = FALSE),
+        comparatorStdDiff = reactable::colDef(show = FALSE),
+        targetComparatorStdDiff = reactable::colDef(show = FALSE),
+        
+        databaseName = reactable::colDef(
+          name = "Database Name",
+          header = withTooltip(
+            'Database Name',
+            "The name of the database"
+            )
+          ),
+        covariateName = reactable::colDef(
+          name = "Covariate Name",
+          header = withTooltip(
+            'Covariate Name',
+            "The name of the covariate"
+          )
+        ),
+        beforeMatchingMeanTreated = reactable::colDef(
+          name = "Mean Target Before Matching",
+          header = withTooltip(
+            "Mean Target Before Matching",
+            "Mean (Proportion) in Target Before Matching"
+          )
+        ),
+        beforeMatchingMeanComparator = reactable::colDef(
+          name = "Mean Comparator Before Matching",
+          header = withTooltip(
+            "Mean Comparator Before Matching",
+            "Mean (Proportion) in Comparator Before Matching"
+          )
+        ),
+        absBeforeMatchingStdDiff = reactable::colDef(
+          name = "Abs Val StdDiff Before Matching",
+          header = withTooltip(
+            "Abs Val StdDiff Before Matching",
+            "Absolute Value of the Standardized Mean Difference Before Matching"
+          )
+        ),
+        afterMatchingMeanTreated = reactable::colDef(
+          name = "Mean Target After Matching",
+          header = withTooltip(
+            "Mean Target After Matching",
+            "Mean (Proportion) in Target After Matching"
+          )
+        ),
+        afterMatchingMeanComparator = reactable::colDef(
+          name = "Mean Comparator After Matching",
+          header = withTooltip(
+            "Mean Comparator After Matching",
+            "Mean (Proportion) in Comparator After Matching"
+          )
+        ),
+        
+        absAfterMatchingStdDiff = reactable::colDef(
+          name = "Abs Val StdDiff After Matching",
+          header = withTooltip(
+            "Abs Val StdDiff After Matching",
+            "Absolute Value of the Standardized Mean Difference After Matching"
+          )
         )
-      )
-      
-      #then render the balance table
-      renderBalanceTable <- shiny::reactive(
-        {
-          balanceNice() 
-        }
+        
       )
       
       resultTableServer(
         id = "balanceTable",
-        df = renderBalanceTable,
+        df = balance,
         colDefsInput = cmBalanceColList,
-        downloadedFileName = "covariateBalanceTable-"
+        downloadedFileName = "covariateBalanceTable-",
+        elementId = session$ns("covariateBalanceTable")
       )
       
       
@@ -323,27 +358,6 @@ cohortMethodCovariateBalanceServer <- function(
 
 #fetching data functions
 
-getDatabaseName <- function(
-    connectionHandler,
-    resultDatabaseSettings
-){
-  
-  sql <- 'select distinct d.cdm_source_abbreviation, i.database_id 
-    from @result_schema.@cm_table_prefixCOVARIATE_BALANCE i
-    inner join @result_schema.@database_table_name d
-    on d.database_id = i.database_id
-    ;'
-  
-  resultTable <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-    database_table_name = resultDatabaseSettings$databaseTable
-  )
-  
-  return(resultTable)
-} 
-
 getCohortMethodCovariateBalanceShared <- function(
     connectionHandler,
     resultDatabaseSettings,
@@ -354,50 +368,41 @@ getCohortMethodCovariateBalanceShared <- function(
     databaseId = NULL
 ) {
   
-  #shiny::withProgress(message = 'Extracting covariate balance', value = 0, {
+  shiny::withProgress(message = 'Extracting covariate balance', value = 0, {
     
-      #shiny::incProgress(1/6, detail = paste("Writing sql"))
-      sql <- "
-      SELECT
-        cmscb.database_id,
-        cmc.covariate_name,
-        --cmc.analysis_id analysis_id,
-        cmscb.target_mean_before before_matching_mean_treated,
-        cmscb.comparator_mean_before before_matching_mean_comparator,
-        abs(cmscb.std_diff_before) abs_before_matching_std_diff, --absBeforeMatchingStdDiff 
-        cmscb.target_mean_after after_matching_mean_treated,
-        cmscb.comparator_mean_after after_matching_mean_comparator,
-        abs(cmscb.std_diff_after) abs_after_matching_std_diff
-      FROM
-        @results_schema.@cm_table_prefixshared_covariate_balance cmscb 
-        JOIN @results_schema.@cm_table_prefixcovariate cmc ON cmscb.covariate_id = cmc.covariate_id AND cmscb.analysis_id = cmc.analysis_id AND cmscb.database_id = cmc.database_id -- database_id optional
-       -- JOIN @results_schema.@cm_table_prefixcovariate_analysis cmca ON cmca.analysis_id = cmc.analysis_id  -- question: shouldn't we have a covariate_analysis_id in @table_prefixcovariate table?
-      WHERE
-        cmscb.target_id = @target_id
-        AND cmscb.comparator_id = @comparator_id
-        AND cmscb.analysis_id = @analysis_id
-        --AND cmc.covariate_analysis_id = @covariate_analysis_id
-        AND cmscb.database_id = '@database_id'
-    "
-    
-    #shiny::incProgress(1/3, detail = paste("Extracting"))
-    result <- connectionHandler$queryDb(
-      sql = sql,
-      results_schema = resultDatabaseSettings$schema,
-      cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-      target_id = targetId,
-      comparator_id = comparatorId,
-      analysis_id = analysisId,
-      #covariate_analysis_id = covariateAnalysisId,
-      database_id = databaseId
-    )
-    
-    #shiny::incProgress(3/3, detail = paste("Done - nrows: ", nrow(result)))
- # })
+      shiny::incProgress(1/6, detail = paste("Writing sql"))
   
-  return(
-    result
-  )
+  result <- OhdsiReportGenerator::getCmTable(
+    connectionHandler = connectionHandler, 
+    schema = resultDatabaseSettings$schema, 
+    table = 'shared_covariate_balance', 
+    cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+    databaseTable = resultDatabaseSettings$databaseTable, 
+    targetIds = targetId,
+    comparatorIds = comparatorId,
+    analysisIds = analysisId,
+    databaseIds = databaseId
+    )
+  
+  result <- result %>% 
+    dplyr::rename(
+      beforeMatchingMeanTreated = "targetMeanBefore",
+      beforeMatchingMeanComparator = "comparatorMeanBefore",
+      afterMatchingMeanTreated = "targetMeanAfter",
+      afterMatchingMeanComparator = "comparatorMeanAfter"
+    ) %>%
+    dplyr::mutate(
+      absBeforeMatchingStdDiff = abs(.data$stdDiffBefore),
+      absAfterMatchingStdDiff = abs(.data$stdDiffAfter)
+    )
+
+    #shiny::incProgress(1/3, detail = paste("Extracting"))
+
+    shiny::incProgress(3/3, detail = paste("Done - nrows: ", nrow(result)))
+  })
+  
+  return(result)
   
 }
 
@@ -439,17 +444,6 @@ getCohortMethodCovariateBalanceSummary <- function(
   return(balanceSummary)
   
 }
-
-# what is the purpose of below?
-cmDiagnostics <- shiny::reactive({
-  estimationGetCmDiagnostics(
-    connectionHandler = connectionHandler,
-    resultDatabaseSettings = resultDatabaseSettings,
-    targetIds =  targetIds,
-    comparatorIds = comparatorIds,
-    outcomeId = outcomeId
-  )
-})
 
 
 
@@ -500,7 +494,7 @@ plotCohortMethodCovariateBalanceScatterPlotNew <- function(
   ) %>%
     plotly::layout(
       #shapes = list(xyline(limits)),
-      title = ~paste0("Shared Max SDM Statistic = ", maxSharedSdmStatistic),
+      title = ~paste0("Shared Max SDM Statistic = ", maxSharedSdmStatistic[1]),
       shapes = list(list(
         type = "line", 
         x0 = 0, 
@@ -515,7 +509,7 @@ plotCohortMethodCovariateBalanceScatterPlotNew <- function(
       xaxis = list(title = beforeLabel, range = limits), 
       yaxis = list(title = afterLabel, range = limits)
     )
-  
+  print('endPlot')
   return(plot)
 }
 
@@ -597,30 +591,6 @@ plotCohortMethodCovariateBalanceSummary <- function(balanceSummary,
   return(plot)
 }
 
-getCmOptions <- function(connectionHandler,
-                         resultDatabaseSettings){
-  
-  sql <- 'select distinct covariate_analysis_id, covariate_analysis_name 
-  from @result_schema.@cm_table_prefixCOVARIATE_ANALYSIS;'
-  
-  #shiny::incProgress(1/3, detail = paste("Created SQL - Extracting targets"))
-  
-  covariateAnalyses <- connectionHandler$queryDb(
-    sql = sql, 
-    result_schema = resultDatabaseSettings$schema,
-    cm_table_prefix = resultDatabaseSettings$cmTablePrefix
-  )
-  covariateAnalysisIds <- covariateAnalyses$covariateAnalysisId
-  names(covariateAnalysisIds) <- covariateAnalyses$covariateAnalysisName
-  
-  return(
-    list(
-      covariateAnalysisIds = covariateAnalysisIds
-    )
-  )
-  
-}
-
 estimationGetMaxSharedSdm <- function(
     connectionHandler = connectionHandler,
     resultDatabaseSettings = resultDatabaseSettings,
@@ -631,44 +601,23 @@ estimationGetMaxSharedSdm <- function(
     databaseId = databaseId
 ){
   
-  sql <- "
-    SELECT DISTINCT
-      dmd.cdm_source_abbreviation database_name,
-      cmds.analysis_id,
-      cmds.target_id,
-      cmds.comparator_id,
-      cmds.outcome_id,
-      cmds.shared_max_sdm,
-      cmds.ease
-    FROM
-      @schema.@cm_table_prefixdiagnostics_summary cmds
-      INNER JOIN @schema.@database_table dmd ON dmd.database_id = cmds.database_id
-      
-      where cmds.target_id = @target_id
-      and cmds.comparator_id = @comparator_id
-      and cmds.outcome_id = @outcome_id
-      and cmds.analysis_id = @analysis_id
-      and cmds.database_id = '@database_id'
-      ;
-  "
   
-  result <- connectionHandler$queryDb(
-    sql = sql,
+  result <- OhdsiReportGenerator::getCmDiagnosticsData(
+    connectionHandler = connectionHandler, 
     schema = resultDatabaseSettings$schema,
-    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-    database_table = resultDatabaseSettings$databaseTable,
-    target_id = targetId,
-    comparator_id = comparatorId,
-    outcome_id = outcomeId,
-    analysis_id = analysisId,
-    database_id = databaseId
-  )
+    cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    targetIds = targetId,
+    comparatorIds =  comparatorId,
+    outcomeIds = outcomeId,
+    analysisIds = analysisId,
+    databaseIds = databaseId
+    )
   
-  sharedMaxSdm<- round(result$sharedMaxSdm, 4)
+  sharedMaxSdm<- round(result$sharedMaxSdm[1], 4)
   
-  return(
-    sharedMaxSdm
-  )
+  return(sharedMaxSdm)
   
 }
 

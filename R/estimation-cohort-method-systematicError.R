@@ -72,6 +72,7 @@ cohortMethodSystematicErrorServer <- function(
       systematicErrorPlot <- shiny::reactive({
         row <- selectedRow()
         if (is.null(row)) {
+          shiny::showNotification('No row selected')
           return(NULL)
         } else {
           controlResults <- getCohortMethodControlResults(
@@ -83,14 +84,12 @@ cohortMethodSystematicErrorServer <- function(
             databaseId = row$databaseId
             )
           
-          ease <- estimationGetEase(
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings,
-            targetId = row$targetId,
-            comparatorId = row$comparatorId,
-            analysisId = row$analysisId,
-            databaseId = row$databaseId
-          )
+          if(nrow(controlResults) == 0){
+            shiny::showNotification('No result to plot')
+            return(NULL)
+          }
+          
+          ease <- controlResults$ease[1] # should be single value
           
           # remove the RR zeros that replace NAs during data upload 
           controlResults$logRr[controlResults$logRr == 0] <- NA
@@ -154,51 +153,22 @@ getCohortMethodControlResults <- function(
     comparatorId, 
     analysisId, 
     databaseId = NULL,
-    includePositiveControls = TRUE, 
-    emptyAsNa = TRUE
+    includePositiveControls = TRUE
 ) {
   
-  sql <- "
-    SELECT
-      cmr.*,
-      cmtco.true_effect_size effect_size
-    FROM
-      @schema.@cm_table_prefixresult cmr
-      JOIN @schema.@cm_table_prefixtarget_comparator_outcome cmtco 
-      ON cmr.target_id = cmtco.target_id AND cmr.comparator_id = cmtco.comparator_id AND cmr.outcome_id = cmtco.outcome_id
-    WHERE
-      cmtco.outcome_of_interest != 1
-      AND cmr.target_id = @target_id
-      AND cmr.comparator_id = @comparator_id
-      AND cmr.analysis_id = @analysis_id
-  "
-  
-  
-  if (!is.null(databaseId)) {
-    # update sql
-    sql <- paste(sql, paste("AND cmr.database_id = '@database_id'"), collapse = "\n")
-  }
-  
-  if (!includePositiveControls) {
-    # update sql
-    sql <- paste(sql, paste("AND cmtco.true_effect_size = 1"), collapse = "\n")
-  }
-  
-  results <- connectionHandler$queryDb(
-    sql = sql,
+  result <- OhdsiReportGenerator::getCmNegativeControlEstimates(
+    connectionHandler = connectionHandler,
     schema = resultDatabaseSettings$schema,
-    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-    target_id = targetId,
-    comparator_id = comparatorId,
-    analysis_id = analysisId,
-    database_id = databaseId
+    cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    targetIds = targetId,
+    comparatorIds = comparatorId,
+    analysisIds = analysisId,
+    databaseIds = databaseId
   )
   
-  if (emptyAsNa) {
-    results[results == ''] <- NA
-  }
-  
-  return(results)
+  return(result)
 }
 
 
@@ -226,6 +196,7 @@ plotCohortMethodScatter <- function(controlResults, ease = NULL) {
   d <- d[!is.na(d$ci95Lb), ]
   d <- d[!is.na(d$ci95Ub), ]
   if (nrow(d) == 0) {
+    shiny::showNotification('No result to plot')
     return(NULL)
   }
   d$Group <- as.factor(d$trueRr)
@@ -309,51 +280,5 @@ plotCohortMethodScatter <- function(controlResults, ease = NULL) {
   return(plot)
 }
 
-estimationGetEase <- function(
-    connectionHandler = connectionHandler,
-    resultDatabaseSettings = resultDatabaseSettings,
-    targetId =  targetId,
-    comparatorId = comparatorId,
-    analysisId = analysisId,
-    databaseId = databaseId
-){
-  
-  sql <- "
-    SELECT DISTINCT
-      dmd.cdm_source_abbreviation database_name,
-      cmds.analysis_id,
-      cmds.target_id,
-      cmds.comparator_id,
-      cmds.max_sdm,
-      cmds.ease
-    FROM
-      @schema.@cm_table_prefixdiagnostics_summary cmds
-      INNER JOIN @schema.@database_table dmd ON dmd.database_id = cmds.database_id
-      
-      where cmds.target_id = @target_id
-      and cmds.comparator_id = @comparator_id
-      and cmds.analysis_id = @analysis_id
-      and cmds.database_id = '@database_id'
-      ;
-  "
-  
-  result <- connectionHandler$queryDb(
-    sql = sql,
-    schema = resultDatabaseSettings$schema,
-    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-    database_table = resultDatabaseSettings$databaseTable,
-    target_id = targetId,
-    comparator_id = comparatorId,
-    analysis_id = analysisId,
-    database_id = databaseId
-  )
-  
-  ease <- round(result$ease, 4)
-  
-  return(
-    ease
-  )
-  
-}
 
 

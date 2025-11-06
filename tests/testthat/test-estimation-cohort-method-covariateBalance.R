@@ -4,8 +4,8 @@ shiny::testServer(
   app = cohortMethodCovariateBalanceServer, 
   args = list(
     selectedRow = shiny::reactiveVal(NULL), 
-    connectionHandler = connectionHandlerEstimation, 
-    resultDatabaseSettings = resultDatabaseSettingsEstimation
+    connectionHandler = connectionHandlerCharacterization, 
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization
   ), 
   expr = {
     
@@ -15,16 +15,16 @@ shiny::testServer(
     # make sure this runs if we pick the first row
     selectedRow(
       list(
-        databaseId = 'eunomia', 
-        cdmSourceAbbreviation = 'Eunomia', 
+        databaseId = '388020256', 
+        cdmSourceAbbreviation = 'Synthea', 
         analysisId = 2,
         description  = 'madeup',
-        target = 'test target',
-        targetId = 1,
-        comparatorId = 2, 
-        comparator = 'test comparator',
+        target = 'Celecoxib',
+        targetId = 1002,
+        comparatorId = 2002, 
+        comparator = 'Diclofenac',
         outcomeId = 3,
-        outcome = 'test outcome',
+        outcome = 'GI bleed',
         psStrategy = ''
       )
     )
@@ -41,11 +41,11 @@ shiny::testServer(
     
     
     balance <- getCohortMethodCovariateBalanceShared(
-      connectionHandler = connectionHandlerEstimation,
-      resultDatabaseSettings = resultDatabaseSettingsEstimation,
-      targetId = 1,
-      comparatorId = 2,
-      databaseId = 'eunomia',
+      connectionHandler = connectionHandlerCharacterization,
+      resultDatabaseSettings = resultDatabaseSettingsCharacterization,
+      targetId = 1002,
+      comparatorId = 2002, 
+      databaseId = '388020256', 
       analysisId = 2
       )
     

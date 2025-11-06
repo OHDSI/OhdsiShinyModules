@@ -119,7 +119,7 @@ getExecutionMetadata <- function(dataSource, databaseId) {
     ))
 
   transposeNonJsons$startTime <-
-    transposeNonJsons$startTime %>% lubridate::as_datetime()
+    transposeNonJsons$startTime %>% as.POSIXct()
 
   transposeJsons <- databaseMetadata %>%
     dplyr::filter(.data$variableField %in% c(columnNamesJson)) %>%
@@ -141,7 +141,7 @@ getExecutionMetadata <- function(dataSource, databaseId) {
     ))
 
   transposeJsons$startTime <-
-    transposeJsons$startTime %>% lubridate::as_datetime()
+    transposeJsons$startTime %>% as.POSIXct()
 
   transposeJsonsTemp <- list()
   for (i in (1:nrow(transposeJsons))) {
@@ -161,21 +161,21 @@ getExecutionMetadata <- function(dataSource, databaseId) {
   if ("observationPeriodMaxDate" %in% colnames(data)) {
     data$observationPeriodMaxDate <-
       tryCatch(
-        expr = lubridate::as_date(data$observationPeriodMaxDate),
+        expr = as.Date(data$observationPeriodMaxDate),
         error = data$observationPeriodMaxDate
       )
   }
   if ("observationPeriodMinDate" %in% colnames(data)) {
     data$observationPeriodMinDate <-
       tryCatch(
-        expr = lubridate::as_date(data$observationPeriodMinDate),
+        expr = as.Date(data$observationPeriodMinDate),
         error = data$observationPeriodMinDate
       )
   }
   if ("sourceReleaseDate" %in% colnames(data)) {
     data$sourceReleaseDate <-
       tryCatch(
-        expr = lubridate::as_date(data$sourceReleaseDate),
+        expr = as.Date(data$sourceReleaseDate),
         error = data$sourceReleaseDate
       )
   }

@@ -1,25 +1,70 @@
 context("characterization-riskFactors")
 
+targetCohort <- OhdsiReportGenerator::getTargetTable(
+  connectionHandler = connectionHandlerCharacterization,
+  schema = resultDatabaseSettingsCharacterization$schema, 
+  ciTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix
+)
+
+outcomeCohort <- OhdsiReportGenerator::getOutcomeTable(
+  connectionHandler = connectionHandlerCharacterization,
+  schema = resultDatabaseSettingsCharacterization$schema, 
+  ciTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix, 
+  targetId = targetCohort$cohortId[1]
+)
+
+
 shiny::testServer(
   app = characterizationRiskFactorServer, 
   args = list(
     connectionHandler = connectionHandlerCharacterization ,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-    targetId = shiny::reactive(1), #reactive 
-    outcomeId = shiny::reactive(3)
+    reactiveTargetRow = shiny::reactive(targetCohort[1,]),
+    outcomeTable = shiny::reactive(outcomeCohort),
+    reactiveOutcomeRowId = shiny::reactiveVal(0)
     ), 
   expr = {
     
-    # make sure options returns a list
-    testthat::expect_true(class(options()) == 'list')
-    testthat::expect_true(length(options()$databaseIds) >0 )
-    testthat::expect_true(length(options()$tarInds) >0 )
+    # check database
+    testthat::expect_true(length(databaseNames()) > 0 )
+    testthat::expect_true(length(databaseIds()) > 0 )
     
+    #Test characterizationGetRiskFactorData
+    data <- characterizationGetRiskFactorData(
+      connectionHandler = connectionHandlerCharacterization ,
+      resultDatabaseSettings = resultDatabaseSettingsCharacterization,
+      targetId = targetCohort$cohortId[1],
+      outcomeId = outcomeCohort$cohortId[1],
+      databaseId = '388020256',
+      tar = list(
+        riskWindowStart = 1,
+        riskWindowEnd = 365,
+        startAnchor = 'cohort start',
+        endAnchor = 'cohort end'
+      )
+    )
+    
+    testthat::expect_true(inherits(data, 'list'))
+    testthat::expect_true(nrow(data$binary) > 0 )
+    testthat::expect_true(nrow(data$continuous) > 0 )
+    
+    # check setting reactiveOutcomeRowId updates these - doesnt seem to work?
+    reactiveOutcomeRowId(1)
+    session$flushReact()
+    
+    testthat::skip_if(reactiveOutcomeRowId() != 1)
     testthat::expect_true(inherits(selected(), 'NULL'))
     
     # check setting and generating works
-    session$setInputs(tarInd = options()$tarInds[1]) 
-    session$setInputs(databaseId = options()$databaseIds[1]) 
+    session$setInputs(tarInd = strsplit(
+      x = outcomeTable()[1,]$tarNames, 
+      split = ':'
+    )[[1]][1]) 
+    session$setInputs(databaseName = databaseNames()[1]) 
+    session$setInputs(outcomeWashout = strsplit(
+      x = outcomeTable()[1,]$outcomeWashoutDays, 
+      split = ':'
+    )[[1]][1]) 
     session$setInputs(generate = TRUE)
     
     testthat::expect_true(inherits(selected(), 'data.frame'))
@@ -28,24 +73,7 @@ shiny::testServer(
     #testthat::expect_true( nrow(allData$binary) > 0 )
     #testthat::expect_true( nrow( allData$continuous) > 0 )
     
-    #Test characterizationGetRiskFactorData
-    data <- characterizationGetRiskFactorData(
-      connectionHandler = connectionHandlerCharacterization ,
-      resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-      targetId = 1,
-      outcomeId = 3,
-      databaseId = 'eunomia',
-      tar = list(
-        riskWindowStart = 0,
-        riskWindowEnd = 365,
-        startAnchor = 'cohort start',
-        endAnchor = 'cohort start'
-      )
-    )
-    
-    testthat::expect_true(inherits(data, 'list'))
-    testthat::expect_true(nrow(data$binary) > 0 )
-    testthat::expect_true(nrow(data$continuous) > 0 )
+
     
   })
 

@@ -18,10 +18,10 @@ estimationSccsPlotsServer <- function(
     function(input, output, session) {
       
       height <- shiny::reactive({
-        if(is.null(sccsData()$indication)){
+        if(is.null(sccsData()$indicationName)){
           return(100)
         }
-        length(unique(sccsData()$indication))*200 + 200
+        length(unique(sccsData()$indicationName))*200 + 200
       })
       
       output$esSccsPlot <- shiny::renderPlot(
@@ -38,7 +38,7 @@ estimationSccsPlotsServer <- function(
 estimationCreateSccsPlot <- function(data) {
   data <- data()
   if(nrow(data) == 0){
-    shiny::showNotification('No results to plot')
+    shiny::showNotification('No data to plot')
     return(NULL)
   }
   data <- data[!is.na(data$calibratedRr),]
@@ -48,8 +48,8 @@ estimationCreateSccsPlot <- function(data) {
   }
   data$database <- data$databaseName
   data$type <- data$covariateName
-  data$indication[is.null(data$indication)] <- 'no indication'
-  data$indication[is.na(data$indication)] <- 'no indication'
+  data$indicationName[is.null(data$indicationName)] <- 'no indication'
+  data$indicationName[is.na(data$indicationName)] <- 'no indication'
   
   if(is.null(data)){
     shiny::showNotification('No results to plot')
@@ -78,18 +78,18 @@ estimationCreateSccsPlot <- function(data) {
   )
   
   # make sure bayesian is at top
-  db <- unique(data$database)
+  db <- unique(data$databaseName)
   bInd <- grep('bayesian', tolower(db))
   b <- db[bInd]
   if(length(bInd) > 0){
     withoutb <- db[-bInd]
-    data$database <- factor(
-      x = data$database, 
+    data$databaseName <- factor(
+      x = data$databaseName, 
       levels = c(b, sort(withoutb))
     )
   }
   # this should be empty if no meta
-  metadata <- data[data$database == b,]
+  metadata <- data[data$databaseName == b,]
   
   breaks <- c(0.1, 0.25, 0.5, 1, 2, 4, 6, 8)
   
@@ -113,9 +113,9 @@ estimationCreateSccsPlot <- function(data) {
   )
   plotList <- list(tbl) # adding table first
   
-  for(indication in unique(data$indication)){ # TODO do indication + target combo?
+  for(indication in unique(data$indicationName)){ # TODO do indication + target combo?
   plotList[[length(plotList)+1]] <- ggplot2::ggplot(
-    data = data %>% dplyr::filter(.data$indication == !!indication),  #restrict to indication
+    data = data %>% dplyr::filter(.data$indicationName == !!indication),  #restrict to indication
     ggplot2::aes(x = .data$calibratedRr, y = .data$type)
   ) +
     ggplot2::geom_vline(xintercept = 1, size = 0.5) +
@@ -137,8 +137,8 @@ estimationCreateSccsPlot <- function(data) {
     
     # shade the bayesian 
     ggplot2::geom_rect(
-      data =  metadata  %>% dplyr::filter(.data$indication == !!indication),
-      ggplot2::aes(fill = .data$database),
+      data =  metadata  %>% dplyr::filter(.data$indicationName == !!indication),
+      ggplot2::aes(fill = .data$databaseName),
       xmin = -Inf,
       xmax = Inf,
       ymin = -Inf,
@@ -147,7 +147,7 @@ estimationCreateSccsPlot <- function(data) {
     ) +
     
     ggplot2::coord_cartesian(xlim = c(0.1, 10)) + 
-    ggplot2::facet_grid(.data$database ~ .data$shortName)  +
+    ggplot2::facet_grid(.data$databaseName ~ .data$shortName)  +
     ggplot2::ggtitle(indication) +
     ggplot2::theme(
       axis.title.y = ggplot2::element_blank(),

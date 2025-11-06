@@ -42,7 +42,7 @@ inclusionRulesView <- function(id) {
     shinydashboard::box(
       title = NULL,
       width = NULL,
-      htmltools::withTags(
+      shiny::withTags(
         table(
           width = "100%",
           shiny::tags$tr(  # TODO where is this from?

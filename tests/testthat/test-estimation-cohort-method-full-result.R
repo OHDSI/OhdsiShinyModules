@@ -3,8 +3,8 @@ context("estimation-cohort-method-full-result")
 shiny::testServer(
   app = estimationCmFullResultServer, 
   args = list(
-    connectionHandler = connectionHandlerEstimation,
-    resultDatabaseSettings = resultDatabaseSettingsEstimation,
+    connectionHandler = connectionHandlerCharacterization,
+    resultDatabaseSettings = resultDatabaseSettingsCharacterization,
     selectedRow = shiny::reactiveVal(NULL),
     actionCount = shiny::reactiveVal(NULL)
   ), 
@@ -12,16 +12,16 @@ shiny::testServer(
     
     selectedRow(
       data.frame(
-        databaseId = 'eunomia', 
-        cdmSourceAbbreviation = 'Eunomia', 
+        databaseId = '388020256', 
+        databaseName = 'Synthea', 
         analysisId = 2,
         description  = 'madeup',
-        target = 'test target',
-        targetId = 1,
-        comparatorId = 2, 
-        comparator = 'test comparator',
+        targetName = 'Celecoxib',
+        targetId = 1003,
+        comparatorId = 2003, 
+        comparatorName = 'Diclofenac',
         outcomeId = 3,
-        outcome = 'test outcome'
+        outcomeName = 'GI bleed'
       )
     )
     

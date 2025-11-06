@@ -1,6 +1,0 @@
-{
-  "class": "plpModel",
-  "predictionFunction": "predictCyclops",
-  "modelType": "binary",
-  "saveType": "RtoJson"
-}

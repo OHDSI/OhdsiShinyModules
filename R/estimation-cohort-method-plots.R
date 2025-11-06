@@ -18,10 +18,10 @@ estimationCmPlotsServer <- function(
     function(input, output, session) {
       
       height <- shiny::reactive({
-        if(is.null(cmData()$target)){
+        if(is.null(cmData()$targetName)){
           return(100)
         }
-        length(unique(cmData()$target))*250 + 250
+        length(unique(cmData()$targetName))*250 + 250
       })
       
       output$esCohortMethodPlot <- shiny::renderPlot(
@@ -46,9 +46,9 @@ estimationCreateCmPlot <- function(data) {
     shiny::showNotification('No results to plot')
     return(NULL)
   }
-  data$database <- data$cdmSourceAbbreviation
+  data$database <- data$databaseName
 
-  if(is.null(data$comparator)){
+  if(is.null(data$comparatorName)){
     shiny::showNotification('No results to plot')
     return(NULL)
   }
@@ -56,39 +56,39 @@ estimationCreateCmPlot <- function(data) {
   
   renameDf <- data.frame(
     shortName = paste0(
-      1:length(unique(data$comparator)),
+      1:length(unique(data$comparatorName)),
       ') ', 
-      substring(sort(unique(data$comparator)), 1,50),
+      substring(sort(unique(data$comparatorName)), 1,50),
       '...'
     ),
-    comparator = sort(unique(data$comparator))
+    comparatorName = sort(unique(data$comparatorName))
   )
   
   
   data <- merge(
     data, 
     renameDf,
-    by = "comparator"
+    by = "comparatorName"
   )
   
   # make sure bayesian is at top
-  db <- unique(data$database)
+  db <- unique(data$databaseName)
   bInd <- grep('bayesian', tolower(db))
   b <- db[bInd]
   if(length(bInd) > 0){
     withoutb <- db[-bInd]
-    data$database <- factor(
-      x = data$database, 
+    data$databaseName <- factor(
+      x = data$databaseName, 
       levels = c(b, sort(withoutb))
     )
   }
-  metadata <- data[data$database == b,]
+  metadata <- data[data$databaseName == b,]
   
   breaks <- c(0.1, 0.25, 0.5, 1, 2, 4, 6, 8)
   
   ### Add table above the graph
-  renameDf$comparator <- sapply(
-    strwrap(renameDf$comparator, width = 150, simplify = FALSE), 
+  renameDf$comparatorName <- sapply(
+    strwrap(renameDf$comparatorName, width = 150, simplify = FALSE), 
     paste, 
     collapse = "\n"
   )
@@ -104,11 +104,11 @@ estimationCreateCmPlot <- function(data) {
   )
   plotList <- list(tbl) # adding table first
   
-  for(target in unique(data$target)){ # per targets
+  for(targetName in unique(data$targetName)){ # per targets
     
-  title <- sprintf("%s", target)
+  title <- sprintf("%s", targetName)
   plotList[[length(plotList) + 1]] <- ggplot2::ggplot(
-    data = data %>% dplyr::filter(.data$target == !!target),
+    data = data %>% dplyr::filter(.data$targetName == !!targetName),
     ggplot2::aes(x = .data$calibratedRr, y = .data$shortName)) +
     ggplot2::geom_vline(xintercept = 1, size = 0.5) +
     ggplot2::geom_point(color = "#000088", alpha = 0.8) +
@@ -129,8 +129,8 @@ estimationCreateCmPlot <- function(data) {
     
     # shade the bayesian 
     ggplot2::geom_rect(
-      data =  metadata %>% dplyr::filter(.data$target == !!target),
-      ggplot2::aes(fill = .data$database),
+      data =  metadata %>% dplyr::filter(.data$targetName == !!targetName),
+      ggplot2::aes(fill = .data$databaseName),
       xmin = -Inf,
       xmax = Inf,
       ymin = -Inf,
@@ -139,7 +139,7 @@ estimationCreateCmPlot <- function(data) {
     ) +
     
     ggplot2::coord_cartesian(xlim = c(0.1, 10)) + 
-    ggplot2::facet_grid(.data$database ~ .data$description)  +
+    ggplot2::facet_grid(.data$databaseName ~ .data$description)  +
     ggplot2::ggtitle(title) +
     ggplot2::theme(
       axis.title.y = ggplot2::element_blank(),

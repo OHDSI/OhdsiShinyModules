@@ -265,7 +265,7 @@ cohortDefinitionsView <- function(id) {
     shinydashboard::box(
       width = NULL,
       status = "primary",
-      htmltools::withTags(
+      shiny::withTags(
         table(width = "100%",
               shiny::tags$tr(
                 shiny::tags$td(align = "left",
@@ -720,7 +720,7 @@ cohortDefinitionsModule <- function(
                          suspendWhenHidden = FALSE)
 
     output$isDataSourceEnvironment <- shiny::reactive(x = {
-      return(methods::is(dataSource, "environment"))
+      return(inherits(dataSource, "environment"))
     })
     shiny::outputOptions(x = output,
                          name = "isDataSourceEnvironment",

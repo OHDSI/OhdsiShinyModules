@@ -54,15 +54,18 @@ estimationViewer <- function(id=1) {
     # pick a targetId of interest 
     shiny::uiOutput(ns("targetSelection")),
     
-    inputSelectionDfViewer(id = ns('targetSelected'), title = 'Selected'),
+    shiny::conditionalPanel(
+      condition = 'output.outcomeShow == 1', 
+      ns = ns,
+      shiny::uiOutput(ns("outcomeSelection"))
+    ),
     
- 
     # first show diagnostics with:
     # database, analysis, pass/fail, viewResult/viewDiagnostic
     # extracts from SCCS/CM/Evidence Synthesis
   
     shiny::conditionalPanel(
-      condition = 'input.targetSelect', 
+      condition = 'output.tabShow == 1', 
       ns = ns,
       
     shiny::tabsetPanel(
@@ -113,7 +116,19 @@ estimationServer <- function(
   shiny::moduleServer(
     id,
     function(input, output, session) {
-  
+      
+      # initiate the cohortIds as reactiveVal
+      targetIds <- shiny::reactiveVal(NULL)
+      outcomeId <- shiny::reactiveVal(NULL)
+      
+      # initiate what to show
+      output$outcomeShow <- shiny::reactive(0)
+      shiny::outputOptions(output, "outcomeShow", suspendWhenHidden = FALSE)
+      
+      output$tabShow <- shiny::reactive(0)
+      shiny::outputOptions(output, "tabShow", suspendWhenHidden = FALSE)
+      
+      
       # this function checks tables exist for the tabs
       # and returns the tabs that should be displayed
       # as the tables exist
@@ -155,63 +170,38 @@ estimationServer <- function(
     
       
       # use the function in report-main to get parent Ts with all children Ts, the outcomes for the Ts and the Cs
-      options <- getTandOs(
-        connectionHandler,
-        resultDatabaseSettings,
-        includeCharacterization = F,
-        includeCohortIncidence = F,
-        includeCohortMethod = "Cohort Method" %in% estimationTypes,
-        includePrediction = F, 
-        includeSccs = "SCCS" %in% estimationTypes # slow so turning off
-      )
+      targetTable <- OhdsiReportGenerator::getTargetTable(
+        connectionHandler = connectionHandler, 
+        schema = resultDatabaseSettings$schema, 
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+        cTablePrefix = resultDatabaseSettings$cTablePrefix, 
+        ciTablePrefix = resultDatabaseSettings$ciTablePrefix, 
+        cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+        sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix, 
+        plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
+        databaseTable = resultDatabaseSettings$databaseTable, 
+        getIncidenceInclusion = FALSE, 
+        getCharacterizationInclusion = FALSE, 
+        getPredictionInclusion = FALSE, 
+        getCohortMethodInclusion = "Cohort Method" %in% estimationTypes, 
+        getSccsInclusion = "SCCS" %in% estimationTypes
+        ) %>%
+        dplyr::filter(
+          .data$cohortMethod == 1 | .data$selfControlledCaseSeries == 1
+        )
       
       # Targets
-      targets <- lapply(options$groupedTs, function(x) x$cohortId)
-      targets <- unlist(targets) 
-      
-      # initial outcomes for first T
-      outcomeDf <- options$tos[[1]]
-      outcomes <- shiny::reactiveVal(outcomeDf)
-      initialOutcomes <- outcomeDf$outcomeId
-      names(initialOutcomes ) <- outcomeDf$outcomeName
-      
-      shiny::observeEvent(input$targetId,{
-        
-        outcomes(unique(
-          do.call(
-            'rbind',
-            lapply(
-              options$groupedTs[[which(targets == input$targetId)]]$subsets$targetId, 
-              function(id){
-                if(id %in% names(options$tos)){
-                  return(options$tos[[which(id == names(options$tos))]])
-                } else{
-                  return(NULL)
-                }
-              }
-            )
-          )
-        ))
-        
-        
-        if(length(outcomes()$outcomeId)>0){
-          outcomesVector <- outcomes()$outcomeId
-          names(outcomesVector) <- outcomes()$outcomeName
-          
-          shinyWidgets::updatePickerInput(
-            session = session, 
-            inputId = 'outcomeId', 
-            label = 'Outcome: ', 
-            choices = outcomesVector, 
-            selected = outcomesVector[1]
-          )
-        }
-      })
-      # end observed targetId
+      parentInd <- targetTable$cohortId == targetTable$subsetParent
+      targets <- targetTable$cohortId[parentInd]
+      names(targets) <- targetTable$cohortName[parentInd]
+      targets <- targets[order(names(targets))]
       
       output$targetSelection <- shiny::renderUI({
-        shiny::fluidRow(
-          shiny::div(
+        shinydashboard::box(
+          title = 'Target Option', 
+          solidHeader = TRUE,
+          width = 12,
+          
             shinyWidgets::pickerInput(
               inputId = session$ns('targetId'),
               label = 'Target: ',
@@ -222,17 +212,62 @@ estimationServer <- function(
                 actionsBox = TRUE,
                 liveSearch = TRUE,
                 dropupAuto = F,
-                size = 10,
+                #size = 10,
                 liveSearchStyle = "contains",
                 liveSearchPlaceholder = "Type here to search",
                 virtualScroll = 500
               )
-            ), 
-            shinyWidgets::pickerInput(
+            ),
+          
+          shiny::actionButton(
+              inputId = session$ns('targetSelect'), 
+              label = 'Select',
+              icon = shiny::icon('redo') 
+            )
+          
+        )
+      })
+      
+      # if the target input is change hide the outcomes and results
+      shiny::observeEvent(input$targetId, {
+        output$outcomeShow = shiny::reactive(0)
+        output$tabShow = shiny::reactive(0)
+      })
+      
+      outcomes <- shiny::reactiveVal(NULL)
+      
+      shiny::observeEvent(input$targetSelect,{
+        output$outcomeShow = shiny::reactive(1)
+        targetIds <- unique(targetTable$cohortId[targetTable$subsetParent == input$targetId ])
+        
+        outcomeTable <- getEstimationOutcomes(
+          connectionHandler = connectionHandler,
+          resultDatabaseSettings = resultDatabaseSettings,
+          targetIds = targetIds,
+          estimationTypes = estimationTypes
+        )
+        
+        # TODO fix issue where this may be false so old options show
+        if(nrow(outcomeTable) > 0){
+          outcomeChoice <- outcomeTable$cohortId
+          names(outcomeChoice) <- outcomeTable$cohortName
+          
+          outcomes(outcomeChoice)
+        }
+      })
+      # end observed targetId
+      
+      output$outcomeSelection <- shiny::renderUI({
+        shinydashboard::box(
+          title = 'Outcome Options', 
+          solidHeader = TRUE, 
+          width = 12,
+          
+          shinyWidgets::pickerInput(
               inputId = session$ns('outcomeId'),
               label = 'Outcome: ',
-              choices = initialOutcomes,
-              selected = initialOutcomes[1],
+              choices = outcomes(),
+              selected = outcomes()[1],
               multiple = FALSE,
               options = shinyWidgets::pickerOptions(
                 actionsBox = TRUE,
@@ -243,61 +278,45 @@ estimationServer <- function(
                 liveSearchPlaceholder = "Type here to search",
                 virtualScroll = 500
               )
-            ), 
-            style = 'margin-left: 2%; width: 78%; display: inline-block; vertical-align: middle;'
-          ),
-          shiny::div(
+            ),
+        
             shiny::actionButton(
-              inputId = session$ns('targetSelect'), 
+              inputId = session$ns('outcomeSelect'), 
               label = 'Select',
               icon = shiny::icon('redo') 
-            ), 
-            style = 'display: inline-block; vertical-align: bottom; margin-bottom: 20px'
-          )
+            )
         )
       })
-
       
-      targetSelected <- shiny::reactiveVal(NULL)
-      comparatorIds <- shiny::reactiveVal(NULL)
-      targetIds <- shiny::reactiveVal(NULL)
-      outcomeId <- shiny::reactiveVal(NULL)
-      
-      shiny::observeEvent(input$targetSelect, {
-        
-        targetSelected(
-          data.frame( 
-            Target = names(targets)[targets == input$targetId],
-            Outcome = outcomes()$outcomeName[outcomes()$outcomeId == input$outcomeId]
-          )
-        )
-        inputSelectionDfServer(
-          id = 'targetSelected', 
-          dataFrameRow = targetSelected,
-          ncol = 1
-        )
-        
-        #========================================
-        # code to update diagnostics database
-        #========================================
-        # get all the ids that are children of the id selected
-        targetIdsTemp <- options$groupedTs[[which(targets == input$targetId)]]$subsets$targetId
+      # hide tabs if outcomeId changes
+      shiny::observeEvent(input$outcomeId, {
+        output$tabShow = shiny::reactive(0)
+      })
 
-        comparators <- do.call(
-          'rbind',
-          lapply(
-            options$groupedTs[[which(targets == input$targetId)]]$subsets$targetId, 
-            function(id){
-              if(id %in% names(options$cs)){
-                return(options$cs[[which(id == names(options$cs))]])
-              } else{
-                return(NULL)
-              }
-            }
-          )
+      shiny::observeEvent(input$outcomeSelect, {
+        output$tabShow = shiny::reactive(1)
+        
+        # reset all the tabs to the first one
+        shiny::updateTabsetPanel(
+          session = session,
+          inputId = 'mainPanel',
+          selected = 'Diagnostics'
         )
+        shiny::updateTabsetPanel(
+          session = session,
+          inputId = 'diagnosticsPanel',
+          selected = NULL
+        )
+        shiny::updateTabsetPanel(
+          session = session,
+          inputId = 'resultsPanel',
+          selected = NULL
+        )
+        
+        
+        targetIdsTemp <- targetTable$cohortId[targetTable$subsetParent == input$targetId]
+          
         targetIds(targetIdsTemp)
-        comparatorIds(comparators$comparatorId)
         outcomeId(input$outcomeId)
       })
       
@@ -305,12 +324,12 @@ estimationServer <- function(
       # SERVERS
       #=======================================
       if('Cohort Method' %in% estimationTypes){
+        
         estimationCmDiagnosticServer(
           id = 'estimationCmDiagnostic', 
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
           targetIds = targetIds,
-          comparatorIds = comparatorIds,
           outcomeId = outcomeId
         )
         
@@ -319,7 +338,6 @@ estimationServer <- function(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
           targetIds = targetIds,
-          comparatorIds = comparatorIds,
           outcomeId = outcomeId
         )
         
@@ -411,4 +429,44 @@ getEstimationTypes <- function(
   }
 
   return(results)
+}
+
+
+getEstimationOutcomes <- function(
+  connectionHandler,
+  resultDatabaseSettings,
+  targetIds,
+  estimationTypes
+){
+
+  shiny::withProgress(message = 'Finding outcomes for selected target', value = 0, {
+    shiny::incProgress(1/4, detail = paste("Extracting outcomes"))
+    
+result <- OhdsiReportGenerator::getOutcomeTable(
+  connectionHandler = connectionHandler, 
+  schema = resultDatabaseSettings$schema, 
+  cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+  cTablePrefix = resultDatabaseSettings$cTablePrefix, 
+  ciTablePrefix = resultDatabaseSettings$ciTablePrefix, 
+  cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
+  sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix, 
+  plpTablePrefix = resultDatabaseSettings$plpTablePrefix, 
+  databaseTable = resultDatabaseSettings$databaseTable, 
+  targetId = targetIds,
+  getIncidenceInclusion = FALSE, 
+  getCharacterizationInclusion = FALSE, 
+  getPredictionInclusion = FALSE, 
+  getCohortMethodInclusion = "Cohort Method" %in% estimationTypes, 
+  getSccsInclusion = "SCCS" %in% estimationTypes
+) %>%
+  dplyr::filter(
+    .data$cohortMethod == 1 | .data$selfControlledCaseSeries == 1
+  ) %>%
+  dplyr::arrange("cohortName")
+
+shiny::incProgress(4/4, detail = paste("Done"))
+
+})
+  
+  return(result )
 }

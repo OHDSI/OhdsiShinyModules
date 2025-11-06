@@ -139,14 +139,14 @@ estimationSccsFullResultServer <- function(
         selectedRow() %>%
           dplyr::select(
             "covariateName",
-            'indication',
-            "outcome",
+            'indicationName',
+            "outcomeName",
             "description",
             "databaseName"
           ) %>%
           dplyr::rename(
-            Indication = "indication",
-            Outcome = "outcome",
+            Indication = "indicationName",
+            Outcome = "outcomeName",
             Analysis = "description",
             Database = "databaseName"
           )
@@ -184,43 +184,51 @@ estimationSccsFullResultServer <- function(
       
       colDefsInput <- list(
         covariateName = reactable::colDef( 
+          name = "Variable", 
           header = withTooltip(
             "Variable", 
             "The covariate"
           )),
         outcomeSubjects = reactable::colDef( 
+          name = "Cases", 
           header = withTooltip(
             "Cases", 
             "The number of cases"
           )),
         observedDays = reactable::colDef( 
+          name = "Years observed", 
           format = reactable::colFormat(digits = 2),
           header = withTooltip(
             "Years observed", 
             "The total years observed"
           )),
         outcomeEvents = reactable::colDef( 
+          name = "Outcomes", 
           header = withTooltip(
             "Outcomes", 
             "The total number of outcomes"
           )),
         covariateSubjects = reactable::colDef( 
+          name = "Persons exposed", 
           header = withTooltip(
             "Persons exposed", 
             "The total number of people exposed"
           )),
         covariateDays = reactable::colDef( 
+          name = "Years exposed",
           format = reactable::colFormat(digits = 2),
           header = withTooltip(
             "Years exposed", 
             "The total number of years exposed"
           )),
         covariateOutcomes = reactable::colDef( 
+          name = "Outcomes while exposed", 
           header = withTooltip(
             "Outcomes while exposed", 
             "The total number of outcomes while exposed"
           )),
         mdrr = reactable::colDef( 
+          name = "MDRR", 
           format = reactable::colFormat(digits = 4),
           header = withTooltip(
             "MDRR", 
@@ -232,7 +240,8 @@ estimationSccsFullResultServer <- function(
       resultTableServer(
         id = "powerTable", # how is this working without session$ns
         df = powerTable,
-        colDefsInput = colDefsInput
+        colDefsInput = colDefsInput,
+        elementId = session$ns('powerTable')
       )
         
       output$attritionPlot <- shiny::renderPlot({
@@ -261,20 +270,22 @@ estimationSccsFullResultServer <- function(
           resTargetTable <- estimationGetSccsModel(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            exposureId = row$eraId,
+            exposureId = NULL,
             exposuresOutcomeSetId = row$exposuresOutcomeSetId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
           )
-          
+
           resTargetTable <- resTargetTable %>%
             dplyr::arrange(.data$covariateId) %>%
-            dplyr::select(-"covariateId")
+            dplyr::select("covariateName", "rr", "ci95Lb", "ci95Ub") %>%
+            dplyr::rename(
+              Variable = "covariateName",
+              IRR = "rr",
+              LB = "ci95Lb",
+              UB = "ci95Ub"
+            )
           
-          colnames(resTargetTable) <- c("Variable",
-                                        "IRR",
-                                        "LB",
-                                        "UB")
           return(resTargetTable)
         }
       })
@@ -287,7 +298,7 @@ estimationSccsFullResultServer <- function(
           timeTrend <- estimationGetSccsTimeTrend(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            exposureId = row$eraId,
+            exposureId = row$targetId, #row$eraId,
             exposuresOutcomeSetId = row$exposuresOutcomeSetId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
@@ -310,7 +321,7 @@ estimationSccsFullResultServer <- function(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
             exposuresOutcomeSetId = row$exposuresOutcomeSetId,
-            exposureId = row$eraId,
+            exposureId = row$targetId, #row$eraId,
             covariateId = row$covariateId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
@@ -434,12 +445,14 @@ estimationSccsFullResultServer <- function(
             covariateId = row$covariateId,
             databaseId = row$databaseId,
             analysisId = row$analysisId,
-            eraId = row$eraId,
-            exposuresOutcomeSetId = row$exposuresOutcomeSetId
+            indicationId = row$indicationId,
+            eraId = row$targetId, #row$eraId,
+            covariateAnalysisId = row$covariateAnalysisId,
+            exposuresOutcomeSetId = NULL #row$exposuresOutcomeSetId
           )
           plotControlEstimates(
-            controlEstimates = controlEstimates$plotResult,
-            ease = controlEstimates$ease
+            controlEstimates = controlEstimates,
+            ease = controlEstimates$ease[1] # should be single val
             )
         }
       })
@@ -457,25 +470,21 @@ estimationGetSccsAttrition <- function(
     covariateId,
     exposuresOutcomeSetId
 ) {
-  sql <- "
-  SELECT *
-  FROM @schema.@sccs_table_prefixattrition
-
-  WHERE database_id = '@database_id'
-  AND analysis_id = @analysis_id
-  AND exposures_outcome_set_id = @exposures_outcome_set_id
-  AND covariate_id = @covariate_id
-  "
-  connectionHandler$queryDb(
-    sql,
+  
+  result <- OhdsiReportGenerator::getSccsTable(
+    connectionHandler = connectionHandler,
+    table = 'attrition',
     schema = resultDatabaseSettings$schema,
-    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-    database_id = databaseId,
-    analysis_id = analysisId,
-    covariate_id = covariateId,
-    exposures_outcome_set_id = exposuresOutcomeSetId,
-    snakeCaseToCamelCase = TRUE
+    sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    databaseIds = databaseId,
+    analysisIds = analysisId,
+    covariateIds = covariateId,
+    exposureOutcomeIds = exposuresOutcomeSetId
   )
+
+  return(result)
 }
 
 
@@ -487,45 +496,20 @@ estimationGetSccsModel <- function(
     analysisId,
     exposureId
 ) {
-  sql <- "
-  SELECT
-    CASE
-       WHEN era.era_name IS NULL THEN sc.covariate_name
-       ELSE CONCAT(sc.covariate_name, ' : ', era.era_name)
-    END as covariate_name,
-    scr.covariate_id, scr.rr, scr.ci_95_lb, scr.ci_95_ub
-  FROM @schema.@sccs_table_prefixcovariate_result scr
-  INNER JOIN @schema.@sccs_table_prefixcovariate sc ON (
-    sc.exposures_outcome_set_id = scr.exposures_outcome_set_id AND
-    sc.database_id = scr.database_id AND
-    sc.analysis_id = scr.analysis_id AND
-    sc.covariate_id = scr.covariate_id
-  )
-  LEFT JOIN @schema.@cg_table_prefixcohort_definition cd 
-  ON cd.cohort_definition_id = sc.era_id
-  LEFT JOIN @schema.@sccs_table_prefixera era ON (
-    era.exposures_outcome_set_id = scr.exposures_outcome_set_id AND
-    era.database_id = scr.database_id AND
-    era.analysis_id = scr.analysis_id AND
-    era.era_id = sc.era_id
-  )
-
-  WHERE scr.database_id = '@database_id'
-  AND scr.analysis_id = @analysis_id
-  --AND  sc.era_id = @exposure_id
-  --AND scr.rr IS NOT NULL
-  AND scr.exposures_outcome_set_id = @exposures_outcome_set_id
-  "
   
-  connectionHandler$queryDb(sql,
-                            schema = resultDatabaseSettings$schema,
-                            sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-                            cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-                            database_id = databaseId,
-                            analysis_id = analysisId,
-                            exposure_id = exposureId,
-                            exposures_outcome_set_id = exposuresOutcomeSetId,
-                            snakeCaseToCamelCase = TRUE)
+  result <- OhdsiReportGenerator::getSccsModel(
+    connectionHandler = connectionHandler,
+    schema = resultDatabaseSettings$schema,
+    sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+    databaseTable = resultDatabaseSettings$databaseTable, 
+    databaseIds = databaseId,
+    targetIds = exposureId,
+    analysisIds = analysisId,
+    exposureOutcomeSetIds = exposuresOutcomeSetId
+  )
+  
+  return(result)
 }
 
 
@@ -537,22 +521,20 @@ estimationGetSccsTimeTrend <- function(
     databaseId,
     analysisId
 ) {
-  sql <- "
-  SELECT *
-  FROM @schema.@sccs_table_prefixtime_trend
-  WHERE database_id = '@database_id'
-  AND analysis_id = @analysis_id
-  AND exposures_outcome_set_id = @exposures_outcome_set_id
-  "
-  connectionHandler$queryDb(
-    sql,
+  
+  result <- OhdsiReportGenerator::getSccsTable(
+    connectionHandler = connectionHandler,
+    table = 'time_trend',
     schema = resultDatabaseSettings$schema,
-    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-    database_id = databaseId,
-    analysis_id = analysisId,
-    exposures_outcome_set_id = exposuresOutcomeSetId,
-    snakeCaseToCamelCase = TRUE
+    sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    databaseIds = databaseId,
+    analysisIds = analysisId,
+    exposureOutcomeIds = exposuresOutcomeSetId
   )
+
+  return(result)
 }
 
 estimationGetSccsTimeToEvent <- function(
@@ -565,56 +547,18 @@ estimationGetSccsTimeToEvent <- function(
     analysisId
 ) {
   
-  sql <- "
-  SELECT pre_exposure_p
-  FROM @schema.@sccs_table_prefixdiagnostics_summary
-  
-  WHERE database_id = '@database_id'
-  AND covariate_id  = @covariate_id 
-  AND analysis_id = @analysis_id
-  AND exposures_outcome_set_id = @exposures_outcome_set_id
-  "
-  
-  p <- connectionHandler$queryDb(
-    sql,
+  result <- OhdsiReportGenerator::getSccsTimeToEvent(
+    connectionHandler = connectionHandler,
     schema = resultDatabaseSettings$schema,
-    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-    database_id = databaseId,
-    analysis_id = analysisId,
-    exposures_outcome_set_id = exposuresOutcomeSetId,
-    covariate_id = covariateId,
-    snakeCaseToCamelCase = TRUE
+    sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    databaseIds = databaseId,
+    analysisIds = analysisId,
+    exposuresOutcomeSetIds = exposuresOutcomeSetId
   )
   
-  # if NULL set to NA so code below works
-  if(is.null(p$preExposureP)){
-    p$preExposureP <- NA
-  }
-  
-  sql <- "
-  SELECT * , @p as p
-  FROM @schema.@sccs_table_prefixtime_to_event
-
-  WHERE database_id = '@database_id'
-  AND era_id  = @exposure_id 
-  AND analysis_id = @analysis_id
-  AND exposures_outcome_set_id = @exposures_outcome_set_id;
-  "
-  
-  timeToEvent <- connectionHandler$queryDb(
-    sql,
-    schema = resultDatabaseSettings$schema,
-    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-    database_id = databaseId,
-    analysis_id = analysisId,
-    exposures_outcome_set_id = exposuresOutcomeSetId,
-    exposure_id = exposureId,
-    p = ifelse(is.na(p$preExposureP), -1, p$preExposureP),
-    snakeCaseToCamelCase = TRUE
-  )
-  
-  
-  return(timeToEvent)
+  return(result)
 }
 
 
@@ -625,23 +569,21 @@ estimationGetSccsEventDepObservation <- function(
     databaseId,
     analysisId
 ) {
-  sql <- "
-  SELECT *
-  FROM @schema.@sccs_table_prefixevent_dep_observation
   
-  WHERE database_id = '@database_id'
-  AND analysis_id = @analysis_id
-  AND exposures_outcome_set_id = @exposures_outcome_set_id;
-  "
-  connectionHandler$queryDb(
-    sql,
+  result <- OhdsiReportGenerator::getSccsTable(
+    connectionHandler = connectionHandler,
+    table = 'event_dep_observation',
     schema = resultDatabaseSettings$schema,
-    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-    database_id = databaseId,
-    analysis_id = analysisId,
-    exposures_outcome_set_id = exposuresOutcomeSetId,
-    snakeCaseToCamelCase = TRUE
+    sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    databaseIds = databaseId,
+    analysisIds = analysisId,
+    exposureOutcomeIds = exposuresOutcomeSetId
   )
+  
+  return(result)
+  
 }
 
 
@@ -652,23 +594,21 @@ estimationGetSccsAgeSpanning <- function(
     databaseId,
     analysisId
 ) {
-  sql <- "
-  SELECT *
-  FROM @schema.@sccs_table_prefixage_spanning
   
-  WHERE database_id = '@database_id'
-  AND analysis_id = @analysis_id
-  AND exposures_outcome_set_id = @exposures_outcome_set_id
-  "
-  connectionHandler$queryDb(
-    sql,
+  result <- OhdsiReportGenerator::getSccsTable(
+    connectionHandler = connectionHandler,
+    table = 'age_spanning',
     schema = resultDatabaseSettings$schema,
-    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-    database_id = databaseId,
-    analysis_id = analysisId,
-    exposures_outcome_set_id = exposuresOutcomeSetId,
-    snakeCaseToCamelCase = TRUE
+    sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    databaseIds = databaseId,
+    analysisIds = analysisId,
+    exposureOutcomeIds = exposuresOutcomeSetId
   )
+  
+  return(result)
+  
 }
 
 estimationGetSccsCalendarTimeSpanning <- function(
@@ -678,23 +618,21 @@ estimationGetSccsCalendarTimeSpanning <- function(
     databaseId,
     analysisId
 ) {
-  sql <- "
-  SELECT *
-  FROM @schema.@sccs_table_prefixcalendar_time_spanning
   
-  WHERE database_id = '@database_id'
-  AND analysis_id = @analysis_id
-  AND exposures_outcome_set_id = @exposures_outcome_set_id
-  "
-  connectionHandler$queryDb(
-    sql,
+  result <- OhdsiReportGenerator::getSccsTable(
+    connectionHandler = connectionHandler,
+    table = 'calendar_time_spanning',
     schema = resultDatabaseSettings$schema,
-    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-    database_id = databaseId,
-    analysis_id = analysisId,
-    exposures_outcome_set_id = exposuresOutcomeSetId,
-    snakeCaseToCamelCase = TRUE
+    sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    databaseIds = databaseId,
+    analysisIds = analysisId,
+    exposureOutcomeIds = exposuresOutcomeSetId
   )
+  
+  return(result)
+
 }
 
 estimationGetSccsSpline <- function(
@@ -706,25 +644,26 @@ estimationGetSccsSpline <- function(
     splineType = "age"
 ) {
   
-  sql <- "
-  SELECT *
-  FROM @schema.@sccs_table_prefixspline 
-
-  WHERE database_id = '@database_id'
-  AND analysis_id = @analysis_id
-  AND exposures_outcome_set_id = @exposures_outcome_set_id
-  AND spline_type = '@spline_type';
-  "
-  connectionHandler$queryDb(
-    sql,
+  result <- OhdsiReportGenerator::getSccsTable(
+    connectionHandler = connectionHandler,
+    table = 'spline',
     schema = resultDatabaseSettings$schema,
-    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-    database_id = databaseId,
-    spline_type = splineType,
-    analysis_id = analysisId,
-    exposures_outcome_set_id = exposuresOutcomeSetId,
-    snakeCaseToCamelCase = TRUE
+    sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+    databaseTable = resultDatabaseSettings$databaseTable,
+    databaseIds = databaseId,
+    analysisIds = analysisId,
+    exposureOutcomeIds = exposuresOutcomeSetId
   )
+  
+  if(nrow(result) > 0){
+    # filter to splineType
+    result <- result %>% 
+      dplyr::filter(.data$splineType == !!splineType)
+  }
+  
+  return(result)
+
 }
 
 
@@ -732,84 +671,36 @@ estimationGetSccsSpline <- function(
 estimationGetSccsControlEstimates <- function(
     connectionHandler,
     resultDatabaseSettings,
-    databaseId,
-    analysisId,
-    covariateId,
-    eraId,
+    databaseId = NULL,
+    analysisId = NULL,
+    covariateId = NULL,
+    eraId = NULL,
+    indicationId = NULL,
+    covariateAnalysisId = NULL,
     exposuresOutcomeSetId = NULL
 ) {
   
-  sql <- "
-  SELECT r.ci_95_lb, r.ci_95_ub, r.log_rr, r.se_log_rr, 
-  r.calibrated_ci_95_lb, r.calibrated_ci_95_ub, r.calibrated_log_rr,
-  r.calibrated_se_log_rr, r.exposures_outcome_set_id,
-  e.true_effect_size, c.exposures_outcome_set_id,
-  eos.nesting_cohort_id as indication_id
+  # convert any NA values to NULL
+  if(!is.null(indicationId)){
+    if(is.na(indicationId)){
+      indicationId <- NULL
+    }
+  }
   
-  FROM 
-  @schema.@sccs_table_prefixresult r
-  INNER JOIN
-   @schema.@sccs_table_prefixexposure e
-   on r.exposures_outcome_set_id = e.exposures_outcome_set_id
-
-   INNER JOIN 
-   @schema.@sccs_table_prefixcovariate c
-   on e.era_id = c.era_id 
-   and e.exposures_outcome_set_id = c.exposures_outcome_set_id
-   and c.database_id = r.database_id
-   and c.analysis_id = r.analysis_id
-   and c.covariate_id = r.covariate_id
-   
-   INNER JOIN  
-   @schema.@sccs_table_prefixexposures_outcome_set eos
-   on eos.exposures_outcome_set_id = r.exposures_outcome_set_id
-   
-   WHERE r.database_id = '@database_id'
-   AND r.analysis_id = @analysis_id
-   AND r.covariate_id = @covariate_id
-   AND e.true_effect_size is not NULL
-   
-   -- AND e.era_id = @era_id
-  ;
-  "
-  
-  res <- connectionHandler$queryDb(
-    sql,
+  result <- OhdsiReportGenerator::getSccsNegativeControlEstimates(
+    connectionHandler = connectionHandler,
     schema = resultDatabaseSettings$schema,
-    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-    database_id = databaseId,
-    covariate_id = covariateId,
-    analysis_id = analysisId,
-    era_id = eraId,
-    snakeCaseToCamelCase = TRUE
+    sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+    databaseTable = resultDatabaseSettings$databaseTable, 
+    databaseIds = databaseId,
+    analysisIds = analysisId,
+    covariateIds = covariateId,
+    covariateAnalysisIds = covariateAnalysisId,
+    exposuresOutcomeSetIds = exposuresOutcomeSetId, 
+    targetIds = eraId,
+    indicationIds = indicationId
   )
   
-  # get ease for the plot
-  sql <- "SELECT top 1 ds.ease
-  FROM @schema.@sccs_table_prefixdiagnostics_summary ds
-
-  WHERE ds.database_id = '@database_id'
-  AND ds.analysis_id = @analysis_id
-  AND ds.covariate_id = @covariate_id
-  
-  {@use_exposures_outcome_set_id} ? {AND ds.exposures_outcome_set_id = '@exposures_outcome_set_id'}
-  ;"
-  
-  ease <- connectionHandler$queryDb(
-    sql,
-    schema = resultDatabaseSettings$schema,
-    sccs_table_prefix = resultDatabaseSettings$sccsTablePrefix,
-    database_id = databaseId,
-    covariate_id = covariateId,
-    analysis_id = analysisId,
-    snakeCaseToCamelCase = TRUE,
-    use_exposures_outcome_set_id = !is.null(exposuresOutcomeSetId),
-    exposures_outcome_set_id = exposuresOutcomeSetId
-  )
-
-  return(list(
-    plotResult = res,
-    ease = ease$ease
-    )
-  )
+  return(result)
 }

@@ -85,9 +85,9 @@ cohortMethodPropensityScoreDistServer <- function(
             return(NULL) #TODO: handle more gracefully
           }
           
-          targetName <- row$target
+          targetName <- row$targetName
             
-          comparatorName <- row$comparator
+          comparatorName <- row$comparatorName
           
           equipoiseStatistic <- getCohortMethodEquipoise(
             connectionHandler = connectionHandler,
@@ -136,37 +136,19 @@ getCohortMethodEquipoise <- function(
   if(is.null(targetId)){
     return(NULL)
   }
-  sql <- "
-    SELECT
-      database_id, target_id, comparator_id, outcome_id, analysis_id, equipoise
-    FROM
-      @schema.@cm_table_prefixdiagnostics_summary cmpsd
-    WHERE
-      cmpsd.target_id = @target_id
-      AND cmpsd.comparator_id = @comparator_id
-      AND cmpsd.analysis_id = @analysis_id 
-      AND cmpsd.outcome_id = @outcome_id 
-  "
-  if(!is.null(databaseId)) {
-    sql <- paste(sql, paste("AND cmpsd.database_id = '@database_id'"), collapse = "\n")
-  }
   
-  
-  result <- connectionHandler$queryDb(
-    sql = sql,
-    schema = resultDatabaseSettings$schema,
-    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-    target_id = targetId,
-    comparator_id = comparatorId,
-    outcome_id = outcomeId,
-    analysis_id = analysisId,
-    database_id = databaseId
-  )
-  
-  
-  if (!is.null(databaseId)) {
-    result$databaseId <- NULL
-  }
+  result <- OhdsiReportGenerator::getCmDiagnosticsData(
+    connectionHandler = connectionHandler, 
+    schema = resultDatabaseSettings$schema, 
+    cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+    databaseTable = resultDatabaseSettings$databaseTable, 
+    targetIds = targetId, 
+    outcomeIds = outcomeId, 
+    comparatorIds = comparatorId, 
+    analysisIds = analysisId,
+    databaseIds = databaseId
+    )
   
   eq <- round(result$equipoise, 4)
   
@@ -184,36 +166,21 @@ getCohortMethodPs <- function(
   if(is.null(targetId)){
     return(NULL)
   }
-  sql <- "
-    SELECT
-      *
-    FROM
-      @schema.@cm_table_prefixpreference_score_dist cmpsd
-    WHERE
-      cmpsd.target_id = @target_id
-      AND cmpsd.comparator_id = @comparator_id
-      AND cmpsd.analysis_id = @analysis_id
-  "
-  if(!is.null(databaseId)) {
-    sql <- paste(sql, paste("AND cmpsd.database_id = '@database_id'"), collapse = "\n")
-  }
   
-  
-  ps <- connectionHandler$queryDb(
-    sql = sql,
-    schema = resultDatabaseSettings$schema,
-    cm_table_prefix = resultDatabaseSettings$cmTablePrefix,
-    target_id = targetId,
-    comparator_id = comparatorId,
-    analysis_id = analysisId,
-    database_id = databaseId
+  result <- OhdsiReportGenerator::getCmTable(
+    connectionHandler = connectionHandler, 
+    schema = resultDatabaseSettings$schema, 
+    table = 'preference_score_dist',
+    cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
+    cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+    databaseTable = resultDatabaseSettings$databaseTable, 
+    targetIds = targetId, 
+    comparatorIds = comparatorId, 
+    analysisIds = analysisId,
+    databaseIds = databaseId
   )
   
-  
-  if (!is.null(databaseId)) {
-    ps$databaseId <- NULL
-  }
-  return(ps)
+  return(result)
 }
 
 # CohortMethod-propensityScoreDist

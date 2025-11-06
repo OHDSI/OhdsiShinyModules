@@ -21,11 +21,9 @@ The server function for the datasources module
 }
 \seealso{
 Other Utils: 
-\code{\link{createCustomColDefList}()},
 \code{\link{datasourcesHelperFile}()},
 \code{\link{datasourcesViewer}()},
 \code{\link{getLogoImage}()},
-\code{\link{makeButtonLabel}()},
 \code{\link{resultTableViewer}()}
 }
 \concept{Utils}
