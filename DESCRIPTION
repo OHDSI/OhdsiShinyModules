@@ -45,7 +45,6 @@ Imports:
 Suggests:
     kableExtra,
     knitr,
-    OhdsiShinyAppBuilder,
     ResultModelManager,
     RSQLite,
     testthat,

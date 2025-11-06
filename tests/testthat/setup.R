@@ -34,7 +34,23 @@ connectionHandlerCharacterization <- ResultModelManager::ConnectionHandler$new(
   connectionDetailsCharacterization, 
   loadConnection = FALSE
 )
-resultDatabaseSettingsCharacterization <- OhdsiShinyAppBuilder::createDefaultResultDatabaseSettings()
+resultDatabaseSettingsCharacterization <- list(
+  schema = "main", 
+  vocabularyDatabaseSchema = "main",
+  cgTablePrefix = "cg_",
+  cgTable = "cohort_definition",
+  databaseTable = "DATABASE_META_DATA",
+  databaseTablePrefix = "",
+  cdTablePrefix = "cd_",
+  cTablePrefix = "c_",
+  incidenceTablePrefix = "ci_",
+  plpTablePrefix = "plp_",
+  cmTablePrefix = "cm_",
+  sccsTablePrefix = "sccs_",
+  esTablePrefix = "es_",
+  pvTablePrefix = "pv_"
+)
+  
 # =========== Characterization END
 
 
