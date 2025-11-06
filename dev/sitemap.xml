@@ -80,6 +80,8 @@
 <url><loc>/dev/reference/largeTableServer.html</loc></url>
 <url><loc>/dev/reference/largeTableView.html</loc></url>
 <url><loc>/dev/reference/orpahanConceptsView.html</loc></url>
+<url><loc>/dev/reference/patientLevelPredictionHeatmapServer.html</loc></url>
+<url><loc>/dev/reference/patientLevelPredictionHeatmapViewer.html</loc></url>
 <url><loc>/dev/reference/patientLevelPredictionHelperFile.html</loc></url>
 <url><loc>/dev/reference/patientLevelPredictionModelServer.html</loc></url>
 <url><loc>/dev/reference/patientLevelPredictionModelViewer.html</loc></url>
