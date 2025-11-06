@@ -1,3 +1,8 @@
+OhdsiShinyModules v3.4.0
+========================
+- updated prediction viewer to enable multiple model comparison
+- updated prediction viewer to add  heatmap for large scale analyse
+
 OhdsiShinyModules v3.3.0
 ========================
 - fixed bug with incorrect ease in SCCS plot
