@@ -150,13 +150,17 @@ tableSelectionServer <- function(
                  #shiny::h4('Selected: '),
                  reactable::reactable(
                    data = table()[selectedRowId(),], 
-                   columns = displayColumns,
+                   columns = displayColumns[names(displayColumns) %in% colnames(table())],
                    sortable = FALSE,
                    filterable = FALSE, 
                    searchable = FALSE, 
                    compact = TRUE,
                    pagination = FALSE,
-                   showPageInfo = FALSE
+                   showPageInfo = FALSE, 
+                   height = 400, # this makes headers sticky 
+                   theme = reactable::reactableTheme(
+                     style = list(fontFamily = "-system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif")
+                   )
                  )
                )
              )

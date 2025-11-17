@@ -236,14 +236,16 @@ patientLevelPredictionModelServer <- function(
             performanceIds = unique(performances()$performanceId[performanceRowIds()[showId]])
           )
           
-          # get columns of interest
-          result  <- result %>% 
-            dplyr::select("modelDesignId", "developmentDatabaseName",
-                          "developmentTargetName","developmentOutcomeName",
-                          "developmentTimeAtRisk",
-                          "covariateId", "covariateName", "covariateValue")
-          
+          # check there are rows 
           if( nrow(result) > 0){
+            
+            # get columns of interest
+            result  <- result %>% 
+              dplyr::select("modelDesignId", "developmentDatabaseName",
+                            "developmentTargetName","developmentOutcomeName",
+                            "developmentTimeAtRisk",
+                            "covariateId", "covariateName", "covariateValue")
+            
             # get intercept
             interceptList <- lapply(performanceRowIds()[showId], function(i){
               OhdsiReportGenerator::getPredictionIntercept(
