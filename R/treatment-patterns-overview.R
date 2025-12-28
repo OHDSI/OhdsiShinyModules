@@ -138,10 +138,11 @@ treatmentPatternsOverviewServer <- function(
           generateIcon("redo")
           
           pathwayTable(
-            OhdsiReportGenerator::getTreatementPathways(
+            OhdsiReportGenerator::getTreatmentPathways(
               connectionHandler = connectionHandler,
               schema = resultDatabaseSettings$schema,
               tpTablePrefix = resultDatabaseSettings$tpTablePrefix,
+              databaseTable = resultDatabaseSettings$databaseTable,
               targetIds = unique(reactiveTargetRow()$targetCohortId),
               analysisIds = unique(reactiveTargetRow()$analysisId),
               databaseNames = input$databaseNames
@@ -163,7 +164,7 @@ treatmentPatternsOverviewServer <- function(
         req(showSunburst() != 0)
         req(!is.null(analysisGroup()) && nrow(analysisGroup()) > 0)
 
-        ui_list <- lapply(seq_len(nrow(analysisGroup())), function(idx) {
+        UIList <- lapply(seq_len(nrow(analysisGroup())), function(idx) {
           analysis <- analysisGroup()[idx, ]$analysisId
           target <- analysisGroup()[idx, ]$targetCohortName
 
@@ -179,7 +180,7 @@ treatmentPatternsOverviewServer <- function(
           )
         })
 
-        shiny::tagList(ui_list)
+        shiny::tagList(UIList)
       })
 
       #---- render serve ----#
