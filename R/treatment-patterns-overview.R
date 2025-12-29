@@ -194,7 +194,7 @@ treatmentPatternsOverviewServer <- function(
             analysis <- analysisGroup()[idx, ]$analysisId
             target <- analysisGroup()[idx, ]$targetCohortName
 
-            pathway <- pathwayTable() %>% dplyr::filter(analysisId == analysis, targetName == target)
+            pathway <- pathwayTable() %>% dplyr::filter(analysisId == analysis, targetCohortName == target)
 
             id <- paste0("sunburstUI", "_", idx)
 

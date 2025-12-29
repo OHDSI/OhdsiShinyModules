@@ -65,7 +65,6 @@ treatmentPatternsTabularServer <- function(
       req(reactiveTargetRow())
 
       databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseName, split = ", ")))
-
       shiny::div(
         shiny::fluidRow(
           shiny::column(
@@ -73,7 +72,7 @@ treatmentPatternsTabularServer <- function(
             shinyWidgets::pickerInput(
               inputId = session$ns("databaseName"),
               label = "Database: ",
-              choices = unique(databaseNames),
+              choices = unique(databaseNames()),
               selected = databaseNames()[1],
               multiple = F,
               options = shinyWidgets::pickerOptions(
@@ -137,7 +136,7 @@ treatmentPatternsTabularServer <- function(
     inputSelectionDfServer(
       id = "inputSelected",
       dataFrameRow = selected,
-      ncol = 1
+      ncol = 2
     )
 
     selected <- shiny::reactiveVal(value = NULL)
@@ -150,7 +149,7 @@ treatmentPatternsTabularServer <- function(
       } else {
         showTables(1)
         generateIcon("redo")
-
+        
         getPathway <- OhdsiReportGenerator::getTreatmentPathways(
           connectionHandler = connectionHandler,
           schema = resultDatabaseSettings$schema,
@@ -169,7 +168,7 @@ treatmentPatternsTabularServer <- function(
         )
 
         summaryTable(
-          getEventDuration(
+          OhdsiReportGenerator::getEventDuration(
             connectionHandler = connectionHandler,
             schema = resultDatabaseSettings$schema,
             analysisIds = unique(reactiveTargetRow()$analysisId),
@@ -183,9 +182,11 @@ treatmentPatternsTabularServer <- function(
         selected(
           data.frame(
             Analyses = paste(unique(reactiveTargetRow()$analysisId), collapse = ", "),
+            Age = input$age,
             Targets = paste(unique(reactiveTargetRow()$targetCohortName), collapse = ", "),
+            Year = input$indexYear,
             Databases = paste(input$databaseName, collapse = ", "),
-            Filters = paste("Age: ", input$age, "Index Year: ", input$indexYear, "input$Sex: ", input$sex)
+            Sex = input$sex
           )
         )
       }
@@ -223,7 +224,8 @@ treatmentPatternsTabularServer <- function(
               sunburstPlotViewer(session$ns(paste0("sunburst_", idx))),
               OhdsiShinyModules:::resultTableViewer(id = session$ns(paste0("pathways_", idx)), boxTitle = "All Pathways"),
               OhdsiShinyModules:::resultTableViewer(id = session$ns(paste0("event_count_", idx)), boxTitle = "Event Cohort Counts"),
-              OhdsiShinyModules:::resultTableViewer(id = session$ns(paste0("event_rank_", idx)), boxTitle = "Event Cohort Counts by Rank")
+              OhdsiShinyModules:::resultTableViewer(id = session$ns(paste0("event_rank_", idx)), boxTitle = "Event Cohort Counts by Rank"),
+              OhdsiShinyModules:::resultTableViewer(id = session$ns(paste0("duration_summary_", idx)), boxTitle = "Event Duration Summary")
             )
           }
         )
@@ -304,6 +306,23 @@ treatmentPatternsTabularServer <- function(
               colDefsInput = treatmentPatternsColDef(tableId = "eventRank"),
               elementId = session$ns(paste0("event_rank_", analysis, "_", target, "_", input$databaseName))
             )
+            # 4. Duration Summary table
+            durationDf <- summaryTable() %>%
+              dplyr::select(-analysisId, -targetCohortId)
+            
+            OhdsiShinyModules:::resultTableServer(
+              id = paste0("duration_summary_", idx),
+              df = durationDf,
+              details = data.frame(
+                analysisId = analysis,
+                target = target,
+                Database = input$databaseName,
+                description = "Summary Statitics for each event duration"
+              ),
+              downloadedFileName = paste0("duration_summary_", analysis, "_", target, "_", input$databaseName),
+              colDefsInput = treatmentPatternsColDef(tableId = "duration"),
+              elementId = session$ns(paste0("duration_summary_", analysis, "_", target, "_", input$databaseName))
+            )
           }
         })
       })
@@ -319,12 +338,12 @@ createPathwaysTable <- function(pathways, total) {
       stepCount = max(stringr::str_count(pathway, "-") + 1, na.rm = TRUE)
     ) %>%
     dplyr::pull(stepCount)
-
+  
   into <- paste0("step ", seq_len(stepCount))
 
-  table <- df %>%
+  table <- pathways %>%
     tidyr::separate(
-      pathways,
+      pathway,
       into = into,
       sep = "-",
       fill = "right",
@@ -354,14 +373,13 @@ createEventRankTable <- function(pathways, total) {
   table <- pathways %>%
     dplyr::mutate(event = stringr::str_split(pathway, "\\s*-\\s*")) %>%
     tidyr::unnest_longer(
-      cols = event,
-      names_to = "rank",
+      col = event,
+      indices_to = "rank",
       values_to = "event",
-      values_drop_na = TRUE
     ) %>%
     dplyr::mutate(event = stringr::str_trim(event)) %>%
-    group_by(rank, event) %>%
-    summarise(freq = sum(freq), .groups = "drop") %>%
+    dplyr::group_by(rank, event) %>%
+    dplyr::summarise(freq = sum(freq), .groups = "drop") %>%
     dplyr::mutate(pathwayPercent = freq / total)
 
   return(table)
@@ -414,7 +432,7 @@ treatmentPatternsColDef <- function(tableId) {
       ),
       event = reactable::colDef(
         name = "Event",
-        header = withTooltip("Event Name", "Name of the Event Cohort")
+        header = withTooltip("Event Name", "Name of Event")
       ),
       freq = reactable::colDef(
         name = "count",
@@ -447,7 +465,7 @@ treatmentPatternsColDef <- function(tableId) {
       ),
       event = reactable::colDef(
         name = "Event",
-        header = OhdsiShinyModules:::withTooltip("Event", "Name of the Event Cohort"),
+        header = OhdsiShinyModules:::withTooltip("Event", "Name of Event"),
         filterable = TRUE
       ),
       freq = reactable::colDef(
@@ -462,6 +480,80 @@ treatmentPatternsColDef <- function(tableId) {
         format = reactable::colFormat(digits = 2, percent = TRUE)
       )
     )
+  } else if(tableId == "duration") {
+    colDef <- list(
+      databaseId = reactable::colDef(
+        name = "DatabaseId",
+        header = withTooltip("Database Id", "Unique representation for Database"),
+        show = FALSE
+      ),
+      databaseName = reactable::colDef(
+        name = "DatabaseName",
+        header = withTooltip("Database Name", "Name of Database"),
+        show = FALSE
+      ),
+      targetCohortName = reactable::colDef(
+        name = "Target",
+        header = withTooltip("Target Name", "Name of the Target Cohort"),
+        filterable = TRUE,
+        minWidth = 300
+      ),
+      eventName = reactable::colDef(
+        name = "Event",
+        header = withTooltip("Event", "Name of Event"),
+        filterable = TRUE,
+        minWidth = 300
+      ),
+      rank = reactable::colDef(
+        name = "Rank",
+        header = OhdsiShinyModules:::withTooltip("Rank", "What step an event occured at"),
+        filterable = TRUE
+      ),
+      eventCount = reactable::colDef(
+        name = "Count",
+        header = OhdsiShinyModules:::withTooltip("Count", "Number of times an event occured at a step"),
+        filterable = TRUE
+      ),
+      durationAverage = reactable::colDef(
+        name = "Average",
+        header = OhdsiShinyModules:::withTooltip("Average", "Average number of days for event"),
+        filterable = TRUE
+      ),
+      durationMax = reactable::colDef(
+        name = "Max Duration",
+        header = OhdsiShinyModules:::withTooltip("Max Duration", "Maximum number of days for event"),
+        filterable = TRUE
+      ),
+      durationMin = reactable::colDef(
+        name = "Min Duration",
+        header = OhdsiShinyModules:::withTooltip("Min Duration", "Minimum number of days for event"),
+        filterable = TRUE
+      ),
+      durationMedian = reactable::colDef(
+        name = "Median",
+        header = OhdsiShinyModules:::withTooltip("Medain", "Median number of days for event"),
+        filterable = TRUE
+      ),
+      p25Value = reactable::colDef(
+        name = "p25Value",
+        header = OhdsiShinyModules:::withTooltip("p25Value", "25th percentile of event duration, in days"),
+        filterable = TRUE
+      ),
+      p75Value = reactable::colDef(
+        name = "p75Value",
+        header = OhdsiShinyModules:::withTooltip("p75Value", "75th percentile of event duration, in days"),
+        filterable = TRUE
+      ),
+      standardDeviation = reactable::colDef(
+        name = 'StDev',
+        header = withTooltip("StDev",
+                             "The standard deviation value of the event durations, in days"),
+        cell = function(value) {
+          if (value >= 0) round(value, digits = 3) else paste0('< ', abs(round(value, digits = 3)))
+        }
+      )
+    )
+    
   }
   return(colDef)
 }
