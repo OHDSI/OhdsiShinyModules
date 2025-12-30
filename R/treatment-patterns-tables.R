@@ -17,17 +17,6 @@
 # limitations under the License.
 
 
-#' The module viewer for exploring treatment patterns tables
-#'
-#' @details
-#' The user specifies the id for the module
-#'
-#' @param id the unique reference id for the module
-#' @family Treatment Patterns
-#' @return
-#' The user interface to the treatment-patterns viewer module
-#'
-#' @export
 treatmentPatternsTabularViewer <- function(id) {
   ns <- shiny::NS(id)
 
@@ -49,10 +38,11 @@ treatmentPatternsTabularViewer <- function(id) {
 }
 
 treatmentPatternsTabularServer <- function(
-    id,
-    connectionHandler,
-    resultDatabaseSettings,
-    reactiveTargetRow) {
+  id,
+  connectionHandler,
+  resultDatabaseSettings,
+  reactiveTargetRow
+) {
   shiny::moduleServer(id, function(input, output, session) {
     #--- states ---
     generateIcon <- shiny::reactiveVal(NULL)
@@ -149,7 +139,7 @@ treatmentPatternsTabularServer <- function(
       } else {
         showTables(1)
         generateIcon("redo")
-        
+
         getPathway <- OhdsiReportGenerator::getTreatmentPathways(
           connectionHandler = connectionHandler,
           schema = resultDatabaseSettings$schema,
@@ -309,7 +299,7 @@ treatmentPatternsTabularServer <- function(
             # 4. Duration Summary table
             durationDf <- summaryTable() %>%
               dplyr::select(-analysisId, -targetCohortId)
-            
+
             OhdsiShinyModules:::resultTableServer(
               id = paste0("duration_summary_", idx),
               df = durationDf,
@@ -331,14 +321,13 @@ treatmentPatternsTabularServer <- function(
 }
 
 
-
 createPathwaysTable <- function(pathways, total) {
   stepCount <- pathways %>%
     dplyr::summarise(
       stepCount = max(stringr::str_count(pathway, "-") + 1, na.rm = TRUE)
     ) %>%
     dplyr::pull(stepCount)
-  
+
   into <- paste0("step ", seq_len(stepCount))
 
   table <- pathways %>%
@@ -480,7 +469,7 @@ treatmentPatternsColDef <- function(tableId) {
         format = reactable::colFormat(digits = 2, percent = TRUE)
       )
     )
-  } else if(tableId == "duration") {
+  } else if (tableId == "duration") {
     colDef <- list(
       databaseId = reactable::colDef(
         name = "DatabaseId",
@@ -545,15 +534,16 @@ treatmentPatternsColDef <- function(tableId) {
         filterable = TRUE
       ),
       standardDeviation = reactable::colDef(
-        name = 'StDev',
-        header = withTooltip("StDev",
-                             "The standard deviation value of the event durations, in days"),
+        name = "StDev",
+        header = withTooltip(
+          "StDev",
+          "The standard deviation value of the event durations, in days"
+        ),
         cell = function(value) {
-          if (value >= 0) round(value, digits = 3) else paste0('< ', abs(round(value, digits = 3)))
+          if (value >= 0) round(value, digits = 3) else paste0("< ", abs(round(value, digits = 3)))
         }
       )
     )
-    
   }
   return(colDef)
 }

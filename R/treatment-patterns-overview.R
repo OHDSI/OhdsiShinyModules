@@ -17,17 +17,6 @@
 # limitations under the License.
 
 
-#' The module viewer for exploring treatment patterns sunburst plots
-#'
-#' @details
-#' The user specifies the id for the module
-#'
-#' @param id the unique reference id for the module
-#' @family Treatment Patterns
-#' @return
-#' The user interface to the treatment-patterns viewer module
-#'
-#' @export
 treatmentPatternsOverviewViewer <- function(id) {
   ns <- shiny::NS(id)
 
@@ -42,8 +31,7 @@ treatmentPatternsOverviewViewer <- function(id) {
     shiny::conditionalPanel(
       condition = "output.showSunburst != 0",
       ns = ns,
-      
-      inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
+      inputSelectionDfViewer(id = ns("inputSelected"), title = "Selected"),
       shiny::uiOutput(ns("sunburstPlot"))
     )
   )
@@ -117,16 +105,16 @@ treatmentPatternsOverviewServer <- function(
           dplyr::select("analysisId", "targetCohortName") %>%
           dplyr::distinct()
       })
-      
+
       #---- generate click: fetch pathways ----
       inputSelectionDfServer(
-        id = 'inputSelected', 
+        id = "inputSelected",
         dataFrameRow = selected,
         ncol = 1
       )
-      
+
       selected <- shiny::reactiveVal(value = NULL)
-      
+
       shiny::observeEvent(input$generate, {
         if (is.null(input$databaseNames) | is.null(reactiveTargetRow())) {
           output$showDatabase <- shiny::reactive(0)
@@ -136,7 +124,7 @@ treatmentPatternsOverviewServer <- function(
           showSunburst(1)
 
           generateIcon("redo")
-          
+
           pathwayTable(
             OhdsiReportGenerator::getTreatmentPathways(
               connectionHandler = connectionHandler,
@@ -148,12 +136,12 @@ treatmentPatternsOverviewServer <- function(
               databaseNames = input$databaseNames
             )
           )
-          
+
           selected(
             data.frame(
               Analyses = paste(unique(reactiveTargetRow()$analysisId), collapse = ", "),
               Targets = paste(unique(reactiveTargetRow()$targetCohortName), collapse = ", "),
-              Databases = paste(input$databaseNames, collapse =", ")
+              Databases = paste(input$databaseNames, collapse = ", ")
             )
           )
         }

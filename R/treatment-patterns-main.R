@@ -26,7 +26,7 @@
 #' string location of the treatment-patterns helper file
 #'
 #' @export
-cohortGeneratorHelperFile <- function() {
+treatmentPatternsHelperFile <- function() {
   fileLoc <- system.file("treatment-patterns-www", "treatment-patterns.html", package = "OhdsiShinyModules")
   return(fileLoc)
 }
@@ -44,12 +44,12 @@ cohortGeneratorHelperFile <- function() {
 #' @export
 treatmentPatternsViewer <- function(id = 1) {
   ns <- shiny::NS(id)
-  
+
   shinydashboard::box(
     status = "info", width = "100%",
     title = shiny::span(shiny::icon("sitemap"), "Treatment Patterns Viewer"),
     solidHeader = TRUE,
-    
+
     # pick targetIds
     tableSelectionViewer(id = ns("target-table-selector")),
     shiny::uiOutput(outputId = ns("main"))
@@ -71,9 +71,9 @@ treatmentPatternsViewer <- function(id = 1) {
 #'
 #' @export
 treatmentPatternsServer <- function(
-    id,
-    connectionHandler,
-    resultDatabaseSettings
+  id,
+  connectionHandler,
+  resultDatabaseSettings
 ) {
   shiny::moduleServer(
     id,
@@ -84,10 +84,10 @@ treatmentPatternsServer <- function(
         schema = resultDatabaseSettings$schema,
         tpTablePrefix = resultDatabaseSettings$tpTablePrefix
       )
-      
+
       # create reactive that saved selected rowId
       reactiveTargetRowId <- shiny::reactiveVal(NULL)
-      
+
       tableSelectionServer(
         id = "target-table-selector",
         table = shiny::reactive(
@@ -100,19 +100,19 @@ treatmentPatternsServer <- function(
         displayColumns = treatmentPatternsTargetInputColumns(),
         selectButtonText = "Select Anaylsis and Target"
       )
-      
-      
+
+
       reactiveTargetRow <- shiny::reactiveVal(NULL)
-      
+
       shiny::observeEvent(reactiveTargetRowId(), {
         reactiveTargetRow(targetTable[reactiveTargetRowId(), ])
       })
-      
-      
+
+
       # After selecting target render UI
       output$main <- shiny::renderUI({
         req(nrow(reactiveTargetRow()) > 0)
-        
+
         shiny::tabsetPanel(
           id = session$ns("treatmentPatternsTabs"),
           type = "pills",
@@ -122,7 +122,7 @@ treatmentPatternsServer <- function(
               collapsible = T,
               collapsed = F,
               width = "100%",
-              treatmentPatternsOverviewViewer(id = session$ns('sunburstView'))
+              treatmentPatternsOverviewViewer(id = session$ns("sunburstView"))
             )
           ),
           shiny::tabPanel(
@@ -140,20 +140,20 @@ treatmentPatternsServer <- function(
               collapsible = T,
               collapsed = F,
               width = "100%",
-              
+
               # treatmentPatternsSankeyViewer(id = session$ns('sankeyView'))
             )
           )
         )
       })
-      
+
       treatmentPatternsOverviewServer(
-        id = 'sunburstView',
+        id = "sunburstView",
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings,
         reactiveTargetRow = reactiveTargetRow
       )
-      
+
       # treatmentPatternsTabularServer(
       #   id = 'tabularView',
       #   connectionHandler = connectionHandler,
