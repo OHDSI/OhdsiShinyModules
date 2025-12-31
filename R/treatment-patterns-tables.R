@@ -86,7 +86,7 @@ treatmentPatternsTabularServer <- function(
           ),
           shiny::column(
             width = 2,
-            shiny::selectInput(inputId = session$ns("sex"), label = "Sex Filter", choices = c("all", "Male", "Femail"), selected = "all")
+            shiny::selectInput(inputId = session$ns("sex"), label = "Sex Filter", choices = c("all", "Male", "Female"), selected = "all")
           ),
           shiny::column(
             width = 3,
@@ -108,10 +108,10 @@ treatmentPatternsTabularServer <- function(
 
     shiny::observeEvent(reactiveTargetRow(),
       {
-        generateIcon <- shiny::reactiveVal(NULL)
-        showTables <- shiny::reactiveVal(0)
-        pathwayTable <- shiny::reactiveVal(NULL)
-        summaryTable <- shiny::reactiveVal(NULL)
+        showTables(0)
+        generateIcon(NULL)
+        pathwayTable(NULL)
+        summaryTable(NULL)
       },
       ignoreInit = TRUE
     )
@@ -535,12 +535,10 @@ treatmentPatternsColDef <- function(tableId) {
       ),
       standardDeviation = reactable::colDef(
         name = "StDev",
-        header = withTooltip(
-          "StDev",
-          "The standard deviation value of the event durations, in days"
-        ),
-        cell = function(value) {
-          if (value >= 0) round(value, digits = 3) else paste0("< ", abs(round(value, digits = 3)))
+        header = withTooltip("StDev", "The standard deviation value of the event durations, in days"),
+        cell = function(v) {
+          v <- suppressWarnings(as.numeric(v))
+          if (is.na(v)) "" else if (v >= 0) round(v, 3) else paste0("< ", abs(round(v, 3)))
         }
       )
     )
