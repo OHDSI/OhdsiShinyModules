@@ -131,7 +131,7 @@ treatmentPatternsServer <- function(
               collapsible = T,
               collapsed = F,
               width = "100%",
-              # treatmentPatternsTabularViewer(id = session$ns('tabularView'))
+              treatmentPatternsTabularViewer(id = session$ns('tabularView'))
             )
           ),
           shiny::tabPanel(
@@ -140,8 +140,7 @@ treatmentPatternsServer <- function(
               collapsible = T,
               collapsed = F,
               width = "100%",
-
-              # treatmentPatternsSankeyViewer(id = session$ns('sankeyView'))
+              treatmentPatternsSankeyViewer(id = session$ns('sankeyView'))
             )
           )
         )
@@ -154,12 +153,19 @@ treatmentPatternsServer <- function(
         reactiveTargetRow = reactiveTargetRow
       )
 
-      # treatmentPatternsTabularServer(
-      #   id = 'tabularView',
-      #   connectionHandler = connectionHandler,
-      #   resultDatabaseSettings = resultDatabaseSettings,
-      #   reactiveTargetRow = reactiveTargetRow
-      # )
+      treatmentPatternsTabularServer(
+        id = 'tabularView',
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings,
+        reactiveTargetRow = reactiveTargetRow
+      )
+      
+      treatmentPatternsSankeyServer(
+        id = 'sankeyView',
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings,
+        reactiveTargetRow = reactiveTargetRow
+      )
     }
   )
 }
