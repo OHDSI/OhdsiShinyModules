@@ -51,10 +51,9 @@ treatmentPatternsTabularServer <- function(
     summaryTable <- shiny::reactiveVal(NULL)
 
     #-- selection ui ---
+    databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseName, split = ", ")))
+    
     output$inputs <- shiny::renderUI({
-      req(reactiveTargetRow())
-
-      databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseName, split = ", ")))
       shiny::div(
         shiny::fluidRow(
           shiny::column(
