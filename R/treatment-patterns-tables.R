@@ -52,7 +52,7 @@ treatmentPatternsTabularServer <- function(
 
     #-- selection ui ---
     databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseName, split = ", ")))
-    
+
     output$inputs <- shiny::renderUI({
       shiny::div(
         shiny::fluidRow(

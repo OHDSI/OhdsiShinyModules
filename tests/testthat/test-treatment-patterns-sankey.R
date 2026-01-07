@@ -1,4 +1,4 @@
-context("treatment-patterns-overview")
+context("treatment-patterns-sankey")
 
 targetCohort <- OhdsiReportGenerator::getAnalysisCohorts(
   connectionHandler = connectionHandlerTreatmentPatterns,
@@ -7,7 +7,7 @@ targetCohort <- OhdsiReportGenerator::getAnalysisCohorts(
 )
 
 shiny::testServer(
-  app = treatmentPatternsOverviewServer,
+  app = treatmentPatternsSankeyServer,
   arg = list(
     connectionHandler = connectionHandlerTreatmentPatterns,
     resultDatabaseSettings = resultDatabaseSettingsTreatmentPatterns,
@@ -20,7 +20,7 @@ shiny::testServer(
     session$setInputs(databaseNames = c("Synthea"))
 
     testthat::expect_true(length(input$databaseNames) > 0)
-    testthat::expect_equal(showSunburst(), 0)
+    testthat::expect_equal(showSankey(), 0)
 
     session$setInputs(generate = 1)
 
@@ -44,8 +44,8 @@ shiny::testServer(
   }
 )
 
-test_that("Test treatmentPatternsOveriew ui", {
+test_that("Test treatmentPatternsSankey ui", {
   # Test ui
-  ui <- treatmentPatternsOverviewViewer(id = "viewer")
+  ui <- treatmentPatternsSankeyViewer(id = "viewer")
   checkmate::expect_list(ui)
 })

@@ -51,9 +51,9 @@ treatmentPatternsOverviewServer <- function(
       generateIcon <- shiny::reactiveVal(NULL)
       showSunburst <- shiny::reactiveVal(0)
       pathwayTable <- shiny::reactiveVal(NULL)
-      
+
       databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseName, split = ", ")))
-      
+
       #---- selection ui ----
       output$inputs <- shiny::renderUI({
         shiny::div(

@@ -15,7 +15,7 @@ sankeyPlotViewer <- function(id = "sankey") {
 # filerColumn sets the column to split by
 # sankeyList provides values in the filterColumn to create separate grouped sankey plots
 sankeyPlotServer <- function(
-  id,
+  id = "sankey",
   pathwayTable,
   sankeyList,
   filterColumn,
@@ -49,7 +49,7 @@ sankeyPlotServer <- function(
               widget <- TreatmentPatterns::createSankeyDiagram(treatmentPathways = filterTable, ...)
 
 
-              id <- paste0("widgit_", idx)
+              id <- paste0("widget_", idx)
 
               widgets[[id]] <- widget
             }
@@ -71,7 +71,7 @@ sankeyPlotServer <- function(
         widgets <- widgetList()
 
         ui_output <- lapply(seq_along(sankeyList), function(idx) {
-          id <- paste0("widgit_", idx)
+          id <- paste0("widget_", idx)
 
           sankey <- sankeyList[[idx]]
 
@@ -108,7 +108,7 @@ sankeyPlotServer <- function(
         for (idx in seq_len(length(sankeyList))) {
           local({
             idx <- idx
-            id <- paste0("widgit_", idx)
+            id <- paste0("widget_", idx)
 
             # if this id doesn't exist in widgets, skip
             if (!(id %in% names(widgets)) || is.null(widgets[[id]])) {

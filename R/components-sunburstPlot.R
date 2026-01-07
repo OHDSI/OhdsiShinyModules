@@ -13,7 +13,7 @@ sunburstPlotViewer <- function(id = "sunburst") {
 
 
 sunburstPlotServer <- function(
-    id,
+    id = "sunburst",
     pathwayTable,
     plotWidth,
     plotHeight,
@@ -57,7 +57,7 @@ sunburstPlotServer <- function(
               )
               
               
-              id <- paste0("widgit_", idx)
+              id <- paste0("widget_", idx)
               
               widgets[[id]] <- widget
             }
@@ -79,7 +79,7 @@ sunburstPlotServer <- function(
         widgets <- widgetList()
         
         ui_output <- lapply(seq_along(sunburstList), function(idx) {
-          id <- paste0("widgit_", idx)
+          id <- paste0("widget_", idx)
           
           sunburst <- sunburstList[[idx]]
           
@@ -116,7 +116,7 @@ sunburstPlotServer <- function(
         for (idx in seq_len(length(sunburstList))) {
           local({
             idx <- idx
-            id <- paste0("widgit_", idx)
+            id <- paste0("widget_", idx)
             
             # if this id doesn't exist in widgets, skip
             if (!(id %in% names(widgets)) || is.null(widgets[[id]])) {
