@@ -41,6 +41,14 @@ shiny::testServer(
   }
 )
 
+
+test_that("Test treatmentPatternsTable ui", {
+  # Test ui
+  ui <- treatmentPatternsTabularViewer(id = "viewer")
+  checkmate::expect_list(ui)
+})
+
+
 pathways <- OhdsiReportGenerator::getTreatmentPathways(
   connectionHandler = connectionHandlerTreatmentPatterns,
   schema = resultDatabaseSettingsTreatmentPatterns$schema,
@@ -76,15 +84,13 @@ test_that("test createEventCountTable", {
 
   # test an event cnt
   expectedCnt <- pathways %>%
-    dplyr::filter(stringr::str_detect(pathway, stringr::fixed("Amoxicillin+Clavulanate"))) %>%
+    dplyr::filter(stringr::str_detect(pathway, stringr::regex("(^Acetaminophen\\+Doxylamine)|(-Acetaminophen\\+Doxylamine-)|(-Acetaminophen\\+Doxylamine$)"))) %>%
     dplyr::summarize(n = sum(freq, na.rm = TRUE)) %>%
     dplyr::pull(n)
 
-
   cnt <- eventDf %>%
-    dplyr::filter(event == "Amoxicillin+Clavulanate") %>%
+    dplyr::filter(event == "Acetaminophen+Doxylamine") %>%
     dplyr::pull(freq)
-
 
   expect_equal(expectedCnt, cnt)
 })
@@ -92,15 +98,15 @@ test_that("test createEventCountTable", {
 test_that("test, createEventRankTable", {
   rankDf <- createEventRankTable(pathways, 746)
 
-  expect_true(inherits(eventDf, "data.frame"))
+  expect_true(inherits(rankDf, "data.frame"))
 
   expectedCnt <- pathways %>%
-    dplyr::filter(stringr::str_starts(pathway, stringr::fixed("Amoxicillin+Clavulanate"))) %>%
+    dplyr::filter(stringr::str_detect(pathway, stringr::regex("^Acetaminophen\\+Doxylamine"))) %>%
     dplyr::summarize(n = sum(freq, na.rm = TRUE)) %>%
     dplyr::pull(n)
 
   cnt <- rankDf %>%
-    dplyr::filter(event == "Amoxicillin+Clavulanate", rank == 1) %>%
+    dplyr::filter(event == "Acetaminophen+Doxylamine", rank == 1) %>%
     dplyr::pull(freq)
 
   expect_equal(expectedCnt, cnt)

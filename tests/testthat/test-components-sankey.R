@@ -6,15 +6,18 @@ pathways <- OhdsiReportGenerator::getTreatmentPathways(
   tpTablePrefix = resultDatabaseSettingsTreatmentPatterns$tpTablePrefix
 )
 
-fake_widget <- htmlwidgets::createWidget(
+fakeWidget <- htmlwidgets::createWidget(
   name = "mockSankey",
   x = list(message = "mock sankey"),
   package = "htmlwidgets"
 )
 
+fakeCreateSankey <- function(...) {
+  fake_widget
+}
 
 testthat::local_mocked_bindings(
-  createSankeyDiagram = fake_createSankey,
+  createSankeyDiagram = fakeCreateSankey,
   .package = "TreatmentPatterns"
 )
 
@@ -27,9 +30,8 @@ shiny::testServer(
   ),
   expr = {
     session$flushReact()
-
+    
     testthat::expect_equal(length(widgetList()), 2)
-
     testthat::expect_setequal(names(widgetList()), c("widget_1", "widget_2"))
   }
 )
