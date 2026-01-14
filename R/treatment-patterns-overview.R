@@ -24,7 +24,7 @@ treatmentPatternsOverviewViewer <- function(id) {
     shiny::helpText("View sunburst plots for target cohorts across databases"),
     shinydashboard::box(
       collapsible = TRUE,
-      title = NULL,
+      title = "Options",
       width = "100%",
       shiny::uiOutput(ns("inputs"))
     ),
@@ -187,11 +187,12 @@ treatmentPatternsOverviewServer <- function(
             sunburstPlotServer(
               id = id,
               pathwayTable = pathway,
-              plotWidth = "100%",
-              plotHeight = "600px",
               sunburstList = input$databaseNames,
               filterColumn = "databaseName",
-              filenamePrefix = paste0(analysis, "_", target)
+              filenamePrefix = paste0(analysis, "_", target),
+              width = "100%",
+              height = "600px",
+              legend = list(w=400, h=30)
             )
           })
         })

@@ -135,7 +135,7 @@ treatmentPatternsServer <- function(
             )
           ),
           shiny::tabPanel(
-            title = "Tabular Data",
+            title = "Sankey Diagrams",
             shinydashboard::box(
               collapsible = T,
               collapsed = F,
@@ -189,6 +189,11 @@ treatmentPatternsTargetInputColumns <- function() {
       ),
       eventCohortList = reactable::colDef(
         name = "Events",
+        minWidth = 600
+      ),
+      exitCohortList = reactable::colDef(
+        show = FALSE,
+        name = "Exit",
         minWidth = 600
       )
     )

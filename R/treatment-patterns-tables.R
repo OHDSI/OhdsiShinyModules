@@ -241,11 +241,12 @@ treatmentPatternsTabularServer <- function(
             sunburstPlotServer(
               id = paste0("sunburst_", idx),
               pathwayTable = pathways,
-              plotWidth = "100%",
-              plotHeight = "700px",
               sunburstList = input$databaseName,
               filterColumn = "databaseName",
-              filenamePrefix = paste0(analysis, "_", target)
+              filenamePrefix = paste0(analysis, "_", target),
+              width = "100%",
+              height = "700px",
+              legend = list(w=400, h=30)
             )
 
             total <- sum(pathways$freq, na.rm = TRUE)

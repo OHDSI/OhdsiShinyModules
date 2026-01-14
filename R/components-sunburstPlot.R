@@ -15,13 +15,10 @@ sunburstPlotViewer <- function(id = "sunburst") {
 sunburstPlotServer <- function(
     id = "sunburst",
     pathwayTable,
-    plotWidth,
-    plotHeight,
-    legendHeight = 30,
-    legendWidth = 400,
     filterColumn,
     sunburstList,
-    filenamePrefix = "sunburst"
+    filenamePrefix = "sunburst",
+    ...
 ) {
   shiny::moduleServer(
     id,
@@ -31,9 +28,7 @@ sunburstPlotServer <- function(
       }
       
       widgetList <- reactiveVal(NULL)
-      
-      legendSpecs <- list(w = legendWidth, h = legendHeight)
-      
+    
       #---- Generate sunburst plots ----
       observeEvent(pathwayTable(), {
         widgets <- list()
@@ -51,11 +46,8 @@ sunburstPlotServer <- function(
               widget <- sunburstR::sunburst(
                 filterTable,
                 sortFunction = htmlwidgets::JS("function (a, b) {return a.value - b.value;}"),
-                width = plotWidth,
-                height = plotHeight,
-                legend = legendSpecs
+                ...
               )
-              
               
               id <- paste0("widget_", idx)
               

@@ -189,12 +189,12 @@ treatmentPatternsSankeyServer <- function(
               sankeyList = input$databaseNames,
               filterColumn = "databaseName",
               filenamePrefix = paste0(analysis, "_", target),
-              width = 900,
-              height = 800,
-              margin = list(right = -350),
+              width = 1200,
+              height = 700,
               nodeWidth = 30,
               nodePadding = 12,
-              fontSize = 12
+              fontSize = 12,
+              sinksRight = FALSE
             )
           })
         })
