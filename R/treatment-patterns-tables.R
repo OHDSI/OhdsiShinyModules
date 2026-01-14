@@ -85,7 +85,7 @@ treatmentPatternsTabularServer <- function(
           ),
           shiny::column(
             width = 2,
-            shiny::selectInput(inputId = session$ns("sex"), label = "Sex Filter", choices = c("all", "Male", "Female"), selected = "all")
+            shiny::selectInput(inputId = session$ns("sex"), label = "Sex Filter", choices = c("all", "male", "female"), selected = "all")
           ),
           shiny::column(
             width = 3,

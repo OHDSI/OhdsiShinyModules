@@ -25,10 +25,9 @@ sankeyPlotServer <- function(
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      if (!inherits(df, "reactive")) {
-        pathwayTable <- shiny::reactiveVal(pathwayTable)
-      }
-
+      
+      pathwayTable <- shiny::reactiveVal(pathwayTable)
+      
       widgetList <- reactiveVal(NULL)
 
       #---- Generate sankey plots ----

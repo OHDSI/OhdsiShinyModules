@@ -23,9 +23,8 @@ sunburstPlotServer <- function(
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      if (!inherits(df, "reactive")) {
-        pathwayTable <- shiny::reactiveVal(pathwayTable)
-      }
+      
+      pathwayTable <- shiny::reactiveVal(pathwayTable)
       
       widgetList <- reactiveVal(NULL)
     
@@ -47,6 +46,51 @@ sunburstPlotServer <- function(
                 filterTable,
                 sortFunction = htmlwidgets::JS("function (a, b) {return a.value - b.value;}"),
                 ...
+              ) %>% 
+              htmlwidgets::onRender(
+                "function(el, x){
+                  function labels(){
+                    const legend = el.querySelector('.sunburst-legend');
+                    const svg = legend.querySelector('svg');
+                    
+                    legend.style.position = 'relative';
+                    const lb = legend.getBoundingClientRect();
+                    // on rerenders remove old html
+                    legend.querySelectorAll('.legend-html-label').forEach(n => n.remove());
+                    svg.querySelectorAll('g').forEach(function(g){
+                      const text = g.querySelector('text');
+                      const label = text.textContent; 
+                      text.remove();
+                      
+                      const gb = g.getBoundingClientRect();
+                      const div = document.createElement('div');
+                      div.className = 'legend-html-label';
+                      div.textContent = label;
+                      div.style.position = 'absolute';
+                      div.style.left = (gb.left - lb.left) + 'px';
+                      div.style.top  = (gb.top  - lb.top)  + 'px';
+                      div.style.width  = gb.width  + 'px';
+                      div.style.height = gb.height + 'px';
+                      div.style.lineHeight = gb.height + 'px';
+                      div.style.textAlign = 'center';
+                      div.style.whiteSpace = 'nowrap';
+                      div.style.overflowX = 'auto';
+                      div.style.overflowY = 'hidden';
+                      div.style.pointerEvents = 'auto';
+                      
+                      //hide scroller
+                      div.style.scrollbarWidth = 'none';     
+                      div.style.msOverflowStyle = 'none';
+                      div.style.webkitOverflowScrolling = 'touch';
+                      div.style.pointerEvents = 'auto';
+                      
+                      legend.appendChild(div);
+                    });
+                  }
+                  
+                  labels();
+                  window.addEventListener('resize', labels);
+                }"
               )
               
               id <- paste0("widget_", idx)
