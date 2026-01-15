@@ -234,10 +234,11 @@ treatmentPatternsTabularServer <- function(
           analysis <- analysisGroup()[idx, ]$analysisId
           target <- analysisGroup()[idx, ]$targetCohortName
 
-          pathways <- pathwayGroups()[[paste0(analysis, ".", target)]] %>%
-            dplyr::select(-sex, -age, -indexYear, -analysisId, -targetCohortId)
+          pathways <- pathwayGroups()[[paste0(analysis, ".", target)]]
 
           if (!is.null(pathways)) {
+            pathways <- pathways %>% dplyr::select(-sex, -age, -indexYear, -analysisId, -targetCohortId)
+
             sunburstPlotServer(
               id = paste0("sunburst_", idx),
               pathwayTable = pathways,
@@ -246,7 +247,7 @@ treatmentPatternsTabularServer <- function(
               filenamePrefix = paste0(analysis, "_", target),
               width = "100%",
               height = "700px",
-              legend = list(w=400, h=30)
+              legend = list(w = 400, h = 30)
             )
 
             total <- sum(pathways$freq, na.rm = TRUE)
