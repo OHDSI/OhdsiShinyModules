@@ -520,7 +520,7 @@ treatmentPatternsColDef <- function(tableId) {
       ),
       durationMedian = reactable::colDef(
         name = "Median",
-        header = OhdsiShinyModules:::withTooltip("Medain", "Median number of days for event"),
+        header = OhdsiShinyModules:::withTooltip("Median", "Median number of days for event"),
         filterable = TRUE
       ),
       p25Value = reactable::colDef(
