@@ -62,6 +62,9 @@ sunburstPlotServer <- function(
                       const label = text.textContent; 
                       text.remove();
                       
+                      svg.style.position = 'relative';
+                      svg.style.zIndex = '1';          
+                       
                       const gb = g.getBoundingClientRect();
                       const div = document.createElement('div');
                       div.className = 'legend-html-label';
@@ -77,6 +80,9 @@ sunburstPlotServer <- function(
                       div.style.overflowX = 'auto';
                       div.style.overflowY = 'hidden';
                       div.style.pointerEvents = 'auto';
+                      div.style.zIndex = '2'
+                      legend.style.position = 'relative';
+
                       
                       //hide scroller
                       div.style.scrollbarWidth = 'none';     

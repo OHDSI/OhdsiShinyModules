@@ -507,7 +507,8 @@ treatmentPatternsColDef <- function(tableId) {
       durationAverage = reactable::colDef(
         name = "Average",
         header = OhdsiShinyModules:::withTooltip("Average", "Average number of days for event"),
-        filterable = TRUE
+        filterable = TRUE,
+        format = reactable::colFormat(digits = 2, percent = TRUE)
       ),
       durationMax = reactable::colDef(
         name = "Max Duration",
