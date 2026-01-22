@@ -192,6 +192,23 @@ estimationGetCmResultSummaryTableColDef <- function(){
       minWidth = 300
     ),
     
+    indicationName = reactable::colDef(
+      name= "Indication",
+      header = withTooltip(
+        "Indication",
+        "The indication of interest"
+      ),
+      minWidth = 300
+    ),
+    
+    indicationId = reactable::colDef(
+      name = "Indication ID",
+      header = withTooltip(
+        "Indication ID",
+        "The ID of the indication of interest"
+      )
+    ),
+    
     outcomeId = reactable::colDef(
       name = "Outcome ID",
       header = withTooltip(

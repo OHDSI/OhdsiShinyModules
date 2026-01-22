@@ -256,6 +256,7 @@ estimationGetCmDiagnosticColDefs <- function(){
     outcomeId = reactable::colDef(show = FALSE),
     targetId = reactable::colDef(show = FALSE),
     comparatorId = reactable::colDef(show = FALSE),
+    indicationId = reactable::colDef(show = FALSE),
     databaseId = reactable::colDef(show = FALSE),
     analysisId = reactable::colDef(show = FALSE)
   )
