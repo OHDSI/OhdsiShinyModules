@@ -80,6 +80,14 @@ estimationGetCmDiagnosticColDefs <- function(){
     outcomeName = reactable::colDef(
       show = FALSE
     ),
+    indicationName = reactable::colDef(
+      name = "Indication",
+      header = withTooltip(
+        "Indication",
+        "The indication of interest"
+      ),
+      sticky = "left"
+    ),
     summaryValue =  reactable::colDef(
       name = "Diagnostic",
       header = withTooltip(
