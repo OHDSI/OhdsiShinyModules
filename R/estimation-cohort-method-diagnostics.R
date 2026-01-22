@@ -228,6 +228,22 @@ estimationGetCmDiagnosticColDefs <- function(){
         "(Depreciated) The attrition fraction for the analysis"
       )
     ),
+
+    sdmFamilyWiseMinP = reactable::colDef(
+      name = "SDM family-wise min P-value",
+      header = withTooltip(
+        "SDM family-wise P-value",
+        "The minimum family-wise P-value for the test whether the absolute SDM exceeds the diagnostic threshold."
+      )
+    ),
+    
+    sharedSdmFamilyWiseMinP = reactable::colDef(
+      name = "Shared SDM family-wise min P-value",
+      header = withTooltip(
+        "Shared SDM family-wise P-value",
+        "The minimum family-wise P-value for the test whether the absolute SDM exceeds the diagnostic threshold for the shared balance (across all outcomes)."
+      )
+    ),
     
     outcomeId = reactable::colDef(show = FALSE),
     targetId = reactable::colDef(show = FALSE),

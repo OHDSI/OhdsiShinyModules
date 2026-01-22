@@ -50,5 +50,5 @@ Suggests:
     testthat,
     withr
 Remotes:
-    ohdsi/OhdsiReportGenerator
+    ohdsi/OhdsiReportGenerator@cm_version_6
 RoxygenNote: 7.3.2
