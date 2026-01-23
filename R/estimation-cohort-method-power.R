@@ -148,7 +148,7 @@ cohortMethodPowerServer <- function(
             resultDatabaseSettings = resultDatabaseSettings,
             targetId = row$targetId,
             comparatorId = row$comparatorId,
-            indicationId = row$indicationId,
+            indicationId = indicationId,
             outcomeId = row$outcomeId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
@@ -289,7 +289,7 @@ getCmFollowUpDist <- function(
     resultDatabaseSettings,
     targetId = NULL,
     comparatorId = NULL,
-    indicationId = NULL,
+    indicationId = NA,
     outcomeId = NULL,
     databaseId = NULL,
     analysisId = NULL
@@ -297,6 +297,13 @@ getCmFollowUpDist <- function(
   
   if(is.null(targetId)){
     return(NULL)
+  }
+  
+  # Convert the default NA to NULL
+  # for indicationId so taht the 
+  # data retrival works properly
+  if (is.na(indicationId)) {
+    indicationId <- NULL
   }
   
   result <- OhdsiReportGenerator::getCmTable(
