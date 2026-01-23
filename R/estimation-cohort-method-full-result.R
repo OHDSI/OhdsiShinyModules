@@ -71,6 +71,7 @@ estimationCmFullResultServer <- function(
           dplyr::select(
             "targetName",
             "comparatorName",
+            "indicationName",
             "outcomeName",
             "description",
             "databaseName"
@@ -78,6 +79,7 @@ estimationCmFullResultServer <- function(
           dplyr::rename(
             Target = "targetName",
             Comparator = "comparatorName",
+            Indication = "indicationName",
             Outcome = "outcomeName",
             Analysis = "description",
             Database = "databaseName"

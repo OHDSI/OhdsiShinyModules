@@ -172,7 +172,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
         "Target",
         "The target cohort of interest"
       ),
-      minWidth = 300
+      minWidth = 200
     ),
     
     comparatorId = reactable::colDef(
@@ -189,7 +189,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
         "Comparator",
         "The comparator cohort of interest"
       ),
-      minWidth = 300
+      minWidth = 200
     ),
     
     indicationName = reactable::colDef(
@@ -198,7 +198,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
         "Indication",
         "The indication of interest"
       ),
-      minWidth = 300
+      minWidth = 200
     ),
     
     indicationId = reactable::colDef(
@@ -223,7 +223,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
         "Outcome",
         "The outcome of interest"
       ),
-      minWidth = 300
+      minWidth = 200
     ),
     
     rr = reactable::colDef(
