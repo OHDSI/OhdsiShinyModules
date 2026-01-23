@@ -77,6 +77,7 @@ cohortMethodPopulationCharacteristicsServer <- function(
             resultDatabaseSettings = resultDatabaseSettings,
             targetId = selectedRow()$targetId,
             comparatorId = selectedRow()$comparatorId,
+            indicationId = selectedRow()$indicationId,
             outcomeId = selectedRow()$outcomeId,
             databaseId = selectedRow()$databaseId,
             analysisId = selectedRow()$analysisId
@@ -181,6 +182,7 @@ getCohortMethodPopChar <- function(
     resultDatabaseSettings,
     targetId,
     comparatorId,
+    indicationId = NA,
     analysisId,
     databaseId = NULL,
     outcomeId = NULL
@@ -190,6 +192,13 @@ getCohortMethodPopChar <- function(
     
     shiny::incProgress(1/3, detail = paste("Extracting"))
     
+    # Convert the default NA to NULL
+    # for indicationId so data retrieval
+    # works properly
+    if (is.na(indicationId)) {
+      indicationId <- NULL
+    }
+
     result <- OhdsiReportGenerator::getCmTable(
       connectionHandler = connectionHandler, 
       schema = resultDatabaseSettings$schema, 
@@ -199,6 +208,7 @@ getCohortMethodPopChar <- function(
       databaseTable = resultDatabaseSettings$databaseTable, 
       targetIds = targetId,
       comparatorIds = comparatorId,
+      indicationIds = indicationId,
       outcomeIds = outcomeId,
       analysisIds = analysisId,
       databaseIds = databaseId

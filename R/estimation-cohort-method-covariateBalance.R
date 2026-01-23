@@ -102,6 +102,7 @@ cohortMethodCovariateBalanceServer <- function(
           resultDatabaseSettings = resultDatabaseSettings,
           targetId = row$targetId,
           comparatorId = row$comparatorId,
+          indicationId = row$indicationId,
           databaseId = row$databaseId,
           analysisId = row$analysisId)},
           error = function(e){print(e);return(data.frame())}
@@ -363,6 +364,7 @@ getCohortMethodCovariateBalanceShared <- function(
     resultDatabaseSettings,
     targetId,
     comparatorId,
+    indicationId = NA,
     analysisId,
     #covariateAnalysisId,
     databaseId = NULL
@@ -370,8 +372,15 @@ getCohortMethodCovariateBalanceShared <- function(
   
   shiny::withProgress(message = 'Extracting covariate balance', value = 0, {
     
-      shiny::incProgress(1/6, detail = paste("Writing sql"))
-  
+    shiny::incProgress(1/6, detail = paste("Writing sql"))
+
+    # Convert the default NA to NULL
+    # for indicationId so data retrieval
+    # works properly
+    if (is.na(indicationId)) {
+      indicationId <- NULL
+    }
+    
   result <- OhdsiReportGenerator::getCmTable(
     connectionHandler = connectionHandler, 
     schema = resultDatabaseSettings$schema, 
@@ -381,6 +390,7 @@ getCohortMethodCovariateBalanceShared <- function(
     databaseTable = resultDatabaseSettings$databaseTable, 
     targetIds = targetId,
     comparatorIds = comparatorId,
+    indicationIds = indicationId,
     analysisIds = analysisId,
     databaseIds = databaseId
     )
@@ -412,7 +422,9 @@ getCohortMethodCovariateBalanceSummary <- function(
     resultDatabaseSettings,
     databaseId,
     targetId, 
-    comparatorId, analysisId,
+    comparatorId, 
+    indicationId = NA,
+    analysisId,
     beforeLabel = "Before matching",
     afterLabel = "After matching"
     ) {
@@ -421,6 +433,7 @@ getCohortMethodCovariateBalanceSummary <- function(
     connectionHandler = connectionHandler,
     targetId = targetId,
     comparatorId = comparatorId,
+    indicationId = indicationId,
     analysisId = analysisId,
     resultDatabaseSettings = resultDatabaseSettings,
     databaseId = databaseId

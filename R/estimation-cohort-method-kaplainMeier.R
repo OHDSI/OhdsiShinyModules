@@ -72,6 +72,7 @@ cohortMethodKaplanMeierServer <- function(
             resultDatabaseSettings = resultDatabaseSettings,
             targetId = row$targetId,
             comparatorId = row$comparatorId,
+            indicationId = row$indicationId,
             outcomeId = row$outcomeId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
@@ -136,10 +137,18 @@ getCohortMethodKaplanMeier <- function(
     resultDatabaseSettings,
     targetId, 
     comparatorId, 
+    indicationId = NA,
     outcomeId, 
     databaseId, 
     analysisId
 ) {
+  
+  # Convert the default NA to NULL
+  # for indicationId so data retrieval
+  # works properly
+  if (is.na(indicationId)) {
+    indicationId <- NULL
+  }
   
   result <- OhdsiReportGenerator::getCmTable(
     connectionHandler = connectionHandler, 
@@ -150,6 +159,7 @@ getCohortMethodKaplanMeier <- function(
     databaseTable = resultDatabaseSettings$databaseTable, 
     targetIds = targetId,
     comparatorIds = comparatorId,
+    indicationIds = indicationId,
     outcomeIds = outcomeId,
     analysisIds = analysisId,
     databaseIds = databaseId

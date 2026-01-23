@@ -117,6 +117,13 @@ getCohortMethodAttrition <- function(
     return(NULL)
   }
   
+  # Convert the default NA to NULL
+  # for indicationId so data retrieval
+  # works properly
+  indicationId <- selectedRow()$indicationId
+  if (is.na(indicationId)) {
+    indicationId <- NULL
+  }
   
   result <- OhdsiReportGenerator::getCmTable(
     connectionHandler = connectionHandler, 
@@ -125,7 +132,7 @@ getCohortMethodAttrition <- function(
     cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
     targetIds = selectedRow()$targetId,
     comparatorIds = selectedRow()$comparatorId,
-    indicationIds = selectedRow()$indicationId,
+    indicationIds = indicationId,
     outcomeIds = selectedRow()$outcomeId,
     analysisIds = selectedRow()$analysisId,
     databaseIds = selectedRow()$databaseId

@@ -148,7 +148,7 @@ cohortMethodPowerServer <- function(
             resultDatabaseSettings = resultDatabaseSettings,
             targetId = row$targetId,
             comparatorId = row$comparatorId,
-            indicationId = indicationId,
+            indicationId = row$indicationId,
             outcomeId = row$outcomeId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
@@ -300,8 +300,8 @@ getCmFollowUpDist <- function(
   }
   
   # Convert the default NA to NULL
-  # for indicationId so taht the 
-  # data retrival works properly
+  # for indicationId so data retrieval
+  # works properly
   if (is.na(indicationId)) {
     indicationId <- NULL
   }

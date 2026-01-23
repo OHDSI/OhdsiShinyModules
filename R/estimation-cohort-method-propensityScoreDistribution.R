@@ -77,6 +77,7 @@ cohortMethodPropensityScoreDistServer <- function(
             resultDatabaseSettings = resultDatabaseSettings,
             targetId = row$targetId,
             comparatorId = row$comparatorId,
+            indicationId = row$indicationId,
             analysisId = row$analysisId,
             databaseId = row$databaseId
           )
@@ -160,11 +161,19 @@ getCohortMethodPs <- function(
     resultDatabaseSettings,
     targetId, 
     comparatorId, 
+    indicationId = NA,
     analysisId, 
     databaseId = NULL
 ) {
   if(is.null(targetId)){
     return(NULL)
+  }
+  
+  # Convert the default NA to NULL
+  # for indicationId so data retrieval
+  # works properly
+  if (is.na(indicationId)) {
+    indicationId <- NULL
   }
   
   result <- OhdsiReportGenerator::getCmTable(
@@ -176,6 +185,7 @@ getCohortMethodPs <- function(
     databaseTable = resultDatabaseSettings$databaseTable, 
     targetIds = targetId, 
     comparatorIds = comparatorId, 
+    indicationIds = indicationId,
     analysisIds = analysisId,
     databaseIds = databaseId
   )
