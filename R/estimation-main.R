@@ -191,9 +191,9 @@ estimationServer <- function(
         )
       
       # Targets
-      parentInd <- targetTable$cohortId == targetTable$subsetParent
-      targets <- targetTable$cohortId[parentInd]
-      names(targets) <- targetTable$cohortName[parentInd]
+      targetDf <- unique(targetTable[,c('subsetParent', 'parentName')])
+      targets <- targetDf$subsetParent
+      names(targets) <- targetDf$parentName
       targets <- targets[order(names(targets))]
       
       output$targetSelection <- shiny::renderUI({
