@@ -295,6 +295,7 @@ createCdDatabaseDataSource <- function(
   dataSource$temporalChoices <- getResultsTemporalTimeRef(dataSource = dataSource)
   
   if (hasData(dataSource$temporalChoices)) {
+
     dataSource$temporalCharacterizationTimeIdChoices <- dataSource$temporalChoices %>%
       dplyr::arrange(.data$sequence)
     
@@ -374,7 +375,15 @@ getResultsTemporalTimeRef <- function(dataSource) {
     )
   
   if (nrow(temporalTimeRef) == 0) {
-    return(NULL)
+    return(
+      dplyr::tibble(
+        timeId = c(-1,1),
+        temporalChoices = c("Time invariant", "made-up"),
+        primaryTimeId = c(1,1),
+        isTemporal = c(0,0),
+        sequence = 1:2
+      )
+    )
   }
   
   temporalChoices <- temporalTimeRef %>%
@@ -588,6 +597,7 @@ cohortDiagnosticsServer <- function(id,
     })
     
     cohortSubset <- shiny::reactive({
+      
       return(cohortTable %>%
                dplyr::arrange(.data$cohortId))
     })
@@ -643,6 +653,7 @@ cohortDiagnosticsServer <- function(id,
     })
     
     selectedCohorts <- shiny::reactive({
+
       cohorts <- cohortSubset() %>%
         dplyr::filter(.data$cohortId %in% cohortIds()) %>%
         dplyr::arrange(.data$cohortId) %>%
