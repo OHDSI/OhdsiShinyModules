@@ -433,8 +433,10 @@ patientLevelPredictionModelServer <- function(
           output$viewModelDesign <- shiny::reactive(0)
           
           uniqueModels <- unique(performances()[performanceRowIds(),] %>%
+                                   normalizePredictionAlgorithmName() %>%
                                    dplyr::select(
                                      'modelDesignId',
+                                     'algorithmName',
                                      'modelType',
                                      'developmentDatabase',
                                      "developmentTargetName", 
@@ -443,7 +445,8 @@ patientLevelPredictionModelServer <- function(
                                      'developmentDatabaseId'
                                    ))
           
-          uniqueModels$name <- paste0('Model ', uniqueModels$modelDesignId, ' a ', uniqueModels$modelType,
+          uniqueModels$name <- paste0('Model ', uniqueModels$modelDesignId, ': ', uniqueModels$algorithmName,
+                                      ' (', uniqueModels$modelType, ')',
                                       ' predicting ', uniqueModels$developmentOutcomeName, ' in ', 
                                       uniqueModels$developmentTargetName, ' during ', uniqueModels$developmentTimeAtRisk, 
                                       ' in ', uniqueModels$developmentDatabase )
@@ -497,15 +500,18 @@ patientLevelPredictionModelServer <- function(
           output$viewModelDesign <- shiny::reactive(1)
           
           uniqueModels <- unique(performances()[performanceRowIds(),] %>%
+                                   normalizePredictionAlgorithmName() %>%
                                    dplyr::select(
                                      'modelDesignId',
+                                     'algorithmName',
                                      'modelType',
                                      "developmentTargetName", 
                                      "developmentOutcomeName", 
                                      'developmentTimeAtRisk'
                                    ))
           
-          uniqueModels$name <- paste0('Model ', uniqueModels$modelDesignId, ' a ', uniqueModels$modelType,
+          uniqueModels$name <- paste0('Model ', uniqueModels$modelDesignId, ': ', uniqueModels$algorithmName,
+                                      ' (', uniqueModels$modelType, ')',
                                       ' predicting ', uniqueModels$developmentOutcomeName, ' in ', 
                                       uniqueModels$developmentTargetName, ' during ', uniqueModels$developmentTimeAtRisk)
           
@@ -683,4 +689,3 @@ addValidationName <- function(result){
   
   return(result)
 }
-

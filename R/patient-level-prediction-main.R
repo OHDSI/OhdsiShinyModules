@@ -31,6 +31,18 @@ patientLevelPredictionHelperFile <- function(){
   return(fileLoc)
 }
 
+normalizePredictionAlgorithmName <- function(performances) {
+  if (!"algorithmName" %in% colnames(performances)) {
+    performances$algorithmName <- performances$modelType
+    return(performances)
+  }
+
+  missingAlgorithmName <- is.na(performances$algorithmName) | trimws(performances$algorithmName) == ""
+  performances$algorithmName[missingAlgorithmName] <- performances$modelType[missingAlgorithmName]
+
+  performances
+}
+
 #' The module viewer for exploring PatientLevelPrediction
 #'
 #' @details
@@ -133,13 +145,15 @@ patientLevelPredictionServer <- function(
         databaseTable = resultDatabaseSettings$databaseTable, 
         databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
       ) %>%
+        normalizePredictionAlgorithmName() %>%
         dplyr::relocate("performanceId") %>%
         dplyr::relocate("developmentDatabase", .after = "performanceId") %>%
         dplyr::relocate("developmentTargetName", .after = "developmentDatabase") %>%
         dplyr::relocate("developmentOutcomeName", .after = "developmentTargetName") %>%
         dplyr::relocate("developmentTimeAtRisk", .after = "developmentOutcomeName") %>%
         dplyr::relocate("modelDesignId", .after = "developmentTimeAtRisk") %>%
-        dplyr::relocate("validationDatabase", .after = "modelDesignId") %>%
+        dplyr::relocate("algorithmName", .after = "modelDesignId") %>%
+        dplyr::relocate("validationDatabase", .after = "algorithmName") %>%
         dplyr::relocate("validationTargetName", .after = "validationDatabase") %>%
         dplyr::relocate("validationOutcomeName", .after = "validationTargetName") %>%
         dplyr::relocate("validationTimeAtRisk", .after = "validationOutcomeName") %>%
@@ -158,12 +172,12 @@ patientLevelPredictionServer <- function(
             name = 'Performance ID',
             show = TRUE
             ),
-          madeUp = reactable::colDef(name = 'testing'),
           covariateName = reactable::colDef(
             name = 'Covariates', 
             minWidth = 200
             ),
           modelDesignId = reactable::colDef(name = 'Model ID'),
+          algorithmName = reactable::colDef(name = 'Algorithm'),
           developmentDatabaseId = reactable::colDef(show = FALSE),
           validationDatabaseId  = reactable::colDef(show = FALSE),
           developmentTargetId = reactable::colDef(show = FALSE),
@@ -559,6 +573,4 @@ patientLevelPredictionServer <- function(
     }
   )
 }
-
-
 
