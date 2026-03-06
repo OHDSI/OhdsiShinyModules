@@ -324,6 +324,44 @@ estimationGetCmResultSummaryTableColDef <- function(){
       format = reactable::colFormat(digits = 0),
       na = "-"
     ),
+
+    pi95Lb = reactable::colDef(
+      name = "Lower 95% Prediction Interval",
+      header = withTooltip(
+        "Lower 95% Prediction Interval",
+        "The lower bound of the 95% prediction interval of the relative risk"
+      ), 
+      format = reactable::colFormat(digits = 4),
+      na = "-"
+    ),
+    
+    pi95Ub = reactable::colDef(
+      name = "Upper 95% Prediction Interval",
+      header = withTooltip(
+        "Upper 95% Prediction Interval",
+        "The upper bound of the 95% prediction internval of the relative risk"
+      ), 
+      format = reactable::colFormat(digits = 4),
+      na = "-"
+    ),
+    calibratedPi95Lb = reactable::colDef(
+      name = "Calibrated lower 95% Prediction Interval",
+      header = withTooltip(
+        "Calibrated lower 95% Prediction Interval",
+        "The lower bound of the calibrated 95% prediction interval of the relative risk"
+      ), 
+      format = reactable::colFormat(digits = 4),
+      na = "-"
+    ),
+    calibratedPi95Ub = reactable::colDef(
+      name = "Calibrated upper 95% Prediction Interval",
+      header = withTooltip(
+        "Calibrated upper 95% Prediction Interval",
+        "The upper bound of the calibrated 95% prediction internval of the relative risk"
+      ), 
+      format = reactable::colFormat(digits = 4),
+      na = "-"
+    ),
     
     targetEstimator = reactable::colDef(show = FALSE),
     logRr = reactable::colDef(show = FALSE),
@@ -352,6 +390,7 @@ estimationGetCmResultSummaryTableColDef <- function(){
     calibratedSeLogRr = reactable::colDef(show = FALSE),
     calibratedSeLogRr = reactable::colDef(show = FALSE),
     unblind = reactable::colDef(show = FALSE)
+    
   )
   
   return(result)
