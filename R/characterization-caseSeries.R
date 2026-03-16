@@ -423,14 +423,25 @@ characterizationGetCaseSeriesData <- function(
       databaseIds = databaseId
     )
     
-    binary <- binary %>% tidyr::pivot_wider(
-      id_cols = c('covariateName', 'covariateId', 
-                  'minPriorObservation', 'outcomeWashoutDays', 'casePostOutcomeDuration',
-                  'casePreTargetDuration'), 
-      names_from = 'type', 
-      values_from = c('sumValue', 'averageValue'), 
-      values_fill = 0
-        )
+    binary <- binary %>%
+      dplyr::select(-dplyr::any_of(
+        c("databaseId","databaseName",
+        "targetName","targetCohortId", 
+        "outcomeName", "outcomeCohortId",
+        "riskWindowStart", "riskWindowEnd",
+        "startAnchor", "endAnchor"
+        ))
+        ) %>%
+      dplyr::relocate(.data$covariateName)
+    
+    #binary <- binary %>% tidyr::pivot_wider(
+    #  id_cols = c('covariateName', 'covariateId', 
+    #              'minPriorObservation', 'outcomeWashoutDays', 'casePostOutcomeDuration',
+    #              'casePreTargetDuration'), 
+    #  names_from = 'type', 
+    #  values_from = c('sumValue', 'averageValue'), 
+    #  values_fill = 0
+    #    )
   
   
   shiny::incProgress(3/4, detail = paste("Extracting continuous"))
@@ -450,16 +461,28 @@ characterizationGetCaseSeriesData <- function(
     databaseIds = databaseId
   )
   
-  continuous <- continuous %>% tidyr::pivot_wider(
-    id_cols = c('covariateName', 'covariateId', 
-                'minPriorObservation', 'outcomeWashoutDays', 'casePostOutcomeDuration',
-                'casePreTargetDuration'), 
-    names_from = 'type', 
-    values_from = c('countValue', 'minValue', 'maxValue',
-                    'averageValue', 'standardDeviation', 'medianValue'
-    ), 
-    values_fill = 0
-  )
+  continuous <- continuous %>%
+    dplyr::select(-dplyr::any_of(
+    c("databaseId","databaseName",
+      "targetName","targetCohortId", 
+      "outcomeName", "outcomeCohortId",
+      "riskWindowStart", "riskWindowEnd",
+      "startAnchor", "endAnchor",
+      "covariateId"
+    ))
+  ) %>%
+    dplyr::relocate(.data$covariateName)
+  
+  #continuous <- continuous %>% tidyr::pivot_wider(
+  #  id_cols = c('covariateName', 'covariateId', 
+  #              'minPriorObservation', 'outcomeWashoutDays', 'casePostOutcomeDuration',
+  #              'casePreTargetDuration'), 
+  #  names_from = 'type', 
+  #  values_from = c('countValue', 'minValue', 'maxValue',
+  #                  'averageValue', 'standardDeviation', 'medianValue'
+  #  ), 
+  #  values_fill = 0
+  #)
   
   shiny::incProgress(4/4, detail = paste("Done"))
   
