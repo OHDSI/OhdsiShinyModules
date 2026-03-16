@@ -555,13 +555,13 @@ characterizationCohortsColumns <- function(
     minPriorObservation = reactable::colDef(
       show = FALSE
     ), 
-    SMD = reactable::colDef(
+    smd = reactable::colDef(
       name = "SMD",
       header = withTooltip("SMD",
                            "Standardized mean difference between the target and comparator percentages"),
       format = reactable::colFormat(digits = 3)
     ),
-    absSMD = reactable::colDef(
+    absSmd = reactable::colDef(
       name = "absSMD",
       header = withTooltip("absSMD",
                            "Absolute standardized mean difference between the target and comparator percentages"),
@@ -617,13 +617,13 @@ characterizationCohortsColumnsContinuous <- function(){
     minPriorObservation = reactable::colDef(
       show = FALSE
     ),
-    SMD = reactable::colDef(
+    smd = reactable::colDef(
       name = "SMD",
       header = withTooltip("SMD",
                            "Standardized mean difference"),
       format = reactable::colFormat(digits = 3)
     ),
-    absSMD = reactable::colDef(
+    absSmd = reactable::colDef(
       name = "absSMD",
       header = withTooltip("absSMD",
                            "Absolute standardized mean difference"),

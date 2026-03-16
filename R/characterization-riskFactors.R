@@ -550,7 +550,7 @@ characteriationRiskFactorColDefs <- function(
       format = reactable::colFormat(digits = 2, percent = TRUE)
     ), 
     
-    SMD = reactable::colDef(
+    smd = reactable::colDef(
       name = "SMD",
       header = withTooltip("SMD",
                            "Standardized mean difference"),
@@ -558,7 +558,7 @@ characteriationRiskFactorColDefs <- function(
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
     
-    absSMD = reactable::colDef(
+    absSmd = reactable::colDef(
       name = "absSMD",
       header = withTooltip("absSMD",
                            "Absolute value of standardized mean difference"),
@@ -794,14 +794,14 @@ characteriationRiskFactorContColDefs <- function(
     # low_outlier, low_whisker, q1, median, q3, high_whisker, high_outlier
     #sparkline::spk_chr(c(data$targetMinValue[index], data$targetP10Value[index], data$targetP25Value[index], data$targetMedianValue[index], 3, 6, 6), type="box", raw = TRUE, width = 200)
     
-    SMD = reactable::colDef(
+    smd = reactable::colDef(
       name = "SMD",
       header = withTooltip("SMD",
                            "Standardized mean difference"), 
       filterable = TRUE, 
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    absSMD = reactable::colDef(
+    absSmd = reactable::colDef(
       name = "absSMD",
       header = withTooltip("absSMD",
                            "Absolute value of the standardized mean difference"), 
