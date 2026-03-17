@@ -243,14 +243,16 @@ estimationGetCmDiagnosticColDefs <- function(){
       header = withTooltip(
         "sdmFamilyWiseMinP",
         " "
-      )
+      ),
+      format = reactable::colFormat(digits = 2)
     ),
     sharedSdmFamilyWiseMinP = reactable::colDef(
       name = "sharedSdmFamilyWiseMinP",
       header = withTooltip(
         "sharedSdmFamilyWiseMinP",
         " "
-      )
+      ),
+      format = reactable::colFormat(digits = 2)
     ),
     
     outcomeId = reactable::colDef(show = FALSE),
