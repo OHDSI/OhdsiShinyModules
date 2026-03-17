@@ -40,6 +40,7 @@ estimationCmDiagnosticServer <- function(
           'description',
           'targetName',
           'comparatorName',
+          'indicationName',
           'summaryValue'
         ),
         elementId = session$ns('cmDiagnosticsTable')
@@ -74,6 +75,14 @@ estimationGetCmDiagnosticColDefs <- function(){
       header = withTooltip(
         "Comparator",
         "The comparator cohort of interest"
+      ),
+      sticky = "left"
+    ),
+    indicationName = reactable::colDef(
+      name = "Indication",
+      header = withTooltip(
+        "Indication",
+        "The indication cohort that is restricted to"
       ),
       sticky = "left"
     ),
@@ -229,11 +238,27 @@ estimationGetCmDiagnosticColDefs <- function(){
       )
     ),
     
+    sdmFamilyWiseMinP = reactable::colDef(
+      name = "sdmFamilyWiseMinP",
+      header = withTooltip(
+        "sdmFamilyWiseMinP",
+        " "
+      )
+    ),
+    sharedSdmFamilyWiseMinP = reactable::colDef(
+      name = "sharedSdmFamilyWiseMinP",
+      header = withTooltip(
+        "sharedSdmFamilyWiseMinP",
+        " "
+      )
+    ),
+    
     outcomeId = reactable::colDef(show = FALSE),
     targetId = reactable::colDef(show = FALSE),
     comparatorId = reactable::colDef(show = FALSE),
     databaseId = reactable::colDef(show = FALSE),
-    analysisId = reactable::colDef(show = FALSE)
+    analysisId = reactable::colDef(show = FALSE),
+    indicationId  = reactable::colDef(show = FALSE)
   )
   
   return(result)

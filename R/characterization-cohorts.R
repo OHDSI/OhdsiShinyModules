@@ -220,11 +220,11 @@ characterizationCohortComparisonServer <- function(
               output$showCohortComp <- shiny::reactive(1)
           
             output$helpTextBinary <- shiny::renderUI(
-              shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts (restricted to first index date and requiring ",
+              shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts (restricted to first exposure in ",countTable$limitToFirstInNDays[1]," and requiring ",
                                      countTable$minPriorObservation[1]," days observation prior to index) with a history of each binary features across databases."))
             )
             output$helpTextContinuous <- shiny::renderUI(
-              shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts (restricted to first index date and requiring ",
+              shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts (restricted to first exposure in ",countTable$limitToFirstInNDays[1]," and requiring ",
                                      countTable$minPriorObservation[1]," days observation prior to index) with a history of each continuous features across databases."))
             )
             
@@ -555,6 +555,9 @@ characterizationCohortsColumns <- function(
     minPriorObservation = reactable::colDef(
       show = FALSE
     ), 
+    limitToFirstInNDays = reactable::colDef(
+      show = FALSE
+    ), 
     smd = reactable::colDef(
       name = "SMD",
       header = withTooltip("SMD",
@@ -571,19 +574,7 @@ characterizationCohortsColumns <- function(
         return rows.filter(function(row) {
           return row.values[columnId] >= filterValue
         })
-      }"),
-      filterInput = function(values, name) {
-        oninput <- sprintf("Reactable.setFilter('%s', '%s', this.value)", elementId, name)
-        shiny::tags$input(
-          type = "range",
-          min = floor(min(values, na.rm = T)),
-          max = ceiling(max(values, na.rm = T)),
-          value = floor(min(values, na.rm = T)),
-          oninput = oninput,
-          onchange = oninput, # For IE11 support
-          "aria-label" = sprintf("Filter by minimum %s", name)
-        )
-      }
+      }")
     ),
     analysisName = reactable::colDef(
       name = "Covariate Class",
@@ -617,6 +608,10 @@ characterizationCohortsColumnsContinuous <- function(){
     minPriorObservation = reactable::colDef(
       show = FALSE
     ),
+    limitToFirstInNDays = reactable::colDef(
+      show = FALSE,
+      filterable = TRUE
+    ), 
     smd = reactable::colDef(
       name = "SMD",
       header = withTooltip("SMD",
@@ -627,7 +622,13 @@ characterizationCohortsColumnsContinuous <- function(){
       name = "absSMD",
       header = withTooltip("absSMD",
                            "Absolute standardized mean difference"),
-      format = reactable::colFormat(digits = 3)
+      format = reactable::colFormat(digits = 3),
+      filterable = TRUE,
+      filterMethod = reactable::JS("function(rows, columnId, filterValue) {
+        return rows.filter(function(row) {
+          return row.values[columnId] >= filterValue
+        })
+      }")
     )
   )
   

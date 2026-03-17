@@ -1,7 +1,7 @@
-#remotes::install_github('ohdsi/OhdsiShinyModules', ref = 'estimation')
-#remotes::install_github("ohdsi/ShinyAppBuilder", ref = "estimation")
+#remotes::install_github('ohdsi/OhdsiReportGenerator', ref = 'develop')
+#remotes::install_github("ohdsi/OhdsiShinyAppBuilder")
 library(dplyr)
-library(ShinyAppBuilder) # need to install if you do not have it 
+library(OhdsiShinyAppBuilder) # need to install if you do not have it 
 library(markdown)
 
 options(java.parameters = "-Xss5m")
@@ -50,7 +50,7 @@ config <- initializeModuleConfig() %>%
     createDefaultPredictionConfig()
   ) %>%
   addModuleConfig(
-    ShinyAppBuilder::createDefaultReportConfig()
+    createDefaultReportConfig()
     )
 
 # create result schema settings
@@ -60,10 +60,15 @@ resultDatabaseSettings <- createDefaultResultDatabaseSettings(
 
 # now create the shiny app based on the config file and view the results
 # based on the connection
-ShinyAppBuilder::createShinyApp(
+Sys.setenv(RESULTS_SERVER=connectionDetails$server())
+Sys.setenv(RESULTS_USER='')
+Sys.setenv(RESULTS_PASSWORD='')
+Sys.setenv(RESULTS_DBMS="sqlite")
+
+OhdsiShinyAppBuilder::createShinyApp(
   config = config,
   connectionDetails = connectionDetails,
-  usePooledConnection = T,
+  usePooledConnection = TRUE,
   resultDatabaseSettings = resultDatabaseSettings, 
   title = 'Testing OhdsiShinyModules with ShinyAppBuilder',
   protocolLink = 'http://ohdsi.org'
