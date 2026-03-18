@@ -218,8 +218,8 @@ fullReportServer <- function(
             indications(
               rbind(
                 data.frame(
-                  cohortName = c('Any', 'None'),
-                  cohortId = c(-1, -1)
+                  cohortName = c('None'),
+                  cohortId = c(-1)
                 ),
                 indicationTemp
               )
@@ -247,15 +247,8 @@ fullReportServer <- function(
             parentId <- fullReportTargets$cohortId[selectedTargetRowId()]
             indicationVal <- indications()[selectedIndicationRowIds(),]
             
-            if('Any' %in% indicationVal$cohortName){
-              targetIds <- unique(targets$cohortId[targets$subsetParent %in% parentId])
-            } else{
-              targetIds <- unique(targets$cohortId[(targets$subsetCohortId %in% indicationVal$cohortId) & 
-                                                               targets$subsetParent == parentId ])
-              if('None' %in% indicationVal$cohortName){
-                targetIds <- unique(c(targetIds, parentId))
-              }
-            }
+            targetIds <- unique(targets$cohortId[targets$subsetParent %in% parentId])
+
             
             # get outcome options
             outcomeVal <- getFullReportOutcomes(
@@ -384,10 +377,6 @@ fullReportServer <- function(
         eventExpr = input$generate, 
         handlerExpr = {
           
-          #print(names(input))
-          #getCohortNames <- unlist(lapply(1:nrow(selections()), function(ind) input[[session$ns(paste0('names_',ind))]]))
-          #print(getCohortNames)
-          
           shiny::withProgress(
             message = 'Generating report', value = 0, {
               # remove file is exists - was used when name was always the same
@@ -400,15 +389,22 @@ fullReportServer <- function(
               shiny::incProgress(0.2, detail = "Generating report")
               
               indicationTemp <- indications()[selectedIndicationRowIds(),]
-              if('Any' %in% indicationTemp$cohortName){
-                indicationIds <- 'All'
+              
+              # if indicationTemp == None then set indicationIds to NULL
+              if(indicationTemp$cohortName[1] == "None" & length(indicationTemp$cohortName) == 1){
+                indicationIds <- NULL
               } else{
-                
-                if('None' %in% indicationTemp$cohortName){
-                  indicationTemp$cohortId[indicationTemp$cohortName %in% 'None'] <- ""
-                }
                 indicationIds <- unique(indicationTemp$cohortId)
+                # remove None if there are indications and None (doesnt make sense together)
+                if(length(grep(-1, indicationIds)) > 0){
+                  indicationIds <- indicationIds[-grep(-1, indicationIds)]
+                }
               }
+              
+              print('OhdsiReportGenerator::generateFullReport')
+              print(fullReportTargets$cohortId[selectedTargetRowId()])
+              print(outcomes()$cohortId[selectedOutcomeRowIds()])
+              print(indicationIds)
               
               # add TryCatch here to prevent app crash on error
               OhdsiReportGenerator::generateFullReport(
@@ -420,7 +416,8 @@ fullReportServer <- function(
                 targetId = fullReportTargets$cohortId[selectedTargetRowId()], 
                 outcomeIds = outcomes()$cohortId[selectedOutcomeRowIds()], 
                 comparatorIds = NULL, 
-                indicationIds = indicationIds,
+                indicationIds = indicationIds, 
+                restrictTargetToIndications = FALSE, # new input
                 cohortNames = selections()$cohortName,
                 cohortIds = selections()$cohortId,
                 webAPI = NULL,
@@ -490,34 +487,10 @@ getFullReportInputs <- function(
   session
   ){
   
-  if('Any' %in% indicationVal$cohortName){
-    targetIds <- unique(targets$cohortId[targets$subsetParent %in% parentId])
-  } else{
-    targetIds <- unique(targets$cohortId[(targets$subsetCohortId %in% indicationVal$cohortId) & 
-                                           targets$subsetParent == parentId ])
-    if('None' %in% indicationVal$cohortName){
-      targetIds <- unique(c(targetIds, parentId))
-    }
-  }
-  
   # get indication ids
-  indicationIds <- c()
-  indicationNames <- c()
-  if(sum(!indicationVal$cohortName %in% c('Any', 'None')) > 0){
-    indicationIds <- indicationVal$cohortId[!indicationVal$cohortName %in% c('Any', 'None')]
-    indicationNames <- unlist(lapply(indicationIds, function(x) targets$cohortName[targets$cohortId == x] ))
-  }
+  indicationIds <- indicationVal$cohortId
+  indicationNames <- indicationVal$cohortName
   
-  if(sum(indicationVal$cohortName %in% c('None')) > 0){
-    indicationIds <- c(indicationIds,0)
-    indicationNames <- c(indicationNames, 'No indication restriction')
-  }
-  
-  if(sum(indicationVal$cohortName %in% c('Any')) > 0){
-    indicationIds <- c(0)
-    indicationNames <- 'All subsets will be included'
-  }
-
   result <- data.frame(
     inputType = c('Target', rep('Indication', length(indicationIds)),
                   rep('Outcome', nrow(outcomes))),

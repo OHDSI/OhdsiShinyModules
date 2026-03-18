@@ -200,11 +200,11 @@ characterizationDatabaseComparisonServer <- function(
         output$showDatabase <- shiny::reactive(1)
           
           output$helpTextBinary <- shiny::renderUI(
-            shiny::helpText(paste0("This analysis shows the fraction of patients in the target cohort (restricted to first index date and requiring ",
+            shiny::helpText(paste0("This analysis shows the fraction of patients in the target cohort (restricted to first exposure in ",countTable$limitToFirstInNDays[1]," days and requiring ",
                             countTable$minPriorObservation[1]," days observation prior to index) with a history of each binary features across databases."))
           )
           output$helpTextContinuous <- shiny::renderUI(
-            shiny::helpText(paste0("This analysis shows the fraction of patients in the target cohort (restricted to first index date and requiring ",
+            shiny::helpText(paste0("This analysis shows the fraction of patients in the target cohort (restricted to first exposure in ",countTable$limitToFirstInNDays[1]," days and requiring ",
                                    countTable$minPriorObservation[1]," days observation prior to index) with a history of each continuous features across databases."))
           )
           
@@ -322,7 +322,7 @@ characterizationDatabaseComparisonServer <- function(
                 cell = function(value) {
                   if (value >= 0) value else paste0('< ', abs(value))
                 },
-                filterable = T
+                filterable = TRUE
               ),
               averageValue = reactable::colDef(
                 name = 'Mean',
