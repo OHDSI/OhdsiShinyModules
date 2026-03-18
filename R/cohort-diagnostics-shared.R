@@ -664,7 +664,7 @@ getDisplayTableColumnMinMaxWidth <- function(data,
       (stringr::str_length(columnNameFormatted) * pixelMultipler) + padPixel
   }
 
-  if ("numeric" %in% class(data[[columnName]])) {
+  if ("numeric" %in% class(data[[columnName]]) || "integer" %in% class(data[[columnName]])) {
     maxWidth <-
       (max(stringr::str_length(
         c(
