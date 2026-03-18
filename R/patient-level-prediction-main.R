@@ -31,6 +31,18 @@ patientLevelPredictionHelperFile <- function(){
   return(fileLoc)
 }
 
+normalizePredictionAlgorithmName <- function(performances) {
+  if (!"algorithmName" %in% colnames(performances)) {
+    performances$algorithmName <- performances$modelType
+    return(performances)
+  }
+
+  missingAlgorithmName <- is.na(performances$algorithmName) | trimws(performances$algorithmName) == ""
+  performances$algorithmName[missingAlgorithmName] <- performances$modelType[missingAlgorithmName]
+
+  performances
+}
+
 #' The module viewer for exploring PatientLevelPrediction
 #'
 #' @details
@@ -133,10 +145,19 @@ patientLevelPredictionServer <- function(
         databaseTable = resultDatabaseSettings$databaseTable, 
         databaseTablePrefix = resultDatabaseSettings$databaseTablePrefix
       ) %>%
-        dplyr::relocate("developmentTargetName") %>%
+        normalizePredictionAlgorithmName() %>%
+        dplyr::relocate("performanceId") %>%
+        dplyr::relocate("developmentDatabase", .after = "performanceId") %>%
+        dplyr::relocate("developmentTargetName", .after = "developmentDatabase") %>%
         dplyr::relocate("developmentOutcomeName", .after = "developmentTargetName") %>%
         dplyr::relocate("developmentTimeAtRisk", .after = "developmentOutcomeName") %>%
         dplyr::relocate("modelDesignId", .after = "developmentTimeAtRisk") %>%
+        dplyr::relocate("algorithmName", .after = "modelDesignId") %>%
+        dplyr::relocate("validationDatabase", .after = "algorithmName") %>%
+        dplyr::relocate("validationTargetName", .after = "validationDatabase") %>%
+        dplyr::relocate("validationOutcomeName", .after = "validationTargetName") %>%
+        dplyr::relocate("validationTimeAtRisk", .after = "validationOutcomeName") %>%
+        
         dplyr::arrange(.data$developmentTargetName, .data$developmentOutcomeName, .data$developmentTimeAtRisk)
       
       
@@ -147,8 +168,16 @@ patientLevelPredictionServer <- function(
         helpText = 'Click the button to select model performances to explore',
         selectMultiple = TRUE,
         inputColumns = list(
-          performanceId = reactable::colDef(name = 'Performance ID',show = TRUE),
+          performanceId = reactable::colDef(
+            name = 'Performance ID',
+            show = TRUE
+            ),
+          covariateName = reactable::colDef(
+            name = 'Covariates', 
+            minWidth = 200
+            ),
           modelDesignId = reactable::colDef(name = 'Model ID'),
+          algorithmName = reactable::colDef(name = 'Algorithm'),
           developmentDatabaseId = reactable::colDef(show = FALSE),
           validationDatabaseId  = reactable::colDef(show = FALSE),
           developmentTargetId = reactable::colDef(show = FALSE),
@@ -202,9 +231,11 @@ patientLevelPredictionServer <- function(
           validationOutcomeName = reactable::colDef(name = 'Val. Outcome'),
           validationOutcomeId = reactable::colDef(show = FALSE),
           timeStamp = reactable::colDef(show = FALSE),
+          validationTarId = reactable::colDef(show = FALSE),
           validationTimeAtRisk = reactable::colDef(
             name = 'Val. TAR'
             ),
+          developmentTarId = reactable::colDef(show = FALSE),
           developmentTimeAtRisk = reactable::colDef(
             name = 'Dev. TAR',
             filterInput = function(values, name) {
@@ -321,7 +352,114 @@ patientLevelPredictionServer <- function(
           `Hosmer-Lemeshow calibration intercept` = reactable::colDef(show = FALSE),
           `Hosmer-Lemeshow calibration gradient` = reactable::colDef(show = FALSE)
         ),
-        #displayColumns = inputColumns,
+        
+        # display
+        displayColumns = list(
+          performanceId = reactable::colDef(
+            name = 'Performance ID',
+            show = TRUE,
+            sticky = 'left'
+          ),
+          modelDesignId = reactable::colDef(name = 'Model ID'),
+          covariateName = reactable::colDef(
+            name = 'Covariates', 
+            minWidth = 200
+          ),
+          developmentDatabaseId = reactable::colDef(show = FALSE),
+          validationDatabaseId  = reactable::colDef(show = FALSE),
+          developmentTargetId = reactable::colDef(show = FALSE),
+          developmentTargetName = reactable::colDef(
+            name = 'Dev. Target', 
+            width = 200, 
+            sticky = 'left'
+          ),
+          developmentOutcomeId = reactable::colDef(show = FALSE),
+          developmentOutcomeName = reactable::colDef(
+            name = 'Dev. Outcome',
+            width = 200,
+            sticky = 'left'
+          ),
+          developmentDatabase = reactable::colDef(
+            name = 'Dev. Database',
+            sticky = 'left'
+            ),
+          validationDatabase = reactable::colDef(name = 'Val. Database'),
+          validationTargetName = reactable::colDef(name = 'Val. Target'),
+          validationTargetId = reactable::colDef(show = FALSE),
+          validationOutcomeName = reactable::colDef(name = 'Val. Outcome'),
+          validationOutcomeId = reactable::colDef(show = FALSE),
+          timeStamp = reactable::colDef(show = FALSE),
+          validationTimeAtRisk = reactable::colDef(
+            name = 'Val. TAR'
+          ),
+          validationTarId = reactable::colDef(show = FALSE),
+          validationTimeAtRiskId = reactable::colDef(
+            show = FALSE
+          ),
+          developmentTimeAtRisk = reactable::colDef(
+            name = 'Dev. TAR'
+            ),
+          developmentTarId = reactable::colDef(show = FALSE),
+          developmentTimeAtRiskId = reactable::colDef(
+            show = FALSE
+          ),
+          evaluation = reactable::colDef(
+            name = 'Evaluation'
+            ),
+          populationSize = reactable::colDef(
+            name = 'N'
+          ),
+          outcomeCount = reactable::colDef(name = 'Outcomes'),
+          AUROC = reactable::colDef(
+            name = 'AUROC',
+            format = reactable::colFormat(digits = 2)
+            ),
+          `95% lower AUROC` = reactable::colDef(
+            name = '95%LB',
+            format = reactable::colFormat(digits = 2)
+            ),
+          `95% upper AUROC` = reactable::colDef(
+            name = '95%UB',
+            format = reactable::colFormat(digits = 2)
+            ),
+          AUPRC = reactable::colDef(
+            name = 'AUPRC',
+            format = reactable::colFormat(digits = 2)
+            ),
+          `brier score` = reactable::colDef(
+            name = 'Brier', 
+            aggregate = 'mean',
+            format = reactable::colFormat(digits = 3)
+          ),
+          `brier score scaled` = reactable::colDef(show = FALSE),
+          `Average Precision` = reactable::colDef(show = FALSE),
+          
+          `Eavg` = reactable::colDef(
+            name = 'Eavg', 
+            format = reactable::colFormat(digits = 3)
+          ),
+          `E90` = reactable::colDef(show = FALSE),
+          `Emax` = reactable::colDef(show = FALSE),
+          `calibrationInLarge mean prediction` = reactable::colDef(
+            name = 'mean pred', 
+            format = reactable::colFormat(digits = 3)
+          ),
+          `calibrationInLarge observed risk` = reactable::colDef(
+            name = 'observed risk',
+            format = reactable::colFormat(digits = 3)
+          ),
+          `calibrationInLarge intercept` = reactable::colDef(show = FALSE),
+          `weak calibration intercept` = reactable::colDef(
+            name = 'Intercept', 
+            format = reactable::colFormat(digits = 2)
+          ),
+          `weak calibration gradient` = reactable::colDef(
+            name = 'Gradient', 
+            format = reactable::colFormat(digits = 2)
+          ),
+          `Hosmer-Lemeshow calibration intercept` = reactable::colDef(show = FALSE),
+          `Hosmer-Lemeshow calibration gradient` = reactable::colDef(show = FALSE)
+        ),
         groupBy = NULL, 
         columnGroups = list(
           reactable::colGroup(
@@ -435,6 +573,4 @@ patientLevelPredictionServer <- function(
     }
   )
 }
-
-
 

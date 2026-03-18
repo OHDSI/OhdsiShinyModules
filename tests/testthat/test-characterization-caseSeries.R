@@ -12,7 +12,7 @@ outcomeCohort <- OhdsiReportGenerator::getOutcomeTable(
   schema = resultDatabaseSettingsCharacterization$schema, 
   cTablePrefix = resultDatabaseSettingsCharacterization$cTablePrefix,
   ciTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix, 
-  targetId = targetCohort$cohortId[1], 
+  targetId = targetCohort$cohortId[4], 
   getCharacterizationInclusion = TRUE
 )
 
@@ -21,7 +21,7 @@ shiny::testServer(
   args = list(
     connectionHandler = connectionHandlerCharacterization ,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-    reactiveTargetRow = shiny::reactive(targetCohort[1,]),
+    reactiveTargetRow = shiny::reactive(targetCohort[4,]),
     outcomeTable = shiny::reactive(outcomeCohort),
     reactiveOutcomeRowId = shiny::reactiveVal(0)
     ), 
@@ -37,14 +37,14 @@ shiny::testServer(
     data <- characterizationGetCaseSeriesData(
       connectionHandler = connectionHandlerCharacterization ,
       resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-      targetId = targetCohort$cohortId[1],
+      targetId = targetCohort$cohortId[4],
       outcomeId = outcomeCohort$cohortId[1],
       databaseId = databaseIds()[1],
       tar = list(
         riskWindowStart = 1,
         riskWindowEnd = 365,
-        startAnchor = 'cohort start',
-        endAnchor = 'cohort end'
+        startAnchor = 'cohort_start',
+        endAnchor = 'cohort_end'
       )
     )
     
@@ -56,14 +56,14 @@ shiny::testServer(
     counts <- characterizationGetCaseSeriesCounts(
       connectionHandler = connectionHandlerCharacterization ,
       resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-      targetId = targetCohort$cohortId[1],
+      targetId = targetCohort$cohortId[4],
       outcomeId = outcomeCohort$cohortId[1],
       databaseId = databaseIds()[1],
       tar = list(
         riskWindowStart = 1,
         riskWindowEnd = 365,
-        startAnchor = 'cohort start',
-        endAnchor = 'cohort end'
+        startAnchor = 'cohort_start',
+        endAnchor = 'cohort_end'
       )
     )
     testthat::expect_true(inherits(counts, 'data.frame'))

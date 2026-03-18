@@ -34,7 +34,7 @@ shiny::testServer(
     resultTable <- characterizatonGetCohortData(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
-      targetIds = targetCohort$cohortId[1],
+      targetIds = targetCohort$cohortId[4],
       databaseIds = databaseIds()[1],
       minThreshold = 0.02
     )
@@ -46,7 +46,7 @@ shiny::testServer(
     continuousTable <- characterizatonGetCohortComparisonDataContinuous(
       connectionHandler = connectionHandler,
       resultDatabaseSettings = resultDatabaseSettings,
-      targetIds = targetCohort$cohortId[1],
+      targetIds = targetCohort$cohortId[4],
       databaseIds = databaseIds()[1]
     )
     testthat::expect_true(nrow(continuousTable$covariates) > 0)

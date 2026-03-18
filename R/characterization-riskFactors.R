@@ -499,6 +499,9 @@ characteriationRiskFactorColDefs <- function(
       filterable = TRUE,
       minWidth = 300
     ),
+    limitToFirstInNDays = reactable::colDef(
+      show = TRUE
+    ), 
     minPriorObservation = reactable::colDef(
       show = FALSE
       ), 
@@ -550,7 +553,7 @@ characteriationRiskFactorColDefs <- function(
       format = reactable::colFormat(digits = 2, percent = TRUE)
     ), 
     
-    SMD = reactable::colDef(
+    smd = reactable::colDef(
       name = "SMD",
       header = withTooltip("SMD",
                            "Standardized mean difference"),
@@ -558,7 +561,7 @@ characteriationRiskFactorColDefs <- function(
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
     
-    absSMD = reactable::colDef(
+    absSmd = reactable::colDef(
       name = "absSMD",
       header = withTooltip("absSMD",
                            "Absolute value of standardized mean difference"),
@@ -621,7 +624,9 @@ characteriationRiskFactorContColDefs <- function(
     endAnchor = reactable::colDef(
       show = FALSE
     ),
-    
+    limitToFirstInNDays = reactable::colDef(
+      show = TRUE
+    ), 
     covariateName = reactable::colDef(
       name = "Covariate Name",
       header = withTooltip("Covariate Name",
@@ -658,7 +663,7 @@ characteriationRiskFactorContColDefs <- function(
     targetCountValue = reactable::colDef(
       name = "Number",
       header = withTooltip("Number",
-                           "Target number with feature"),
+                           "Non-case number with feature"),
       filterable = TRUE
       , 
       format = reactable::colFormat(
@@ -682,7 +687,7 @@ characteriationRiskFactorContColDefs <- function(
     targetAverageValue = reactable::colDef(
       name = "Mean",
       header = withTooltip("Mean",
-                           "Mean value of the feature in the target population"), 
+                           "Mean value of the feature in the non-case population"), 
       filterable = TRUE,
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
@@ -697,7 +702,7 @@ characteriationRiskFactorContColDefs <- function(
     targetStandardDeviation = reactable::colDef(
       name = "StDev",
       header = withTooltip("StDev",
-                           "Standard deviation of the feature value in the target population"), 
+                           "Standard deviation of the feature value in the non-case population"), 
       filterable = TRUE,
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
@@ -712,7 +717,7 @@ characteriationRiskFactorContColDefs <- function(
     targetMedianValue  = reactable::colDef(
       name = "Median",
       header = withTooltip("Median",
-                           "Median of the feature value in the targets"), 
+                           "Median of the feature value in the non-cases"), 
       filterable = TRUE, 
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ),
@@ -751,7 +756,7 @@ characteriationRiskFactorContColDefs <- function(
     targetMaxValue  = reactable::colDef(
       name = "Max",
       header = withTooltip("Max",
-                           "Maximum of the feature value in the targets"), 
+                           "Maximum of the feature value in the non-cases"), 
       filterable = TRUE, 
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ),
@@ -765,7 +770,7 @@ characteriationRiskFactorContColDefs <- function(
     targetMinValue  = reactable::colDef(
       name = "Min",
       header = withTooltip("Min",
-                           "Minimum of the feature value in the targets"), 
+                           "Minimum of the feature value in the non-cases"), 
       filterable = TRUE, 
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ),
@@ -794,14 +799,14 @@ characteriationRiskFactorContColDefs <- function(
     # low_outlier, low_whisker, q1, median, q3, high_whisker, high_outlier
     #sparkline::spk_chr(c(data$targetMinValue[index], data$targetP10Value[index], data$targetP25Value[index], data$targetMedianValue[index], 3, 6, 6), type="box", raw = TRUE, width = 200)
     
-    SMD = reactable::colDef(
+    smd = reactable::colDef(
       name = "SMD",
       header = withTooltip("SMD",
                            "Standardized mean difference"), 
       filterable = TRUE, 
       format = reactable::colFormat(digits = 2, percent = FALSE)
     ), 
-    absSMD = reactable::colDef(
+    absSmd = reactable::colDef(
       name = "absSMD",
       header = withTooltip("absSMD",
                            "Absolute value of the standardized mean difference"), 

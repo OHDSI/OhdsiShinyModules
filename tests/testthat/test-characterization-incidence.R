@@ -9,7 +9,7 @@ targetCohort <- OhdsiReportGenerator::getTargetTable(
 outcomeCohort <- OhdsiReportGenerator::getOutcomeTable(
   connectionHandler = connectionHandlerCharacterization,
   schema = resultDatabaseSettingsCharacterization$schema, 
-  targetId = targetCohort$cohortId[1],
+  targetId = targetCohort$cohortId[4],
   ciTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix
 )
 
@@ -19,7 +19,7 @@ shiny::testServer(
   args = list(
     connectionHandler = connectionHandlerCharacterization,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-    reactiveTargetRow = shiny::reactive(targetCohort[1,]), 
+    reactiveTargetRow = shiny::reactive(targetCohort[4,]), 
     outcomeTable = shiny::reactive(outcomeCohort)
   ), 
   expr = {
@@ -49,7 +49,7 @@ shiny::testServer(
       connectionHandler = connectionHandler, 
       schema = resultDatabaseSettings$schema, 
       ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix, 
-      targetIds = targetCohort$cohortId[1], 
+      targetIds = targetCohort$cohortId[4], 
       outcomeIds = outcomeCohort$cohortId[1]
       )
     testthat::expect_true(nrow(data) > 0 )

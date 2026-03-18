@@ -10,7 +10,7 @@ outcomeCohort <- OhdsiReportGenerator::getOutcomeTable(
   connectionHandler = connectionHandlerCharacterization,
   schema = resultDatabaseSettingsCharacterization$schema, 
   ciTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix, 
-  targetId = targetCohort$cohortId[1]
+  targetId = targetCohort$cohortId[4]
 )
 
 
@@ -19,7 +19,7 @@ shiny::testServer(
   args = list(
     connectionHandler = connectionHandlerCharacterization ,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-    reactiveTargetRow = shiny::reactive(targetCohort[1,]),
+    reactiveTargetRow = shiny::reactive(targetCohort[4,]),
     outcomeTable = shiny::reactive(outcomeCohort),
     reactiveOutcomeRowId = shiny::reactiveVal(0)
     ), 
@@ -33,14 +33,14 @@ shiny::testServer(
     data <- characterizationGetRiskFactorData(
       connectionHandler = connectionHandlerCharacterization ,
       resultDatabaseSettings = resultDatabaseSettingsCharacterization,
-      targetId = targetCohort$cohortId[1],
+      targetId = targetCohort$cohortId[4],
       outcomeId = outcomeCohort$cohortId[1],
       databaseId = '388020256',
       tar = list(
         riskWindowStart = 1,
         riskWindowEnd = 365,
-        startAnchor = 'cohort start',
-        endAnchor = 'cohort end'
+        startAnchor = 'cohort_start',
+        endAnchor = 'cohort_end'
       )
     )
     
