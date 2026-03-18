@@ -1,5 +1,11 @@
 # Changelog
 
+## OhdsiShinyModules v3.5.0
+
+- updated cohort method viewer to add new diagnostics
+- updated characterization viewer to support new OhdsiReportGenerator
+  (the min version of dependency OhdsiReportGenerator has been updated)
+
 ## OhdsiShinyModules v3.4.0
 
 - updated prediction viewer to enable multiple model comparison
