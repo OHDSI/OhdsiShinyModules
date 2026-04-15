@@ -80,6 +80,7 @@ cohortMethodSystematicErrorServer <- function(
             resultDatabaseSettings = resultDatabaseSettings,
             targetId = row$targetId,
             comparatorId = row$comparatorId,
+            indicationId = row$indicationId,
             analysisId = row$analysisId,
             databaseId = row$databaseId
             )
@@ -151,6 +152,7 @@ getCohortMethodControlResults <- function(
     resultDatabaseSettings, 
     targetId,
     comparatorId, 
+    indicationId,
     analysisId, 
     databaseId = NULL,
     includePositiveControls = TRUE
@@ -164,6 +166,7 @@ getCohortMethodControlResults <- function(
     databaseTable = resultDatabaseSettings$databaseTable,
     targetIds = targetId,
     comparatorIds = comparatorId,
+    indicationIds = indicationId,
     analysisIds = analysisId,
     databaseIds = databaseId
   )

@@ -102,6 +102,7 @@ cohortMethodCovariateBalanceServer <- function(
           resultDatabaseSettings = resultDatabaseSettings,
           targetId = row$targetId,
           comparatorId = row$comparatorId,
+          indicationId = row$indicationId,
           databaseId = row$databaseId,
           analysisId = row$analysisId)},
           error = function(e){print(e);return(data.frame())}
@@ -134,6 +135,7 @@ cohortMethodCovariateBalanceServer <- function(
           resultDatabaseSettings = resultDatabaseSettings,
           targetId = row$targetId,
           comparatorId = row$comparatorId,
+          indicationId = row$indicationId,
           outcomeId = row$outcomeId,
           analysisId = row$analysisId,
           databaseId = row$databaseId
@@ -226,6 +228,7 @@ cohortMethodCovariateBalanceServer <- function(
             resultDatabaseSettings = resultDatabaseSettings,
             targetId = row$targetId,
             comparatorId = row$comparatorId,
+            indicationId = row$indicationId,
             analysisId = row$analysisId,
             databaseId = row$analysisId,
             beforeLabel = paste("Before", row$psStrategy),
@@ -363,6 +366,7 @@ getCohortMethodCovariateBalanceShared <- function(
     resultDatabaseSettings,
     targetId,
     comparatorId,
+    indicationId,
     analysisId,
     #covariateAnalysisId,
     databaseId = NULL
@@ -381,6 +385,7 @@ getCohortMethodCovariateBalanceShared <- function(
     databaseTable = resultDatabaseSettings$databaseTable, 
     targetIds = targetId,
     comparatorIds = comparatorId,
+    indicationIds = indicationId,
     analysisIds = analysisId,
     databaseIds = databaseId
     )
@@ -412,7 +417,9 @@ getCohortMethodCovariateBalanceSummary <- function(
     resultDatabaseSettings,
     databaseId,
     targetId, 
-    comparatorId, analysisId,
+    comparatorId, 
+    indicationId,
+    analysisId,
     beforeLabel = "Before matching",
     afterLabel = "After matching"
     ) {
@@ -421,6 +428,7 @@ getCohortMethodCovariateBalanceSummary <- function(
     connectionHandler = connectionHandler,
     targetId = targetId,
     comparatorId = comparatorId,
+    indicationId = indicationId,
     analysisId = analysisId,
     resultDatabaseSettings = resultDatabaseSettings,
     databaseId = databaseId
@@ -592,13 +600,14 @@ plotCohortMethodCovariateBalanceSummary <- function(balanceSummary,
 }
 
 estimationGetMaxSharedSdm <- function(
-    connectionHandler = connectionHandler,
-    resultDatabaseSettings = resultDatabaseSettings,
-    targetId =  targetId,
-    comparatorId = comparatorId,
-    outcomeId = outcomeId,
-    analysisId = analysisId,
-    databaseId = databaseId
+    connectionHandler,
+    resultDatabaseSettings,
+    targetId,
+    comparatorId,
+    indicationId,
+    outcomeId,
+    analysisId,
+    databaseId
 ){
   
   
@@ -614,6 +623,11 @@ estimationGetMaxSharedSdm <- function(
     analysisIds = analysisId,
     databaseIds = databaseId
     )
+  
+  if(!is.null(indicationId)){
+    result <- result %>%
+      dplyr::filter(.data$indicationId == !!indicationId)
+  }
   
   sharedMaxSdm<- round(result$sharedMaxSdm[1], 4)
   
