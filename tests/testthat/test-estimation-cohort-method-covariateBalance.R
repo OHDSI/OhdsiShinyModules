@@ -45,6 +45,7 @@ shiny::testServer(
       resultDatabaseSettings = resultDatabaseSettingsCharacterization,
       targetId = 1002,
       comparatorId = 2002, 
+      indicationId = NULL,
       databaseId = '388020256', 
       analysisId = 2
       )
