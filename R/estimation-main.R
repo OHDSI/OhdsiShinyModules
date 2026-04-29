@@ -185,15 +185,22 @@ estimationServer <- function(
         getPredictionInclusion = FALSE, 
         getCohortMethodInclusion = "Cohort Method" %in% estimationTypes, 
         getSccsInclusion = "SCCS" %in% estimationTypes
-        ) %>%
+        )
+
+      # Get all child cohorts that are either a CM or SCCS cohort - this is what will be used to populate the outcome options and filter the results
+      targetCohortsActual <- targetTable  |>
         dplyr::filter(
           .data$cohortMethod == 1 | .data$selfControlledCaseSeries == 1
-        )
-      
-      # Targets
-      parentInd <- targetTable$cohortId == targetTable$subsetParent
-      targets <- targetTable$cohortId[parentInd]
-      names(targets) <- targetTable$cohortName[parentInd]
+        ) |>
+      dplyr::select("cohortId", "subsetParent", "cohortName")
+
+      # Get only top level cohorts - not the large potential subsets that are mostly the same
+      # Should work if the target cohorts are not subsets as they are their own subsetParent.
+      parentInd <- targetTable |>
+        dplyr::filter(.data$cohortId %in% targetCohortsActual$subsetParent)
+
+      targets <- parentInd$cohortId
+      names(targets) <- parentInd$cohortName
       targets <- targets[order(names(targets))]
       
       output$targetSelection <- shiny::renderUI({
