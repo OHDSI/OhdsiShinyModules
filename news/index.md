@@ -1,5 +1,14 @@
 # Changelog
 
+## OhdsiShinyModules v3.5.1
+
+- updated cohort method viewer to handle nesting id (indication id) in
+  new CM result model
+- fixed estimation target cohort selector (there was a small bug when
+  all cohorts were subsets)
+- updated required OhdsiReportGenerator as that ensures cohort method
+  results have an indication id
+
 ## OhdsiShinyModules v3.5.0
 
 - updated cohort method viewer to add new diagnostics

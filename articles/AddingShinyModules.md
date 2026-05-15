@@ -34,6 +34,7 @@ of a module, the references within the modules viewer and server will be
 unique and not clash across modules.
 
 ``` r
+
 exampleViewer <- function(id) {
   ns <- shiny::NS(id)
   
@@ -66,6 +67,7 @@ output `output$serverReference` (no namespace fucntion is require in the
 server code).
 
 ``` r
+
 exampleServer <- function(
   id,
   extraInput
@@ -84,6 +86,7 @@ exampleServer <- function(
 ### Calling the modules in the main UI and server
 
 ``` r
+
 ui <- shiny::fluidPage(
   exampleViewer("exampleName")
 )
@@ -169,6 +172,7 @@ as well as outputs.
 For example:
 
 ``` r
+
 test_that("Example Test", {
   shiny::testServer(exampleModuleServer, args = list(id = "testModule"), {
   
@@ -203,6 +207,7 @@ The following `tests/helper-objects.R` file loads the required database
 connection string:
 
 ``` r
+
 # setup.R
 connectionDetails <- DatabaseConnector::createConnectionDetails(
   dbms = 'sqlite', 
@@ -219,6 +224,7 @@ any generic code that may be reused in multiple test files.
 These tests can then be called with the testthat command:
 
 ``` r
+
 testthat::test_dir('<path_to_package>/tests')  
 ```
 
