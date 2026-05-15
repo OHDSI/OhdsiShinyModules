@@ -77,6 +77,7 @@ cohortMethodPopulationCharacteristicsServer <- function(
             resultDatabaseSettings = resultDatabaseSettings,
             targetId = selectedRow()$targetId,
             comparatorId = selectedRow()$comparatorId,
+            indicationId = selectedRow()$indicationId,
             outcomeId = selectedRow()$outcomeId,
             databaseId = selectedRow()$databaseId,
             analysisId = selectedRow()$analysisId
@@ -181,6 +182,7 @@ getCohortMethodPopChar <- function(
     resultDatabaseSettings,
     targetId,
     comparatorId,
+    indicationId,
     analysisId,
     databaseId = NULL,
     outcomeId = NULL
@@ -199,6 +201,7 @@ getCohortMethodPopChar <- function(
       databaseTable = resultDatabaseSettings$databaseTable, 
       targetIds = targetId,
       comparatorIds = comparatorId,
+      indicationIds = indicationId,
       outcomeIds = outcomeId,
       analysisIds = analysisId,
       databaseIds = databaseId

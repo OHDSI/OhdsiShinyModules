@@ -64,10 +64,10 @@ cohortMethodPropensityModelServer <- function(
           resultDatabaseSettings = resultDatabaseSettings,
           targetId = selectedRow()$targetId,
           comparatorId = selectedRow()$comparatorId,
+          indicationId = selectedRow()$indicationId,
           databaseId = selectedRow()$databaseId,
           analysisId = selectedRow()$analysisId
-        ) %>%
-          dplyr::mutate(absBeta = abs(.data$coefficient))
+        ) 
       })
       
       # ColorBrewer-inspired 3-color scale
@@ -114,6 +114,8 @@ cohortMethodPropensityModelServer <- function(
             ),
             style = function(value) {
               if (!is.numeric(value)) return()
+              if(is.na(value)) return()
+              if(is.null(data())) return()
               normalized <- (value - min(data()$absBeta)) / (max(data()$absBeta) - min(data()$absBeta))
               color <- Greens(normalized)
               list(background = color)
@@ -135,6 +137,7 @@ getCohortMethodPropensityModel <- function(
     resultDatabaseSettings,
     targetId, 
     comparatorId, 
+    indicationId,
     analysisId, 
     databaseId
 ) {
@@ -149,9 +152,18 @@ getCohortMethodPropensityModel <- function(
     cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
     targetId = targetId,
     comparatorId = comparatorId,
+    indicationId = indicationId,
     analysisId = analysisId,
     databaseId = databaseId
   )
+  
+  if(nrow(result) > 0){
+    result <- result %>%
+      dplyr::mutate(absBeta = abs(.data$coefficient))
+  } else{
+    result <- result %>%
+      dplyr::mutate(absBeta = NA)
+  }
   
   return(result)
 }

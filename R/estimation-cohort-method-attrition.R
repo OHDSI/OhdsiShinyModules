@@ -125,6 +125,7 @@ getCohortMethodAttrition <- function(
     cmTablePrefix = resultDatabaseSettings$cmTablePrefix, 
     targetIds = selectedRow()$targetId,
     comparatorIds = selectedRow()$comparatorId,
+    indicationIds = selectedRow()$indicationId,
     outcomeIds = selectedRow()$outcomeId,
     analysisIds = selectedRow()$analysisId,
     databaseIds = selectedRow()$databaseId

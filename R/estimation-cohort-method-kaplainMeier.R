@@ -72,6 +72,7 @@ cohortMethodKaplanMeierServer <- function(
             resultDatabaseSettings = resultDatabaseSettings,
             targetId = row$targetId,
             comparatorId = row$comparatorId,
+            indicationId = row$indicationId,
             outcomeId = row$outcomeId,
             databaseId = row$databaseId,
             analysisId = row$analysisId
@@ -136,6 +137,7 @@ getCohortMethodKaplanMeier <- function(
     resultDatabaseSettings,
     targetId, 
     comparatorId, 
+    indicationId,
     outcomeId, 
     databaseId, 
     analysisId
@@ -150,6 +152,7 @@ getCohortMethodKaplanMeier <- function(
     databaseTable = resultDatabaseSettings$databaseTable, 
     targetIds = targetId,
     comparatorIds = comparatorId,
+    indicationIds = indicationId,
     outcomeIds = outcomeId,
     analysisIds = analysisId,
     databaseIds = databaseId

@@ -54,21 +54,23 @@ estimationCreateCmPlot <- function(data) {
   }
   
   
-  renameDf <- data.frame(
-    shortName = paste0(
-      1:length(unique(data$comparatorName)),
-      ') ', 
-      substring(sort(unique(data$comparatorName)), 1,50),
-      '...'
-    ),
-    comparatorName = sort(unique(data$comparatorName))
-  )
+  # get comp and indication name
+  renameDf <- data %>%
+    dplyr::select("comparatorName","indicationName") %>%
+    dplyr::distinct() %>%
+    dplyr::mutate(
+      shortName = paste0(
+        substring(.data$comparatorName, 1,25), 
+        ' - ', 
+        substring(.data$indicationName, 1,25)
+      )
+    )
   
-  
+
   data <- merge(
     data, 
     renameDf,
-    by = "comparatorName"
+    by = c("comparatorName","indicationName")
   )
   
   # make sure bayesian is at top

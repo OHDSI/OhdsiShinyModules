@@ -23,6 +23,7 @@ shiny::testServer(
       resultDatabaseSettings = resultDatabaseSettingsCharacterization,
       targetId = 1002, 
       comparatorId = 2002, 
+      indicationId = NULL,
       analysisId = 2, 
       databaseId = '388020256'
     )
@@ -39,6 +40,7 @@ shiny::testServer(
         description  = 'madeup',
         targetName = 'Celecoxib',
         targetId = 1002,
+        indicationId = NULL,
         comparatorId = 2002, 
         comparatorName = 'Diclofenac',
         outcomeId = 3,

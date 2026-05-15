@@ -77,6 +77,7 @@ cohortMethodPropensityScoreDistServer <- function(
             resultDatabaseSettings = resultDatabaseSettings,
             targetId = row$targetId,
             comparatorId = row$comparatorId,
+            indicationId = row$indicationId,
             analysisId = row$analysisId,
             databaseId = row$databaseId
           )
@@ -94,6 +95,7 @@ cohortMethodPropensityScoreDistServer <- function(
             resultDatabaseSettings = resultDatabaseSettings,
             targetId = row$targetId,
             comparatorId = row$comparatorId,
+            indicationId = row$indicationId,
             outcomeId = row$outcomeId,
             analysisId = row$analysisId,
             databaseId = row$databaseId
@@ -129,6 +131,7 @@ getCohortMethodEquipoise <- function(
     resultDatabaseSettings,
     targetId, 
     comparatorId, 
+    indicationId,
     outcomeId,
     analysisId, 
     databaseId = NULL
@@ -150,6 +153,11 @@ getCohortMethodEquipoise <- function(
     databaseIds = databaseId
     )
   
+  if(!is.null(indicationId)){
+    result <- result %>% 
+      dplyr::filter(.data$indicationId == !!indicationId)
+  }
+  
   eq <- round(result$equipoise, 4)
   
   return(eq)
@@ -160,6 +168,7 @@ getCohortMethodPs <- function(
     resultDatabaseSettings,
     targetId, 
     comparatorId, 
+    indicationId,
     analysisId, 
     databaseId = NULL
 ) {
@@ -176,6 +185,7 @@ getCohortMethodPs <- function(
     databaseTable = resultDatabaseSettings$databaseTable, 
     targetIds = targetId, 
     comparatorIds = comparatorId, 
+    indicationIds = indicationId,
     analysisIds = analysisId,
     databaseIds = databaseId
   )
