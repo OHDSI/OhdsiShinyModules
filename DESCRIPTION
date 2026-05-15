@@ -1,7 +1,7 @@
 Package: OhdsiShinyModules
 Type: Package
 Title: Repository of Shiny Modules for OHDSI Result Viewers
-Version: 3.5.0.9999
+Version: 3.5.1
 Authors@R: c(
   person("Jenna", "Reps", email = "jreps@its.jnj.com", role = c("aut", "cre")),
   person("Nathan", "Hall", role = c("aut")),
@@ -27,7 +27,7 @@ Imports:
     plotly,
     reactable,
     readr,
-    OhdsiReportGenerator (>= 2.1.0),
+    OhdsiReportGenerator (>= 2.2.0),
     jsonlite,
     rlang,
     scales,
