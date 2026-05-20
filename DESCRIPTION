@@ -48,7 +48,11 @@ Suggests:
     ResultModelManager,
     RSQLite,
     testthat,
-    withr
+    withr,
+    sunburstR,
+    networkD3,
+    htmlwidgets,
+    TreatmentPatterns (>= 3.1.0)
 Remotes:
     ohdsi/OhdsiReportGenerator
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3

@@ -118,6 +118,24 @@ resultDatabaseSettingsPV = list(
 #  ====
 
 
+
+# ====== Treatment Patterns
+connectionDetailsTreatmentPatterns <- OhdsiReportGenerator::getExampleConnectionDetails()
+connectionHandlerTreatmentPatterns <- ResultModelManager::ConnectionHandler$new(
+  connectionDetailsTreatmentPatterns, 
+  loadConnection = FALSE
+)
+
+resultDatabaseSettingsTreatmentPatterns <- list(
+  schema = "main", 
+  vocabularyDatabaseSchema = "main",
+  databaseTable = "DATABASE_META_DATA",
+  databaseTablePrefix = "",
+  tpTablePrefix = "tp_"
+)
+#  ====
+
+
 ## cleanup after tests complete
 withr::defer({
   options("shiny-test-env-enabled" = FALSE)
