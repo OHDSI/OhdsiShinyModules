@@ -36,7 +36,7 @@ characterizationDatabaseComparisonViewer <- function(id) {
     
     # displayed inputs
     shiny::conditionalPanel(
-      condition = "output.showDatabase != 0",
+      condition = "output.showResults != 0",
       ns = ns,
       
       inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
@@ -76,34 +76,74 @@ characterizationDatabaseComparisonServer <- function(
     id,
     connectionHandler,
     resultDatabaseSettings,
-    reactiveTargetRow
+    reactiveCharacterizationTargetTable,
+    reactiveCharacterizationTargetRowId
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
+      plotResult <- shiny::reactiveVal(NULL)
+
+      reactiveTargetRow <- shiny::reactive({
+        rowId <- reactiveCharacterizationTargetRowId()
+        targetTable <- reactiveCharacterizationTargetTable()
+
+        if (is.null(rowId) || length(rowId) == 0 || is.null(targetTable) || nrow(targetTable) == 0) {
+          return(data.frame())
+        }
+
+        targetTable[rowId, , drop = FALSE]
+      })
+
       # initially do not show results
-      output$showDatabase <- shiny::reactive(0)
-      shiny::outputOptions(output, "showDatabase", suspendWhenHidden = FALSE)
+      output$showResults <- shiny::reactive(0)
+      shiny::outputOptions(output, "showResults", suspendWhenHidden = FALSE)
       
-      # if target or outcome changes hide results
+      # if target or other inputs changes hide results
       shiny::observeEvent(reactiveTargetRow(), {
-        output$showDatabase <- shiny::reactive(0)
+        output$showResults <- shiny::reactive(0)
+      })
+      shiny::observeEvent(input$databaseNames, {
+        output$showResults <- shiny::reactive(0)
+      })
+      shiny::observeEvent(input$minThreshold, {
+        output$showResults <- shiny::reactive(0)
       })
       
-      databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseString, split = ', ')))
-      databaseIds <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseIdString, split = ', ')))
+      tableSelectionServer(
+        id = 'char-pop-select-db',
+        table = reactiveCharacterizationTargetTable, 
+        selectedRowId = reactiveCharacterizationTargetRowId,
+        selectMultiple = FALSE, 
+        elementId = session$ns('table-selector-db'),
+        inputColumns = characterizationTargetsColumns(),
+        displayColumns = characterizationTargetsColumns(), 
+        selectButtonText = 'Select Population'
+      )
+      
+      databaseNames <- shiny::reactive({
+        if(length(reactiveCharacterizationTargetRowId()) == 0){return(NULL)}
+        unlist(strsplit(x = reactiveCharacterizationTargetTable()[reactiveCharacterizationTargetRowId(),]$databaseString, split = ', '))
+      })
+      databaseIds <- shiny::reactive({
+        if(length(reactiveCharacterizationTargetRowId()) == 0){return(NULL)}
+        unlist(strsplit(x = reactiveCharacterizationTargetTable()[reactiveCharacterizationTargetRowId(),]$databaseIdString, split = ', '))
+      })
       
       # get min char value:
       # set this to the min threshold used in analysis: covariates.min_characterization_mean
-      minCharVal <- getMinCovaraiteThreshold(
-        connectionHandler = connectionHandler,
-        resultDatabaseSettings = resultDatabaseSettings
-      )
+      minCharVal <- 0#getMinCovaraiteThreshold(
+        #connectionHandler = connectionHandler,
+        #resultDatabaseSettings = resultDatabaseSettings
+      #)
       
+      # need to add char tar id selection
       output$inputs <- shiny::renderUI({
         
         shiny::div(
+          shiny::fluidRow(
+            tableSelectionViewer(session$ns(id = 'char-pop-select-db'))
+          ),
           shiny::fluidRow(
             shiny::column(
               width = 8,
@@ -148,44 +188,24 @@ characterizationDatabaseComparisonServer <- function(
       })
       
       
-      # show selected inputs to user
-      inputSelectionDfServer(
-        id = 'inputSelected', 
-        dataFrameRow = selected,
-        ncol = 1
-      )
-      
       #get results
-      selected <- shiny::reactiveVal()
-      plotResult <- shiny::reactiveVal(NULL)
       shiny::observeEvent(input$generate,{
         
-        if(is.null(input$databaseNames) | is.null(reactiveTargetRow())){
-          output$showDatabase <- shiny::reactive(0)
+        if(is.null(input$databaseNames) | is.null(reactiveCharacterizationTargetRowId())){
+          output$showResults <- shiny::reactive(0)
           shiny::showNotification('No databases selected')
         } else {
-        if(length(input$databaseNames) == 0 | nrow(reactiveTargetRow()) == 0){
-          output$showDatabase <- shiny::reactive(0)
+        if(length(input$databaseNames) == 0 | length(reactiveCharacterizationTargetRowId()) == 0){
+          output$showResults <- shiny::reactive(0)
           shiny::showNotification('No databases selected')
         } else {
-        
-        selectedDatabases <- paste0(input$databaseNames, collapse =  ', ')
-        
-        selected(
-          data.frame(
-            Target = reactiveTargetRow()$cohortName[1],
-            Databases = selectedDatabases,
-            `Minimum Covariate Threshold` = input$minThreshold
-          )
-        )
-
 
         #get results
         
         result <- characterizatonGetCohortData(
           connectionHandler = connectionHandler,
           resultDatabaseSettings = resultDatabaseSettings,
-          targetIds = reactiveTargetRow()$cohortId,
+          characterizationTargetIds = reactiveTargetRow()$characterizationTargetId,
           databaseIds = databaseIds()[databaseNames() %in% input$databaseNames],
           minThreshold = input$minThreshold
         )
@@ -193,26 +213,38 @@ characterizationDatabaseComparisonServer <- function(
         resultTable <- result$covariates
         countTable <- result$covRef
         
+        
         if(is.null(countTable)){
           shiny::showNotification('No covariate data for selected database/s')
-          output$showDatabase <- shiny::reactive(0)
+          output$showResults <- shiny::reactive(0)
         } else{
-        output$showDatabase <- shiny::reactive(1)
+          
+          # add databaseNames to countTable
+          countTable <- merge( 
+            x = countTable, 
+            y = data.frame(
+              databaseId = databaseIds(),
+              databaseName = databaseNames()
+              ), 
+            by = 'databaseId'
+          )
+          
+        output$showResults <- shiny::reactive(1)
           
           output$helpTextBinary <- shiny::renderUI(
-            shiny::helpText(paste0("This analysis shows the fraction of patients in the target cohort (restricted to first exposure in ",countTable$limitToFirstInNDays[1]," days and requiring ",
-                            countTable$minPriorObservation[1]," days observation prior to index) with a history of each binary features across databases."))
+            shiny::helpText(paste0("This analysis shows the fraction of patients in the target cohort (restricted to first exposure in ",reactiveTargetRow()$limitToFirstInNDays[1]," days and requiring ",
+                                   reactiveTargetRow()$minPriorObservation[1]," days observation prior to index) with a history of each binary features across databases."))
           )
           output$helpTextContinuous <- shiny::renderUI(
-            shiny::helpText(paste0("This analysis shows the fraction of patients in the target cohort (restricted to first exposure in ",countTable$limitToFirstInNDays[1]," days and requiring ",
-                                   countTable$minPriorObservation[1]," days observation prior to index) with a history of each continuous features across databases."))
+            shiny::helpText(paste0("This analysis shows the fraction of patients in the target cohort (restricted to first exposure in ",reactiveTargetRow()$limitToFirstInNDays[1]," days and requiring ",
+                                   reactiveTargetRow()$minPriorObservation[1]," days observation prior to index) with a history of each continuous features across databases."))
           )
           
           # this will pivot now and needs addressing
           continuous <- characterizatonGetCohortComparisonDataContinuous(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetIds = reactiveTargetRow()$cohortId,
+            characterizationTargetIds = reactiveTargetRow()$characterizationTargetId,
             databaseIds = databaseIds()[databaseNames() %in% input$databaseNames]
           )
           
@@ -229,6 +261,8 @@ characterizationDatabaseComparisonServer <- function(
                 paste0("The percentage of the target population in database ", countTable$databaseName[i], ' who had the covariate prior.')
               ),
               cell = function(value) {
+                if(is.null(value)){value <- -1}
+                if(is.na(value)){value <- -1}
                 if (value >= 0) paste0(round(value*100, digits = 3),' %') else '< min threshold'
               }
             )
@@ -243,6 +277,8 @@ characterizationDatabaseComparisonServer <- function(
                 paste0("The number of people in the target cohort in database ", countTable$databaseName[i], ' who have the covariate prior.')
               ),
               cell = function(value) {
+                if(is.null(value)){value <- -1}
+                if(is.na(value)){value <- -1}
                 if (value >= 0) value else '< min threshold'
               }
             )
@@ -259,7 +295,7 @@ characterizationDatabaseComparisonServer <- function(
             columnInResultTable <- length(grep(paste0('sumValue_',countTable$id[i]), colnames(resultTable))) > 0 
             if(columnInResultTable){
               groupColumns[[length(groupColumns) + 1]] <- reactable::colGroup(
-                name = paste0(countTable$databaseName[i], ' with ',countTable$minPriorObservation[i] ,' days prior obs (N = ',countTable$n[i],')'), 
+                name = paste0(countTable$databaseName[i], '(N = ',countTable$n[i],')'), 
                 columns = c(
                   paste0('sumValue_',countTable$id[i]), 
                   paste0('averageValue_',countTable$id[i]))
@@ -302,7 +338,7 @@ characterizationDatabaseComparisonServer <- function(
             columnInContinuousTable <- length(grep(paste0('countValue_',countTable$id[i]), colnames(continuousTable))) > 0 
             if(columnInContinuousTable){
               groupColumnsContinuous[[length(groupColumnsContinuous) + 1]] <- reactable::colGroup(
-                name = paste0(countTable$databaseName[i], ' with ',countTable$minPriorObservation[i] ,' days prior obs (N = ',countTable$n[i],')'), 
+                name = paste0(countTable$databaseName[i], ' (N = ',countTable$n[i],')'), 
                 columns = c(
                   paste0('countValue_',countTable$id[i]), 
                   paste0('averageValue_',countTable$id[i]),
@@ -320,6 +356,8 @@ characterizationDatabaseComparisonServer <- function(
                 header = withTooltip("Count",
                                      "Number of people with the covariate in the cohort."),
                 cell = function(value) {
+                  if(is.null(value)){value <- -1}
+                  if(is.na(value)){value <- -1}
                   if (value >= 0) value else paste0('< ', abs(value))
                 },
                 filterable = TRUE
@@ -329,6 +367,8 @@ characterizationDatabaseComparisonServer <- function(
                 header = withTooltip("Mean",
                                      "The mean value of the covariate in the cohort"),
                 cell = function(value) {
+                  if(is.null(value)){value <- -1}
+                  if(is.na(value)){value <- -1}
                   if (value >= 0) round(value, digits = 3) else paste0('< ', abs(round(value, digits = 3)))
                 }
               ),
@@ -337,6 +377,8 @@ characterizationDatabaseComparisonServer <- function(
                 header = withTooltip("StDev",
                                      "The standard deviation value of the covariate in the cohort"),
                 cell = function(value) {
+                  if(is.null(value)){value <- -1}
+                  if(is.na(value)){value <- -1}
                   if (value >= 0) round(value, digits = 3) else paste0('< ', abs(round(value, digits = 3)))
                 }
               ),
@@ -556,5 +598,37 @@ getMinCovaraiteThreshold <- function(
   )}, error = function(e){print(e);return(list(val = 0))})
   
   return(res$val)
+}
+
+
+
+characterizationTargetsColumns <- function(){
+  
+  list(
+    parentCohortDefinitionId = reactable::colDef(show = FALSE),
+    parentCohortName = reactable::colDef(show = FALSE),
+    settingId = reactable::colDef(show = FALSE),
+    characterizationTargetId = reactable::colDef(show = FALSE),
+    cohortDefinitionId = reactable::colDef(name = 'Cohort ID'),
+    cohortName = reactable::colDef(name = 'Cohort Name', minWidth = 150),
+    limitToFirstInNDays = reactable::colDef(name = 'limitToFirstInNDays'),
+    minPriorObservation = reactable::colDef(name = 'minPriorObservation'),
+    nestingCohortId = reactable::colDef(name = 'nestingCohortId'),
+    nestingName = reactable::colDef(name = 'nestingName', minWidth = 150),
+    minAge = reactable::colDef(name = 'minAge'),
+    maxAge = reactable::colDef(name = 'maxAge'),
+    studyStart = reactable::colDef(name = 'studyStart'),
+    studyEnd = reactable::colDef(name = 'studyEnd'),
+    genderConceptIds = reactable::colDef(name = 'genderConceptIds'),
+    timeToEvent = reactable::colDef(show = FALSE),
+    dechalRechal = reactable::colDef(show = FALSE),
+    databaseComparator = reactable::colDef(show = FALSE),
+    cohortComparator = reactable::colDef(show = FALSE),
+    riskFactors = reactable::colDef(show = FALSE),
+    caseSeries = reactable::colDef(show = FALSE),
+    databaseString = reactable::colDef(show = FALSE),
+    databaseIdString = reactable::colDef(show = FALSE)
+  )
+  
 }
 

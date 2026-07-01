@@ -85,35 +85,28 @@ characterizationServer <- function(
       # finds all the targets in every analysis and gets the counts
       # targetId, parentId, targetName, parentName, cohortSize, 
       # incC, incCI, incCM, incSCCS, incPLP
-      targetTable <- OhdsiReportGenerator::getTargetTable(
-        connectionHandler = connectionHandler, 
+      targetTable <- getTargetsUsedInChar(
+        connectionHandler = connectionHandler,
         schema = resultDatabaseSettings$schema,
         cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
         cTablePrefix = resultDatabaseSettings$cTablePrefix,
-        ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
-        cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
-        sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
-        plpTablePrefix = resultDatabaseSettings$plpTablePrefix,
-        databaseTable = resultDatabaseSettings$databaseTable, 
-        getPredictionInclusion = FALSE, 
-        getCohortMethodInclusion = FALSE, 
-        getSccsInclusion = FALSE
+        ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix
       )
-      
+        
       resultType <- shiny::reactiveVal("")
-      outcomeTable <- shiny::reactiveVal(NULL)
+      reactiveOutcomeTable <- shiny::reactiveVal(NULL)
+      reactiveCharacterizationTargetTable <- shiny::reactiveVal(NULL)
 
       # create reactive that saves selected rowIds for targetTable and outcomeTable
       reactiveTargetRowId <- shiny::reactiveVal(NULL)
+      reactiveTargetRow <- shiny::reactiveVal(NULL)
+      reactiveCharacterizationTargetRowId <- shiny::reactiveVal(NULL)
       reactiveOutcomeRowId <- shiny::reactiveVal(NULL)
       
+      # the table with all the possible targetIds
       tableSelectionServer(
         id = 'target-table-select',
-        table = shiny::reactive(targetTable %>%
-          dplyr::select(-"cohortMethod", -"selfControlledCaseSeries", -"prediction") %>%
-          dplyr::relocate("parentName", .before = "cohortName") %>%
-          dplyr::relocate("cohortId", .after = "cohortName")
-          ), 
+        table = shiny::reactive(targetTable), 
         selectedRowId = reactiveTargetRowId,
         selectMultiple = FALSE, 
         elementId = session$ns('table-selector'),
@@ -123,10 +116,26 @@ characterizationServer <- function(
         )
       
       # react to the target being set
-      reactiveTargetRow <- shiny::reactiveVal(NULL)
       shiny::observeEvent(reactiveTargetRowId(),{
         
         reactiveTargetRow(targetTable[reactiveTargetRowId(),])
+        
+        # get the characterization target ids
+        if(!is.null(targetTable$cohortDefinitionId[reactiveTargetRowId()])){
+          if(length(targetTable$cohortDefinitionId[reactiveTargetRowId()]) > 0){
+            reactiveCharacterizationTargetTable(
+              getCharacterizationTargetId(
+                connectionHandler = connectionHandler,
+                schema = resultDatabaseSettings$schema,
+                databaseTable = resultDatabaseSettings$databaseTable,
+                targetId = targetTable$cohortDefinitionId[reactiveTargetRowId()],
+                cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+                cTablePrefix = resultDatabaseSettings$cTablePrefix
+              )
+            )
+          }
+        }
+        
         # reset the outcome row id
         reactiveOutcomeRowId(0)
         
@@ -185,7 +194,7 @@ characterizationServer <- function(
             
           } else{
             # set values to take you back to start
-            outcomeTable(NULL)
+            reactiveOutcomeTable(NULL)
             output$analysesOptions <- NULL
             resultType("") # update resultType to get UI to change 
             output$analysesOptions <- shiny::renderUI(shiny::helpText('No analyses results to show'))
@@ -203,28 +212,24 @@ characterizationServer <- function(
           
           if(sum(analysesWithResultsOutcome) > 0){
           
-          outcomeTable(getShinyOutcomeTable(
+          reactiveOutcomeTable(getOutcomesUsedInChar(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetId = reactiveTargetRow()$cohortId[1],
-            getPredictionInclusion = FALSE, 
-            getCohortMethodInclusion = FALSE,
-            getSccsInclusion = FALSE
-          ) %>%
-            dplyr::select(-"cohortMethod", -"selfControlledCaseSeries", -"prediction") %>%
-            dplyr::relocate("parentName", .before = "cohortName"))
+            targetId = reactiveTargetRow()$cohortDefinitionId[1]
+          ))
             
         } else{
-          outcomeTable(NULL)
+          reactiveOutcomeTable(NULL)
         }
           
         } else{ # if no target selected set outcome table to null
-          outcomeTable(NULL)
+          reactiveOutcomeTable(NULL)
           output$analysesOptions <- NULL
           resultType("") # update resultType to get UI to change 
         }
 
       })
+      # end react to target id
       
       # update resultType when input changes
       shiny::observeEvent(input$resultType,{
@@ -285,25 +290,28 @@ characterizationServer <- function(
     
       # add the servers
       characterizationDatabaseComparisonServer(
-        id = 'database-comparison', 
-        connectionHandler = connectionHandler, 
+        id = 'database-comparison',
+        connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings,
-        reactiveTargetRow = reactiveTargetRow
-        )
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable,
+        reactiveCharacterizationTargetRowId = reactiveCharacterizationTargetRowId
+      )
       characterizationCohortComparisonServer(
         id = 'cohort-comparison', 
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
         targetTable = targetTable,
-        reactiveTargetRow = reactiveTargetRow
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable,
+        reactiveCharacterizationTargetRowId = reactiveCharacterizationTargetRowId
       )
       
       characterizationTimeToEventServer(
         id = 'time-to-event', 
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
-        reactiveTargetRow = reactiveTargetRow,
-        outcomeTable = outcomeTable,
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable,
+        reactiveCharacterizationTargetRowId = reactiveCharacterizationTargetRowId,
+        reactiveOutcomeTable = reactiveOutcomeTable,
         reactiveOutcomeRowId = reactiveOutcomeRowId
       )
       
@@ -311,8 +319,9 @@ characterizationServer <- function(
         id = 'dechal-rechal', 
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
-        reactiveTargetRow = reactiveTargetRow,
-        outcomeTable = outcomeTable,
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable,
+        reactiveCharacterizationTargetRowId = reactiveCharacterizationTargetRowId,
+        reactiveOutcomeTable = reactiveOutcomeTable,
         reactiveOutcomeRowId = reactiveOutcomeRowId
       )
       
@@ -320,8 +329,9 @@ characterizationServer <- function(
         id = 'risk-factor', 
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
-        reactiveTargetRow = reactiveTargetRow,
-        outcomeTable = outcomeTable,
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable,
+        reactiveCharacterizationTargetRowId = reactiveCharacterizationTargetRowId,
+        reactiveOutcomeTable = reactiveOutcomeTable,
         reactiveOutcomeRowId = reactiveOutcomeRowId
       )
       
@@ -329,8 +339,9 @@ characterizationServer <- function(
         id = 'case-series', 
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
-        reactiveTargetRow = reactiveTargetRow,
-        outcomeTable = outcomeTable,
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable,
+        reactiveCharacterizationTargetRowId = reactiveCharacterizationTargetRowId,
+        reactiveOutcomeTable = reactiveOutcomeTable,
         reactiveOutcomeRowId = reactiveOutcomeRowId
       )
       
@@ -339,7 +350,7 @@ characterizationServer <- function(
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
         reactiveTargetRow = reactiveTargetRow,
-        outcomeTable = outcomeTable
+        reactiveOutcomeTable = reactiveOutcomeTable
         )
 
  
@@ -351,37 +362,16 @@ characterizationServer <- function(
 characterizationTargetInputColumns <- function(){
   return(
     list(
-      databaseString  = reactable::colDef(show = FALSE),
-      numDatabase = reactable::colDef(show = FALSE),
-      minSubjectCount = reactable::colDef(show = FALSE),
-      maxSubjectCount = reactable::colDef(show = FALSE),
-      minEntryCount = reactable::colDef(show = FALSE),
-      maxEntryCount = reactable::colDef(show = FALSE),
-      subsetDefinitionJson = reactable::colDef(show = FALSE),
-      subsetCohortId = reactable::colDef(show = FALSE),
-      cohortId = reactable::colDef(
+    
+      cohortDefinitionId = reactable::colDef(
         show = TRUE,
         name = 'Cohort ID'
         ),
-      
-      parentName = reactable::colDef(
-        name = 'Target',
-        minWidth = 150
-      ),
       cohortName = reactable::colDef(
-        name = 'Subset',
+        name = 'Cohort Name',
         minWidth = 300
       ),
-      subsetParent = reactable::colDef(show = FALSE),
-      subsetDefinitionId = reactable::colDef(show = FALSE),
       
-      databaseIdString = reactable::colDef(show = FALSE),
-      
-      databaseStringCount  = reactable::colDef(
-        show = FALSE,
-        name = "Database Counts", 
-        minWidth = 300
-      ),
       timeToEvent = reactable::colDef(
         name = 'Time To Event',
         cell = function(value) {
@@ -396,6 +386,20 @@ characterizationTargetInputColumns <- function(){
           if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
         }
       ), 
+      databaseComparator = reactable::colDef(
+        name = 'Database Comparator',
+        cell = function(value) {
+          # Render as an X mark or check mark
+          if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+        }
+      ),
+      cohortComparator = reactable::colDef(
+        name = 'Cohort Comparator',
+        cell = function(value) {
+          # Render as an X mark or check mark
+          if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+        }
+      ),
       riskFactors = reactable::colDef(
         name = 'Risk Factors',
         cell = function(value) {
@@ -414,21 +418,7 @@ characterizationTargetInputColumns <- function(){
         name = 'Incidence',
         cell = function(value) {
           # Render as an X mark or check mark
-          if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
-        }
-      ),
-      databaseComparator = reactable::colDef(
-        name = 'Database Comparator',
-        cell = function(value) {
-          # Render as an X mark or check mark
-          if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
-        }
-      ),
-      cohortComparator = reactable::colDef(
-        name = 'Cohort Comparator',
-        cell = function(value) {
-          # Render as an X mark or check mark
-          if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+          if (value == 0 ) "\u274c No" else "\u2714\ufe0f Yes"
         }
       )
     )
@@ -439,39 +429,25 @@ characterizationTargetInputColumns <- function(){
 characterizationTargetDisplayColumns <- function(){
   return(
     list(
-      databaseString  = reactable::colDef(show = FALSE),
-      numDatabase = reactable::colDef(show = FALSE),
-      minSubjectCount = reactable::colDef(show = FALSE),
-      maxSubjectCount = reactable::colDef(show = FALSE),
-      minEntryCount = reactable::colDef(show = FALSE),
-      maxEntryCount = reactable::colDef(show = FALSE),
-      subsetDefinitionJson = reactable::colDef(show = FALSE),
-      subsetCohortId = reactable::colDef(show = FALSE),
-      cohortId = reactable::colDef(
+      cohortDefinitionId = reactable::colDef(
         show = TRUE,
         name = 'Cohort ID'
       ),
-      
-      parentName = reactable::colDef(
-        name = 'Target',
-        minWidth = 150
-      ),
       cohortName = reactable::colDef(
-        name = 'Subset',
+        name = 'Cohort Name',
         minWidth = 300
       ),
-      subsetParent = reactable::colDef(show = FALSE),
-      subsetDefinitionId = reactable::colDef(show = FALSE),
-      
-      databaseIdString = reactable::colDef(show = FALSE),
-      
-      databaseStringCount  = reactable::colDef(
-        show = FALSE
-      ),
+     
       timeToEvent = reactable::colDef(
         show = FALSE
       ), 
       dechalRechal = reactable::colDef(
+        show = FALSE
+      ),
+      databaseComparator = reactable::colDef(
+        show = FALSE
+      ),
+      cohortComparator = reactable::colDef(
         show = FALSE
       ), 
       riskFactors = reactable::colDef(
@@ -481,12 +457,6 @@ characterizationTargetDisplayColumns <- function(){
         show = FALSE
       ),
       cohortIncidence = reactable::colDef(
-        show = FALSE
-      ),
-      databaseComparator = reactable::colDef(
-        show = FALSE
-      ),
-      cohortComparator = reactable::colDef(
         show = FALSE
       )
     )
@@ -498,18 +468,28 @@ characterizationOutcomeDisplayColumns <- function(){
   return(
     list(
 
-      cohortId = reactable::colDef(
+      cohortDefinitionId = reactable::colDef(
         show = TRUE,
         name = 'Cohort ID'
       ),
-      
-      parentName = reactable::colDef(
-        name = 'Outcome',
-        minWidth = 150
-      ),
       cohortName = reactable::colDef(
-        name = 'Subset',
+        name = 'Cohort Name',
         minWidth = 300
+      ),
+      timeToEvent = reactable::colDef(
+        show = FALSE
+      ), 
+      dechalRechal = reactable::colDef(
+        show = FALSE
+      ),
+      riskFactors = reactable::colDef(
+        show = FALSE
+      ), 
+      caseSeries = reactable::colDef(
+        show = FALSE
+      ),
+      cohortIncidence = reactable::colDef(
+        show = FALSE
       )
       
     )
@@ -517,35 +497,121 @@ characterizationOutcomeDisplayColumns <- function(){
 }
 
 
+# this gets the cohort_definition_id, cohort_name, parent_name, parent_id and 
+# what modules used the cohortd
+getTargetsUsedInChar <- function(
+    connectionHandler,
+    schema,
+    cgTablePrefix = 'cg_',
+    cTablePrefix = 'c_',
+    ciTablePrefix = 'ci_'
+    ){
+  
+  shiny::withProgress(message = 'Loading targets', value = 0, {
+    
+    shiny::incProgress(2/4, detail = paste("Extracting targets"))
+    
+    charTargets <- OhdsiReportGenerator::getTargetsUsedInCharacterization(
+      connectionHandler = connectionHandler,
+      schema = schema, 
+      cTablePrefix = cTablePrefix, 
+      cgTablePrefix = cgTablePrefix
+    )
+    
+    incidenceTargets <- OhdsiReportGenerator:::getTargetsUsedInIncidence(
+      connectionHandler = connectionHandler,
+      schema = schema, 
+      ciTablePrefix = ciTablePrefix, 
+      cgTablePrefix = cgTablePrefix
+    )
+    
+    result <- merge(
+      x = charTargets,
+      y = incidenceTargets, 
+      all.x = TRUE, 
+      by = c('cohortName', 'cohortDefinitionId')
+      )
+    
+    if(sum(is.na(result$cohortIncidence)) > 0){
+      result$cohortIncidence[is.na(result$cohortIncidence)] <- 0
+    }
+    
+    shiny::incProgress(4/4, detail = paste("Done"))
+    
+  })
+  
+  return(result)
+}
+
+# This gets the characterizationTargetIds for the specific targetId
+getCharacterizationTargetId <- function(
+    connectionHandler,
+    schema,
+    targetId,
+    databaseTable = 'database_meta_data',
+    cgTablePrefix = 'cg_',
+    cTablePrefix = 'c_'
+){
+  
+  shiny::withProgress(message = 'Loading targets', value = 0, {
+    
+    shiny::incProgress(2/4, detail = paste("Extracting targets"))
+    
+    result <- OhdsiReportGenerator::getCharacterizationTargetSettings(
+      connectionHandler = connectionHandler,
+      schema = schema, 
+      cTablePrefix = cTablePrefix, 
+      cgTablePrefix = cgTablePrefix,
+      targetIds = targetId, 
+      addDatabaseDetails = TRUE, 
+      databaseTable = databaseTable
+    )
+  
+      
+    shiny::incProgress(4/4, detail = paste("Done"))
+    
+  })
+  
+  return(result)
+}
+
+
+
 # adding progress report around outcome extraction as it can be slow
-getShinyOutcomeTable <- function(
+getOutcomesUsedInChar <- function(
     connectionHandler,
     resultDatabaseSettings,
-    targetId , 
-    getIncidenceInclusion = TRUE,
-    getCharacterizationInclusion = TRUE,
-    getPredictionInclusion = TRUE, 
-    getCohortMethodInclusion = TRUE,
-    getSccsInclusion = TRUE
+    targetId
 ){
   
   shiny::withProgress(message = 'Loading outcomes for selected target', value = 0, {
     
     shiny::incProgress(2/4, detail = paste("Extracting data"))
     
-    result <- OhdsiReportGenerator::getOutcomeTable(
+    cOutcomes <- OhdsiReportGenerator::getOutcomesUsedInCharacterization(
       connectionHandler = connectionHandler,
       schema = resultDatabaseSettings$schema, 
       cTablePrefix = resultDatabaseSettings$cTablePrefix,
       cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-      ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
-      targetId = targetId, 
-      getIncidenceInclusion = getIncidenceInclusion, 
-      getCharacterizationInclusion = getCharacterizationInclusion,
-      getPredictionInclusion = getPredictionInclusion, 
-      getCohortMethodInclusion = getCohortMethodInclusion,
-      getSccsInclusion = getSccsInclusion
+      targetId = targetId
     )
+    
+    ciOutcomes <- OhdsiReportGenerator::getOutcomesUsedInIncidence(
+      connectionHandler = connectionHandler,
+      schema = resultDatabaseSettings$schema, 
+      cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+      ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
+      targetId = targetId
+    )
+    
+    result <- merge(
+      x = cOutcomes, 
+      y = ciOutcomes, 
+      by = c('cohortName', 'cohortDefinitionId'),
+      all = TRUE
+    )
+    
+    # Note: may need to add missing columns if either queries return 0 rows
     
     message(paste0('Extracted ',nrow(result),' outcomes'))
   

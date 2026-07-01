@@ -74,14 +74,36 @@ characterizationTimeToEventServer <- function(
   id, 
   connectionHandler,
   resultDatabaseSettings,
-  reactiveTargetRow,
-  outcomeTable,
-  reactiveOutcomeRowId,
-  outcomeRow
+  reactiveCharacterizationTargetTable,
+  reactiveCharacterizationTargetRowId,
+  reactiveOutcomeTable,
+  reactiveOutcomeRowId
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
+      
+      reactiveTargetRow <- shiny::reactive({
+        rowId <- reactiveCharacterizationTargetRowId()
+        targetTable <- reactiveCharacterizationTargetTable()
+        
+        if (is.null(rowId) || length(rowId) == 0 || is.null(targetTable) || nrow(targetTable) == 0) {
+          return(data.frame())
+        }
+        
+        targetTable[rowId, , drop = FALSE]
+      })
+      
+      tableSelectionServer(
+        id = 'char-pop-select-tte',
+        table = reactiveCharacterizationTargetTable, 
+        selectedRowId = reactiveCharacterizationTargetRowId,
+        selectMultiple = FALSE, 
+        elementId = session$ns('table-selector-tte'),
+        inputColumns = characterizationTargetsColumns(),
+        displayColumns = characterizationTargetsColumns(), 
+        selectButtonText = 'Select Population'
+      )
       
       output$showTimeToEvent <- shiny::reactive(0)
       shiny::outputOptions(output, "showTimeToEvent", suspendWhenHidden = FALSE)
@@ -97,26 +119,41 @@ characterizationTimeToEventServer <- function(
       
       # inputs
       output$inputs <- shiny::renderUI({ # need to make reactive?
+        targetRowId <- reactiveCharacterizationTargetRowId()
+        outcomeRowId <- reactiveOutcomeRowId()
+        outcomeTable <- reactiveOutcomeTable()
+
+        hasTarget <- !is.null(targetRowId) && length(targetRowId) > 0 && all(targetRowId > 0)
+        hasOutcome <- !is.null(outcomeRowId) && length(outcomeRowId) > 0 &&
+          all(outcomeRowId > 0) && !is.null(outcomeTable) &&
+          nrow(outcomeTable) >= max(outcomeRowId)
+        canGenerate <- hasTarget && hasOutcome
         
         shiny::div(
           
+          tableSelectionViewer(id = session$ns('char-pop-select-tte')),
+          
           tableSelectionViewer(id = session$ns('outcome-table-select-tte')),
 
-          shiny::actionButton(
-            inputId = session$ns('generate'), 
-            label = 'Generate'
-            ),
-        )})
+          shiny::tags$button(
+            id = session$ns('generate'),
+            type = 'button',
+            class = if (canGenerate) 'btn btn-primary action-button' else 'btn btn-default action-button',
+            disabled = if (!canGenerate) 'disabled' else NULL,
+            'Generate'
+          ),
+
+          if (!canGenerate) {
+            shiny::helpText('Select both a population and an outcome to enable Generate.')
+          }
+        )
+      })
       
       
       # server for outcome seleciton table
       tableSelectionServer(
         id = 'outcome-table-select-tte',
-        table = shiny::reactive(outcomeTable() %>%
-                                  dplyr::select("parentName", "cohortName", "cohortId") %>%
-                                  dplyr::relocate("parentName", .before = "cohortName") %>%
-                                  dplyr::relocate("cohortId", .after = "cohortName")
-        ), 
+        table = reactiveOutcomeTable, 
         selectedRowId = reactiveOutcomeRowId,
         selectMultiple = FALSE, 
         elementId = session$ns('table-outcome-selector'),
@@ -124,19 +161,12 @@ characterizationTimeToEventServer <- function(
         displayColumns = characterizationOutcomeDisplayColumns(), 
         selectButtonText = 'Select Outcome'
       )
-      
-      # show selected inputs to user
-      selected <- shiny::reactiveVal()
-      inputSelectionDfServer(
-        id = 'inputSelected', 
-        dataFrameRow = selected,
-        ncol = 1
-      )
+  
       
       # wait for generate to extract data
       shiny::observeEvent(input$generate, {
         
-        reactiveOutcomeRow <- outcomeTable()[reactiveOutcomeRowId(),]
+        reactiveOutcomeRow <- reactiveOutcomeTable()[reactiveOutcomeRowId(),]
         
         if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow)){
           output$showTimeToEvent <- shiny::reactive(0)
@@ -146,19 +176,12 @@ characterizationTimeToEventServer <- function(
           
           if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveOutcomeRow) > 0 ){
             
-            selected(
-              data.frame(
-                Target = reactiveTargetRow()$cohortName,
-                Outcome = reactiveOutcomeRow$cohortName
-              )
-            )
-            
             # add code to show T and O selected 
             
             output$showTimeToEvent <- shiny::reactive(1)
             
             allData(getTimeToEventData(
-              targetId = reactiveTargetRow()$cohortId,
+              characterizationTargetId = reactiveTargetRow()$characterizationTargetId,
               outcomeId = reactiveOutcomeRow$cohortId,
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings
@@ -274,12 +297,12 @@ characterizationTimeToEventServer <- function(
 
 # pulls all data for a target and outcome
 getTimeToEventData <- function(
-  targetId,
+    characterizationTargetId,
   outcomeId,
   connectionHandler,
   resultDatabaseSettings
 ){
-  if(is.null(targetId)){
+  if(is.null(characterizationTargetId)){
     return(NULL)
   }
   
@@ -293,7 +316,7 @@ getTimeToEventData <- function(
       cTablePrefix = resultDatabaseSettings$cTablePrefix, 
       cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
       databaseTable = resultDatabaseSettings$databaseTable, 
-      targetIds = targetId, 
+      characterizationTargetIds = characterizationTargetId, 
       outcomeIds = outcomeId
     ) 
   

@@ -156,9 +156,9 @@ tableSelectionServer <- function(
                    searchable = FALSE, 
                    compact = TRUE,
                    pagination = FALSE,
-                   showPageInfo = FALSE, 
-                   height = 400, # this makes headers sticky 
+                   showPageInfo = FALSE,
                    theme = reactable::reactableTheme(
+                     tableStyle = list(maxHeight = "400px", overflowY = "auto"),
                      style = list(fontFamily = "-system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif")
                    )
                  )

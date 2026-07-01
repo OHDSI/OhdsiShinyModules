@@ -98,8 +98,8 @@ characterizationIncidenceServer <- function(
     id, 
     connectionHandler,
     resultDatabaseSettings,
-    reactiveTargetRow, # reactive
-    outcomeTable # reactive
+    reactiveTargetRow,
+    reactiveOutcomeTable
 ) {
   shiny::moduleServer(
     id,
@@ -120,8 +120,13 @@ characterizationIncidenceServer <- function(
       })
       
       # get the databases that the target cohort has data in
-      databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseString, split = ', ')))
-      databaseIds <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseIdString, split = ', ')))
+      databases <- OhdsiReportGenerator::getDatabaseDetails(
+        connectionHandler = connectionHandler, 
+        schema = resultDatabaseSettings$schema, 
+        databaseTable = resultDatabaseSettings$databaseTable
+      )
+      databaseNames <- shiny::reactive({databases$databaseName })
+      databaseIds <- shiny::reactive({databases$databaseId })
       
       output$inputOptions <- shiny::renderUI({
         shinydashboard::box(
@@ -146,8 +151,8 @@ characterizationIncidenceServer <- function(
             inputId = session$ns('databaseSelector'),
             label = 'Filter By Database: ',
             choices = sort(databaseNames()),
-            selected = databaseNames()[1],
-            multiple = T,
+            selected = sort(databaseNames())[1],
+            multiple = TRUE,
             options = shinyWidgets::pickerOptions(
               actionsBox = TRUE,
               liveSearch = TRUE,
@@ -197,17 +202,12 @@ characterizationIncidenceServer <- function(
       
       reactiveOutcomeRowIds <- shiny::reactiveVal(NULL)
       reactiveOutcomeRows <- shiny::reactive({
-        outcomeTable()[reactiveOutcomeRowIds(),]
+        reactiveOutcomeTable()[reactiveOutcomeRowIds(),]
       })
       
       tableSelectionServer(
         id = 'outcome-table-select',
-        table = shiny::reactive(outcomeTable() %>%
-                                  dplyr::filter(.data$cohortIncidence == 1) %>%
-                                  dplyr::select('parentName','cohortName','cohortId') %>%
-                                  dplyr::relocate("parentName", .before = "cohortName") %>%
-                                  dplyr::relocate("cohortId", .after = "cohortName")
-        ), 
+        table = reactiveOutcomeTable, 
         selectedRowId = reactiveOutcomeRowIds,
         selectMultiple = TRUE, 
         #elementId = session$ns('table-selector'),
@@ -363,16 +363,6 @@ characterizationIncidenceServer <- function(
                 value = TRUE
               )
             )
-            
-            #  shiny::column(width = 3,
-            #                shiny::div(
-            #                  style = "display:inline-block; float:right",
-            #                  shiny::downloadButton(ns("downloadPlotStandardAge"),
-            #                                        "Download Plot",
-            #                                        icon = shiny::icon("download")
-            #                  )
-            #                )
-            #  ) 
             
           ),
           

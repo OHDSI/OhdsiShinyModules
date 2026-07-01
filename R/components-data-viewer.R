@@ -249,6 +249,7 @@ fuzzySearch <- reactable::JS('function(rows, columnIds, filterValue) {
         # set row height based on nchar of table
         height <- NULL
         maxMinWidth <- max(unlist(lapply(colDefsInputReactive(), function(x) x$minWidth)))
+        maxMinWidth <- ifelse(is.null(maxMinWidth), 40,maxMinWidth)
         maxMinWidth <- ifelse(is.finite(maxMinWidth),maxMinWidth, 40)
         if(max(apply(df(), 1, function(x) max(nchar(x))), na.rm = TRUE) < maxMinWidth*3){
           if(!is.null(addActions)){
