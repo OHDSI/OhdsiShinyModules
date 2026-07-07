@@ -528,13 +528,19 @@ getTargetsUsedInChar <- function(
     result <- merge(
       x = charTargets,
       y = incidenceTargets, 
-      all.x = TRUE, 
+      all = TRUE, 
       by = c('cohortName', 'cohortDefinitionId')
       )
     
     if(sum(is.na(result$cohortIncidence)) > 0){
       result$cohortIncidence[is.na(result$cohortIncidence)] <- 0
     }
+    
+    allColsOfInt <- colnames(result)[!colnames(result) %in% c('cohortName', 'cohortDefinitionId')]
+      
+    # replace NA with 0
+    result <- result %>%
+      dplyr::mutate(dplyr::across(allColsOfInt, ~ tidyr::replace_na(.x, 0)))
     
     shiny::incProgress(4/4, detail = paste("Done"))
     

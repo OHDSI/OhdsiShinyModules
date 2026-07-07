@@ -243,8 +243,8 @@ characterizationIncidenceServer <- function(
             ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
             cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
             databaseTable = resultDatabaseSettings$databaseTable, 
-            targetIds = reactiveTargetRow()$cohortId, 
-            outcomeIds = reactiveOutcomeRows()$cohortId
+            targetIds = reactiveTargetRow()$cohortDefinitionId, 
+            outcomeIds = reactiveOutcomeRows()$cohortDefinitionId
           ) 
         
           incidenceFullData(data)
