@@ -20,46 +20,199 @@
 characterizationTimeToEventViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
-    
-    shiny::helpText('View the timing of all outcomes relative to the target index date and whether the outcome was the frist or subsequent.'),
-    
-    shinydashboard::box(
-      collapsible = TRUE,
-      title = "Options",
-      width = "100%",
-      shiny::uiOutput(ns("inputs"))
+    shiny::tags$style(
+      '
+      .tte-viewer-shell {
+        display: grid;
+        gap: 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        overflow-x: hidden;
+      }
+      .tte-hero {
+        border-radius: 22px;
+        padding: 22px 24px;
+        background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #fdfcff 100%);
+        border: 1px solid #dbe6f3;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+      }
+      .tte-hero-top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 8px;
+      }
+      .tte-hero-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        background: linear-gradient(135deg, #f59e0b, #fb923c);
+        box-shadow: 0 12px 20px rgba(245, 158, 11, 0.24);
+        flex: 0 0 auto;
+      }
+      .tte-hero-title {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #102033;
+        margin: 0;
+      }
+      .tte-hero-copy {
+        color: #526173;
+        margin: 0;
+        line-height: 1.5;
+        max-width: 880px;
+      }
+      .tte-options-box.box {
+        border-radius: 18px;
+        border-top: 4px solid #2563eb;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .tte-results-card {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+        border: 1px solid #dbe5f1;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .tte-tabs,
+      .tte-tabs .tab-content,
+      .tte-tabs .tab-pane {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .tte-tabs .nav-tabs,
+      .tte-tabs .nav-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        border-bottom: none;
+      }
+      .tte-tabs .nav > li {
+        float: none;
+        margin: 0;
+      }
+      .tte-results-card .box-header {
+        background: linear-gradient(135deg, #123a63 0%, #1d4ed8 100%);
+        color: #ffffff;
+        border-bottom: none;
+      }
+      .tte-results-card .box-title {
+        font-weight: 700;
+      }
+      .tte-tabs .nav > li > a {
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .tte-tabs .nav-pills > li.active > a,
+      .tte-tabs .nav-pills > li.active > a:focus,
+      .tte-tabs .nav-pills > li.active > a:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+        box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+      }
+      .tte-tab-panel-wrap {
+        margin-top: 14px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .tte-filters-card {
+        background: #f8fbff;
+        border: 1px solid #dde7f2;
+        border-radius: 16px;
+        padding: 14px 16px 6px 16px;
+        margin-bottom: 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .tte-options-box .box-body,
+      .tte-results-card .box-body {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      '
     ),
-    
-    shiny::conditionalPanel(
-      condition = 'output.showTimeToEvent != 0', 
-      ns = ns,
-      
-      shiny::tabsetPanel(
-        type = 'pills',
-        id = ns('tteMainPanel'),
-        
-        shiny::tabPanel(
-          title = "Time-to-event Plots",
-          
-          shinydashboard::box(
-            width = "100%",
-            title = "",
-            
-            shiny::uiOutput(ns('timeToEventPlotInputs')),
-            shinycssloaders::withSpinner(
-              shiny::plotOutput(ns('timeToEvent'))
+    shiny::div(
+      class = 'tte-viewer-shell',
+      shiny::div(
+        class = 'tte-hero',
+        shiny::div(
+          class = 'tte-hero-top',
+          shiny::div(
+            class = 'tte-hero-icon',
+            shiny::icon('clock')
+          ),
+          shiny::div(
+            shiny::tags$h2(class = 'tte-hero-title', 'Time-to-event'),
+            shiny::tags$p(
+              class = 'tte-hero-copy',
+              'Explore when outcomes occur relative to the target index date, compare timing patterns across databases, and review the underlying counts in a polished, easy-to-scan view.'
             )
           )
-        ),
-        
-        shiny::tabPanel(
-          title = "Time-to-event Table",
-          
-          shinydashboard::box(
-            status = 'info', 
-            width = '100%',
-            solidHeader = TRUE,
-            resultTableViewer(ns('tableResults'))
+        )
+      ),
+      shinydashboard::box(
+        collapsible = TRUE,
+        title = shiny::tagList(shiny::icon('sliders'), 'Analysis options'),
+        width = '100%',
+        class = 'tte-options-box',
+        shiny::div(
+          class = 'tte-filters-card',
+          shiny::uiOutput(ns('inputs'))
+        )
+      ),
+      shiny::conditionalPanel(
+        condition = 'output.showTimeToEvent != 0',
+        ns = ns,
+        shiny::div(
+          class = 'tte-tabs',
+          shiny::tabsetPanel(
+            type = 'pills',
+            id = ns('tteMainPanel'),
+            shiny::tabPanel(
+              title = 'Time-to-event Plots',
+              shiny::div(
+                class = 'tte-tab-panel-wrap',
+                shinydashboard::box(
+                  width = '100%',
+                  class = 'tte-results-card',
+                  title = '',
+                  shiny::uiOutput(ns('timeToEventPlotInputs')),
+                  shinycssloaders::withSpinner(
+                    shiny::plotOutput(ns('timeToEvent'))
+                  )
+                )
+              )
+            ),
+            shiny::tabPanel(
+              title = 'Time-to-event Table',
+              shiny::div(
+                class = 'tte-tab-panel-wrap',
+                shinydashboard::box(
+                  class = 'tte-results-card',
+                  status = 'info',
+                  width = '100%',
+                  solidHeader = TRUE,
+                  resultTableViewer(ns('tableResults'))
+                )
+              )
+            )
           )
         )
       )

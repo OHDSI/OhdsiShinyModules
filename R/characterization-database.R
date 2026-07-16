@@ -22,46 +22,213 @@ characterizationDatabaseComparisonViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    
-    shiny::helpText('Compare covariates at index between two databases for the same cohort.'),
-    
-    # UI for inputs
-    # summary table
-    shinydashboard::box(
-      collapsible = TRUE,
-      title = "Options",
-      width = "100%",
-      shiny::uiOutput(ns("inputs"))
+    shiny::tags$style(
+      '
+      .db-viewer-shell {
+        display: grid;
+        gap: 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+      }
+      .db-hero {
+        border-radius: 22px;
+        padding: 22px 24px;
+        background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #fdfcff 100%);
+        border: 1px solid #dbe6f3;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+      }
+      .db-hero-top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 8px;
+      }
+      .db-hero-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        background: linear-gradient(135deg, #0f766e, #14b8a6);
+        box-shadow: 0 12px 20px rgba(20, 184, 166, 0.24);
+        flex: 0 0 auto;
+      }
+      .db-hero-title {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #102033;
+        margin: 0;
+      }
+      .db-hero-copy {
+        color: #526173;
+        margin: 0;
+        line-height: 1.5;
+        max-width: 880px;
+      }
+      .db-options-box.box {
+        border-radius: 18px;
+        border-top: 4px solid #2563eb;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .db-options-box .box-body {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        background: #f8fbff;
+      }
+      .db-options-card {
+        background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+        border: 1px solid #dbe6f3;
+        border-radius: 16px;
+        padding: 14px 16px 8px 16px;
+      }
+      .db-results-wrap {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .db-results-wrap .nav-tabs,
+      .db-results-wrap .nav-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        border-bottom: none;
+      }
+      .db-results-wrap .nav > li {
+        float: none;
+        margin: 0;
+      }
+      .db-results-wrap .nav > li > a {
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .db-results-wrap .nav-pills > li.active > a,
+      .db-results-wrap .nav-pills > li.active > a:focus,
+      .db-results-wrap .nav-pills > li.active > a:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+        box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+      }
+      .db-results-wrap .tab-content,
+      .db-results-wrap .tab-pane {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .db-results-card {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+        border: 1px solid #dbe5f1;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .db-results-card .box-header {
+        background: linear-gradient(135deg, #123a63 0%, #1d4ed8 100%);
+        color: #ffffff;
+        border-bottom: none;
+      }
+      .db-results-card .box-title {
+        font-weight: 700;
+      }
+      .db-results-panel {
+        margin-top: 14px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .db-plot-panel {
+        margin-top: 14px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      '
     ),
-    
-    # displayed inputs
-    shiny::conditionalPanel(
-      condition = "output.showResults != 0",
-      ns = ns,
-      
-      # add basic table 
-      shiny::tabsetPanel(
-        type = 'pills',
-
-        shiny::tabPanel(
-          title = 'Binary Table ',
-          shiny::uiOutput(outputId = ns('helpTextBinary')),
-          resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
-        ),
-        
-        shiny::tabPanel(
-          title = "Binary Plot",
-          shiny::helpText('Pick two databases and compare binary features across the databases.'),
-          shiny::uiOutput(ns('plotInputs')),
-          shinycssloaders::withSpinner(
-            plotly::plotlyOutput(ns('scatterPlot'))
+    shiny::div(
+      class = 'db-viewer-shell',
+      shiny::div(
+        class = 'db-hero',
+        shiny::div(
+          class = 'db-hero-top',
+          shiny::div(
+            class = 'db-hero-icon',
+            shiny::icon('database')
+          ),
+          shiny::div(
+            shiny::tags$h2(class = 'db-hero-title', 'Database comparison'),
+            shiny::tags$p(
+              class = 'db-hero-copy',
+              'Compare covariates at index between two databases for the same cohort in a cleaner, more polished layout.'
+            )
           )
-        ),
-        
-        shiny::tabPanel(
-          title = 'Continuous Table',
-          shiny::uiOutput(outputId = ns('helpTextContinuous')),
-          resultTableViewer(id = ns('continuousTable'), boxTitle = 'Continuous')
+        )
+      ),
+      shinydashboard::box(
+        collapsible = TRUE,
+        title = shiny::tagList(shiny::icon('sliders'), 'Analysis options'),
+        width = '100%',
+        class = 'db-options-box',
+        shiny::div(
+          class = 'db-options-card',
+          shiny::uiOutput(ns('inputs'))
+        )
+      ),
+      shiny::conditionalPanel(
+        condition = "output.showResults != 0",
+        ns = ns,
+        shiny::div(
+          class = 'db-results-wrap',
+          shiny::tabsetPanel(
+            type = 'pills',
+            shiny::tabPanel(
+              title = 'Binary Table',
+              shiny::div(
+                class = 'db-results-panel',
+                shiny::uiOutput(outputId = ns('helpTextBinary')),
+                shinydashboard::box(
+                  class = 'db-results-card',
+                  width = '100%',
+                  title = '',
+                  resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
+                )
+              )
+            ),
+            shiny::tabPanel(
+              title = 'Binary Plot',
+              shiny::div(
+                class = 'db-plot-panel',
+                shiny::helpText('Pick two databases and compare binary features across the databases.'),
+                shiny::uiOutput(ns('plotInputs')),
+                shinycssloaders::withSpinner(
+                  plotly::plotlyOutput(ns('scatterPlot'))
+                )
+              )
+            ),
+            shiny::tabPanel(
+              title = 'Continuous Table',
+              shiny::div(
+                class = 'db-results-panel',
+                shiny::uiOutput(outputId = ns('helpTextContinuous')),
+                shinydashboard::box(
+                  class = 'db-results-card',
+                  width = '100%',
+                  title = '',
+                  resultTableViewer(id = ns('continuousTable'), boxTitle = 'Continuous')
+                )
+              )
+            )
+          )
         )
       )
     )

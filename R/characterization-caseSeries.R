@@ -20,31 +20,186 @@ characterizationCaseSeriesViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    
-    shiny::helpText('View features that occur before target index, between target index and outcome and after outcome for patients with the outcome during the time-at-risk.'),
-    
-    # module that does input selection for a single row DF
-    shinydashboard::box(
-      collapsible = TRUE,
-      title = "Case Series Options",
-      width = "100%",
-      shiny::uiOutput(ns("inputs"))
+    shiny::tags$style(
+      '
+      .cs-viewer-shell {
+        display: grid;
+        gap: 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+      }
+      .cs-hero {
+        border-radius: 22px;
+        padding: 22px 24px;
+        background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #fdfcff 100%);
+        border: 1px solid #dbe6f3;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+      }
+      .cs-hero-top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 8px;
+      }
+      .cs-hero-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        background: linear-gradient(135deg, #0891b2, #22d3ee);
+        box-shadow: 0 12px 20px rgba(8, 145, 178, 0.24);
+        flex: 0 0 auto;
+      }
+      .cs-hero-title {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #102033;
+        margin: 0;
+      }
+      .cs-hero-copy {
+        color: #526173;
+        margin: 0;
+        line-height: 1.5;
+        max-width: 880px;
+      }
+      .cs-options-box.box {
+        border-radius: 18px;
+        border-top: 4px solid #2563eb;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .cs-options-box .box-body {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        background: #f8fbff;
+      }
+      .cs-options-card {
+        background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+        border: 1px solid #dbe6f3;
+        border-radius: 16px;
+        padding: 14px 16px 8px 16px;
+      }
+      .cs-results-wrap {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .cs-results-wrap .box {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+        border: 1px solid #dbe5f1;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .cs-results-wrap .box-header {
+        background: linear-gradient(135deg, #123a63 0%, #1d4ed8 100%);
+        color: #ffffff;
+        border-bottom: none;
+      }
+      .cs-results-wrap .box-title {
+        font-weight: 700;
+      }
+      .cs-results-wrap .nav-tabs,
+      .cs-results-wrap .nav-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        border-bottom: none;
+      }
+      .cs-results-wrap .nav > li {
+        float: none;
+        margin: 0;
+      }
+      .cs-results-wrap .nav > li > a {
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .cs-results-wrap .nav-pills > li.active > a,
+      .cs-results-wrap .nav-pills > li.active > a:focus,
+      .cs-results-wrap .nav-pills > li.active > a:hover {
+        background: linear-gradient(135deg, #f59e0b 0%, #fb923c 100%);
+        box-shadow: 0 10px 18px rgba(245, 158, 11, 0.22);
+      }
+      .cs-results-wrap .tab-content,
+      .cs-results-wrap .tab-pane {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .cs-results-panel {
+        margin-top: 14px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      '
     ),
-    
-    shiny::conditionalPanel(
-      condition = 'output.showCaseSeries != 0',
-      ns = ns,
-      
-      shinydashboard::tabBox(
-        width = "100%",
-        # Title can include an icon
-        shiny::tabPanel("Binary Feature Table",
-                        shiny::uiOutput(outputId = ns('helpTextBinary')),
-                        resultTableViewer(ns('binaryTable'))
-        ),
-        shiny::tabPanel("Continuous Feature Table", 
-                        shiny::uiOutput(outputId = ns('helpTextCont')),
-                        resultTableViewer(ns('continuousTable'))
+    shiny::div(
+      class = 'cs-viewer-shell',
+      shiny::div(
+        class = 'cs-hero',
+        shiny::div(
+          class = 'cs-hero-top',
+          shiny::div(
+            class = 'cs-hero-icon',
+            shiny::icon('gear')
+          ),
+          shiny::div(
+            shiny::tags$h2(class = 'cs-hero-title', 'Case series'),
+            shiny::tags$p(
+              class = 'cs-hero-copy',
+              'Explore features that occur before target index, between target index and outcome, and after outcome for patients with the outcome during the time-at-risk.'
+            )
+          )
+        )
+      ),
+      shinydashboard::box(
+        collapsible = TRUE,
+        title = shiny::tagList(shiny::icon('sliders'), 'Analysis options'),
+        width = '100%',
+        class = 'cs-options-box',
+        shiny::div(
+          class = 'cs-options-card',
+          shiny::uiOutput(ns('inputs'))
+        )
+      ),
+      shiny::conditionalPanel(
+        condition = 'output.showCaseSeries != 0',
+        ns = ns,
+        shiny::div(
+          class = 'cs-results-wrap',
+          shinydashboard::tabBox(
+            width = '100%',
+            shiny::tabPanel(
+              'Binary Feature Table',
+              shiny::div(
+                class = 'cs-results-panel',
+                shiny::uiOutput(outputId = ns('helpTextBinary')),
+                resultTableViewer(ns('binaryTable'))
+              )
+            ),
+            shiny::tabPanel(
+              'Continuous Feature Table',
+              shiny::div(
+                class = 'cs-results-panel',
+                shiny::uiOutput(outputId = ns('helpTextCont')),
+                resultTableViewer(ns('continuousTable'))
+              )
+            )
+          )
         )
       )
     )

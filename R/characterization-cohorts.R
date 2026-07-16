@@ -21,43 +21,190 @@
 characterizationCohortComparisonViewer <- function(id) {
   ns <- shiny::NS(id)
   
-    # module that does input selection for a single row DF
+  shiny::div(
+    shiny::tags$style(
+      '
+      .cohort-viewer-shell {
+        display: grid;
+        gap: 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+      }
+      .cohort-hero {
+        border-radius: 22px;
+        padding: 22px 24px;
+        background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #fdfcff 100%);
+        border: 1px solid #dbe6f3;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+      }
+      .cohort-hero-top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 8px;
+      }
+      .cohort-hero-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        background: linear-gradient(135deg, #2563eb, #60a5fa);
+        box-shadow: 0 12px 20px rgba(37, 99, 235, 0.24);
+        flex: 0 0 auto;
+      }
+      .cohort-hero-title {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #102033;
+        margin: 0;
+      }
+      .cohort-hero-copy {
+        color: #526173;
+        margin: 0;
+        line-height: 1.5;
+        max-width: 880px;
+      }
+      .cohort-options-box.box {
+        border-radius: 18px;
+        border-top: 4px solid #2563eb;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .cohort-options-box .box-body {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        background: #f8fbff;
+      }
+      .cohort-options-card {
+        background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+        border: 1px solid #dbe6f3;
+        border-radius: 16px;
+        padding: 14px 16px 8px 16px;
+      }
+      .cohort-results-wrap {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .cohort-results-wrap .nav-tabs,
+      .cohort-results-wrap .nav-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        border-bottom: none;
+      }
+      .cohort-results-wrap .nav > li {
+        float: none;
+        margin: 0;
+      }
+      .cohort-results-wrap .nav > li > a {
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .cohort-results-wrap .nav-pills > li.active > a,
+      .cohort-results-wrap .nav-pills > li.active > a:focus,
+      .cohort-results-wrap .nav-pills > li.active > a:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+        box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+      }
+      .cohort-results-wrap .tab-content,
+      .cohort-results-wrap .tab-pane {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .cohort-results-wrap .box {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+        border: 1px solid #dbe5f1;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .cohort-results-wrap .box-header {
+        background: linear-gradient(135deg, #8b5a12 0%, #f59e0b 100%);
+        color: #ffffff;
+        border-bottom: none;
+      }
+      .cohort-results-wrap .box-title {
+        font-weight: 700;
+      }
+      .cohort-results-panel {
+        margin-top: 14px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      '
+    ),
     shiny::div(
-      
-      shiny::helpText('Compare covariates at index between two cohorts within the same database.'),
-      
-      # UI for inputs
-      # summary table
-      shinydashboard::box(
-        collapsible = TRUE,
-        title = "Options",
-        width = "100%",
-        shiny::uiOutput(ns("inputs"))
-      ),
-      
-      # displayed inputs
-      shiny::conditionalPanel(
-        condition = "output.showResults != 0", 
-        ns = ns,
-        
-        # add basic table 
-        shiny::tabsetPanel(
-          type = 'pills',
-          
-          shiny::tabPanel(
-            title = 'Binary Covariates',
-            shiny::uiOutput(outputId = ns('helpTextBinary')),
-            resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
+      class = 'cohort-viewer-shell',
+      shiny::div(
+        class = 'cohort-hero',
+        shiny::div(
+          class = 'cohort-hero-top',
+          shiny::div(
+            class = 'cohort-hero-icon',
+            shiny::icon('users')
           ),
-          
-          shiny::tabPanel(
-            title = 'Continuous Covariates',
-            shiny::uiOutput(outputId = ns('helpTextContinuous')),
-            resultTableViewer(id = ns('continuousTable'), boxTitle = 'Continuous')
+          shiny::div(
+            shiny::tags$h2(class = 'cohort-hero-title', 'Cohort comparison'),
+            shiny::tags$p(
+              class = 'cohort-hero-copy',
+              'Compare covariates at index between two cohorts within the same database in a cleaner, easier-to-scan layout.'
+            )
           )
         )
-        
+      ),
+      shinydashboard::box(
+        collapsible = TRUE,
+        title = shiny::tagList(shiny::icon('sliders'), 'Analysis options'),
+        width = '100%',
+        class = 'cohort-options-box',
+        shiny::div(
+          class = 'cohort-options-card',
+          shiny::uiOutput(ns('inputs'))
+        )
+      ),
+      shiny::conditionalPanel(
+        condition = 'output.showResults != 0', 
+        ns = ns,
+        shiny::div(
+          class = 'cohort-results-wrap',
+          shiny::tabsetPanel(
+            type = 'pills',
+            shiny::tabPanel(
+              title = 'Binary Covariates',
+              shiny::div(
+                class = 'cohort-results-panel',
+                shiny::uiOutput(outputId = ns('helpTextBinary')),
+                resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
+              )
+            ),
+            shiny::tabPanel(
+              title = 'Continuous Covariates',
+              shiny::div(
+                class = 'cohort-results-panel',
+                shiny::uiOutput(outputId = ns('helpTextContinuous')),
+                resultTableViewer(id = ns('continuousTable'), boxTitle = 'Continuous')
+              )
+            )
+          )
+        )
       )
+    )
     )
 }
 

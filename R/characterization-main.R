@@ -161,37 +161,249 @@ characterizationServer <- function(
             output$analysesOptions <- shiny::renderUI(
               shiny::div(
                 shiny::tags$style(
-                  '.analysis-tabs > li.disabled > a { color: #8d8d8d !important; background-color: #f1f1f1 !important; border-color: #d9d9d9 !important; cursor: not-allowed !important; pointer-events: none; }\n                   .analysis-tabs > li > a { border: 1px solid #d2d6de; margin-right: 4px; }\n                   .analysis-tabs > li.active > a { background-color: #3c8dbc !important; color: #fff !important; border-color: #367fa9 !important; }'
+                  '
+                  .analysis-selector {
+                    margin: 8px 0 14px 0;
+                  }
+                  .analysis-selector-header {
+                    margin-bottom: 12px;
+                  }
+                  .analysis-selector-title {
+                    font-size: 16px;
+                    font-weight: 700;
+                    color: #1f2937;
+                    margin: 0 0 4px 0;
+                  }
+                  .analysis-selector-subtitle {
+                    color: #6b7280;
+                    margin: 0;
+                  }
+                  .analysis-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    gap: 14px;
+                  }
+                  .analysis-card {
+                    position: relative;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                    width: 100%;
+                    min-height: 164px;
+                    padding: 16px 16px 14px 16px;
+                    border-radius: 18px;
+                    border: 1px solid #d7dde5;
+                    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+                    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+                    text-align: left;
+                    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+                  }
+                  .analysis-card.available {
+                    cursor: pointer;
+                  }
+                  .analysis-card.available:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+                  }
+                  .analysis-card.active {
+                    border-color: var(--analysis-accent);
+                    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.15);
+                    transform: translateY(-1px);
+                  }
+                  .analysis-card.disabled {
+                    background: linear-gradient(180deg, #fafbfc 0%, #f1f4f7 100%);
+                    opacity: 0.72;
+                    cursor: not-allowed;
+                  }
+                  .analysis-card-top {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 12px;
+                  }
+                  .analysis-card-icon {
+                    flex: 0 0 auto;
+                    width: 46px;
+                    height: 46px;
+                    border-radius: 15px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #ffffff;
+                    background: linear-gradient(135deg, var(--analysis-accent-start), var(--analysis-accent-end));
+                    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.16);
+                  }
+                  .analysis-card-name {
+                    font-size: 17px;
+                    font-weight: 700;
+                    color: #132238;
+                    line-height: 1.25;
+                    margin: 0;
+                  }
+                  .analysis-card-text {
+                    color: #556271;
+                    line-height: 1.45;
+                    margin: 0;
+                    flex: 1 1 auto;
+                  }
+                  .analysis-card-footer {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 10px;
+                    margin-top: auto;
+                  }
+                  .analysis-card-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    padding: 5px 10px;
+                    border-radius: 999px;
+                    font-size: 12px;
+                    font-weight: 700;
+                    letter-spacing: 0.02em;
+                  }
+                  .analysis-card-badge.available {
+                    background: rgba(34, 197, 94, 0.12);
+                    color: #15803d;
+                  }
+                  .analysis-card-badge.disabled {
+                    background: rgba(148, 163, 184, 0.18);
+                    color: #64748b;
+                  }
+                  '
                 ),
-                shiny::tags$div(
-                  shiny::tags$label('Choose Analysis:'),
-                  shiny::tags$ul(
-                    class = 'nav nav-pills analysis-tabs',
+                shiny::div(
+                  class = 'analysis-selector',
+                  shiny::div(
+                    class = 'analysis-selector-header',
+                    shiny::tags$div(class = 'analysis-selector-title', 'Choose an analysis to explore'),
+                    shiny::tags$div(
+                      class = 'analysis-selector-subtitle',
+                      'Each card explains what the result type answers.'
+                    )
+                  ),
+                  shiny::div(
+                    class = 'analysis-grid',
                     lapply(seq_along(analyses), function(i) {
                       analysisName <- analyses[i]
                       isAvailable <- analysesWithResults[i]
                       isActive <- identical(resultType(), analysisName)
 
+                      analysisMeta <- switch(
+                        analysisName,
+                        'Database Comparison' = list(
+                          icon = 'database',
+                          accentStart = '#0f766e',
+                          accentEnd = '#14b8a6',
+                          description = 'Compare characteristics of the target population between databases.'
+                        ),
+                        'Cohort Comparison' = list(
+                          icon = 'users',
+                          accentStart = '#2563eb',
+                          accentEnd = '#60a5fa',
+                          description = 'Compare characteristics of two populations side by side.'
+                        ),
+                        'Dechallenge Rechallenge' = list(
+                          icon = 'redo',
+                          accentStart = '#7c3aed',
+                          accentEnd = '#a855f7',
+                          description = 'See how outcomes change when exposure is withdrawn and restarted.'
+                        ),
+                        'Risk Factors' = list(
+                          icon = 'user-shield',
+                          accentStart = '#db2777',
+                          accentEnd = '#f472b6',
+                          description = 'Answer who is at risk for the outcome.'
+                        ),
+                        'Time-to-event' = list(
+                          icon = 'clock',
+                          accentStart = '#ea580c',
+                          accentEnd = '#fb923c',
+                          description = 'See when the outcome occurs relative to the target index.'
+                        ),
+                        'Case Series' = list(
+                          icon = 'table',
+                          accentStart = '#0891b2',
+                          accentEnd = '#22d3ee',
+                          description = 'Explore how people with the outcome change over key time points.'
+                        ),
+                        'Cohort Incidence' = list(
+                          icon = 'chart-line',
+                          accentStart = '#16a34a',
+                          accentEnd = '#4ade80',
+                          description = 'See how often the outcome occurs within a population.'
+                        )
+                      )
+
+                      cardClasses <- c('analysis-card')
                       if (isAvailable) {
-                        shiny::tags$li(
-                          class = if (isActive) 'active' else NULL,
-                          shiny::tags$a(
-                            href = '#',
-                            onclick = sprintf("Shiny.setInputValue('%s', '%s', {priority: 'event'}); return false;", session$ns('resultType'), analysisName),
-                            analysisName
-                          )
-                        )
+                        cardClasses <- c(cardClasses, 'available')
                       } else {
-                        shiny::tags$li(
-                          class = 'disabled',
-                          shiny::tags$a(
-                            href = '#',
-                            onclick = 'return false;',
-                            title = 'analysis not available for selected target cohort id',
-                            analysisName
+                        cardClasses <- c(cardClasses, 'disabled')
+                      }
+                      if (isActive) {
+                        cardClasses <- c(cardClasses, 'active')
+                      }
+
+                      cardAttributes <- list(
+                        class = paste(cardClasses, collapse = ' '),
+                        style = paste0(
+                          '--analysis-accent: ', analysisMeta$accentEnd, '; ',
+                          '--analysis-accent-start: ', analysisMeta$accentStart, '; ',
+                          '--analysis-accent-end: ', analysisMeta$accentEnd, ';'
+                        )
+                      )
+
+                      if (isAvailable) {
+                        cardAttributes$onclick <- sprintf(
+                          "Shiny.setInputValue('%s', '%s', {priority: 'event'}); return false;",
+                          session$ns('resultType'),
+                          analysisName
+                        )
+                        cardAttributes$onkeydown <- sprintf(
+                          "if(event.key === 'Enter' || event.key === ' ') { Shiny.setInputValue('%s', '%s', {priority: 'event'}); event.preventDefault(); }",
+                          session$ns('resultType'),
+                          analysisName
+                        )
+                        cardAttributes$tabindex <- '0'
+                        cardAttributes$role <- 'button'
+                      } else {
+                        cardAttributes$title <- 'analysis not available for selected target cohort id'
+                        cardAttributes$role <- 'note'
+                      }
+
+                      do.call(
+                        shiny::tags$div,
+                        c(
+                          cardAttributes,
+                          list(
+                            shiny::tags$div(
+                              class = 'analysis-card-top',
+                              shiny::tags$div(
+                                class = 'analysis-card-icon',
+                                shiny::icon(analysisMeta$icon)
+                              ),
+                              shiny::tags$div(
+                                style = 'min-width: 0; flex: 1 1 auto;',
+                                shiny::tags$div(class = 'analysis-card-name', analysisName),
+                                shiny::tags$div(class = 'analysis-card-text', analysisMeta$description)
+                              )
+                            ),
+                            shiny::tags$div(
+                              class = 'analysis-card-footer',
+                              shiny::tags$span(
+                                class = paste('analysis-card-badge', if (isAvailable) 'available' else 'disabled'),
+                                if (isAvailable) 'Available' else 'Unavailable'
+                              ),
+                              if (isActive && isAvailable) {
+                                shiny::tags$span(
+                                  class = 'analysis-card-badge available',
+                                  'Selected'
+                                )
+                              }
+                            )
                           )
                         )
-                      }
+                      )
                     })
                   )
                 )

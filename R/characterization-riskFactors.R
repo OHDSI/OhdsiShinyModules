@@ -22,34 +22,187 @@ characterizationRiskFactorViewer <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::div(
-    
-    shiny::helpText('View features that are associated with having or not having the outcome during the time-at-risk.'),
-    
-    # module that does input selection for a single row DF
-    shinydashboard::box(
-      collapsible = TRUE,
-      title = "Risk Factors Options",
-      width = "100%",
-      shiny::uiOutput(ns("inputs"))
+    shiny::tags$style(
+      '
+      .rf-viewer-shell {
+        display: grid;
+        gap: 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+      }
+      .rf-hero {
+        border-radius: 22px;
+        padding: 22px 24px;
+        background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #fdfcff 100%);
+        border: 1px solid #dbe6f3;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+      }
+      .rf-hero-top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 8px;
+      }
+      .rf-hero-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        background: linear-gradient(135deg, #db2777, #f472b6);
+        box-shadow: 0 12px 20px rgba(219, 39, 119, 0.24);
+        flex: 0 0 auto;
+      }
+      .rf-hero-title {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #102033;
+        margin: 0;
+      }
+      .rf-hero-copy {
+        color: #526173;
+        margin: 0;
+        line-height: 1.5;
+        max-width: 880px;
+      }
+      .rf-options-box.box {
+        border-radius: 18px;
+        border-top: 4px solid #2563eb;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .rf-options-box .box-body {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        background: #f8fbff;
+      }
+      .rf-options-card {
+        background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+        border: 1px solid #dbe6f3;
+        border-radius: 16px;
+        padding: 14px 16px 8px 16px;
+      }
+      .rf-results-wrap {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .rf-results-wrap .box {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+        border: 1px solid #dbe5f1;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .rf-results-wrap .box-header {
+        background: linear-gradient(135deg, #123a63 0%, #1d4ed8 100%);
+        color: #ffffff;
+        border-bottom: none;
+      }
+      .rf-results-wrap .box-title {
+        font-weight: 700;
+      }
+      .rf-results-wrap .nav-tabs,
+      .rf-results-wrap .nav-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        border-bottom: none;
+      }
+      .rf-results-wrap .nav > li {
+        float: none;
+        margin: 0;
+      }
+      .rf-results-wrap .nav > li > a {
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .rf-results-wrap .nav-pills > li.active > a,
+      .rf-results-wrap .nav-pills > li.active > a:focus,
+      .rf-results-wrap .nav-pills > li.active > a:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+        box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+      }
+      .rf-results-wrap .tab-content,
+      .rf-results-wrap .tab-pane {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .rf-results-panel {
+        margin-top: 14px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      '
     ),
-    
-    
-    shiny::conditionalPanel(
-      condition = 'output.showRiskFactors != 0',
-      ns = ns,
-    
-      shinydashboard::tabBox(
-        width = "100%",
-        # Title can include an icon
-        title = shiny::tagList(shiny::icon("gear"), "Results"),
-        
-        shiny::tabPanel("Binary Features", 
-                        shiny::uiOutput(outputId = ns('helpTextBinary')),
-                        resultTableViewer(ns('binaryTable'))
-        ),
-        shiny::tabPanel("Continuous Features", 
-                        shiny::uiOutput(outputId = ns('helpTextContinuous')),
-                        resultTableViewer(ns('continuousTable'))
+    shiny::div(
+      class = 'rf-viewer-shell',
+      shiny::div(
+        class = 'rf-hero',
+        shiny::div(
+          class = 'rf-hero-top',
+          shiny::div(
+            class = 'rf-hero-icon',
+            shiny::icon('gear')
+          ),
+          shiny::div(
+            shiny::tags$h2(class = 'rf-hero-title', 'Risk factors'),
+            shiny::tags$p(
+              class = 'rf-hero-copy',
+              'Explore features associated with having or not having the outcome during the time-at-risk, with a cleaner layout for selecting inputs and reviewing binary and continuous results.'
+            )
+          )
+        )
+      ),
+      shinydashboard::box(
+        collapsible = TRUE,
+        title = shiny::tagList(shiny::icon('sliders'), 'Analysis options'),
+        width = '100%',
+        class = 'rf-options-box',
+        shiny::div(
+          class = 'rf-options-card',
+          shiny::uiOutput(ns('inputs'))
+        )
+      ),
+      shiny::conditionalPanel(
+        condition = 'output.showRiskFactors != 0',
+        ns = ns,
+        shiny::div(
+          class = 'rf-results-wrap',
+          shinydashboard::tabBox(
+            width = '100%',
+            title = shiny::tagList(shiny::icon('gear'), 'Results'),
+            shiny::tabPanel(
+              'Binary Features',
+              shiny::div(
+                class = 'rf-results-panel',
+                shiny::uiOutput(outputId = ns('helpTextBinary')),
+                resultTableViewer(ns('binaryTable'))
+              )
+            ),
+            shiny::tabPanel(
+              'Continuous Features',
+              shiny::div(
+                class = 'rf-results-panel',
+                shiny::uiOutput(outputId = ns('helpTextContinuous')),
+                resultTableViewer(ns('continuousTable'))
+              )
+            )
+          )
         )
       )
     )

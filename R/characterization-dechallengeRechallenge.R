@@ -20,27 +20,155 @@
 characterizationDechallengeRechallengeViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
-    
-    shiny::helpText('View how often the outcome occurs just before the target stops (a positive dechallenge) and how often the outcome restarts shortly after the target restarts (positive rechallenge)'),
-    
-    shinydashboard::box(
-      collapsible = TRUE,
-      title = "Options",
-      width = "100%",
-      shiny::uiOutput(ns("inputs"))
+    shiny::tags$style(
+      '
+      .dcrc-viewer-shell {
+        display: grid;
+        gap: 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+      }
+      .dcrc-hero {
+        border-radius: 22px;
+        padding: 22px 24px;
+        background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #fdfcff 100%);
+        border: 1px solid #dbe6f3;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+      }
+      .dcrc-hero-top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 8px;
+      }
+      .dcrc-hero-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        background: linear-gradient(135deg, #7c3aed, #a855f7);
+        box-shadow: 0 12px 20px rgba(124, 58, 237, 0.24);
+        flex: 0 0 auto;
+      }
+      .dcrc-hero-title {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #102033;
+        margin: 0;
+      }
+      .dcrc-hero-copy {
+        color: #526173;
+        margin: 0;
+        line-height: 1.5;
+        max-width: 880px;
+      }
+      .dcrc-options-box.box {
+        border-radius: 18px;
+        border-top: 4px solid #2563eb;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .dcrc-options-box .box-body {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        background: #f8fbff;
+      }
+      .dcrc-options-card {
+        background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+        border: 1px solid #dbe6f3;
+        border-radius: 16px;
+        padding: 14px 16px 8px 16px;
+      }
+      .dcrc-results-wrap {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .dcrc-results-card {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+        border: 1px solid #dbe5f1;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .dcrc-results-card .box-header {
+        background: linear-gradient(135deg, #123a63 0%, #1d4ed8 100%);
+        color: #ffffff;
+        border-bottom: none;
+      }
+      .dcrc-results-card .box-title {
+        font-weight: 700;
+      }
+      .dcrc-results-card .box-body {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .dcrc-results-panel {
+        margin-top: 14px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      '
     ),
-    
-    shiny::conditionalPanel(
-      condition = 'output.showDechalRechal != 0', 
-      ns = ns,
-
-      shiny::uiOutput(ns('warning')),
-      
+    shiny::div(
+      class = 'dcrc-viewer-shell',
+      shiny::div(
+        class = 'dcrc-hero',
+        shiny::div(
+          class = 'dcrc-hero-top',
+          shiny::div(
+            class = 'dcrc-hero-icon',
+            shiny::icon('redo')
+          ),
+          shiny::div(
+            shiny::tags$h2(class = 'dcrc-hero-title', 'Dechallenge / rechallenge'),
+            shiny::tags$p(
+              class = 'dcrc-hero-copy',
+              'View how often the outcome occurs just before the target stops and how often it restarts shortly after the target restarts.'
+            )
+          )
+        )
+      ),
       shinydashboard::box(
-        status = 'info', 
+        collapsible = TRUE,
+        title = shiny::tagList(shiny::icon('sliders'), 'Analysis options'),
         width = '100%',
-        solidHeader = TRUE,
-        resultTableViewer(ns('tableResults'))
+        class = 'dcrc-options-box',
+        shiny::div(
+          class = 'dcrc-options-card',
+          shiny::uiOutput(ns('inputs'))
+        )
+      ),
+      shiny::conditionalPanel(
+        condition = 'output.showDechalRechal != 0', 
+        ns = ns,
+        shiny::div(
+          class = 'dcrc-results-wrap',
+          shiny::uiOutput(ns('warning')),
+          shinydashboard::box(
+            class = 'dcrc-results-card',
+            status = 'info', 
+            width = '100%',
+            solidHeader = TRUE,
+            shiny::div(
+              class = 'dcrc-results-panel',
+              resultTableViewer(ns('tableResults'))
+            )
+          )
+        )
       )
     )
   )
