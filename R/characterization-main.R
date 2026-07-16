@@ -100,8 +100,8 @@ characterizationServer <- function(
       # create reactive that saves selected rowIds for targetTable and outcomeTable
       reactiveTargetRowId <- shiny::reactiveVal(NULL)
       reactiveTargetRow <- shiny::reactiveVal(NULL)
-      reactiveCharacterizationTargetRowId <- shiny::reactiveVal(NULL)
-      reactiveOutcomeRowId <- shiny::reactiveVal(NULL)
+      ##reactiveCharacterizationTargetRowId <- shiny::reactiveVal(NULL)
+      ##reactiveOutcomeRowId <- shiny::reactiveVal(NULL)
       
       # the table with all the possible targetIds
       tableSelectionServer(
@@ -137,9 +137,16 @@ characterizationServer <- function(
         }
         
         # reset the outcome row id
-        reactiveOutcomeRowId(0)
+        #reactiveOutcomeRowId(0)
         
         if(nrow(reactiveTargetRow()) > 0){
+          analyses <- c('Database Comparison',
+                        'Cohort Comparison',
+                        'Dechallenge Rechallenge',
+                        'Risk Factors',
+                        'Time-to-event',
+                        'Case Series',
+                        'Cohort Incidence')
           
           # display the result options to select 
           analysesWithResults <- reactiveTargetRow()[c(
@@ -147,50 +154,52 @@ characterizationServer <- function(
             'dechalRechal', 'riskFactors',
              'timeToEvent', 'caseSeries',
              'cohortIncidence')] == 1
+          analysesWithResults <- as.logical(analysesWithResults)
           
           if(sum(analysesWithResults) > 0){
             
             output$analysesOptions <- shiny::renderUI(
               shiny::div(
-                # add a note showing what analyses are not available
-                shiny::helpText(
-                  ifelse(sum(analysesWithResults) != 7,
-                         paste0('Note: ', paste0(c('Database Comparison',
-                                                   'Cohort Comparison',
-                                                   'Dechallenge Rechallenge',
-                                                   'Risk Factors',
-                                                   'Time-to-event',
-                                                   'Case Series',
-                                                   'Cohort Incidence'
-                         )[analysesWithResults == 0], collapse = '/') ,' not available.'),
-                         ''
-                  )
+                shiny::tags$style(
+                  '.analysis-tabs > li.disabled > a { color: #8d8d8d !important; background-color: #f1f1f1 !important; border-color: #d9d9d9 !important; cursor: not-allowed !important; pointer-events: none; }\n                   .analysis-tabs > li > a { border: 1px solid #d2d6de; margin-right: 4px; }\n                   .analysis-tabs > li.active > a { background-color: #3c8dbc !important; color: #fff !important; border-color: #367fa9 !important; }'
                 ),
-                shinyWidgets::radioGroupButtons(
-                  inputId = session$ns("resultType"), 
-                  label = "Choose Analysis:", 
-                  direction = "horizontal",
-                  choices = c('Database Comparison',
-                              'Cohort Comparison',
-                              'Dechallenge Rechallenge',
-                              'Risk Factors',
-                              'Time-to-event',
-                              'Case Series',
-                              'Cohort Incidence'
-                              )[analysesWithResults]
+                shiny::tags$div(
+                  shiny::tags$label('Choose Analysis:'),
+                  shiny::tags$ul(
+                    class = 'nav nav-pills analysis-tabs',
+                    lapply(seq_along(analyses), function(i) {
+                      analysisName <- analyses[i]
+                      isAvailable <- analysesWithResults[i]
+                      isActive <- identical(resultType(), analysisName)
+
+                      if (isAvailable) {
+                        shiny::tags$li(
+                          class = if (isActive) 'active' else NULL,
+                          shiny::tags$a(
+                            href = '#',
+                            onclick = sprintf("Shiny.setInputValue('%s', '%s', {priority: 'event'}); return false;", session$ns('resultType'), analysisName),
+                            analysisName
+                          )
+                        )
+                      } else {
+                        shiny::tags$li(
+                          class = 'disabled',
+                          shiny::tags$a(
+                            href = '#',
+                            onclick = 'return false;',
+                            title = 'analysis not available for selected target cohort id',
+                            analysisName
+                          )
+                        )
+                      }
+                    })
+                  )
                 )
               )
             )
             
             # set the resultType to the first 
-            resultType(c('Database Comparison',
-                         'Cohort Comparison',
-                         'Dechallenge Rechallenge',
-                         'Risk Factors',
-                         'Time-to-event',
-                         'Case Series',
-                         'Cohort Incidence'
-            )[analysesWithResults][1])
+            resultType(analyses[analysesWithResults][1])
             
           } else{
             # set values to take you back to start
@@ -293,16 +302,14 @@ characterizationServer <- function(
         id = 'database-comparison',
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings,
-        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable,
-        reactiveCharacterizationTargetRowId = reactiveCharacterizationTargetRowId
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable
       )
       characterizationCohortComparisonServer(
         id = 'cohort-comparison', 
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
         targetTable = targetTable,
-        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable,
-        reactiveCharacterizationTargetRowId = reactiveCharacterizationTargetRowId
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable
       )
       
       characterizationTimeToEventServer(
@@ -310,9 +317,7 @@ characterizationServer <- function(
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
         reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable,
-        reactiveCharacterizationTargetRowId = reactiveCharacterizationTargetRowId,
-        reactiveOutcomeTable = reactiveOutcomeTable,
-        reactiveOutcomeRowId = reactiveOutcomeRowId
+        reactiveOutcomeTable = reactiveOutcomeTable
       )
       
       characterizationDechallengeRechallengeServer(
@@ -320,29 +325,21 @@ characterizationServer <- function(
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
         reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable,
-        reactiveCharacterizationTargetRowId = reactiveCharacterizationTargetRowId,
-        reactiveOutcomeTable = reactiveOutcomeTable,
-        reactiveOutcomeRowId = reactiveOutcomeRowId
+        reactiveOutcomeTable = reactiveOutcomeTable
       )
       
       characterizationRiskFactorServer(
         id = 'risk-factor', 
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
-        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable,
-        reactiveCharacterizationTargetRowId = reactiveCharacterizationTargetRowId,
-        reactiveOutcomeTable = reactiveOutcomeTable,
-        reactiveOutcomeRowId = reactiveOutcomeRowId
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable
       )
       
       characterizationCaseSeriesServer(
         id = 'case-series', 
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
-        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable,
-        reactiveCharacterizationTargetRowId = reactiveCharacterizationTargetRowId,
-        reactiveOutcomeTable = reactiveOutcomeTable,
-        reactiveOutcomeRowId = reactiveOutcomeRowId
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable
       )
       
       characterizationIncidenceServer(

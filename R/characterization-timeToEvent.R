@@ -34,8 +34,6 @@ characterizationTimeToEventViewer <- function(id) {
       condition = 'output.showTimeToEvent != 0', 
       ns = ns,
       
-      inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
-      
       shiny::tabsetPanel(
         type = 'pills',
         id = ns('tteMainPanel'),
@@ -75,17 +73,29 @@ characterizationTimeToEventServer <- function(
   connectionHandler,
   resultDatabaseSettings,
   reactiveCharacterizationTargetTable,
-  reactiveCharacterizationTargetRowId,
-  reactiveOutcomeTable,
-  reactiveOutcomeRowId
+  reactiveOutcomeTable
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
+      # moving the selections within module rather than shared across
+      reactiveOutcomeRowId <- shiny::reactiveVal(NULL)
+      reactiveCharacterizationTargetRowId <- shiny::reactiveVal(NULL)
+      
+      # restrict to populations with cohort comp data
+      moduleCharacterizationTargetTable <- shiny::reactive({
+        if(!is.null(reactiveCharacterizationTargetTable())){
+          reactiveCharacterizationTargetTable() %>%
+            dplyr::filter(.data$timeToEvent == 1)
+        } else{
+          NULL
+        }
+      })
+      
       reactiveTargetRow <- shiny::reactive({
         rowId <- reactiveCharacterizationTargetRowId()
-        targetTable <- reactiveCharacterizationTargetTable()
+        targetTable <- moduleCharacterizationTargetTable()
         
         if (is.null(rowId) || length(rowId) == 0 || is.null(targetTable) || nrow(targetTable) == 0) {
           return(data.frame())
@@ -96,7 +106,7 @@ characterizationTimeToEventServer <- function(
       
       tableSelectionServer(
         id = 'char-pop-select-tte',
-        table = reactiveCharacterizationTargetTable, 
+        table = moduleCharacterizationTargetTable, 
         selectedRowId = reactiveCharacterizationTargetRowId,
         selectMultiple = FALSE, 
         elementId = session$ns('table-selector-tte'),
@@ -132,8 +142,10 @@ characterizationTimeToEventServer <- function(
         shiny::div(
           
           tableSelectionViewer(id = session$ns('char-pop-select-tte')),
-          
-          tableSelectionViewer(id = session$ns('outcome-table-select-tte')),
+
+          if (hasTarget) {
+            tableSelectionViewer(id = session$ns('outcome-table-select-tte'))
+          },
 
           shiny::tags$button(
             id = session$ns('generate'),
@@ -243,31 +255,36 @@ characterizationTimeToEventServer <- function(
                 shiny::selectInput(
                   inputId = session$ns("times"), 
                   label = "Timespan:",
-                  multiple = T, 
+                  multiple = FALSE,
                   choices =  unique(allData()$timeScale),
-                  selected =  unique(allData()$timeScale)
+                  selected =  unique(allData()$timeScale)[1]
                 )
               ),
               
               shiny::column(
                 width = 3,
-                shiny::selectInput(
-                  inputId = session$ns("outcomeTypes"), 
-                  label = "Outcome occurrence type:",
-                  multiple = T, 
-                  choices =  unique(allData()$outcomeType),
-                  selected =  unique(allData()$outcomeType)
+                shiny::checkboxInput(
+                  inputId = session$ns("colorByOutcomeTypes"),
+                  label = "Color by outcome occurrence type",
+                  value = FALSE
                 )
               ),
               
               shiny::column(
-                width = 6,
-                shiny::selectInput(
-                  inputId = session$ns("targetOutcomeTypes"), 
-                  label = "Timing of outcome:",
-                  multiple = T, 
-                  choices =  unique(allData()$targetOutcomeType),
-                  selected =  unique(allData()$targetOutcomeType)
+                width = 3,
+                shiny::checkboxInput(
+                  inputId = session$ns("colorByTargetOutcomeTypes"),
+                  label = "Color by timing of outcome",
+                  value = FALSE
+                )
+              ),
+
+              shiny::column(
+                width = 3,
+                shiny::checkboxInput(
+                  inputId = session$ns("freeYByDatabase"),
+                  label = "Free y-axis by database",
+                  value = TRUE
                 )
               )
             )
@@ -283,8 +300,9 @@ characterizationTimeToEventServer <- function(
             timeToEventData = allData, # reactive
             databases = input$databases,
             times = input$times,
-            outcomeTypes = input$outcomeTypes,
-            targetOutcomeTypes = input$targetOutcomeTypes
+            colorByOutcomeTypes = input$colorByOutcomeTypes,
+            colorByTargetOutcomeTypes = input$colorByTargetOutcomeTypes,
+            freeYByDatabase = input$freeYByDatabase
           )
         )
     
@@ -331,8 +349,9 @@ plotTimeToEvent <- function(
   timeToEventData,
   databases,
   times,
-  outcomeTypes,
-  targetOutcomeTypes
+  colorByOutcomeTypes,
+  colorByTargetOutcomeTypes,
+  freeYByDatabase
 ){
   
   if(is.null(timeToEventData())){
@@ -357,11 +376,7 @@ plotTimeToEvent <- function(
   
   # remove censored data
   timeToEventData <- timeToEventData %>% 
-    dplyr::filter(
-      .data$outcomeType %in% outcomeTypes &
-      .data$targetOutcomeType %in% targetOutcomeTypes &
-      .data$numEvents > 0
-      )
+    dplyr::filter(.data$numEvents > 0)
   
   # TODO plot censored as black?
   
@@ -371,16 +386,34 @@ plotTimeToEvent <- function(
   }
   
   nDatabases <- length(unique(timeToEventData$databaseId))
+  facetScales <- if (isTRUE(freeYByDatabase)) "free_y" else "fixed"
   
   shiny::withProgress(message = 'Plotting time to event', value = 0, {
   
   shiny::incProgress(1/2, detail = paste("Generating plot"))
+
+  fillGroup <- rep("All events", nrow(timeToEventData))
+  if (isTRUE(colorByOutcomeTypes) && isTRUE(colorByTargetOutcomeTypes)) {
+    fillGroup <- paste0(timeToEventData$outcomeType, " - ", timeToEventData$targetOutcomeType)
+  } else if (isTRUE(colorByOutcomeTypes)) {
+    fillGroup <- timeToEventData$outcomeType
+  } else if (isTRUE(colorByTargetOutcomeTypes)) {
+    fillGroup <- timeToEventData$targetOutcomeType
+  }
+
+  timeToEventData$fillGroup <- fillGroup
+
+  legendTitle <- ""
+  if (isTRUE(colorByOutcomeTypes) && isTRUE(colorByTargetOutcomeTypes)) {
+    legendTitle <- "Outcome Type + Timing"
+  } else if (isTRUE(colorByOutcomeTypes)) {
+    legendTitle <- "Outcome Type"
+  } else if (isTRUE(colorByTargetOutcomeTypes)) {
+    legendTitle <- "Timing of Outcome"
+  }
   
   plot <- ggplot2::ggplot(
-    data = timeToEventData %>% 
-      dplyr::mutate(
-        fillGroup = paste0(.data$outcomeType, '-', .data$targetOutcomeType)
-        ), 
+    data = timeToEventData,
     ggplot2::aes(
       x = .data$timeToEvent, 
       y = .data$numEvents,
@@ -392,11 +425,21 @@ plotTimeToEvent <- function(
       stat = "identity"
       ) +
     ggplot2::facet_wrap(ncol = nDatabases ,
-      .data$timeScale ~ .data$databaseName , scales = 'free'
+      .data$timeScale ~ .data$databaseName , scales = facetScales
         ) +
     ggplot2::theme_minimal() + 
-    ggplot2::guides(fill=ggplot2::guide_legend(title="Outcome Type")) + 
-    ggplot2::labs(y= "# of Events", x = "Time (days) to Event")
+    ggplot2::scale_x_continuous(labels = scales::label_comma()) +
+    ggplot2::labs(y= "# of Events", x = "Time (days) to Event") +
+    ggplot2::theme(
+      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)
+    )
+
+  if (isTRUE(colorByOutcomeTypes) || isTRUE(colorByTargetOutcomeTypes)) {
+    plot <- plot + ggplot2::guides(fill = ggplot2::guide_legend(title = legendTitle))
+  } else {
+    plot <- plot +
+      ggplot2::scale_fill_manual(values = c("All events" = "black"), guide = "none")
+  }
   
   shiny::incProgress(2/2, detail = paste("Finished"))
   

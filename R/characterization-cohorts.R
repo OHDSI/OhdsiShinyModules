@@ -68,17 +68,29 @@ characterizationCohortComparisonServer <- function(
     connectionHandler,
     resultDatabaseSettings,
     targetTable,
-    reactiveCharacterizationTargetTable,
-    reactiveCharacterizationTargetRowId
+    reactiveCharacterizationTargetTable
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
+      # restrict to populations with cohort comp data
+      moduleCharacterizationTargetTable <- shiny::reactive({
+        if(!is.null(reactiveCharacterizationTargetTable())){
+          reactiveCharacterizationTargetTable() %>%
+            dplyr::filter(.data$cohortComparator == 1)
+        } else{
+          NULL
+        }
+      })
+      
+    # have the targetRowId be per analysis
+      reactiveCharacterizationTargetRowId <- shiny::reactiveVal(NULL)
+      
       # target reactive
       reactiveTargetRow <- shiny::reactive({
         rowId <- reactiveCharacterizationTargetRowId()
-        cTargetTable <- reactiveCharacterizationTargetTable()
+        cTargetTable <- moduleCharacterizationTargetTable()
         
         if (is.null(rowId) || length(rowId) == 0 || is.null(cTargetTable) || nrow(cTargetTable) == 0) {
           return(data.frame())
@@ -120,7 +132,9 @@ characterizationCohortComparisonServer <- function(
             targetId = comparatorTargetId,
             cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
             cTablePrefix = resultDatabaseSettings$cTablePrefix
-          )
+          ) %>%
+            dplyr::filter(.data$cohortComparator == 1)
+          
           comparatorCharacterizationTable(res)
         } else {
           comparatorCharacterizationTable(data.frame())
@@ -161,23 +175,23 @@ characterizationCohortComparisonServer <- function(
       
       tableSelectionServer(
         id = 'char-pop-select-cohorts',
-        table = reactiveCharacterizationTargetTable, 
+        table = moduleCharacterizationTargetTable, 
         selectedRowId = reactiveCharacterizationTargetRowId,
         selectMultiple = FALSE, 
         elementId = session$ns('table-selector-cohorts'),
         inputColumns = characterizationTargetsColumns(),
         displayColumns = characterizationTargetsColumns(), 
-        selectButtonText = 'Select Target Population'
+        selectButtonText = 'Select Population'
       )
       
       # get the databases that the target cohort has data in
       databaseNames <- shiny::reactive({
         if(length(reactiveCharacterizationTargetRowId()) == 0){return(NULL)}
-        unlist(strsplit(x = reactiveCharacterizationTargetTable()[reactiveCharacterizationTargetRowId(),]$databaseString, split = ', '))
+        unlist(strsplit(x = moduleCharacterizationTargetTable()[reactiveCharacterizationTargetRowId(),]$databaseString, split = ', '))
       })
       databaseIds <- shiny::reactive({
         if(length(reactiveCharacterizationTargetRowId()) == 0){return(NULL)}
-        unlist(strsplit(x = reactiveCharacterizationTargetTable()[reactiveCharacterizationTargetRowId(),]$databaseIdString, split = ', '))
+        unlist(strsplit(x = moduleCharacterizationTargetTable()[reactiveCharacterizationTargetRowId(),]$databaseIdString, split = ', '))
       })
       
       # add the server for the comparator table select
@@ -215,46 +229,72 @@ characterizationCohortComparisonServer <- function(
       
       # initial comp chilren
       output$inputs <- shiny::renderUI({
+        hasTarget <- nrow(reactiveTargetRow()) > 0
         comparatorSelected <- reactiveComparatorRowId()
         showComparatorPopulation <- !is.null(comparatorSelected) &&
           length(comparatorSelected) > 0 &&
           all(comparatorSelected > 0)
+        hasComparator <- nrow(reactiveComparatorRow()) > 0
+        hasDatabase <- !is.null(input$databaseName) && nzchar(input$databaseName)
+        canGenerate <- hasTarget && hasComparator && hasDatabase
         
         shiny::div(
           
           tableSelectionViewer(id = session$ns('char-pop-select-cohorts')),
-          tableSelectionViewer(id = session$ns('comparator-selector')),
-          if (showComparatorPopulation) {
+
+          if (hasTarget) {
+            tableSelectionViewer(id = session$ns('comparator-selector'))
+          },
+
+          if (hasTarget && showComparatorPopulation) {
             tableSelectionViewer(id = session$ns('comparator-pop-selector'))
           },
-          
-        shinyWidgets::pickerInput(
-          inputId = session$ns('databaseName'),
-          label = 'Database: ',
-          choices = databaseNames(),
-          selected = databaseNames(),
-          multiple = FALSE,
-          options = shinyWidgets::pickerOptions(
-            actionsBox = TRUE,
-            liveSearch = TRUE,
-            dropupAuto = FALSE,
-            size = 10,
-            liveSearchStyle = "contains",
-            liveSearchPlaceholder = "Type here to search",
-            virtualScroll = 500
-          )
-        ),
-        
-        shiny::actionButton(
-          inputId = session$ns('generate'), 
-          label = 'Generate'
+
+          if (hasTarget && hasComparator) {
+            shinyWidgets::pickerInput(
+              inputId = session$ns('databaseName'),
+              label = 'Database: ',
+              choices = databaseNames(),
+              selected = input$databaseName,
+              multiple = FALSE,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                dropupAuto = FALSE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 500
+              )
             )
-      )
+          },
+
+          shiny::tags$button(
+            id = session$ns('generate'),
+            type = 'button',
+            class = if (canGenerate) 'btn btn-primary action-button' else 'btn btn-default action-button',
+            disabled = if (!canGenerate) 'disabled' else NULL,
+            'Generate'
+          ),
+
+          if (!canGenerate) {
+            shiny::helpText('Select a population, comparator, and database to enable Generate.')
+          }
+        )
       
       })
       
       #get results
       shiny::observeEvent(input$generate,{
+        hasTarget <- nrow(reactiveTargetRow()) > 0
+        hasComparator <- nrow(reactiveComparatorRow()) > 0
+        hasDatabase <- !is.null(input$databaseName) && nzchar(input$databaseName)
+
+        if (!hasTarget || !hasComparator || !hasDatabase) {
+          output$showResults <- shiny::reactive(0)
+          shiny::showNotification('Must select a population, comparator, and database')
+          return(invisible(NULL))
+        }
       
         # TODO update logic for running 
         if (nrow(reactiveTargetRow()) == 0 || nrow(reactiveComparatorRow()) == 0) {
@@ -273,7 +313,8 @@ characterizationCohortComparisonServer <- function(
               databaseIds = databaseIds()[databaseNames() == input$databaseName],
               minThreshold = 0
             )
-            resultTable <- result$covariates
+            resultTable <- result$covariates %>%
+              parseCohortComparisonCovariates()
             countTable <- result$covRef
             
             # if no results in database
@@ -303,7 +344,8 @@ characterizationCohortComparisonServer <- function(
               databaseIds = databaseIds()[databaseNames() == input$databaseName]
             )
             
-            continuousTable <- continuous$covariates
+            continuousTable <- continuous$covariates %>%
+              parseCohortComparisonCovariates()
             
             getDbCount <- function(characterizationTargetId){
               countOfInt <- countTable %>% 
@@ -448,7 +490,9 @@ characterizationCohortComparisonServer <- function(
               }
             }
               
-              continuousCols <- characterizationCohortsColumnsContinuous()
+              continuousCols <- characterizationCohortsColumnsContinuous(
+                elementId = session$ns('continuous-table-filter')
+              )
               
               for(i in seq_len(nrow(countTable))){
                 # Check if columns for this cohort exist in continuousTable
@@ -585,13 +629,42 @@ characterizationCohortsColumns <- function(
     ){
   
   res <- list(
-    covariateName = reactable::colDef(
-      name = "Covariate Name",
-      header = withTooltip(
-        "Covariate Name",
-        "The name of the covariate"
-      ), 
+    Covariate = reactable::colDef(
+      name = "Covariate",
+      header = withTooltip("Covariate",
+                           "Concept name of the covariate"),
+      filterable = TRUE,
       minWidth = 300
+    ),
+    domain = reactable::colDef(
+      name = "Domain",
+      header = withTooltip("Domain",
+                           "Clinical domain for the covariate"),
+      filterable = TRUE,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          shiny::tags$option(value = "", "All"),
+          lapply(sort(unique(values)), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
+    ),
+    start = reactable::colDef(
+      name = "Start",
+      header = withTooltip("Start",
+                           "Start of the observed time window when available"),
+      filterable = TRUE
+    ),
+    end = reactable::colDef(
+      name = "End",
+      header = withTooltip("End",
+                           "End of the observed time window when available"),
+      filterable = TRUE
+    ),
+    covariateName = reactable::colDef(
+      show = FALSE
     ),
     covariateId = reactable::colDef(
       show = FALSE,
@@ -635,16 +708,44 @@ characterizationCohortsColumns <- function(
 }
 
 
-characterizationCohortsColumnsContinuous <- function(){
+characterizationCohortsColumnsContinuous <- function(elementId){
   res <- list(
+    Covariate = reactable::colDef(
+      name = "Covariate",
+      header = withTooltip("Covariate",
+                           "Concept name of the covariate"),
+      filterable = TRUE,
+      minWidth = 300
+    ),
+    domain = reactable::colDef(
+      name = "Domain",
+      header = withTooltip("Domain",
+                           "Clinical domain for the covariate"),
+      filterable = TRUE,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          shiny::tags$option(value = "", "All"),
+          lapply(sort(unique(values)), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
+    ),
+    start = reactable::colDef(
+      name = "Start",
+      header = withTooltip("Start",
+                           "Start of the observed time window when available"),
+      filterable = TRUE
+    ),
+    end = reactable::colDef(
+      name = "End",
+      header = withTooltip("End",
+                           "End of the observed time window when available"),
+      filterable = TRUE
+    ),
     covariateName = reactable::colDef(
-      name = "Covariate Name",
-      header = withTooltip(
-        "Covariate Name",
-        "The name of the covariate"
-      ), 
-      filterable = T, 
-      minWidth = 300,
+      show = FALSE
     ),
     covariateId = reactable::colDef(
       show = FALSE,
@@ -679,6 +780,65 @@ characterizationCohortsColumnsContinuous <- function(){
   )
   
   return(res)
+}
+
+
+parseCohortComparisonCovariates <- function(df) {
+  if (is.null(df) || nrow(df) == 0 || !"covariateName" %in% colnames(df)) {
+    return(df)
+  }
+
+  extractDayWindow <- function(covariateNames) {
+    start <- rep(NA_real_, length(covariateNames))
+    end <- rep(NA_real_, length(covariateNames))
+
+    patternThrough <- "day\\s*(-?[0-9]+)\\s*through\\s*(-?[0-9]+)"
+    matchesThrough <- regexec(patternThrough, covariateNames, ignore.case = TRUE)
+    capturesThrough <- regmatches(covariateNames, matchesThrough)
+    hasThrough <- lengths(capturesThrough) >= 3
+    if (any(hasThrough)) {
+      start[hasThrough] <- suppressWarnings(as.numeric(vapply(capturesThrough[hasThrough], `[[`, character(1), 2)))
+      end[hasThrough] <- suppressWarnings(as.numeric(vapply(capturesThrough[hasThrough], `[[`, character(1), 3)))
+    }
+
+    patternTo <- "day\\s*(-?[0-9]+)\\s*to\\s*(-?[0-9]+)"
+    matchesTo <- regexec(patternTo, covariateNames, ignore.case = TRUE)
+    capturesTo <- regmatches(covariateNames, matchesTo)
+    hasTo <- lengths(capturesTo) >= 3 & is.na(start)
+    if (any(hasTo)) {
+      start[hasTo] <- suppressWarnings(as.numeric(vapply(capturesTo[hasTo], `[[`, character(1), 2)))
+      end[hasTo] <- suppressWarnings(as.numeric(vapply(capturesTo[hasTo], `[[`, character(1), 3)))
+    }
+
+    list(start = start, end = end)
+  }
+
+  hasPattern <- !is.na(df$covariateName) & grepl(": ", df$covariateName)
+  dayWindow <- extractDayWindow(df$covariateName)
+
+  df$domain <- ifelse(
+    hasPattern,
+    sub("^([^ ]+).*$", "\\1", df$covariateName),
+    NA_character_
+  )
+  df$start <- ifelse(
+    hasPattern,
+    dayWindow$start,
+    NA_real_
+  )
+  df$end <- ifelse(
+    hasPattern,
+    dayWindow$end,
+    NA_real_
+  )
+  df$Covariate <- ifelse(
+    hasPattern,
+    sub("^.*?:\\s*", "", df$covariateName),
+    df$covariateName
+  )
+
+  df %>%
+    dplyr::relocate(.data$Covariate, .data$domain, .data$start, .data$end, .before = .data$covariateName)
 }
 
 

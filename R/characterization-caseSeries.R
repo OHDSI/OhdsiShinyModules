@@ -26,7 +26,7 @@ characterizationCaseSeriesViewer <- function(id) {
     # module that does input selection for a single row DF
     shinydashboard::box(
       collapsible = TRUE,
-      title = "Options",
+      title = "Case Series Options",
       width = "100%",
       shiny::uiOutput(ns("inputs"))
     ),
@@ -35,12 +35,9 @@ characterizationCaseSeriesViewer <- function(id) {
       condition = 'output.showCaseSeries != 0',
       ns = ns,
       
-      inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
-      
       shinydashboard::tabBox(
         width = "100%",
         # Title can include an icon
-        title = shiny::tagList(shiny::icon("gear"), "Case Series"),
         shiny::tabPanel("Binary Feature Table",
                         shiny::uiOutput(outputId = ns('helpTextBinary')),
                         resultTableViewer(ns('binaryTable'))
@@ -61,18 +58,29 @@ characterizationCaseSeriesServer <- function(
     id, 
     connectionHandler,
     resultDatabaseSettings,
-    reactiveCharacterizationTargetTable,
-    reactiveCharacterizationTargetRowId,
-    reactiveOutcomeTable,
-    reactiveOutcomeRowId
+    reactiveCharacterizationTargetTable
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
+      # moving the selections within module rather than shared across
+      reactiveOutcomeCaseRowId <- shiny::reactiveVal(NULL)
+      reactiveCharacterizationTargetRowId <- shiny::reactiveVal(NULL)
+      
+      # restrict to populations with cohort comp data
+      moduleCharacterizationTargetTable <- shiny::reactive({
+        if(!is.null(reactiveCharacterizationTargetTable())){
+          reactiveCharacterizationTargetTable() %>%
+            dplyr::filter(.data$caseSeries == 1)
+        } else{
+          NULL
+        }
+      })
+      
       reactiveTargetRow <- shiny::reactive({
         rowId <- reactiveCharacterizationTargetRowId()
-        targetTable <- reactiveCharacterizationTargetTable()
+        targetTable <- moduleCharacterizationTargetTable()
         
         if (is.null(rowId) || length(rowId) == 0 || is.null(targetTable) || nrow(targetTable) == 0) {
           return(data.frame())
@@ -81,34 +89,82 @@ characterizationCaseSeriesServer <- function(
         targetTable[rowId, , drop = FALSE]
       })
       
-      outcomeTableForSelect <- shiny::reactive({
-        out <- reactiveOutcomeTable()
-        
-        if (is.null(out) || nrow(out) == 0) {
+      reactiveOutcomesUsed <- shiny::reactive({
+        targetRow <- reactiveTargetRow()
+
+        if (is.null(targetRow) || nrow(targetRow) == 0) {
           return(data.frame())
         }
-        
-        if (!("cohortId" %in% colnames(out)) && ("cohortDefinitionId" %in% colnames(out))) {
-          out$cohortId <- out$cohortDefinitionId
+
+        caseSettings <- OhdsiReportGenerator::getCharacterizationCaseSettings(
+          connectionHandler = connectionHandler,
+          schema = resultDatabaseSettings$schema,
+          cTablePrefix = resultDatabaseSettings$cTablePrefix,
+          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+          characterizationTargetIds = targetRow$characterizationTargetId
+        )
+
+        if (is.null(caseSettings) || nrow(caseSettings) == 0) {
+          return(data.frame())
         }
-        
-        out
+
+        if (!("outcomeName" %in% colnames(caseSettings))) {
+          if ("cohortName" %in% colnames(caseSettings)) {
+            caseSettings$outcomeName <- caseSettings$cohortName
+          } else {
+            caseSettings$outcomeName <- NA_character_
+          }
+        }
+
+        if (!("outcomeWashoutDays" %in% colnames(caseSettings))) {
+          caseSettings$outcomeWashoutDays <- NA_real_
+        }
+
+        if (!("characterizationCaseId" %in% colnames(caseSettings))) {
+          caseSettings$characterizationCaseId <- NA_real_
+        }
+
+        riskWindowStart <- if ("riskWindowStart" %in% colnames(caseSettings)) {
+          caseSettings$riskWindowStart
+        } else if ("riskWindowStarts" %in% colnames(caseSettings)) {
+          caseSettings$riskWindowStarts
+        } else {
+          NA
+        }
+
+        riskWindowEnd <- if ("riskWindowEnd" %in% colnames(caseSettings)) {
+          caseSettings$riskWindowEnd
+        } else if ("riskWindowEnds" %in% colnames(caseSettings)) {
+          caseSettings$riskWindowEnds
+        } else {
+          NA
+        }
+
+        startAnchor <- if ("startAnchor" %in% colnames(caseSettings)) caseSettings$startAnchor else NA
+        endAnchor <- if ("endAnchor" %in% colnames(caseSettings)) caseSettings$endAnchor else NA
+
+        caseSettings$tar <- paste0(
+          "(", startAnchor, " + ", riskWindowStart,
+          ") - (", endAnchor, " + ", riskWindowEnd, ")"
+        )
+
+        caseSettings[, c("outcomeName", "outcomeWashoutDays", "tar", "characterizationCaseId"), drop = FALSE]
       })
-      
-      reactiveSelectedOutcomeRow <- shiny::reactive({
-        rowId <- reactiveOutcomeRowId()
-        out <- outcomeTableForSelect()
-        
-        if (is.null(rowId) || length(rowId) == 0 || is.null(out) || nrow(out) == 0) {
+
+      reactiveSelectedOutcomeCaseRow <- shiny::reactive({
+        rowId <- reactiveOutcomeCaseRowId()
+        outcomesUsed <- reactiveOutcomesUsed()
+
+        if (is.null(rowId) || length(rowId) == 0 || is.null(outcomesUsed) || nrow(outcomesUsed) == 0) {
           return(data.frame())
         }
-        
-        out[rowId, , drop = FALSE]
+
+        outcomesUsed[rowId, , drop = FALSE]
       })
       
       tableSelectionServer(
         id = 'char-pop-select-cs',
-        table = reactiveCharacterizationTargetTable, 
+        table = moduleCharacterizationTargetTable, 
         selectedRowId = reactiveCharacterizationTargetRowId,
         selectMultiple = FALSE, 
         elementId = session$ns('table-selector-cs'),
@@ -120,113 +176,90 @@ characterizationCaseSeriesServer <- function(
       
       output$showCaseSeries <- shiny::reactive(0)
       shiny::outputOptions(output, "showCaseSeries", suspendWhenHidden = FALSE)
+      reactiveCaseSeriesData <- shiny::reactiveVal(NULL)
       
       # if target or outcome changes hide results
       shiny::observeEvent(reactiveTargetRow(), {
         output$showCaseSeries <- shiny::reactive(0)
+        reactiveCaseSeriesData(NULL)
+        reactiveOutcomeCaseRowId(NULL)
       })
-      shiny::observeEvent(reactiveSelectedOutcomeRow(), {
+      shiny::observeEvent(reactiveSelectedOutcomeCaseRow(), {
         output$showCaseSeries <- shiny::reactive(0)
+        reactiveCaseSeriesData(NULL)
       })
       shiny::observeEvent(input$databaseName, {
         output$showCaseSeries <- shiny::reactive(0)
+        reactiveCaseSeriesData(NULL)
       })
 
       
-      # server for outcome seleciton table
+      # server for outcome + case selection table
       tableSelectionServer(
         id = 'outcome-table-select-cs',
-        table = outcomeTableForSelect,
-        selectedRowId = reactiveOutcomeRowId,
+        table = reactiveOutcomesUsed,
+        selectedRowId = reactiveOutcomeCaseRowId,
         selectMultiple = FALSE, 
         elementId = session$ns('table-outcome-selector-cs'),
-        inputColumns = characterizationOutcomeDisplayColumns(),
-        displayColumns = characterizationOutcomeDisplayColumns(), 
-        selectButtonText = 'Select Outcome'
-      )
-      
-      # query case_settings for char_t_id and outcome_id to get 
-      # washout and TAR options (this will give us a case_id to select)
-      reactiveOutcomeOptions <- shiny::reactive({
-        outcomeRow <- reactiveSelectedOutcomeRow()
-        
-        if(nrow(reactiveTargetRow()) > 0 && nrow(outcomeRow) > 0 && "cohortId" %in% colnames(outcomeRow)){
-          getCharacterizationCaseSettings(
-            characterizationTargetId = reactiveTargetRow()$characterizationTargetId,
-            outcomeId = outcomeRow$cohortId,
-            connectionHandler = connectionHandler,
-            resultDatabaseSettings = resultDatabaseSettings
-          )
-        } else {
-          data.frame()
-        }
-      })
-      
-      reactiveOutcomeOptionsRowId <- shiny::reactiveVal(NULL)
-      tableSelectionServer(
-        id = 'outcome-table-options-cs',
-        table = reactiveOutcomeOptions, 
-        selectedRowId = reactiveOutcomeOptionsRowId,
-        selectMultiple = FALSE, 
-        elementId = session$ns('outcome-table-options-cs'),
-        #inputColumns = characterizationTargetsColumns(),
-        #displayColumns = characterizationTargetsColumns(), 
-        selectButtonText = 'Select Outcome Options'
+        inputColumns = characterizationCaseSeriesOutcomeColumns(),
+        displayColumns = characterizationCaseSeriesOutcomeColumns(),
+        selectButtonText = 'Select Outcome / Time-at-risk'
       )
       
       
       # get databases
       databaseNames <- shiny::reactive({
         if(length(reactiveCharacterizationTargetRowId()) == 0){return(NULL)}
-        unlist(strsplit(x = reactiveCharacterizationTargetTable()[reactiveCharacterizationTargetRowId(),]$databaseString, split = ', '))
+        unlist(strsplit(x = moduleCharacterizationTargetTable()[reactiveCharacterizationTargetRowId(),]$databaseString, split = ', '))
       })
       databaseIds <- shiny::reactive({
         if(length(reactiveCharacterizationTargetRowId()) == 0){return(NULL)}
-        unlist(strsplit(x = reactiveCharacterizationTargetTable()[reactiveCharacterizationTargetRowId(),]$databaseIdString, split = ', '))
+        unlist(strsplit(x = moduleCharacterizationTargetTable()[reactiveCharacterizationTargetRowId(),]$databaseIdString, split = ', '))
       })
       
       
       output$inputs <- shiny::renderUI({ # need to make reactive?
         targetRow <- reactiveTargetRow()
-        outcomeRow <- reactiveSelectedOutcomeRow()
-        outcomeOptions <- reactiveOutcomeOptions()
-        outcomeOptionsRowId <- reactiveOutcomeOptionsRowId()
+        selectedOutcomeCase <- reactiveSelectedOutcomeCaseRow()
+        databaseChoices <- databaseNames()
+        selectedDatabase <- shiny::isolate(input$databaseName)
+
+        if (is.null(selectedDatabase) || !(selectedDatabase %in% databaseChoices)) {
+          selectedDatabase <- if (length(databaseChoices) > 0) databaseChoices[1] else NULL
+        }
 
         hasTarget <- !is.null(targetRow) && nrow(targetRow) > 0
-        hasOutcome <- !is.null(outcomeRow) && nrow(outcomeRow) > 0
-        hasOutcomeOptions <- !is.null(outcomeOptionsRowId) &&
-          length(outcomeOptionsRowId) > 0 &&
-          all(outcomeOptionsRowId > 0) &&
-          !is.null(outcomeOptions) &&
-          nrow(outcomeOptions) >= max(outcomeOptionsRowId)
-        hasDatabase <- !is.null(input$databaseName) && nzchar(input$databaseName)
-        canGenerate <- hasTarget && hasOutcome && hasOutcomeOptions && hasDatabase
+        hasOutcomeCase <- !is.null(selectedOutcomeCase) && nrow(selectedOutcomeCase) > 0
+        hasDatabase <- !is.null(selectedDatabase) && nzchar(selectedDatabase)
+        canGenerate <- hasTarget && hasOutcomeCase && hasDatabase
         
         shiny::div(
           
           tableSelectionViewer(id = session$ns('char-pop-select-cs')),
-          
-          tableSelectionViewer(id = session$ns('outcome-table-select-cs')),
-          
-          tableSelectionViewer(id = session$ns('outcome-table-options-cs')),
-          
-          shinyWidgets::pickerInput(
-            inputId = session$ns('databaseName'),
-            label = 'Database: ',
-            choices = databaseNames(),
-            selected = databaseNames()[1],
-            multiple = F,
-            options = shinyWidgets::pickerOptions(
-              actionsBox = TRUE,
-              liveSearch = TRUE,
-              size = 10,
-              dropupAuto = TRUE,
-              liveSearchStyle = "contains",
-              liveSearchPlaceholder = "Type here to search",
-              virtualScroll = 50
+
+          if (hasTarget) {
+            tableSelectionViewer(id = session$ns('outcome-table-select-cs'))
+          },
+
+          if (hasOutcomeCase) {
+            shinyWidgets::pickerInput(
+              inputId = session$ns('databaseName'),
+              label = 'Database: ',
+              choices = databaseChoices,
+              selected = selectedDatabase,
+              multiple = F,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                size = 10,
+                dropupAuto = TRUE,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 50
+              )
             )
-          ),
-          
+          },
+
           shiny::tags$button(
             id = session$ns('generate'),
             type = 'button',
@@ -241,32 +274,32 @@ characterizationCaseSeriesServer <- function(
   
       shiny::observeEvent(input$generate, {
         
-        # add target, outcome, database and tar check
-        outcomeRow <- reactiveSelectedOutcomeRow()
-        outcomeOptions <- reactiveOutcomeOptions()
-        outcomeOptionsRowId <- reactiveOutcomeOptionsRowId()
-        
-        hasOutcomeOptions <- !is.null(outcomeOptionsRowId) &&
-          length(outcomeOptionsRowId) > 0 &&
-          !is.null(outcomeOptions) &&
-          nrow(outcomeOptions) >= max(outcomeOptionsRowId)
-        
-        if (hasOutcomeOptions) {
-          selectedOutcomeOptions <- outcomeOptions[outcomeOptionsRowId, , drop = FALSE]
-        } else {
-          selectedOutcomeOptions <- data.frame()
+        # add target, selected case, and database checks
+        selectedOutcomeCase <- reactiveSelectedOutcomeCaseRow()
+        hasOutcomeCase <- !is.null(selectedOutcomeCase) &&
+          nrow(selectedOutcomeCase) > 0 &&
+          "characterizationCaseId" %in% colnames(selectedOutcomeCase)
+
+        selectedTimeAtRisk <- NA_character_
+        if (hasOutcomeCase && "tar" %in% colnames(selectedOutcomeCase)) {
+          selectedTimeAtRisk <- selectedOutcomeCase$tar
+        }
+
+        selectedOutcomeName <- NA_character_
+        if (hasOutcomeCase && "outcomeName" %in% colnames(selectedOutcomeCase)) {
+          selectedOutcomeName <- selectedOutcomeCase$outcomeName
         }
         
         
-        if(is.null(reactiveTargetRow()) | is.null(outcomeRow) |
-           is.null(input$databaseName) | !hasOutcomeOptions
+          if(is.null(reactiveTargetRow()) |
+            is.null(input$databaseName) | !hasOutcomeCase
         ){
           
           output$showCaseSeries  <- shiny::reactive(0)
           shiny::showNotification('Need to set all inputs')
-        } else if(nrow(reactiveTargetRow()) == 0 | nrow(outcomeRow) == 0 ){
+        } else if(nrow(reactiveTargetRow()) == 0 | nrow(selectedOutcomeCase) == 0 ){
           output$showCaseSeries  <- shiny::reactive(0)
-          shiny::showNotification('Need to pick a target and outcome')
+          shiny::showNotification('Need to pick a target and outcome/time-at-risk')
         } else{
             
             output$showCaseSeries  <- shiny::reactive(1)
@@ -274,26 +307,21 @@ characterizationCaseSeriesServer <- function(
             allData <- characterizationGetCaseSeriesData(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
-              characterizationTargetIds =  reactiveTargetRow()$characterizationTargetId,
-              outcomeIds = outcomeRow$cohortId,
-              databaseId = databaseIds()[input$databaseName == databaseNames()],
-              riskWindowStart = selectedOutcomeOptions$riskWindowStart,
-              riskWindowEnd = selectedOutcomeOptions$riskWindowEnd,
-              startAnchor = selectedOutcomeOptions$startAnchor,
-              endAnchor = selectedOutcomeOptions$endAnchor
+              characterizationCaseId = selectedOutcomeCase$characterizationCaseId,
+              databaseId = databaseIds()[input$databaseName == databaseNames()]
             )
-            
+
+            reactiveCaseSeriesData(allData)
+
+            binaryData <- sortByAverageVariance(allData$binary)
+            continuousData <- sortByAverageVariance(allData$continuous)
+
             # !!TODO - replace this?get case count
             counts <- characterizationGetCaseSeriesCounts(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
-              characterizationTargetId = reactiveTargetRow()$characterizationTargetId,
-              outcomeId = outcomeRow$cohortId,
-              databaseId = databaseIds()[input$databaseName == databaseNames()],
-              riskWindowStart = selectedOutcomeOptions$riskWindowStart,
-              riskWindowEnd = selectedOutcomeOptions$riskWindowEnd,
-              startAnchor = selectedOutcomeOptions$startAnchor,
-              endAnchor = selectedOutcomeOptions$endAnchor
+              characterizationCaseId = selectedOutcomeCase$characterizationCaseId,
+              databaseId = databaseIds()[input$databaseName == databaseNames()]
             )
             N <- counts$personCount[1]
             
@@ -336,13 +364,13 @@ characterizationCaseSeriesServer <- function(
             
             resultTableServer(
               id = "binaryTable", 
-              df = tryCatch({allData$binary},  # need to make sure correct case id
+              df = tryCatch({binaryData},  # need to make sure correct case id
               error = function(e){return(NULL)}), 
               details = data.frame(
                 Database = input$databaseName,
-                TimeAtRisk = selectedOutcomeOptions$tar,
+                TimeAtRisk = selectedTimeAtRisk,
                 target = reactiveTargetRow()$cohortName,
-                outcome = outcomeRow$cohortName,
+                outcome = selectedOutcomeName,
                 #minPriorObservation = minPriorObservation,
                 #casePostOutcomeDuration = casePostOutcomeDuration,
                 #casePreTargetDuration = casePreTargetDuration,
@@ -383,13 +411,13 @@ characterizationCaseSeriesServer <- function(
             
             resultTableServer(
               id = "continuousTable", 
-              df = tryCatch({allData$continuous},
+              df = tryCatch({continuousData},
                 error = function(e){return(NULL)}), 
               details = data.frame(
                 Database = input$databaseName,
-                TimeAtRisk = selectedOutcomeOptions$tar,
+                TimeAtRisk = selectedTimeAtRisk,
                 target = reactiveTargetRow()$cohortName,
-                outcome = outcomeRow$cohortName,
+                outcome = selectedOutcomeName,
                 #minPriorObservation = minPriorObservation,
                 #casePostOutcomeDuration = casePostOutcomeDuration,
                 #casePreTargetDuration = casePreTargetDuration,
@@ -418,13 +446,8 @@ characterizationCaseSeriesServer <- function(
 characterizationGetCaseSeriesData <- function(
   connectionHandler,
   resultDatabaseSettings,
-  characterizationTargetIds,
-  outcomeIds,
-  databaseId,
-  riskWindowStart,
-  riskWindowEnd,
-  startAnchor,
-  endAnchor
+  characterizationCaseId,
+  databaseId
 ){
   
   
@@ -437,12 +460,7 @@ characterizationGetCaseSeriesData <- function(
       cTablePrefix = resultDatabaseSettings$cTablePrefix,
       cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
       databaseTable = resultDatabaseSettings$databaseTable,
-      characterizationTargetId = characterizationTargetIds,
-      outcomeId = outcomeIds,
-      riskWindowStart = riskWindowStart,
-      riskWindowEnd = riskWindowEnd,
-      startAnchor = startAnchor,
-      endAnchor = endAnchor,
+      characterizationCaseId = characterizationCaseId,
       databaseIds = databaseId
     )
     
@@ -455,7 +473,8 @@ characterizationGetCaseSeriesData <- function(
         "startAnchor", "endAnchor"
         ))
         ) %>%
-      dplyr::relocate(.data$covariateName)
+      dplyr::relocate(.data$covariateName) %>%
+      parseCaseSeriesCovariates()
     
   shiny::incProgress(3/4, detail = paste("Extracting continuous"))
 
@@ -465,12 +484,7 @@ characterizationGetCaseSeriesData <- function(
     cTablePrefix = resultDatabaseSettings$cTablePrefix,
     cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
     databaseTable = resultDatabaseSettings$databaseTable,
-    characterizationTargetId = characterizationTargetIds,
-    outcomeId = outcomeIds,
-    riskWindowStart = riskWindowStart,
-    riskWindowEnd = riskWindowEnd,
-    startAnchor = startAnchor,
-    endAnchor = endAnchor,
+    characterizationCaseId = characterizationCaseId,
     databaseIds = databaseId
   )
   
@@ -484,7 +498,8 @@ characterizationGetCaseSeriesData <- function(
       "covariateId"
     ))
   ) %>%
-    dplyr::relocate(.data$covariateName)
+    dplyr::relocate(.data$covariateName) %>%
+    parseCaseSeriesCovariates()
   
   shiny::incProgress(4/4, detail = paste("Done"))
   
@@ -499,16 +514,94 @@ characterizationGetCaseSeriesData <- function(
 }
 
 
+sortByAverageVariance <- function(df) {
+  if (is.null(df) || nrow(df) == 0) {
+    return(df)
+  }
+  avgCols <- intersect(
+    c("averageValueBefore", "averageValueDuring", "averageValueAfter"),
+    colnames(df)
+  )
+  if (length(avgCols) < 2) {
+    return(df)
+  }
+  df$rowVar_ <- apply(df[, avgCols, drop = FALSE], 1, function(x) var(x, na.rm = TRUE))
+  df <- df[order(-df$rowVar_), ]
+  df$rowVar_ <- NULL
+  df
+}
+
+
+parseCaseSeriesCovariates <- function(df) {
+  if (is.null(df) || nrow(df) == 0 || !"covariateName" %in% colnames(df)) {
+    return(df)
+  }
+
+  hasPattern <- grepl(": ", df$covariateName) &
+    (grepl(" during ", df$covariateName) | grepl(" group \\(", df$covariateName))
+  df$domain <- ifelse(
+    hasPattern,
+    sub("^([a-zA-Z0-9_]+).*$", "\\1", df$covariateName),
+    NA_character_
+  )
+  df$Covariate <- ifelse(
+    hasPattern,
+    sub("^.*?:\\s*", "", df$covariateName),
+    df$covariateName
+  )
+
+  df %>%
+    dplyr::relocate(.data$Covariate, .data$domain, .before = .data$covariateName)
+}
+
+
+characterizationCaseSeriesOutcomeColumns <- function() {
+  list(
+    outcomeName = reactable::colDef(
+      name = "Outcome",
+      minWidth = 250
+    ),
+    outcomeWashoutDays = reactable::colDef(
+      name = "Outcome Washout Days"
+    ),
+    tar = reactable::colDef(
+      name = "Time-at-risk"
+    ),
+    characterizationCaseId = reactable::colDef(
+      show = FALSE
+    )
+  )
+}
+
+
 colDefsBinary <- function(
     elementId
     ){
   result <- list(
-    covariateName = reactable::colDef(
-      name = "Covariate Name",
-      header = withTooltip("Covariate Name",
-                           "Name of the covariate"),
+    Covariate = reactable::colDef(
+      name = "Covariate",
+      header = withTooltip("Covariate",
+                           "Concept name of the covariate"),
       filterable = TRUE,
       minWidth = 300
+    ),
+    domain = reactable::colDef(
+      name = "Domain",
+      header = withTooltip("Domain",
+                           "Clinical domain for the covariate"),
+      filterable = TRUE,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          shiny::tags$option(value = "", "All"),
+          lapply(sort(unique(values)), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
+    ),
+    covariateName = reactable::colDef(
+      show = FALSE
     ),
     covariateId = reactable::colDef(
       show = FALSE
@@ -528,8 +621,11 @@ colDefsBinary <- function(
     outcomeId = reactable::colDef(
       show = FALSE
     ),
+    characterizationCaseId = reactable::colDef(
+      show = FALSE
+    ),
     limitToFirstInNDays = reactable::colDef(
-      show = TRUE
+      show = FALSE
     ),
     minPriorObservation = reactable::colDef(
       show = FALSE,
@@ -656,6 +752,28 @@ colDefsBinary <- function(
 
 colDefsContinuous <- function(){
   result <- list(
+    Covariate = reactable::colDef(
+      name = "Covariate",
+      header = withTooltip("Covariate",
+                           "Concept name of the covariate"),
+      filterable = TRUE,
+      minWidth = 300
+    ),
+    domain = reactable::colDef(
+      name = "Domain",
+      header = withTooltip("Domain",
+                           "Clinical domain for the covariate"),
+      filterable = TRUE,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", 'continuous-table-filter', name),
+          shiny::tags$option(value = "", "All"),
+          lapply(sort(unique(values)), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
+    ),
     limitToFirstInNDays = reactable::colDef(show = FALSE),    
     minPriorObservation= reactable::colDef(show = FALSE),
     nestingCohortId = reactable::colDef(show = FALSE),
@@ -672,11 +790,7 @@ colDefsContinuous <- function(){
       filterable = TRUE
     ),
     covariateName = reactable::colDef(
-      name = "Covariate Name",
-      header = withTooltip("Covariate Name",
-                           "Name of the covariate"),
-      filterable = TRUE,
-      minWidth = 300
+      show = FALSE
     ),
     covariateId = reactable::colDef(
       "Covariate ID",
@@ -688,8 +802,11 @@ colDefsContinuous <- function(){
     outcomeId = reactable::colDef(
       show = FALSE
     ),
+    characterizationCaseId = reactable::colDef(
+      show = FALSE
+    ),
     limitToFirstInNDays = reactable::colDef(
-      show = TRUE
+      show = FALSE
     ),
     minPriorObservation = reactable::colDef(
       show = FALSE
@@ -915,13 +1032,8 @@ colDefsContinuous <- function(){
 characterizationGetCaseSeriesCounts <- function(
     connectionHandler,
     resultDatabaseSettings,
-    characterizationTargetId,
-    outcomeId,
-    databaseId,
-    riskWindowStart, 
-    riskWindowEnd, 
-    startAnchor, 
-    endAnchor
+  characterizationCaseId,
+  databaseId
 ){
   
   result <- OhdsiReportGenerator::getCaseCounts(
@@ -930,13 +1042,8 @@ characterizationGetCaseSeriesCounts <- function(
     cTablePrefix =  resultDatabaseSettings$cTablePrefix, 
     cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
     databaseTable = resultDatabaseSettings$databaseTable, 
-    characterizationTargetIds = characterizationTargetId, 
-    outcomeIds = outcomeId, 
-    databaseIds = databaseId, 
-    riskWindowStart = riskWindowStart, 
-    riskWindowEnd = riskWindowEnd, 
-    startAnchor = startAnchor, 
-    endAnchor = endAnchor
+    characterizationCaseIds = characterizationCaseId,
+    databaseIds = databaseId
     ) 
   
   if(nrow(result) > 0){

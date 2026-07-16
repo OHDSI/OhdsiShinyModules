@@ -33,9 +33,7 @@ characterizationDechallengeRechallengeViewer <- function(id) {
     shiny::conditionalPanel(
       condition = 'output.showDechalRechal != 0', 
       ns = ns,
-      
-      inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
-      
+
       shiny::uiOutput(ns('warning')),
       
       shinydashboard::box(
@@ -53,18 +51,30 @@ characterizationDechallengeRechallengeServer <- function(
   connectionHandler,
   resultDatabaseSettings,
   reactiveCharacterizationTargetTable,
-  reactiveCharacterizationTargetRowId,
-  reactiveOutcomeTable,
-  reactiveOutcomeRowId
+  reactiveOutcomeTable
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
+      # moving the selections within module rather than shared across
+      reactiveOutcomeRowId <- shiny::reactiveVal(NULL)
+      reactiveCharacterizationTargetRowId <- shiny::reactiveVal(NULL)
+      
+      # restrict to populations with cohort comp data
+      moduleCharacterizationTargetTable <- shiny::reactive({
+        if(!is.null(reactiveCharacterizationTargetTable())){
+          reactiveCharacterizationTargetTable() %>%
+            dplyr::filter(.data$dechalRechal == 1)
+        } else{
+          NULL
+        }
+      })
+      
       
       reactiveTargetRow <- shiny::reactive({
         rowId <- reactiveCharacterizationTargetRowId()
-        targetTable <- reactiveCharacterizationTargetTable()
+        targetTable <-  moduleCharacterizationTargetTable()
         
         if (is.null(rowId) || length(rowId) == 0 || is.null(targetTable) || nrow(targetTable) == 0) {
           return(data.frame())
@@ -75,7 +85,7 @@ characterizationDechallengeRechallengeServer <- function(
       
       tableSelectionServer(
         id = 'char-pop-select-dcrc',
-        table = reactiveCharacterizationTargetTable, 
+        table =  moduleCharacterizationTargetTable, 
         selectedRowId = reactiveCharacterizationTargetRowId,
         selectMultiple = FALSE, 
         elementId = session$ns('table-selector-dcrc'),
@@ -114,9 +124,7 @@ characterizationDechallengeRechallengeServer <- function(
       
       # INPUTS
       output$inputs <- shiny::renderUI({ # need to make reactive?
-        hasTarget <- !is.null(reactiveCharacterizationTargetRowId()) &&
-          length(reactiveCharacterizationTargetRowId()) > 0 &&
-          all(reactiveCharacterizationTargetRowId() > 0)
+        hasTarget <- !is.null(reactiveTargetRow()) && nrow(reactiveTargetRow()) > 0
         hasOutcome <- !is.null(reactiveOutcomeRowId()) &&
           length(reactiveOutcomeRowId()) > 0 &&
           all(reactiveOutcomeRowId() > 0)
@@ -125,8 +133,10 @@ characterizationDechallengeRechallengeServer <- function(
         shiny::div(
         
           tableSelectionViewer(id = session$ns('char-pop-select-dcrc')),
-          
-          tableSelectionViewer(id = session$ns('outcome-table-select-dechal')),
+
+          if (hasTarget) {
+            tableSelectionViewer(id = session$ns('outcome-table-select-dechal'))
+          },
 
           shiny::tags$button(
             id = session$ns('generate'),
