@@ -28,6 +28,8 @@ characterizationCaseSeriesViewer <- function(id) {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
         box-sizing: border-box;
       }
       .cs-hero {
@@ -36,12 +38,22 @@ characterizationCaseSeriesViewer <- function(id) {
         background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #fdfcff 100%);
         border: 1px solid #dbe6f3;
         box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
       }
       .cs-hero-top {
         display: flex;
         align-items: center;
         gap: 14px;
         margin-bottom: 8px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        flex-wrap: wrap;
       }
       .cs-hero-icon {
         width: 52px;
@@ -61,12 +73,21 @@ characterizationCaseSeriesViewer <- function(id) {
         letter-spacing: -0.02em;
         color: #102033;
         margin: 0;
+        display: inline-block;
+        white-space: nowrap;
       }
       .cs-hero-copy {
         color: #526173;
         margin: 0;
         line-height: 1.5;
         max-width: 880px;
+        overflow-wrap: anywhere;
+      }
+      .cs-hero-top > div:last-child {
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
       }
       .cs-options-box.box {
         border-radius: 18px;
@@ -75,18 +96,85 @@ characterizationCaseSeriesViewer <- function(id) {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        box-sizing: border-box;
+      }
+      .cs-options-box .box-header,
+      .cs-results-wrap .box-header {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .cs-options-box .box-title,
+      .cs-results-wrap .box-title {
+        display: block;
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
       }
       .cs-options-box .box-body {
         width: 100%;
         max-width: 100%;
         min-width: 0;
         background: #f8fbff;
+        overflow-x: auto;
+        box-sizing: border-box;
       }
       .cs-options-card {
         background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
         border: 1px solid #dbe6f3;
         border-radius: 16px;
         padding: 14px 16px 8px 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .cs-options-card > div,
+      .cs-options-card .shiny-html-output,
+      .cs-options-card .table-responsive,
+      .cs-options-card .reactable,
+      .cs-options-card .rt-table,
+      .cs-options-card table {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .cs-options-card .form-group,
+      .cs-options-card .bootstrap-select,
+      .cs-options-card .bootstrap-select > .dropdown-toggle,
+      .cs-options-card .dropdown-menu {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box;
+      }
+      .cs-options-card .bootstrap-select,
+      .cs-options-card .bootstrap-select > .dropdown-toggle {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .cs-options-card .bootstrap-select .dropdown-menu {
+        max-width: 100% !important;
+      }
+      .cs-options-card .bootstrap-select .dropdown-toggle {
+        overflow: hidden;
+      }
+      .cs-options-card .bootstrap-select .dropdown-toggle .filter-option,
+      .cs-options-card .bootstrap-select .dropdown-toggle .filter-option-inner,
+      .cs-options-card .bootstrap-select .dropdown-toggle .filter-option-inner-inner {
+        max-width: 100% !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .cs-results-wrap {
         width: 100%;
@@ -389,6 +477,7 @@ characterizationCaseSeriesServer <- function(
         canGenerate <- hasTarget && hasOutcomeCase && hasDatabase
         
         shiny::div(
+          style = 'width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; box-sizing: border-box;',
           
           tableSelectionViewer(id = session$ns('char-pop-select-cs')),
 

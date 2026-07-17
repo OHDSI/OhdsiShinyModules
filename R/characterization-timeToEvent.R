@@ -29,7 +29,8 @@ characterizationTimeToEventViewer <- function(id) {
         max-width: 100%;
         min-width: 0;
         box-sizing: border-box;
-        overflow-x: hidden;
+        overflow-x: auto;
+        overflow-y: hidden;
       }
       .tte-hero {
         border-radius: 22px;
@@ -37,12 +38,22 @@ characterizationTimeToEventViewer <- function(id) {
         background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #fdfcff 100%);
         border: 1px solid #dbe6f3;
         box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
       }
       .tte-hero-top {
         display: flex;
         align-items: center;
         gap: 14px;
         margin-bottom: 8px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        flex-wrap: wrap;
       }
       .tte-hero-icon {
         width: 52px;
@@ -62,12 +73,21 @@ characterizationTimeToEventViewer <- function(id) {
         letter-spacing: -0.02em;
         color: #102033;
         margin: 0;
+        display: inline-block;
+        white-space: nowrap;
       }
       .tte-hero-copy {
         color: #526173;
         margin: 0;
         line-height: 1.5;
         max-width: 880px;
+        overflow-wrap: anywhere;
+      }
+      .tte-hero-top > div:last-child {
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
       }
       .tte-options-box.box {
         border-radius: 18px;
@@ -76,6 +96,25 @@ characterizationTimeToEventViewer <- function(id) {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        box-sizing: border-box;
+      }
+      .tte-options-box .box-header,
+      .tte-results-card .box-header {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .tte-options-box .box-title,
+      .tte-results-card .box-title {
+        display: block;
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
       }
       .tte-results-card {
         border-radius: 20px;
@@ -139,12 +178,58 @@ characterizationTimeToEventViewer <- function(id) {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .tte-filters-card > div,
+      .tte-filters-card .shiny-html-output,
+      .tte-filters-card .table-responsive,
+      .tte-filters-card .reactable,
+      .tte-filters-card .rt-table,
+      .tte-filters-card table {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .tte-filters-card .form-group,
+      .tte-filters-card .form-control,
+      .tte-filters-card .bootstrap-select,
+      .tte-filters-card .bootstrap-select > .dropdown-toggle,
+      .tte-filters-card .dropdown-menu {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box;
+      }
+      .tte-filters-card .bootstrap-select,
+      .tte-filters-card .bootstrap-select > .dropdown-toggle {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .tte-filters-card .bootstrap-select .dropdown-menu {
+        max-width: 100% !important;
+      }
+      .tte-filters-card .bootstrap-select .dropdown-toggle {
+        overflow: hidden;
+      }
+      .tte-filters-card .bootstrap-select .dropdown-toggle .filter-option,
+      .tte-filters-card .bootstrap-select .dropdown-toggle .filter-option-inner,
+      .tte-filters-card .bootstrap-select .dropdown-toggle .filter-option-inner-inner {
+        max-width: 100% !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .tte-options-box .box-body,
       .tte-results-card .box-body {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        box-sizing: border-box;
       }
       '
     ),
@@ -293,6 +378,7 @@ characterizationTimeToEventServer <- function(
         canGenerate <- hasTarget && hasOutcome
         
         shiny::div(
+          style = 'width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; box-sizing: border-box;',
           
           tableSelectionViewer(id = session$ns('char-pop-select-tte')),
 

@@ -28,6 +28,8 @@ characterizationDechallengeRechallengeViewer <- function(id) {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
         box-sizing: border-box;
       }
       .dcrc-hero {
@@ -36,12 +38,22 @@ characterizationDechallengeRechallengeViewer <- function(id) {
         background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #fdfcff 100%);
         border: 1px solid #dbe6f3;
         box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
       }
       .dcrc-hero-top {
         display: flex;
         align-items: center;
         gap: 14px;
         margin-bottom: 8px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        flex-wrap: wrap;
       }
       .dcrc-hero-icon {
         width: 52px;
@@ -61,12 +73,21 @@ characterizationDechallengeRechallengeViewer <- function(id) {
         letter-spacing: -0.02em;
         color: #102033;
         margin: 0;
+        display: inline-block;
+        white-space: nowrap;
       }
       .dcrc-hero-copy {
         color: #526173;
         margin: 0;
         line-height: 1.5;
         max-width: 880px;
+        overflow-wrap: anywhere;
+      }
+      .dcrc-hero-top > div:last-child {
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
       }
       .dcrc-options-box.box {
         border-radius: 18px;
@@ -75,18 +96,58 @@ characterizationDechallengeRechallengeViewer <- function(id) {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        box-sizing: border-box;
+      }
+      .dcrc-options-box .box-header,
+      .dcrc-results-card .box-header {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .dcrc-options-box .box-title,
+      .dcrc-results-card .box-title {
+        display: block;
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
       }
       .dcrc-options-box .box-body {
         width: 100%;
         max-width: 100%;
         min-width: 0;
         background: #f8fbff;
+        overflow-x: auto;
+        box-sizing: border-box;
       }
       .dcrc-options-card {
         background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
         border: 1px solid #dbe6f3;
         border-radius: 16px;
         padding: 14px 16px 8px 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .dcrc-options-card > div,
+      .dcrc-options-card .shiny-html-output,
+      .dcrc-options-card .table-responsive,
+      .dcrc-options-card .reactable,
+      .dcrc-options-card .rt-table,
+      .dcrc-options-card table {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
       }
       .dcrc-results-wrap {
         width: 100%;
@@ -259,6 +320,7 @@ characterizationDechallengeRechallengeServer <- function(
         canGenerate <- hasTarget && hasOutcome
         
         shiny::div(
+          style = 'width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; box-sizing: border-box;',
         
           tableSelectionViewer(id = session$ns('char-pop-select-dcrc')),
 

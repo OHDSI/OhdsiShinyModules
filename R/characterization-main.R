@@ -117,29 +117,49 @@ characterizationServer <- function(
       
       # react to the target being set
       shiny::observeEvent(reactiveTargetRowId(),{
-        
-        reactiveTargetRow(targetTable[reactiveTargetRowId(),])
-        
+        targetRowId <- reactiveTargetRowId()
+
+        hasValidTargetRowId <- !is.null(targetRowId) &&
+          length(targetRowId) == 1 &&
+          !is.na(targetRowId) &&
+          targetRowId > 0 &&
+          targetRowId <= nrow(targetTable)
+
+        if (!hasValidTargetRowId) {
+          reactiveTargetRow(data.frame())
+          reactiveCharacterizationTargetTable(NULL)
+          reactiveOutcomeTable(NULL)
+          output$analysesOptions <- NULL
+          output$analysesResults <- NULL
+          resultType('')
+          return(invisible(NULL))
+        }
+
+        selectedTargetRow <- targetTable[targetRowId, , drop = FALSE]
+        reactiveTargetRow(selectedTargetRow)
+
+        selectedTargetId <- selectedTargetRow$cohortDefinitionId[1]
+
         # get the characterization target ids
-        if(!is.null(targetTable$cohortDefinitionId[reactiveTargetRowId()])){
-          if(length(targetTable$cohortDefinitionId[reactiveTargetRowId()]) > 0){
-            reactiveCharacterizationTargetTable(
-              getCharacterizationTargetId(
-                connectionHandler = connectionHandler,
-                schema = resultDatabaseSettings$schema,
-                databaseTable = resultDatabaseSettings$databaseTable,
-                targetId = targetTable$cohortDefinitionId[reactiveTargetRowId()],
-                cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-                cTablePrefix = resultDatabaseSettings$cTablePrefix
-              )
+        if (!is.null(selectedTargetId) && length(selectedTargetId) == 1 && !is.na(selectedTargetId)) {
+          reactiveCharacterizationTargetTable(
+            getCharacterizationTargetId(
+              connectionHandler = connectionHandler,
+              schema = resultDatabaseSettings$schema,
+              databaseTable = resultDatabaseSettings$databaseTable,
+              targetId = selectedTargetId,
+              cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+              cTablePrefix = resultDatabaseSettings$cTablePrefix
             )
-          }
+          )
+        } else {
+          reactiveCharacterizationTargetTable(NULL)
         }
         
         # reset the outcome row id
         #reactiveOutcomeRowId(0)
         
-        if(nrow(reactiveTargetRow()) > 0){
+        if (nrow(selectedTargetRow) > 0) {
           analyses <- c('Database Comparison',
                         'Cohort Comparison',
                         'Dechallenge Rechallenge',
@@ -149,7 +169,7 @@ characterizationServer <- function(
                         'Cohort Incidence')
           
           # display the result options to select 
-          analysesWithResults <- reactiveTargetRow()[c(
+          analysesWithResults <- selectedTargetRow[c(
             'databaseComparator', 'cohortComparator',
             'dechalRechal', 'riskFactors',
              'timeToEvent', 'caseSeries',
@@ -410,8 +430,12 @@ characterizationServer <- function(
               )
             )
             
-            # set the resultType to the first 
-            resultType(analyses[analysesWithResults][1])
+            availableAnalyses <- analyses[analysesWithResults]
+
+            # only reset to first available analysis when current one is not available
+            if (!(resultType() %in% availableAnalyses)) {
+              resultType(availableAnalyses[1])
+            }
             
           } else{
             # set values to take you back to start
@@ -424,7 +448,7 @@ characterizationServer <- function(
           
           # if a case series set the outcome table
           # update the outcomes for the selected target id
-          analysesWithResultsOutcome <- reactiveTargetRow()[c(
+          analysesWithResultsOutcome <- selectedTargetRow[c(
             'dechalRechal', 'riskFactors',
             'timeToEvent', 'caseSeries',
             'cohortIncidence')] == 1
@@ -436,7 +460,7 @@ characterizationServer <- function(
           reactiveOutcomeTable(getOutcomesUsedInChar(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetId = reactiveTargetRow()$cohortDefinitionId[1]
+            targetId = selectedTargetId
           ))
             
         } else{

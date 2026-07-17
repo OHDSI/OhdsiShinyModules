@@ -30,6 +30,8 @@ characterizationDatabaseComparisonViewer <- function(id) {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
         box-sizing: border-box;
       }
       .db-hero {
@@ -38,12 +40,22 @@ characterizationDatabaseComparisonViewer <- function(id) {
         background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #fdfcff 100%);
         border: 1px solid #dbe6f3;
         box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
       }
       .db-hero-top {
         display: flex;
         align-items: center;
         gap: 14px;
         margin-bottom: 8px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        flex-wrap: wrap;
       }
       .db-hero-icon {
         width: 52px;
@@ -63,12 +75,21 @@ characterizationDatabaseComparisonViewer <- function(id) {
         letter-spacing: -0.02em;
         color: #102033;
         margin: 0;
+        display: inline-block;
+        white-space: nowrap;
       }
       .db-hero-copy {
         color: #526173;
         margin: 0;
         line-height: 1.5;
         max-width: 880px;
+        overflow-wrap: anywhere;
+      }
+      .db-hero-top > div:last-child {
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
       }
       .db-options-box.box {
         border-radius: 18px;
@@ -77,18 +98,85 @@ characterizationDatabaseComparisonViewer <- function(id) {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        box-sizing: border-box;
+      }
+      .db-options-box .box-header,
+      .db-results-card .box-header {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .db-options-box .box-title,
+      .db-results-card .box-title {
+        display: block;
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
       }
       .db-options-box .box-body {
         width: 100%;
         max-width: 100%;
         min-width: 0;
         background: #f8fbff;
+        overflow-x: auto;
+        box-sizing: border-box;
       }
       .db-options-card {
         background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
         border: 1px solid #dbe6f3;
         border-radius: 16px;
         padding: 14px 16px 8px 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .db-options-card > div,
+      .db-options-card .shiny-html-output,
+      .db-options-card .table-responsive,
+      .db-options-card .reactable,
+      .db-options-card .rt-table,
+      .db-options-card table {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .db-options-card .form-group,
+      .db-options-card .bootstrap-select,
+      .db-options-card .bootstrap-select > .dropdown-toggle,
+      .db-options-card .dropdown-menu {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box;
+      }
+      .db-options-card .bootstrap-select,
+      .db-options-card .bootstrap-select > .dropdown-toggle {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .db-options-card .bootstrap-select .dropdown-menu {
+        max-width: 100% !important;
+      }
+      .db-options-card .bootstrap-select .dropdown-toggle {
+        overflow: hidden;
+      }
+      .db-options-card .bootstrap-select .dropdown-toggle .filter-option,
+      .db-options-card .bootstrap-select .dropdown-toggle .filter-option-inner,
+      .db-options-card .bootstrap-select .dropdown-toggle .filter-option-inner-inner {
+        max-width: 100% !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .db-results-wrap {
         width: 100%;
@@ -298,12 +386,34 @@ characterizationDatabaseComparisonServer <- function(
       )
       
       databaseNames <- shiny::reactive({
-        if(length(reactiveCharacterizationTargetRowId()) == 0){return(NULL)}
-        unlist(strsplit(x = moduleCharacterizationTargetTable()[reactiveCharacterizationTargetRowId(),]$databaseString, split = ', '))
+        targetTable <- moduleCharacterizationTargetTable()
+        rowId <- reactiveCharacterizationTargetRowId()
+
+        if (is.null(targetTable) || nrow(targetTable) == 0 || is.null(rowId) || length(rowId) == 0) {
+          return(NULL)
+        }
+
+        databaseString <- targetTable[rowId, ]$databaseString
+        if (is.null(databaseString) || length(databaseString) == 0 || is.na(databaseString)) {
+          return(NULL)
+        }
+
+        unlist(strsplit(x = as.character(databaseString), split = ', '))
       })
       databaseIds <- shiny::reactive({
-        if(length(reactiveCharacterizationTargetRowId()) == 0){return(NULL)}
-        unlist(strsplit(x = moduleCharacterizationTargetTable()[reactiveCharacterizationTargetRowId(),]$databaseIdString, split = ', '))
+        targetTable <- moduleCharacterizationTargetTable()
+        rowId <- reactiveCharacterizationTargetRowId()
+
+        if (is.null(targetTable) || nrow(targetTable) == 0 || is.null(rowId) || length(rowId) == 0) {
+          return(NULL)
+        }
+
+        databaseIdString <- targetTable[rowId, ]$databaseIdString
+        if (is.null(databaseIdString) || length(databaseIdString) == 0 || is.na(databaseIdString)) {
+          return(NULL)
+        }
+
+        unlist(strsplit(x = as.character(databaseIdString), split = ', '))
       })
       
       # get min char value:
@@ -317,20 +427,37 @@ characterizationDatabaseComparisonServer <- function(
       # need to add char tar id selection
       output$inputs <- shiny::renderUI({
         hasTarget <- nrow(reactiveTargetRow()) > 0
-        selectedDatabases <- input$databaseNames
-        hasDatabases <- !is.null(selectedDatabases) && length(selectedDatabases) > 0
+        databaseChoices <- databaseNames()
+        selectedDatabases <- shiny::isolate(input$databaseNames)
+
+        if (!is.null(selectedDatabases) && !is.null(databaseChoices)) {
+          selectedDatabases <- selectedDatabases[selectedDatabases %in% databaseChoices]
+        }
+
+        if (is.null(selectedDatabases) || length(selectedDatabases) == 0) {
+          selectedDatabases <- if (!is.null(databaseChoices) && length(databaseChoices) > 0) {
+            databaseChoices[1]
+          } else {
+            NULL
+          }
+        }
+
+        hasDatabases <- !is.null(databaseChoices) && length(databaseChoices) > 0
         canGenerate <- hasTarget && hasDatabases
         
         shiny::div(
+          style = 'width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; box-sizing: border-box;',
+                    
           tableSelectionViewer(session$ns(id = 'char-pop-select-db')),
 
-          if (hasTarget) {
+          if (hasDatabases) {
             shinyWidgets::pickerInput(
               inputId = session$ns('databaseNames'), 
               label = 'Databases: ',
-              choices = databaseNames(),
+              choices = databaseChoices,
               selected = selectedDatabases,
               multiple = T,
+              width = '100%',
               options = shinyWidgets::pickerOptions(
                 actionsBox = TRUE,
                 liveSearch = TRUE,
