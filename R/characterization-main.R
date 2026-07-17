@@ -100,8 +100,6 @@ characterizationServer <- function(
       # create reactive that saves selected rowIds for targetTable and outcomeTable
       reactiveTargetRowId <- shiny::reactiveVal(NULL)
       reactiveTargetRow <- shiny::reactiveVal(NULL)
-      ##reactiveCharacterizationTargetRowId <- shiny::reactiveVal(NULL)
-      ##reactiveOutcomeRowId <- shiny::reactiveVal(NULL)
       
       # the table with all the possible targetIds
       tableSelectionServer(
@@ -134,7 +132,7 @@ characterizationServer <- function(
           resultType('')
           return(invisible(NULL))
         }
-
+         
         selectedTargetRow <- targetTable[targetRowId, , drop = FALSE]
         reactiveTargetRow(selectedTargetRow)
 
@@ -169,12 +167,20 @@ characterizationServer <- function(
                         'Cohort Incidence')
           
           # display the result options to select 
-          analysesWithResults <- selectedTargetRow[c(
-            'databaseComparator', 'cohortComparator',
-            'dechalRechal', 'riskFactors',
-             'timeToEvent', 'caseSeries',
-             'cohortIncidence')] == 1
-          analysesWithResults <- as.logical(analysesWithResults)
+          analysisToColMap <- c(
+            'Database Comparison' = 'databaseComparator',
+            'Cohort Comparison' = 'cohortComparator',
+            'Dechallenge Rechallenge' = 'dechalRechal',
+            'Risk Factors' = 'riskFactors',
+            'Time-to-event' = 'timeToEvent',
+            'Case Series' = 'caseSeries',
+            'Cohort Incidence' = 'cohortIncidence'
+          )
+          analysesWithResults <- sapply(analysisToColMap, function(col) {
+            ifelse(col %in% colnames(selectedTargetRow), 
+                   as.logical(selectedTargetRow[[col]][1] == 1), 
+                   FALSE)
+          })
           
           if(sum(analysesWithResults) > 0){
             
@@ -305,7 +311,7 @@ characterizationServer <- function(
                     class = 'analysis-grid',
                     lapply(seq_along(analyses), function(i) {
                       analysisName <- analyses[i]
-                      isAvailable <- analysesWithResults[i]
+                      isAvailable <- analysesWithResults[analysisName]
                       isActive <- identical(resultType(), analysisName)
 
                       analysisMeta <- switch(
@@ -448,10 +454,13 @@ characterizationServer <- function(
           
           # if a case series set the outcome table
           # update the outcomes for the selected target id
-          analysesWithResultsOutcome <- selectedTargetRow[c(
-            'dechalRechal', 'riskFactors',
-            'timeToEvent', 'caseSeries',
-            'cohortIncidence')] == 1
+          colsToSelectOutcome <- intersect(
+            c('dechalRechal', 'riskFactors',
+              'timeToEvent', 'caseSeries',
+              'cohortIncidence'),
+            colnames(selectedTargetRow)
+          )
+          analysesWithResultsOutcome <- selectedTargetRow[colsToSelectOutcome] == 1
           
           # TODO - figure out how to handle if CI has diff outcomes
           
