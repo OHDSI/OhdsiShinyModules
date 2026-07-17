@@ -339,7 +339,7 @@ characterizationDatabaseComparisonServer <- function(
       moduleCharacterizationTargetTable <- shiny::reactive({
         if(!is.null(reactiveCharacterizationTargetTable())){
           reactiveCharacterizationTargetTable() %>%
-            dplyr::filter(.data$cohortComparator == 1)
+            dplyr::filter(.data$databaseComparator == 1)
         } else{
           NULL
         }

@@ -194,6 +194,10 @@ resultTableServer <- function( # add column for selected columns as a reactive
           }
         }
         
+        if(is.null(columnInfo())) {
+          return(colDefsInputTemp)
+        }
+        
         columnIdsToDisplay <- columnInfo()$columnId[columnInfo()$friendlyName %in% input$dataCols]
         
         # update the colDef to show only selected columns
@@ -244,6 +248,7 @@ fuzzySearch <- reactable::JS('function(rows, columnIds, filterValue) {
 
 
       output$resultData <- reactable::renderReactable({
+        # wait for column picker to initialise before rendering
         # Display message when dat is empty
         shiny::validate(shiny::need(hasData(df()), "No data for selection"))
         # set row height based on nchar of table
@@ -251,7 +256,7 @@ fuzzySearch <- reactable::JS('function(rows, columnIds, filterValue) {
         maxMinWidth <- max(unlist(lapply(colDefsInputReactive(), function(x) x$minWidth)))
         maxMinWidth <- ifelse(is.null(maxMinWidth), 40,maxMinWidth)
         maxMinWidth <- ifelse(is.finite(maxMinWidth),maxMinWidth, 40)
-        if(max(apply(df(), 1, function(x) max(nchar(x))), na.rm = TRUE) < maxMinWidth*3){
+        if(max(apply(df(), 1, function(x) max(nchar(as.character(x)))), na.rm = TRUE) < maxMinWidth*3){
           if(!is.null(addActions)){
             height <- 40*3#length(addActions)
           }
@@ -263,7 +268,7 @@ fuzzySearch <- reactable::JS('function(rows, columnIds, filterValue) {
                   onClick = onClick,
                   groupBy = groupBy,
                   selection = selection,
-                  defaultSelected = shiny::reactive({if(max(selectedRowId()) == 0){NULL}else{selectedRowId()}})(),
+                  defaultSelected = NULL, #if(max(selectedRowId()) == 0) NULL else selectedRowId(),
                   #these can be turned on/off and will overwrite colDef args
                   sortable = TRUE,
                   resizable = TRUE,
