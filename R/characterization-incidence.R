@@ -39,6 +39,8 @@ characterizationIncidenceViewer <- function(id) {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
         box-sizing: border-box;
       }
       .inc-hero {
@@ -47,12 +49,22 @@ characterizationIncidenceViewer <- function(id) {
         background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #fdfcff 100%);
         border: 1px solid #dbe6f3;
         box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
       }
       .inc-hero-top {
         display: flex;
         align-items: center;
         gap: 14px;
         margin-bottom: 8px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        flex-wrap: wrap;
       }
       .inc-hero-icon {
         width: 52px;
@@ -72,18 +84,21 @@ characterizationIncidenceViewer <- function(id) {
         letter-spacing: -0.02em;
         color: #102033;
         margin: 0;
+        display: inline-block;
+        white-space: nowrap;
       }
       .inc-hero-copy {
         color: #526173;
         margin: 0;
         line-height: 1.5;
         max-width: 880px;
+        overflow-wrap: anywhere;
       }
-      .inc-options-card {
-        background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
-        border: 1px solid #dbe6f3;
-        border-radius: 18px;
-        padding: 14px 16px 8px 16px;
+      .inc-hero-top > div:last-child {
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
       }
       .inc-options-box.box {
         border-radius: 18px;
@@ -92,16 +107,93 @@ characterizationIncidenceViewer <- function(id) {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        box-sizing: border-box;
+      }
+      .inc-options-box .box-header,
+      .inc-results-card .box-header {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .inc-options-box .box-title,
+      .inc-results-card .box-title {
+        display: block;
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
       }
       .inc-options-box .box-body {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        background: #f8fbff;
+        overflow-x: auto;
+        box-sizing: border-box;
+      }
+      .inc-options-card {
+        background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+        border: 1px solid #dbe6f3;
+        border-radius: 16px;
+        padding: 14px 16px 8px 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .inc-options-card > div,
+      .inc-options-card .shiny-html-output,
+      .inc-options-card .table-responsive,
+      .inc-options-card .reactable,
+      .inc-options-card .rt-table,
+      .inc-options-card table {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .inc-options-card .form-group,
+      .inc-options-card .bootstrap-select,
+      .inc-options-card .bootstrap-select > .dropdown-toggle,
+      .inc-options-card .dropdown-menu {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box;
+      }
+      .inc-options-card .bootstrap-select,
+      .inc-options-card .bootstrap-select > .dropdown-toggle {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .inc-options-card .bootstrap-select .dropdown-menu {
+        max-width: 100% !important;
+      }
+      .inc-options-card .bootstrap-select .dropdown-toggle {
+        overflow: hidden;
+      }
+      .inc-options-card .bootstrap-select .dropdown-toggle .filter-option,
+      .inc-options-card .bootstrap-select .dropdown-toggle .filter-option-inner,
+      .inc-options-card .bootstrap-select .dropdown-toggle .filter-option-inner-inner {
+        max-width: 100% !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .inc-results-wrap {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
       }
       .inc-results-wrap .nav-tabs,
       .inc-results-wrap .nav-pills {
@@ -131,6 +223,9 @@ characterizationIncidenceViewer <- function(id) {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
       }
       .inc-results-card {
         border-radius: 20px;
@@ -140,6 +235,8 @@ characterizationIncidenceViewer <- function(id) {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        box-sizing: border-box;
       }
       .inc-results-card .box-header {
         background: linear-gradient(135deg, #123a63 0%, #1d4ed8 100%);
@@ -154,12 +251,18 @@ characterizationIncidenceViewer <- function(id) {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
       }
       .inc-plot-panel {
         margin-top: 14px;
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
       }
       '
     ),
