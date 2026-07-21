@@ -322,6 +322,13 @@ characterizationCohortComparisonServer <- function(
     # have the targetRowId be per analysis
       reactiveCharacterizationTargetRowId <- shiny::reactiveVal(NULL)
       
+      # Reset targetRowId when the table changes to prevent stale indices
+      shiny::observeEvent(moduleCharacterizationTargetTable(), {
+        reactiveCharacterizationTargetRowId(NULL)
+        reactiveComparatorRowId(NULL)
+        comparatorCharacterizationTableRowId(NULL)
+      })
+      
       # target reactive
       reactiveTargetRow <- shiny::reactive({
         rowId <- reactiveCharacterizationTargetRowId()
@@ -343,6 +350,12 @@ characterizationCohortComparisonServer <- function(
       })
       reactiveComparatorRowId <- shiny::reactiveVal(NULL)
       
+      # Reset comparatorRowId when the table changes to prevent stale indices
+      shiny::observeEvent(comparatorTable(), {
+        reactiveComparatorRowId(NULL)
+        comparatorCharacterizationTableRowId(NULL)
+      })
+      
       reactiveComparatorTargetId <- shiny::reactive({
         rowId <- reactiveComparatorRowId()
         cTargetTable <- comparatorTable()
@@ -356,6 +369,12 @@ characterizationCohortComparisonServer <- function(
       
       comparatorCharacterizationTable <- shiny::reactiveVal(NULL)
       comparatorCharacterizationTableRowId <- shiny::reactiveVal(NULL)
+      
+      # Reset comparatorCharacterizationTableRowId when the table changes to prevent stale indices
+      shiny::observeEvent(comparatorCharacterizationTable(), {
+        comparatorCharacterizationTableRowId(NULL)
+      })
+      
       shiny::observeEvent(reactiveComparatorTargetId(), {
         comparatorTargetId <- reactiveComparatorTargetId()
 
@@ -415,7 +434,7 @@ characterizationCohortComparisonServer <- function(
         selectMultiple = FALSE, 
         elementId = session$ns('table-selector-cohorts'),
         inputColumns = characterizationTargetsColumns(),
-        displayColumns = characterizationTargetsColumns(), 
+        displayColumns = characterizationSelectedTargetsColumns(), 
         selectButtonText = 'Select Population'
       )
       
@@ -457,7 +476,7 @@ characterizationCohortComparisonServer <- function(
         selectMultiple = FALSE, 
         elementId = session$ns('comp-pop-selector'),
         inputColumns = characterizationTargetsColumns(),
-        displayColumns = characterizationTargetsColumns(), 
+        displayColumns = characterizationSelectedTargetsColumns(), 
         selectButtonText = 'Select Comparator Population'
       )
       

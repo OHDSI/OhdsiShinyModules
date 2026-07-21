@@ -43,104 +43,118 @@ cohortGeneratorViewer <- function(id) {
   
   ns <- shiny::NS(id)
   
-  shiny::div(
-    
+  shiny::tagList(
+    shiny::tags$head(
+      shiny::tags$style(
+        shiny::HTML(
+          "
+          .cg-top-tabs .nav-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 14px;
+          }
+          .cg-top-tabs .nav-pills > li {
+            float: none;
+          }
+          .cg-top-tabs .nav-pills > li > a {
+            border-radius: 999px;
+            border: 1px solid #d4e0ed;
+            background: #ffffff;
+            color: #334155;
+            font-weight: 600;
+            padding: 9px 14px;
+            line-height: 1.3;
+            transition: all 0.2s ease;
+          }
+          .cg-top-tabs .nav-pills > li > a:hover {
+            border-color: #93c5fd;
+            background: #eff6ff;
+            color: #1d4ed8;
+          }
+          .cg-top-tabs .nav-pills > li.active > a,
+          .cg-top-tabs .nav-pills > li.active > a:hover,
+          .cg-top-tabs .nav-pills > li.active > a:focus {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+          }
+          "
+        )
+      )
+    ),
     shinydashboard::box(
-      status = 'info', 
+      status = 'info',
       width = '100%',
-      title = shiny::span( shiny::icon("user-gear"),'Cohorts'),
+      title = shiny::span(shiny::icon("user-gear"), 'Cohorts'),
       solidHeader = TRUE,
-
-      
-      shiny::tabsetPanel(
-        id = ns("cohortGeneratorTabs"),
-        type = "pills",
-        
-        
-        shiny::tabPanel(
-          title = "Cohort Counts",
-          
-          shinydashboard::box(
-            collapsible = T,
-            collapsed = F,
-            width = '100%',
-          
-            resultTableViewer(
-              ns("cohortCounts")
+      shiny::div(
+        class = "cg-top-tabs",
+        shiny::tabsetPanel(
+          id = ns("cohortGeneratorTabs"),
+          type = "pills",
+          shiny::tabPanel(
+            title = shiny::tagList(shiny::icon("table"), "Cohort Counts"),
+            shinydashboard::box(
+              collapsible = T,
+              collapsed = F,
+              width = '100%',
+              title = shiny::span(shiny::icon("chart-bar"), 'Cohort Sizes Across Databases'),
+              shiny::uiOutput(ns("cohortCountsContent")),
+              shiny::uiOutput(ns("cohortCountsControls")),
+              shiny::uiOutput(ns("cohortCountsSearch")),
+              shiny::uiOutput(ns("cohortCountsTable"))
+            )
+          ),
+          shiny::tabPanel(
+            title = shiny::tagList(shiny::icon("cogs"), "Generation Status"),
+            shinydashboard::box(
+              collapsible = T,
+              collapsed = F,
+              width = '100%',
+              resultTableViewer(
+                ns("cohortGeneration")
+              )
+            )
+          ),
+          shiny::tabPanel(
+            title = shiny::tagList(shiny::icon("file-text"), "Definition and Attrition"),
+            shinydashboard::box(
+              collapsible = T,
+              collapsed = F,
+              width = '100%',
+              title = shiny::span(shiny::icon("gear"), 'Options'),
+              shiny::uiOutput(ns('cohortDefinitionCohortSelect'))
+            ),
+            shiny::conditionalPanel(
+              condition = "input.generate_cohort_def != 0",
+              ns = ns,
+              shiny::uiOutput(ns("inputsCohortDefText")),
+              shiny::tabsetPanel(
+                id = ns('cohortDefPanel'),
+                shiny::tabPanel(
+                  title = "Friendly Definition",
+                  shiny::uiOutput(ns('outputCohortDefText'))
+                ),
+                shiny::tabPanel(
+                  title = "JSON",
+                  shiny::uiOutput(ns('outputCohortDefJson'))
+                ),
+                shiny::tabPanel(
+                  title = "SQL",
+                  shiny::uiOutput(ns('outputCohortDefSql'))
+                ),
+                shiny::tabPanel(
+                  title = "Inclusion Rules & Attrition",
+                  shiny::uiOutput(ns('attritionRuleSelect')),
+                  shiny::uiOutput(ns("attritionInputsText")),
+                  shiny::uiOutput(ns("attritionOutputTable")),
+                  shiny::uiOutput(ns("attritionOutputPlot"))
+                )
+              )
             )
           )
-        ),
-        
-        shiny::tabPanel(
-          title = "Cohort Generation",
-          
-          shinydashboard::box(
-            collapsible = T,
-            collapsed = F,
-            width = '100%',
-            
-          resultTableViewer(
-            ns("cohortGeneration")
-          )
-          ),
- 
-          ),
-        
-        shiny::tabPanel(
-          title = "Cohort Definition",
-          
-          shinydashboard::box(
-            collapsible = T,
-            collapsed = F,
-            width = '100%',
-            title = shiny::span( shiny::icon("gear"), 'Options'),
-            shiny::uiOutput(ns('cohortDefinitionCohortSelect'))
-          ),
-          
-          shiny::conditionalPanel(
-            condition = "input.generate_cohort_def != 0",
-            ns = ns,
-            
-            shiny::uiOutput(ns("inputsCohortDefText")),
-            
-            shiny::tabsetPanel( 
-              id = ns('cohortDefPanel'),
-              
-              shiny::tabPanel(
-                title = "Friendly Definition",
-                shiny::uiOutput(ns('outputCohortDefText'))
-              ),
-              
-              shiny::tabPanel(
-                title = "JSON",
-                shiny::uiOutput(ns('outputCohortDefJson'))
-              ),
-              
-              shiny::tabPanel(
-                title = "SQL",
-                shiny::uiOutput(ns('outputCohortDefSql'))
-              ),
-              
-              shiny::tabPanel(
-                title = "Inclusion Rules & Attrition", 
-                
-                shiny::uiOutput(ns('attritionRuleSelect')),
-                  
-                shiny::uiOutput(ns("attritionInputsText")),
-                
-                shiny::uiOutput(ns("attritionOutputTable")),
-                
-                shiny::uiOutput(ns("attritionOutputPlot"))
-                  
-                #) # end attrition select condition
-                
-              ) # end inclusion tab
-              
-              
-            ) # end cohort def sub tabs
- 
-            
-          ) # end conditional on generate
         )
       )
     )
@@ -231,7 +245,247 @@ cohortGeneratorServer <- function(
           ))
       )
       
-      # cohort count table server
+      # Reactive value to track which count view is active
+      activeCountView <- shiny::reactiveVal('subjects')
+      
+      # Pivot data for subjects view
+      dataSubjectsPivot <- reactive({
+        data %>%
+          dplyr::select(cohortId, cohortName, databaseName, cohortSubjects) %>%
+          tidyr::pivot_wider(
+            names_from = databaseName,
+            values_from = cohortSubjects,
+            values_fill = 0
+          ) %>%
+          dplyr::arrange(cohortId)
+      })
+      
+      # Pivot data for records view
+      dataRecordsPivot <- reactive({
+        data %>%
+          dplyr::select(cohortId, cohortName, databaseName, cohortEntries) %>%
+          tidyr::pivot_wider(
+            names_from = databaseName,
+            values_from = cohortEntries,
+            values_fill = 0
+          ) %>%
+          dplyr::arrange(cohortId)
+      })
+      
+      # Handle toggle buttons
+      shiny::observeEvent(input$ccSubjects, {
+        activeCountView('subjects')
+      })
+      
+      shiny::observeEvent(input$ccRecords, {
+        activeCountView('records')
+      })
+      
+      # Create dynamic column definitions based on pivoted data (same columns for both views)
+      cohortCountsColDefsPivoted <- reactive({
+        # Use subjects data to determine columns (same columns in both views)
+        pivotedData <- dataSubjectsPivot()
+        
+        # Get database column names (all except cohortId and cohortName)
+        dbCols <- setdiff(colnames(pivotedData), c('cohortId', 'cohortName'))
+        
+        # Create base column defs
+        colDefs <- list(
+          cohortId = reactable::colDef(
+            name = "ID",
+            width = 60,
+            header = withTooltip("ID", "Unique cohort identifier")
+          ),
+          cohortName = reactable::colDef(
+            name = "Cohort Name",
+            minWidth = 200,
+            header = withTooltip("Cohort Name", "Name of the cohort")
+          )
+        )
+        
+        # Add database columns
+        for (db in dbCols) {
+          colDefs[[db]] <- reactable::colDef(
+            name = db,
+            align = "center",
+            format = reactable::colFormat(separators = TRUE),
+            header = withTooltip(db, paste0("Count in ", db))
+          )
+        }
+        
+        return(colDefs)
+      })
+      
+      # Render the style (static, only once)
+      output$cohortCountsContent <- shiny::renderUI({
+        shiny::tags$style(
+          '
+          .cc-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #f8fbff;
+            border-radius: 8px;
+            border: 1px solid #dbe5f1;
+          }
+          .cc-controls-label {
+            font-weight: 600;
+            color: #132238;
+            margin: 0;
+          }
+          .cc-toggle-group {
+            display: flex;
+            gap: 4px;
+            background: #ffffff;
+            border: 1px solid #d4e0ed;
+            border-radius: 6px;
+            padding: 2px;
+          }
+          .cc-toggle-btn {
+            padding: 6px 12px;
+            border: none;
+            background: transparent;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+          }
+          .cc-toggle-btn.active {
+            background: #2563eb;
+            color: #ffffff;
+          }
+          .cc-toggle-btn:hover:not(.active) {
+            background: #e5ecf6;
+          }
+          .cc-search-box {
+            margin-bottom: 16px;
+          }
+          .cc-search-input {
+            width: 100%;
+            max-width: 300px;
+            padding: 8px 12px;
+            border: 1px solid #d4e0ed;
+            border-radius: 6px;
+            font-size: 13px;
+            box-sizing: border-box;
+          }
+          .cc-search-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+          }
+          '
+        )
+      })
+      
+      # Render the toggle buttons (updates when view changes)
+      output$cohortCountsControls <- shiny::renderUI({
+        subjClass <- paste('cc-toggle-btn', if(activeCountView() == 'subjects') 'active' else '')
+        recClass <- paste('cc-toggle-btn', if(activeCountView() == 'records') 'active' else '')
+        
+        shiny::div(
+          class = 'cc-controls',
+          shiny::p(class = 'cc-controls-label', 'View:'),
+          shiny::div(
+            class = 'cc-toggle-group',
+            shiny::actionButton(
+              session$ns('ccSubjects'),
+              'Subject Counts',
+              class = subjClass
+            ),
+            shiny::actionButton(
+              session$ns('ccRecords'),
+              'Record Counts',
+              class = recClass
+            )
+          )
+        )
+      })
+      
+      # Render the search box (non-reactive to view changes)
+      output$cohortCountsSearch <- shiny::renderUI({
+        shiny::div(
+          class = 'cc-search-box',
+          shiny::tags$input(
+            type = 'text',
+            id = session$ns('ccSearch'),
+            class = 'cc-search-input',
+            placeholder = 'Search by cohort name or ID...'
+          )
+        )
+      })
+      
+      # Render the table output (non-reactive to view changes)
+      output$cohortCountsTable <- shiny::renderUI({
+        shinydashboard::box(
+          status = 'primary',
+          width = '100%',
+          collapsible = F,
+          reactable::reactableOutput(session$ns('cohortCountsPivoted'))
+        )
+      })
+      
+      # Filtered data based on search input
+      filteredCohortCounts <- reactive({
+        pivotedData <- if(activeCountView() == 'subjects') dataSubjectsPivot() else dataRecordsPivot()
+        searchTerm <- tolower(input$ccSearch %||% '')
+        
+        if (searchTerm == '') {
+          return(pivotedData)
+        }
+        
+        # Filter by cohort ID or name
+        mask <- grepl(searchTerm, tolower(pivotedData$cohortId), fixed = TRUE) |
+                grepl(searchTerm, tolower(pivotedData$cohortName), fixed = TRUE)
+        
+        return(pivotedData[mask, , drop = FALSE])
+      })
+      
+      output$cohortCountsPivoted <- reactable::renderReactable({
+        reactable::reactable(
+          filteredCohortCounts(),
+          columns = cohortCountsColDefsPivoted(),
+          striped = TRUE,
+          highlight = TRUE,
+          sortable = TRUE,
+          filterable = FALSE,
+          resizable = TRUE,
+          defaultPageSize = 10,
+          showPageSizeOptions = TRUE,
+          pageSizeOptions = c(5, 10, 25, 50),
+          defaultColDef = reactable::colDef(align = "center"),
+          compact = TRUE,
+          theme = reactable::reactableTheme(
+            borderColor = "#e5ecf6",
+            headerStyle = list(
+              backgroundColor = "#f8fbff",
+              borderColor = "#d4e0ed",
+              fontWeight = "600",
+              color = "#132238"
+            ),
+            rowStyle = list(
+              borderBottom = "1px solid #f1f5f9"
+            ),
+            stripedColor = "#fafbff",
+            highlightColor = "#e5ecf6"
+          )
+        )
+      })
+      
+      # Observer to update table data when toggling views or searching
+      shiny::observe({
+        reactable::updateReactable(
+          outputId = session$ns('cohortCountsPivoted'),
+          data = filteredCohortCounts()
+        )
+      }) %>%
+        shiny::bindEvent(activeCountView(), input$ccSearch, ignoreInit = TRUE)
+      
+      # cohort count table server (keeping for compatibility if needed elsewhere)
       resultTableServer(
         id = "cohortCounts",
         df = data,

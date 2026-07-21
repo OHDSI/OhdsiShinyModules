@@ -678,28 +678,6 @@ characterizationTargetDisplayColumns <- function(){
       cohortName = reactable::colDef(
         name = 'Cohort Name',
         minWidth = 300
-      ),
-     
-      timeToEvent = reactable::colDef(
-        show = FALSE
-      ), 
-      dechalRechal = reactable::colDef(
-        show = FALSE
-      ),
-      databaseComparator = reactable::colDef(
-        show = FALSE
-      ),
-      cohortComparator = reactable::colDef(
-        show = FALSE
-      ), 
-      riskFactors = reactable::colDef(
-        show = FALSE
-      ), 
-      caseSeries = reactable::colDef(
-        show = FALSE
-      ),
-      cohortIncidence = reactable::colDef(
-        show = FALSE
       )
     )
   )

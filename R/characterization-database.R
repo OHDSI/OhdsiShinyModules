@@ -348,6 +348,11 @@ characterizationDatabaseComparisonServer <- function(
       # have the targetRowId be per analysis
       reactiveCharacterizationTargetRowId <- shiny::reactiveVal(1)
       
+      # Reset targetRowId when the table changes to prevent stale indices
+      shiny::observeEvent(moduleCharacterizationTargetTable(), {
+        reactiveCharacterizationTargetRowId(NULL)
+      })
+      
       
       plotResult <- shiny::reactiveVal(NULL)
 
@@ -381,7 +386,7 @@ characterizationDatabaseComparisonServer <- function(
         selectMultiple = FALSE, 
         elementId = session$ns('table-selector-db'),
         inputColumns = characterizationTargetsColumns(),
-        displayColumns = characterizationTargetsColumns(), 
+        displayColumns = characterizationSelectedTargetsColumns(), 
         selectButtonText = 'Select Population'
       )
       
@@ -1110,6 +1115,25 @@ characterizationTargetsColumns <- function(){
     caseSeries = reactable::colDef(show = FALSE),
     databaseString = reactable::colDef(show = FALSE),
     databaseIdString = reactable::colDef(show = FALSE)
+  )
+  
+}
+
+
+characterizationSelectedTargetsColumns <- function(){
+  
+  list(
+    cohortDefinitionId = reactable::colDef(name = 'Cohort ID'),
+    cohortName = reactable::colDef(name = 'Cohort Name', minWidth = 150),
+    limitToFirstInNDays = reactable::colDef(name = 'limitToFirstInNDays'),
+    minPriorObservation = reactable::colDef(name = 'minPriorObservation'),
+    nestingCohortId = reactable::colDef(name = 'nestingCohortId'),
+    nestingName = reactable::colDef(name = 'nestingName', minWidth = 150),
+    minAge = reactable::colDef(name = 'minAge'),
+    maxAge = reactable::colDef(name = 'maxAge'),
+    studyStart = reactable::colDef(name = 'studyStart'),
+    studyEnd = reactable::colDef(name = 'studyEnd'),
+    genderConceptIds = reactable::colDef(name = 'genderConceptIds')
   )
   
 }

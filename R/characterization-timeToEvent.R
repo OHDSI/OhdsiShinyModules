@@ -320,6 +320,17 @@ characterizationTimeToEventServer <- function(
       # moving the selections within module rather than shared across
       reactiveOutcomeRowId <- shiny::reactiveVal(NULL)
       reactiveCharacterizationTargetRowId <- shiny::reactiveVal(NULL)
+
+      # Reset outcomeRowId when the outcome table changes to prevent stale indices
+      shiny::observeEvent(reactiveOutcomeTable(), {
+        reactiveOutcomeRowId(NULL)
+      })
+
+      # Reset targetRowId when the table changes to prevent stale indices
+      shiny::observeEvent(moduleCharacterizationTargetTable(), {
+        reactiveCharacterizationTargetRowId(NULL)
+        reactiveOutcomeRowId(NULL)
+      })
       
       # restrict to populations with cohort comp data
       moduleCharacterizationTargetTable <- shiny::reactive({
@@ -349,7 +360,7 @@ characterizationTimeToEventServer <- function(
         selectMultiple = FALSE, 
         elementId = session$ns('table-selector-tte'),
         inputColumns = characterizationTargetsColumns(),
-        displayColumns = characterizationTargetsColumns(), 
+        displayColumns = characterizationSelectedTargetsColumns(), 
         selectButtonText = 'Select Population'
       )
       

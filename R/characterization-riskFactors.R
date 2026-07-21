@@ -332,6 +332,11 @@ characterizationRiskFactorServer <- function(
         }
       })
       
+      # Reset targetRowId when the table changes to prevent stale indices
+      shiny::observeEvent(moduleCharacterizationTargetTable(), {
+        reactiveCharacterizationTargetRowId(NULL)
+        reactiveOutcomeCaseRowId(NULL)
+      })
       
       reactiveTargetRow <- shiny::reactive({
         rowId <- reactiveCharacterizationTargetRowId()
@@ -406,6 +411,11 @@ characterizationRiskFactorServer <- function(
         caseSettings[, c("outcomeName", "outcomeWashoutDays", "tar", "characterizationCaseId"), drop = FALSE]
       })
 
+      # Reset outcomeRowId when the outcomes table changes to prevent stale indices
+      shiny::observeEvent(reactiveOutcomesUsed(), {
+        reactiveOutcomeCaseRowId(NULL)
+      })
+
       reactiveSelectedOutcomeCaseRow <- shiny::reactive({
         rowId <- reactiveOutcomeCaseRowId()
         outcomesUsed <- reactiveOutcomesUsed()
@@ -424,7 +434,7 @@ characterizationRiskFactorServer <- function(
         selectMultiple = FALSE, 
         elementId = session$ns('table-selector-rf'),
         inputColumns = characterizationTargetsColumns(),
-        displayColumns = characterizationTargetsColumns(), 
+        displayColumns = characterizationSelectedTargetsColumns(), 
         selectButtonText = 'Select Population'
       )
       
