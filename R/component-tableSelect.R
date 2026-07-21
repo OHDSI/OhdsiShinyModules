@@ -41,9 +41,8 @@ tableSelectionServer <- function(
       
       # Reset when tableReset fires
       shiny::observeEvent(tableReset(), {
-        message("[DEBUG tableSelectionServer] tableReset() fired")
         expandedChipIndices(integer())
-        tryCatch(selectedRowId(NULL), error = function(e) {message("[DEBUG tableSelectionServer] Could not set selectedRowId(NULL): ", e$message)})
+        tryCatch(selectedRowId(NULL), error = function(e) {})
       })
 
       # ---- helpers -----------------------------------------------------------
@@ -52,7 +51,6 @@ tableSelectionServer <- function(
       # Prefers columns whose name contains "name" or "label", then falls back
       # to the first visible display column.
       chipLabelForRow <- function(rowData) {
-        message("[DEBUG chipLabelForRow] Processing row with columns: ", paste(colnames(rowData), collapse=", "))
         cols <- colnames(rowData)
         if (is.null(cols) || length(cols) == 0) {
           return("(no data)")
@@ -105,7 +103,6 @@ tableSelectionServer <- function(
 
       # Build one pill/chip tag for a selected row
       makeChip <- function(label, expandedText = "", chipIndex = NULL) {
-        message("[DEBUG makeChip] Creating chip with label=\"", label, "\" hasExpandedText=", nzchar(expandedText), " chipIndex=", chipIndex)
         isExpanded <- !is.null(chipIndex) && chipIndex %in% expandedChipIndices()
         hasExpandableContent <- nzchar(expandedText)
 
@@ -159,9 +156,7 @@ tableSelectionServer <- function(
 
       # Render the chips (or a placeholder) for the currently selected rows
       selectedChips <- function(rowIds, tbl) {
-        message("[DEBUG selectedChips] Called with rowIds=", paste(rowIds, collapse=","), " tbl class=", class(tbl))
         if (is.null(rowIds) || length(rowIds) == 0 || sum(rowIds) == 0) {
-          message("[DEBUG selectedChips] No selection, returning placeholder")
           return(
             shiny::div(
               style = paste0(
@@ -177,26 +172,19 @@ tableSelectionServer <- function(
         }
 
         if (is.null(tbl)) {
-          message("[DEBUG selectedChips] tbl is NULL, returning NULL")
           return(NULL)
         }
-        tblData <- tryCatch(tbl(), error = function(e) {message("[DEBUG selectedChips] Error calling tbl(): ", e$message); NULL})
+        tblData <- tryCatch(tbl(), error = function(e) {NULL})
         if (is.null(tblData)) {
-          message("[DEBUG selectedChips] tblData is NULL, returning NULL")
           return(NULL)
         }
-        message("[DEBUG selectedChips] tblData has ", nrow(tblData), " rows")
         if (nrow(tblData) == 0) {
-          message("[DEBUG selectedChips] tblData has 0 rows, returning NULL")
           return(NULL)
         }
-        message("[DEBUG selectedChips] Attempting to select rows: ", paste(rowIds, collapse=","))
         selected <- tblData[rowIds, , drop = FALSE]
         if (nrow(selected) == 0) {
-          message("[DEBUG selectedChips] selected has 0 rows, returning NULL")
           return(NULL)
         }
-        message("[DEBUG selectedChips] Creating ", nrow(selected), " chips")
         chips <- lapply(seq_len(nrow(selected)), function(i) {
           rowData <- selected[i, , drop = FALSE]
           label <- chipLabelForRow(rowData)
@@ -233,7 +221,6 @@ tableSelectionServer <- function(
 
       # Build the full selection widget UI (button + chips area)
       buildSelectionUI <- function(hasSelection, rowIds, tbl) {
-        message("[DEBUG buildSelectionUI] Called with hasSelection=", hasSelection, " rowIds=", paste(rowIds, collapse=","))
         btnStyle <- if (hasSelection) {
           paste0(
             "background-color: #27ae60; border-color: #219a52; color: #fff; ",
@@ -275,24 +262,18 @@ tableSelectionServer <- function(
       # ---- main reactive UI --------------------------------------------------
 
       output$selectionInput <- shiny::renderUI({
-        message("[DEBUG renderUI] output$selectionInput triggered")
-        tblData <- tryCatch(table(), error = function(e) {message("[DEBUG renderUI] Error calling table(): ", e$message); NULL})
-        message("[DEBUG renderUI] tblData class=", class(tblData), " is.null=", is.null(tblData))
+        tblData <- tryCatch(table(), error = function(e) {NULL})
         if (is.null(tblData)) {
-          message("[DEBUG renderUI] table is NULL, returning NULL")
           return(NULL)
         }
-        rowIds <- tryCatch(selectedRowId(), error = function(e) {message("[DEBUG renderUI] Error calling selectedRowId(): ", e$message); NULL})
-        message("[DEBUG renderUI] rowIds=", paste(rowIds, collapse=","), " is.null=", is.null(rowIds))
+        rowIds <- tryCatch(selectedRowId(), error = function(e) {NULL})
         if (is.null(rowIds)) rowIds <- integer()
         hasSelection <- !is.null(rowIds) && length(rowIds) > 0 && sum(rowIds) > 0
-        message("[DEBUG renderUI] hasSelection=", hasSelection)
         buildSelectionUI(hasSelection, rowIds, table)
       })
 
       # Toggle expanded state when a chip is clicked
       shiny::observeEvent(input$toggleChip, {
-        message("[DEBUG toggleChip] Chip toggle event fired, chipIndex=", input$chipIndex)
         chipIdx <- input$chipIndex
         if (!is.null(chipIdx)) {
           current <- expandedChipIndices()
