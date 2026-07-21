@@ -731,36 +731,65 @@ getTargetsUsedInChar <- function(
     
     shiny::incProgress(2/4, detail = paste("Extracting targets"))
     
-    charTargets <- OhdsiReportGenerator::getTargetsUsedInCharacterization(
-      connectionHandler = connectionHandler,
-      schema = schema, 
-      cTablePrefix = cTablePrefix, 
-      cgTablePrefix = cgTablePrefix
-    )
-    
-    incidenceTargets <- OhdsiReportGenerator:::getTargetsUsedInIncidence(
-      connectionHandler = connectionHandler,
-      schema = schema, 
-      ciTablePrefix = ciTablePrefix, 
-      cgTablePrefix = cgTablePrefix
-    )
-    
-    result <- merge(
-      x = charTargets,
-      y = incidenceTargets, 
-      all = TRUE, 
-      by = c('cohortName', 'cohortDefinitionId')
+    charTargets <- tryCatch({
+      OhdsiReportGenerator::getTargetsUsedInCharacterization(
+        connectionHandler = connectionHandler,
+        schema = schema, 
+        cTablePrefix = cTablePrefix, 
+        cgTablePrefix = cgTablePrefix
       )
+    }, error = function(e) {
+      message(paste("Warning: Failed to get characterization targets:", e$message))
+      NULL
+    })
     
-    if(sum(is.na(result$cohortIncidence)) > 0){
-      result$cohortIncidence[is.na(result$cohortIncidence)] <- 0
+    incidenceTargets <- tryCatch({
+      OhdsiReportGenerator:::getTargetsUsedInIncidence(
+        connectionHandler = connectionHandler,
+        schema = schema, 
+        ciTablePrefix = ciTablePrefix, 
+        cgTablePrefix = cgTablePrefix
+      )
+    }, error = function(e) {
+      message(paste("Warning: Failed to get incidence targets:", e$message))
+      NULL
+    })
+    
+    # Handle cases where one or both queries failed
+    if (is.null(charTargets) && is.null(incidenceTargets)) {
+      # Both failed - return empty data frame with expected columns
+      result <- data.frame(
+        cohortDefinitionId = integer(),
+        cohortName = character(),
+        stringsAsFactors = FALSE
+      )
+    } else if (is.null(charTargets)) {
+      # Only characterization failed - use incidence targets
+      result <- incidenceTargets
+    } else if (is.null(incidenceTargets)) {
+      # Only incidence failed - use characterization targets
+      result <- charTargets
+    } else {
+      # Both succeeded - merge them
+      result <- merge(
+        x = charTargets,
+        y = incidenceTargets, 
+        all = TRUE, 
+        by = c('cohortName', 'cohortDefinitionId')
+      )
+      
+      if (sum(is.na(result$cohortIncidence)) > 0) {
+        result$cohortIncidence[is.na(result$cohortIncidence)] <- 0
+      }
     }
     
+    # Replace NA with 0 in all columns of interest
     allColsOfInt <- colnames(result)[!colnames(result) %in% c('cohortName', 'cohortDefinitionId')]
-      
-    # replace NA with 0
-    result <- result %>%
-      dplyr::mutate(dplyr::across(allColsOfInt, ~ tidyr::replace_na(.x, 0)))
+    
+    if (length(allColsOfInt) > 0) {
+      result <- result %>%
+        dplyr::mutate(dplyr::across(dplyr::all_of(allColsOfInt), ~ tidyr::replace_na(.x, 0)))
+    }
     
     shiny::incProgress(4/4, detail = paste("Done"))
     
@@ -814,33 +843,59 @@ getOutcomesUsedInChar <- function(
     
     shiny::incProgress(2/4, detail = paste("Extracting data"))
     
-    cOutcomes <- OhdsiReportGenerator::getOutcomesUsedInCharacterization(
-      connectionHandler = connectionHandler,
-      schema = resultDatabaseSettings$schema, 
-      cTablePrefix = resultDatabaseSettings$cTablePrefix,
-      cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-      targetId = targetId
-    )
+    cOutcomes <- tryCatch({
+      OhdsiReportGenerator::getOutcomesUsedInCharacterization(
+        connectionHandler = connectionHandler,
+        schema = resultDatabaseSettings$schema, 
+        cTablePrefix = resultDatabaseSettings$cTablePrefix,
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+        targetId = targetId
+      )
+    }, error = function(e) {
+      message(paste("Warning: Failed to get characterization outcomes:", e$message))
+      NULL
+    })
     
-    ciOutcomes <- OhdsiReportGenerator::getOutcomesUsedInIncidence(
-      connectionHandler = connectionHandler,
-      schema = resultDatabaseSettings$schema, 
-      cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-      ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
-      targetId = targetId
-    )
+    ciOutcomes <- tryCatch({
+      OhdsiReportGenerator::getOutcomesUsedInIncidence(
+        connectionHandler = connectionHandler,
+        schema = resultDatabaseSettings$schema, 
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+        ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
+        targetId = targetId
+      )
+    }, error = function(e) {
+      message(paste("Warning: Failed to get incidence outcomes:", e$message))
+      NULL
+    })
     
-    result <- merge(
-      x = cOutcomes, 
-      y = ciOutcomes, 
-      by = c('cohortName', 'cohortDefinitionId'),
-      all = TRUE
-    )
+    # Handle cases where one or both queries failed
+    if (is.null(cOutcomes) && is.null(ciOutcomes)) {
+      # Both failed - return empty data frame with expected columns
+      result <- data.frame(
+        cohortDefinitionId = integer(),
+        cohortName = character(),
+        stringsAsFactors = FALSE
+      )
+    } else if (is.null(cOutcomes)) {
+      # Only characterization failed - use incidence outcomes
+      result <- ciOutcomes
+    } else if (is.null(ciOutcomes)) {
+      # Only incidence failed - use characterization outcomes
+      result <- cOutcomes
+    } else {
+      # Both succeeded - merge them
+      result <- merge(
+        x = cOutcomes, 
+        y = ciOutcomes, 
+        by = c('cohortName', 'cohortDefinitionId'),
+        all = TRUE
+      )
+    }
     
     # Note: may need to add missing columns if either queries return 0 rows
     
-    message(paste0('Extracted ',nrow(result),' outcomes'))
-  
+    message(paste0('Extracted ', nrow(result), ' outcomes'))
     
     shiny::incProgress(4/4, detail = paste("Done"))
     
