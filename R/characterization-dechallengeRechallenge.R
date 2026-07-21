@@ -260,7 +260,7 @@ characterizationDechallengeRechallengeServer <- function(
       moduleCharacterizationTargetTable <- shiny::reactive({
         if(!is.null(reactiveCharacterizationTargetTable())){
           reactiveCharacterizationTargetTable() %>%
-            dplyr::filter(.data$dechalRechal == 1)
+            dplyr::filter(as.integer(.data$dechalRechal) == 1)
         } else{
           NULL
         }

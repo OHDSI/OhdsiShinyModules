@@ -178,7 +178,7 @@ characterizationServer <- function(
           )
           analysesWithResults <- sapply(analysisToColMap, function(col) {
             ifelse(col %in% colnames(selectedTargetRow), 
-                   as.logical(selectedTargetRow[[col]][1] == 1), 
+                   as.logical(as.integer(selectedTargetRow[[col]][1]) == 1), 
                    FALSE)
           })
           
@@ -821,7 +821,7 @@ getCharacterizationTargetId <- function(
       addDatabaseDetails = TRUE, 
       databaseTable = databaseTable
     )
-  
+
       
     shiny::incProgress(4/4, detail = paste("Done"))
     

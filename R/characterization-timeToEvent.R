@@ -336,7 +336,7 @@ characterizationTimeToEventServer <- function(
       moduleCharacterizationTargetTable <- shiny::reactive({
         if(!is.null(reactiveCharacterizationTargetTable())){
           reactiveCharacterizationTargetTable() %>%
-            dplyr::filter(.data$timeToEvent == 1)
+            dplyr::filter(as.integer(.data$timeToEvent) == 1)
         } else{
           NULL
         }

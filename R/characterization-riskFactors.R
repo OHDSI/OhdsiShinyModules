@@ -316,17 +316,13 @@ characterizationRiskFactorServer <- function(
       # and outcome selection given characterizationTargetId to give characterizationCaseId
       reactiveOutcomeCaseRowId <- shiny::reactiveVal(NULL)
       reactiveCharacterizationTargetRowId <- shiny::reactiveVal(NULL)
-      # reset these when the target changes
-      shiny::observeEvent(reactiveCharacterizationTargetTable,{
-        reactiveOutcomeCaseRowId(NULL)
-        reactiveCharacterizationTargetRowId(NULL)
-      })
       
       # restrict to populations with risk factor data
       moduleCharacterizationTargetTable <- shiny::reactive({
-        if(!is.null(reactiveCharacterizationTargetTable())){
-          reactiveCharacterizationTargetTable() %>%
-            dplyr::filter(.data$riskFactors == 1)
+        targetTable <- reactiveCharacterizationTargetTable()
+        if(!is.null(targetTable)){
+          targetTable %>%
+            dplyr::filter(as.integer(.data$riskFactors) == 1)
         } else{
           NULL
         }
@@ -336,6 +332,7 @@ characterizationRiskFactorServer <- function(
       shiny::observeEvent(moduleCharacterizationTargetTable(), {
         reactiveCharacterizationTargetRowId(NULL)
         reactiveOutcomeCaseRowId(NULL)
+
       })
       
       reactiveTargetRow <- shiny::reactive({

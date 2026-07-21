@@ -315,7 +315,7 @@ characterizationCaseSeriesServer <- function(
       moduleCharacterizationTargetTable <- shiny::reactive({
         if(!is.null(reactiveCharacterizationTargetTable())){
           reactiveCharacterizationTargetTable() %>%
-            dplyr::filter(.data$caseSeries == 1)
+            dplyr::filter(as.integer(.data$caseSeries)== 1)
         } else{
           NULL
         }

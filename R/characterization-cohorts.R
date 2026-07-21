@@ -313,7 +313,7 @@ characterizationCohortComparisonServer <- function(
       moduleCharacterizationTargetTable <- shiny::reactive({
         if(!is.null(reactiveCharacterizationTargetTable())){
           reactiveCharacterizationTargetTable() %>%
-            dplyr::filter(.data$cohortComparator == 1)
+            dplyr::filter(as.integer(.data$cohortComparator) == 1)
         } else{
           NULL
         }
