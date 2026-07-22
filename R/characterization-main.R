@@ -380,15 +380,18 @@ characterizationServer <- function(
                       )
 
                       if (isAvailable) {
+                        safeAnalysisName <- gsub("'", "\\\\'", analysisName, fixed = TRUE)
                         cardAttributes$onclick <- sprintf(
-                          "Shiny.setInputValue('%s', '%s', {priority: 'event'}); return false;",
+                          "Shiny.setInputValue('%s', '%s', {priority: 'event'}); setTimeout(function() { var el = document.getElementById('%s'); if (el) { var header = document.querySelector('.main-header'); var headerHeight = header ? header.getBoundingClientRect().height : 0; var y = el.getBoundingClientRect().top + window.scrollY - headerHeight - 16; window.scrollTo({top: Math.max(y, 0), behavior: 'smooth'}); } }, 0); return false;",
                           session$ns('resultType'),
-                          analysisName
+                          safeAnalysisName,
+                          session$ns('analysesResults')
                         )
                         cardAttributes$onkeydown <- sprintf(
-                          "if(event.key === 'Enter' || event.key === ' ') { Shiny.setInputValue('%s', '%s', {priority: 'event'}); event.preventDefault(); }",
+                          "if(event.key === 'Enter' || event.key === ' ') { Shiny.setInputValue('%s', '%s', {priority: 'event'}); setTimeout(function() { var el = document.getElementById('%s'); if (el) { var header = document.querySelector('.main-header'); var headerHeight = header ? header.getBoundingClientRect().height : 0; var y = el.getBoundingClientRect().top + window.scrollY - headerHeight - 16; window.scrollTo({top: Math.max(y, 0), behavior: 'smooth'}); } }, 0); event.preventDefault(); }",
                           session$ns('resultType'),
-                          analysisName
+                          safeAnalysisName,
+                          session$ns('analysesResults')
                         )
                         cardAttributes$tabindex <- '0'
                         cardAttributes$role <- 'button'
