@@ -12,7 +12,7 @@ License: Apache License 2.0
 Encoding: UTF-8
 LazyData: true
 Depends:
-    R (>= 3.3.0)
+    R (>= 4.1.0)
 VignetteBuilder: knitr
 Language: EN-US
 Imports:
@@ -51,4 +51,4 @@ Suggests:
     withr
 Remotes:
     ohdsi/OhdsiReportGenerator
-RoxygenNote: 7.3.2
+Config/roxygen2/version: 8.0.0

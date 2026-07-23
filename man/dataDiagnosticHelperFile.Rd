@@ -16,12 +16,12 @@ The location of the data-diagnostic module helper file
 Returns the location of the data-diagnostic helper file
 }
 \seealso{
-Other DataDiagnostics: 
-\code{\link{dataDiagnosticDrillServer}()},
-\code{\link{dataDiagnosticDrillViewer}()},
-\code{\link{dataDiagnosticServer}()},
-\code{\link{dataDiagnosticSummaryServer}()},
-\code{\link{dataDiagnosticSummaryViewer}()},
-\code{\link{dataDiagnosticViewer}()}
+Other DataDiagnostics:
+\code{\link[=dataDiagnosticDrillServer]{dataDiagnosticDrillServer()}},
+\code{\link[=dataDiagnosticDrillViewer]{dataDiagnosticDrillViewer()}},
+\code{\link[=dataDiagnosticServer]{dataDiagnosticServer()}},
+\code{\link[=dataDiagnosticSummaryServer]{dataDiagnosticSummaryServer()}},
+\code{\link[=dataDiagnosticSummaryViewer]{dataDiagnosticSummaryViewer()}},
+\code{\link[=dataDiagnosticViewer]{dataDiagnosticViewer()}}
 }
 \concept{DataDiagnostics}

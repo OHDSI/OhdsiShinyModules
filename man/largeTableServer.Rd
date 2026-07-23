@@ -31,8 +31,8 @@ must return data.frame compatable instance}
 Display large data tables in a consistent way - server side pagination for reactable objects
 }
 \seealso{
-Other LargeTables: 
-\code{\link{createLargeSqlQueryDt}()},
-\code{\link{largeTableView}()}
+Other LargeTables:
+\code{\link[=createLargeSqlQueryDt]{createLargeSqlQueryDt()}},
+\code{\link[=largeTableView]{largeTableView()}}
 }
 \concept{LargeTables}

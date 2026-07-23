@@ -13,26 +13,26 @@ timeDistributionsView(id)
 Use for customizing UI
 }
 \seealso{
-Other CohortDiagnostics: 
-\code{\link{cohortCountsModule}()},
-\code{\link{cohortCountsView}()},
-\code{\link{cohortDefinitionsModule}()},
-\code{\link{cohortDefinitionsView}()},
-\code{\link{cohortDiagCharacterizationView}()},
-\code{\link{cohortDiagnosticsHelperFile}()},
-\code{\link{cohortDiagnosticsServer}()},
-\code{\link{cohortDiagnosticsView}()},
-\code{\link{cohortOverlapView}()},
-\code{\link{compareCohortCharacterizationView}()},
-\code{\link{conceptsInDataSourceView}()},
-\code{\link{createCdDatabaseDataSource}()},
-\code{\link{databaseInformationView}()},
-\code{\link{getCirceRenderedExpression}()},
-\code{\link{getEnabledCdReports}()},
-\code{\link{incidenceRatesView}()},
-\code{\link{inclusionRulesView}()},
-\code{\link{indexEventBreakdownView}()},
-\code{\link{orpahanConceptsView}()},
-\code{\link{visitContextView}()}
+Other CohortDiagnostics:
+\code{\link[=cohortCountsModule]{cohortCountsModule()}},
+\code{\link[=cohortCountsView]{cohortCountsView()}},
+\code{\link[=cohortDefinitionsModule]{cohortDefinitionsModule()}},
+\code{\link[=cohortDefinitionsView]{cohortDefinitionsView()}},
+\code{\link[=cohortDiagCharacterizationView]{cohortDiagCharacterizationView()}},
+\code{\link[=cohortDiagnosticsHelperFile]{cohortDiagnosticsHelperFile()}},
+\code{\link[=cohortDiagnosticsServer]{cohortDiagnosticsServer()}},
+\code{\link[=cohortDiagnosticsView]{cohortDiagnosticsView()}},
+\code{\link[=cohortOverlapView]{cohortOverlapView()}},
+\code{\link[=compareCohortCharacterizationView]{compareCohortCharacterizationView()}},
+\code{\link[=conceptsInDataSourceView]{conceptsInDataSourceView()}},
+\code{\link[=createCdDatabaseDataSource]{createCdDatabaseDataSource()}},
+\code{\link[=databaseInformationView]{databaseInformationView()}},
+\code{\link[=getCirceRenderedExpression]{getCirceRenderedExpression()}},
+\code{\link[=getEnabledCdReports]{getEnabledCdReports()}},
+\code{\link[=incidenceRatesView]{incidenceRatesView()}},
+\code{\link[=inclusionRulesView]{inclusionRulesView()}},
+\code{\link[=indexEventBreakdownView]{indexEventBreakdownView()}},
+\code{\link[=orpahanConceptsView]{orpahanConceptsView()}},
+\code{\link[=visitContextView]{visitContextView()}}
 }
 \concept{CohortDiagnostics}

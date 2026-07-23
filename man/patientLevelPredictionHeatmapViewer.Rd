@@ -19,14 +19,14 @@ The module viewer for exploring prediction model discrimination results
 The user specifies the id for the module
 }
 \seealso{
-Other PatientLevelPrediction: 
-\code{\link{patientLevelPredictionHeatmapServer}()},
-\code{\link{patientLevelPredictionHelperFile}()},
-\code{\link{patientLevelPredictionModelServer}()},
-\code{\link{patientLevelPredictionModelViewer}()},
-\code{\link{patientLevelPredictionPlotServer}()},
-\code{\link{patientLevelPredictionPlotViewer}()},
-\code{\link{patientLevelPredictionServer}()},
-\code{\link{patientLevelPredictionViewer}()}
+Other PatientLevelPrediction:
+\code{\link[=patientLevelPredictionHeatmapServer]{patientLevelPredictionHeatmapServer()}},
+\code{\link[=patientLevelPredictionHelperFile]{patientLevelPredictionHelperFile()}},
+\code{\link[=patientLevelPredictionModelServer]{patientLevelPredictionModelServer()}},
+\code{\link[=patientLevelPredictionModelViewer]{patientLevelPredictionModelViewer()}},
+\code{\link[=patientLevelPredictionPlotServer]{patientLevelPredictionPlotServer()}},
+\code{\link[=patientLevelPredictionPlotViewer]{patientLevelPredictionPlotViewer()}},
+\code{\link[=patientLevelPredictionServer]{patientLevelPredictionServer()}},
+\code{\link[=patientLevelPredictionViewer]{patientLevelPredictionViewer()}}
 }
 \concept{PatientLevelPrediction}

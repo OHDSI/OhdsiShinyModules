@@ -780,7 +780,7 @@ sortByAverageVariance <- function(df) {
   if (length(avgCols) < 2) {
     return(df)
   }
-  df$rowVar_ <- apply(df[, avgCols, drop = FALSE], 1, function(x) var(x, na.rm = TRUE))
+  df$rowVar_ <- apply(df[, avgCols, drop = FALSE], 1, function(x) stats::var(x, na.rm = TRUE))
   df <- df[order(-df$rowVar_), ]
   df$rowVar_ <- NULL
   df

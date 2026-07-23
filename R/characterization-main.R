@@ -722,6 +722,79 @@ characterizationOutcomeDisplayColumns <- function(){
 
 # this gets the cohort_definition_id, cohort_name, parent_name, parent_id and 
 # what modules used the cohortd
+getTargetsUsedInCharMain <- function(
+    connectionHandler,
+    schema,
+    cgTablePrefix = 'cg_',
+    cTablePrefix = 'c_',
+    ciTablePrefix = 'ci_'
+){
+  
+  charTargets <- tryCatch({
+    OhdsiReportGenerator::getTargetsUsedInCharacterization(
+      connectionHandler = connectionHandler,
+      schema = schema, 
+      cTablePrefix = cTablePrefix, 
+      cgTablePrefix = cgTablePrefix
+    )
+  }, error = function(e) {
+    message(paste("Warning: Failed to get characterization targets:", e$message))
+    NULL
+  })
+  
+  incidenceTargets <- tryCatch({
+    OhdsiReportGenerator::getTargetsUsedInIncidence(
+      connectionHandler = connectionHandler,
+      schema = schema, 
+      ciTablePrefix = ciTablePrefix, 
+      cgTablePrefix = cgTablePrefix
+    )
+  }, error = function(e) {
+    message(paste("Warning: Failed to get incidence targets:", e$message))
+    NULL
+  })
+  
+  # Handle cases where one or both queries failed
+  if (is.null(charTargets) && is.null(incidenceTargets)) {
+    # Both failed - return empty data frame with expected columns
+    result <- data.frame(
+      cohortDefinitionId = integer(),
+      cohortName = character(),
+      stringsAsFactors = FALSE
+    )
+  } else if (is.null(charTargets)) {
+    # Only characterization failed - use incidence targets
+    result <- incidenceTargets
+  } else if (is.null(incidenceTargets)) {
+    # Only incidence failed - use characterization targets
+    result <- charTargets
+  } else {
+    # Both succeeded - merge them
+    result <- merge(
+      x = charTargets,
+      y = incidenceTargets, 
+      all = TRUE, 
+      by = c('cohortName', 'cohortDefinitionId')
+    )
+    
+    if (sum(is.na(result$cohortIncidence)) > 0) {
+      result$cohortIncidence[is.na(result$cohortIncidence)] <- 0
+    }
+  }
+  
+  # Replace NA with 0 in all columns of interest
+  allColsOfInt <- colnames(result)[!colnames(result) %in% c('cohortName', 'cohortDefinitionId')]
+  
+  if (length(allColsOfInt) > 0) {
+    result <- result %>%
+      dplyr::mutate(dplyr::across(dplyr::all_of(allColsOfInt), ~ tidyr::replace_na(.x, 0)))
+  }
+  
+  return(result)
+  
+}
+
+# this add a progress message to getTargetsUsedInCharMain
 getTargetsUsedInChar <- function(
     connectionHandler,
     schema,
@@ -734,65 +807,13 @@ getTargetsUsedInChar <- function(
     
     shiny::incProgress(2/4, detail = paste("Extracting targets"))
     
-    charTargets <- tryCatch({
-      OhdsiReportGenerator::getTargetsUsedInCharacterization(
-        connectionHandler = connectionHandler,
-        schema = schema, 
-        cTablePrefix = cTablePrefix, 
-        cgTablePrefix = cgTablePrefix
-      )
-    }, error = function(e) {
-      message(paste("Warning: Failed to get characterization targets:", e$message))
-      NULL
-    })
-    
-    incidenceTargets <- tryCatch({
-      OhdsiReportGenerator:::getTargetsUsedInIncidence(
-        connectionHandler = connectionHandler,
-        schema = schema, 
-        ciTablePrefix = ciTablePrefix, 
-        cgTablePrefix = cgTablePrefix
-      )
-    }, error = function(e) {
-      message(paste("Warning: Failed to get incidence targets:", e$message))
-      NULL
-    })
-    
-    # Handle cases where one or both queries failed
-    if (is.null(charTargets) && is.null(incidenceTargets)) {
-      # Both failed - return empty data frame with expected columns
-      result <- data.frame(
-        cohortDefinitionId = integer(),
-        cohortName = character(),
-        stringsAsFactors = FALSE
-      )
-    } else if (is.null(charTargets)) {
-      # Only characterization failed - use incidence targets
-      result <- incidenceTargets
-    } else if (is.null(incidenceTargets)) {
-      # Only incidence failed - use characterization targets
-      result <- charTargets
-    } else {
-      # Both succeeded - merge them
-      result <- merge(
-        x = charTargets,
-        y = incidenceTargets, 
-        all = TRUE, 
-        by = c('cohortName', 'cohortDefinitionId')
-      )
-      
-      if (sum(is.na(result$cohortIncidence)) > 0) {
-        result$cohortIncidence[is.na(result$cohortIncidence)] <- 0
-      }
-    }
-    
-    # Replace NA with 0 in all columns of interest
-    allColsOfInt <- colnames(result)[!colnames(result) %in% c('cohortName', 'cohortDefinitionId')]
-    
-    if (length(allColsOfInt) > 0) {
-      result <- result %>%
-        dplyr::mutate(dplyr::across(dplyr::all_of(allColsOfInt), ~ tidyr::replace_na(.x, 0)))
-    }
+    result <- getTargetsUsedInCharMain(
+      connectionHandler = connectionHandler,
+      schema = schema,
+      cgTablePrefix = cgTablePrefix,
+      cTablePrefix = cTablePrefix,
+      ciTablePrefix = ciTablePrefix
+    )
     
     shiny::incProgress(4/4, detail = paste("Done"))
     

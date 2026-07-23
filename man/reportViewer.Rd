@@ -19,7 +19,7 @@ The module viewer for the shiny app report module
 The user specifies the id for the module
 }
 \seealso{
-Other Report: 
-\code{\link{reportServer}()}
+Other Report:
+\code{\link[=reportServer]{reportServer()}}
 }
 \concept{Report}

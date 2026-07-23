@@ -360,7 +360,7 @@ characterizationIncidenceViewer <- function(id) {
 #' @param connectionHandler the connection to the prediction result database
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #' @param reactiveTargetRow a reactive data.frame with the target of interest details
-#' @param outcomeTable A reactive data.frame with the outcome table for the target of interest
+#' @param reactiveOutcomeTable A reactive data.frame with the outcome table for the target of interest
 #' @family Characterization
 #' @return
 #' The server to the prediction incidence module

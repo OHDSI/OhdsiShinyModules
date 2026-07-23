@@ -381,11 +381,11 @@ characterizationTimeToEventServer <- function(
         targetRowId <- reactiveCharacterizationTargetRowId()
         outcomeRowId <- reactiveOutcomeRowId()
         outcomeTable <- reactiveOutcomeTable()
+        validOutcomeRowId <- outcomeRowId[!is.na(outcomeRowId) & outcomeRowId > 0]
 
         hasTarget <- !is.null(targetRowId) && length(targetRowId) > 0 && all(targetRowId > 0)
-        hasOutcome <- !is.null(outcomeRowId) && length(outcomeRowId) > 0 &&
-          all(outcomeRowId > 0) && !is.null(outcomeTable) &&
-          nrow(outcomeTable) >= max(outcomeRowId)
+        hasOutcome <- !is.null(outcomeRowId) && length(validOutcomeRowId) > 0 &&
+          !is.null(outcomeTable) && nrow(outcomeTable) >= max(validOutcomeRowId)
         canGenerate <- hasTarget && hasOutcome
         
         shiny::div(

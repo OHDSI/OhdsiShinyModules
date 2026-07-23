@@ -21,131 +21,137 @@ If subclassing use inheritance and treat this class as an interface to implement
 \concept{{LargeTables}
 initialize}
 \section{Public fields}{
-\if{html}{\out{<div class="r6-fields">}}
-\describe{
-\item{\code{baseQuery}}{query string sql}
+  \if{html}{\out{<div class="r6-fields">}}
+  \describe{
+    \item{\code{baseQuery}}{query string sql}
 
-\item{\code{countQuery}}{count query string (should match query). Can be auto generated with sub query (default) but
+    \item{\code{countQuery}}{count query string (should match query). Can be auto generated with sub query (default) but
 this will likely result in slow results}
 
-\item{\code{connectionHandler}}{ResultModelManager connection handler to execute query inside}
-}
-\if{html}{\out{</div>}}
+    \item{\code{connectionHandler}}{ResultModelManager connection handler to execute query inside}
+  }
+  \if{html}{\out{</div>}}
 }
 \section{Methods}{
 \subsection{Public methods}{
-\itemize{
-\item \href{#method-LargeDataTable-new}{\code{LargeDataTable$new()}}
-\item \href{#method-LargeDataTable-getCount}{\code{LargeDataTable$getCount()}}
-\item \href{#method-LargeDataTable-getPage}{\code{LargeDataTable$getPage()}}
-\item \href{#method-LargeDataTable-getAllResults}{\code{LargeDataTable$getAllResults()}}
-\item \href{#method-LargeDataTable-clone}{\code{LargeDataTable$clone()}}
-}
+  \itemize{
+    \item \href{#method-LargeDataTable-initialize}{\code{LargeDataTable$new()}}
+    \item \href{#method-LargeDataTable-getCount}{\code{LargeDataTable$getCount()}}
+    \item \href{#method-LargeDataTable-getPage}{\code{LargeDataTable$getPage()}}
+    \item \href{#method-LargeDataTable-getAllResults}{\code{LargeDataTable$getAllResults()}}
+    \item \href{#method-LargeDataTable-clone}{\code{LargeDataTable$clone()}}
+  }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-LargeDataTable-new"></a>}}
-\if{latex}{\out{\hypertarget{method-LargeDataTable-new}{}}}
-\subsection{Method \code{new()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{LargeDataTable$new(connectionHandler, baseQuery, countQuery = NULL)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{connectionHandler}}{ResultModelManager connectionHandler instance}
-
-\item{\code{baseQuery}}{base sql query}
-
-\item{\code{countQuery}}{count query string (should match query). Can be auto generated with sub query
+\if{html}{\out{<a id="method-LargeDataTable-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-LargeDataTable-initialize}{}}}
+\subsection{\code{LargeDataTable$new()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{LargeDataTable$new(connectionHandler, baseQuery, countQuery = NULL)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{connectionHandler}}{ResultModelManager connectionHandler instance}
+      \item{\code{baseQuery}}{base sql query}
+      \item{\code{countQuery}}{count query string (should match query). Can be auto generated with sub query
 (default) but this will likely result in slow results}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-self
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    self
 get count
+  }
 }
-}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-LargeDataTable-getCount"></a>}}
 \if{latex}{\out{\hypertarget{method-LargeDataTable-getCount}{}}}
-\subsection{Method \code{getCount()}}{
-execute count query with specified parameters
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{LargeDataTable$getCount(...)}\if{html}{\out{</div>}}
+\subsection{\code{LargeDataTable$getCount()}}{
+  execute count query with specified parameters
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{LargeDataTable$getCount(...)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{...}}{extra inputs}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    count
+Get Page
+  }
 }
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{...}}{}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-count
-Get Page
-}
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-LargeDataTable-getPage"></a>}}
 \if{latex}{\out{\hypertarget{method-LargeDataTable-getPage}{}}}
-\subsection{Method \code{getPage()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{LargeDataTable$getPage(pageNum, pageSize = self$pageSize, ...)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{pageNum}}{page number}
-
-\item{\code{pageSize}}{page size}
-
-\item{\code{...}}{}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-data.frame of query result
+\subsection{\code{LargeDataTable$getPage()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{LargeDataTable$getPage(pageNum, pageSize = self$pageSize, ...)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{pageNum}}{page number}
+      \item{\code{pageSize}}{page size}
+      \item{\code{...}}{extra inputs}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    data.frame of query result
 get all results
+  }
 }
-}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-LargeDataTable-getAllResults"></a>}}
 \if{latex}{\out{\hypertarget{method-LargeDataTable-getAllResults}{}}}
-\subsection{Method \code{getAllResults()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{LargeDataTable$getAllResults(...)}\if{html}{\out{</div>}}
+\subsection{\code{LargeDataTable$getAllResults()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{LargeDataTable$getAllResults(...)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{...}}{extra inputs}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    data.frame of all results. Used for large file downloads
+  }
 }
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{...}}{}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-data.frame of all results. Used for large file downloads
-}
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-LargeDataTable-clone"></a>}}
 \if{latex}{\out{\hypertarget{method-LargeDataTable-clone}{}}}
-\subsection{Method \code{clone()}}{
-The objects of this class are cloneable with this method.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{LargeDataTable$clone(deep = FALSE)}\if{html}{\out{</div>}}
+\subsection{\code{LargeDataTable$clone()}}{
+  The objects of this class are cloneable with this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{LargeDataTable$clone(deep = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{deep}}{Whether to make a deep clone.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{deep}}{Whether to make a deep clone.}
-}
-\if{html}{\out{</div>}}
-}
-}
 }

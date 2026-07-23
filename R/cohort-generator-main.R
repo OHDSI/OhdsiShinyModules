@@ -249,27 +249,27 @@ cohortGeneratorServer <- function(
       activeCountView <- shiny::reactiveVal('subjects')
       
       # Pivot data for subjects view
-      dataSubjectsPivot <- reactive({
+      dataSubjectsPivot <- shiny::reactive({
         data %>%
-          dplyr::select(cohortId, cohortName, databaseName, cohortSubjects) %>%
+          dplyr::select("cohortId", "cohortName", "databaseName", "cohortSubjects") %>%
           tidyr::pivot_wider(
-            names_from = databaseName,
-            values_from = cohortSubjects,
+            names_from = "databaseName",
+            values_from = "cohortSubjects",
             values_fill = 0
           ) %>%
-          dplyr::arrange(cohortId)
+          dplyr::arrange("cohortId")
       })
       
       # Pivot data for records view
-      dataRecordsPivot <- reactive({
+      dataRecordsPivot <- shiny::reactive({
         data %>%
-          dplyr::select(cohortId, cohortName, databaseName, cohortEntries) %>%
+          dplyr::select("cohortId", "cohortName", "databaseName", "cohortEntries") %>%
           tidyr::pivot_wider(
-            names_from = databaseName,
-            values_from = cohortEntries,
+            names_from = "databaseName",
+            values_from = "cohortEntries",
             values_fill = 0
           ) %>%
-          dplyr::arrange(cohortId)
+          dplyr::arrange("cohortId")
       })
       
       # Handle toggle buttons
@@ -282,7 +282,7 @@ cohortGeneratorServer <- function(
       })
       
       # Create dynamic column definitions based on pivoted data (same columns for both views)
-      cohortCountsColDefsPivoted <- reactive({
+      cohortCountsColDefsPivoted <- shiny::reactive({
         # Use subjects data to determine columns (same columns in both views)
         pivotedData <- dataSubjectsPivot()
         
@@ -430,7 +430,7 @@ cohortGeneratorServer <- function(
       })
       
       # Filtered data based on search input
-      filteredCohortCounts <- reactive({
+      filteredCohortCounts <- shiny::reactive({
         pivotedData <- if(activeCountView() == 'subjects') dataSubjectsPivot() else dataRecordsPivot()
         searchTerm <- tolower(input$ccSearch %||% '')
         

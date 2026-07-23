@@ -346,7 +346,7 @@ characterizationDatabaseComparisonServer <- function(
       })
       
       # have the targetRowId be per analysis
-      reactiveCharacterizationTargetRowId <- shiny::reactiveVal(1)
+      reactiveCharacterizationTargetRowId <- shiny::reactiveVal(NULL)
       
       # Reset targetRowId when the table changes to prevent stale indices
       shiny::observeEvent(moduleCharacterizationTargetTable(), {

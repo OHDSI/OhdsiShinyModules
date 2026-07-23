@@ -253,12 +253,22 @@ fuzzySearch <- reactable::JS('function(rows, columnIds, filterValue) {
         shiny::validate(shiny::need(hasData(df()), "No data for selection"))
         # set row height based on nchar of table
         height <- NULL
-        maxMinWidth <- max(unlist(lapply(colDefsInputReactive(), function(x) x$minWidth)))
-        maxMinWidth <- ifelse(is.null(maxMinWidth), 40,maxMinWidth)
-        maxMinWidth <- ifelse(is.finite(maxMinWidth),maxMinWidth, 40)
-        if(max(apply(df(), 1, function(x) max(nchar(as.character(x)))), na.rm = TRUE) < maxMinWidth*3){
-          if(!is.null(addActions)){
-            height <- 40*3#length(addActions)
+        minWidths <- unlist(lapply(colDefsInputReactive(), function(x) x$minWidth), use.names = FALSE)
+        minWidths <- minWidths[!is.na(minWidths)]
+        if (length(minWidths) == 0) {
+          maxMinWidth <- 40
+        } else {
+          maxMinWidth <- max(minWidths)
+          if (!is.finite(maxMinWidth)) {
+            maxMinWidth <- 40
+          }
+        }
+        if (nrow(df()) > 0) {
+          maxRowWidth <- max(apply(df(), 1, function(x) max(nchar(as.character(x)))), na.rm = TRUE)
+          if (is.finite(maxRowWidth) && maxRowWidth < maxMinWidth * 3) {
+            if (!is.null(addActions)) {
+              height <- 40 * 3 # length(addActions)
+            }
           }
         }
                 reactable::reactable(

@@ -211,7 +211,7 @@ tableSelectionServer <- function(
                 "font-size: 0.7em; color: #888; font-style: italic; ",
                 "padding: 2px 6px; background: #fafafa; border-radius: 4px;"
               ),
-              shiny::icon("click", style = "font-size: 0.8em;"),
+              shiny::icon("hand-pointer", style = "font-size: 0.8em;"),
               " Click to expand"
             )
           ),

@@ -54,7 +54,7 @@ LargeDataTable <- R6::R6Class(
     #' get count
     #' @description
     #' execute count query with specified parameters
-    #' @param ...
+    #' @param ... extra inputs
     #'
     #' @return count
     getCount = function(...) {
@@ -67,7 +67,7 @@ LargeDataTable <- R6::R6Class(
     #'
     #' @param pageNum       page number
     #' @param pageSize      page size
-    #' @param ...
+    #' @param ...    extra inputs
     #'
     #' @return data.frame of query result
     getPage = function(pageNum, pageSize = self$pageSize, ...) {
@@ -81,7 +81,7 @@ LargeDataTable <- R6::R6Class(
 
     #' get all results
     #'
-    #' @param ...
+    #' @param ... extra inputs
     #'
     #' @return data.frame of all results. Used for large file downloads
     getAllResults = function(...) {

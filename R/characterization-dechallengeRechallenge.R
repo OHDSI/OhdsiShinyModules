@@ -374,11 +374,11 @@ characterizationDechallengeRechallengeServer <- function(
         targetRow <- reactiveTargetRow()
         outcomeTable <- outcomeTableForSelect()
         outcomeRowId <- reactiveOutcomeRowId()
+        validOutcomeRowId <- outcomeRowId[!is.na(outcomeRowId) & outcomeRowId > 0]
 
         hasTarget <- !is.null(targetRow) && nrow(targetRow) > 0
-        hasOutcome <- !is.null(outcomeRowId) && length(outcomeRowId) > 0 &&
-          all(outcomeRowId > 0) && !is.null(outcomeTable) &&
-          nrow(outcomeTable) >= max(outcomeRowId)
+        hasOutcome <- !is.null(outcomeRowId) && length(validOutcomeRowId) > 0 &&
+          !is.null(outcomeTable) && nrow(outcomeTable) >= max(validOutcomeRowId)
 
         if (!hasTarget || !hasOutcome) {
           output$showDechalRechal <- shiny::reactive(0)

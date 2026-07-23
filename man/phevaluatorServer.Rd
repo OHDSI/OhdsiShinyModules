@@ -20,8 +20,8 @@ The phevaluator main module server
 The module server for the main phevaluator module
 }
 \seealso{
-Other PheValuator: 
-\code{\link{phevaluatorHelperFile}()},
-\code{\link{phevaluatorViewer}()}
+Other PheValuator:
+\code{\link[=phevaluatorHelperFile]{phevaluatorHelperFile()}},
+\code{\link[=phevaluatorViewer]{phevaluatorViewer()}}
 }
 \concept{PheValuator}

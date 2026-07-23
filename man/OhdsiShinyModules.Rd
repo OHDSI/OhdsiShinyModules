@@ -13,6 +13,7 @@ A selection of shiny modules for exploring standardized OHDSI results
 
 Authors:
 \itemize{
+  \item Jenna Reps \email{jreps@its.jnj.com}
   \item Nathan Hall
   \item Jamie Gibert
 }
