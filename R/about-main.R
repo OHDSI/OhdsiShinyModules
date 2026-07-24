@@ -208,14 +208,6 @@ aboutServer <- function(
         docUrl      = "https://ohdsi.github.io/OhdsiShinyModules/articles/Characterization.html"
       ),
       list(
-        tabName     = "CohortDiagnostics",
-        title       = "Cohort Diagnostics",
-        description = "Diagnostics to evaluate cohort validity, concept sets, and temporal patterns.",
-        icon        = "users",
-        accentColor = "#16a085",
-        docUrl      = "https://ohdsi.github.io/OhdsiShinyModules/articles/CohortDiagnostics.html"
-      ),
-      list(
         tabName     = "Estimation",
         title       = "Estimation",
         description = "Population-level effect estimation using comparative cohort and SCCS methods.",

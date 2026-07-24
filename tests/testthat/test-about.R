@@ -52,7 +52,6 @@ test_that("about server works", {
       testthat::expect_true(grepl("Data Sources", moduleCardsHtml, fixed = TRUE))
       testthat::expect_true(grepl("Cohorts", moduleCardsHtml, fixed = TRUE))
       testthat::expect_true(grepl("Characterization", moduleCardsHtml, fixed = TRUE))
-      testthat::expect_true(grepl("Cohort Diagnostics", moduleCardsHtml, fixed = TRUE))
       testthat::expect_true(grepl("Estimation", moduleCardsHtml, fixed = TRUE))
       testthat::expect_true(grepl("Prediction", moduleCardsHtml, fixed = TRUE))
       testthat::expect_true(grepl("Report Generator", moduleCardsHtml, fixed = TRUE))
@@ -86,7 +85,7 @@ test_that("about server works no modules", {
       moduleCardsHtml <- output$moduleCards$html
       testthat::expect_true(grepl("Data Sources", moduleCardsHtml, fixed = TRUE))
       testthat::expect_true(grepl("Report Generator", moduleCardsHtml, fixed = TRUE))
-      testthat::expect_equal(length(regmatches(moduleCardsHtml, gregexpr("Not included", moduleCardsHtml, fixed = TRUE))[[1]]), 7)
+      testthat::expect_equal(length(regmatches(moduleCardsHtml, gregexpr("Not included", moduleCardsHtml, fixed = TRUE))[[1]]), 6)
     })
   
 })

@@ -1126,6 +1126,7 @@ colDefsContinuous <- function(){
                            "Number of cases with the covariate between target and outcome index"),
       format = reactable::colFormat(digits = 2, percent = FALSE),
       cell = function(value){
+        value[is.na(value)] <- 0
         if(!is.null(value)){
          if( value < 0 ){paste("<", abs(value))}else{abs(value)}
         }
