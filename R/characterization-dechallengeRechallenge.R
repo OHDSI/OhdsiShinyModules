@@ -429,21 +429,33 @@ characterizationDechallengeRechallengeServer <- function(
         ))(),
         downloadedFileName = 'dechallege-rechallenge',
         colDefsInput = characteriationDechalRechalColDefs(),
-        addActions = c('fails'), 
+        addActions = list(
+          OhdsiShinyModules::createActionButton(
+            actionType = 'fails',
+            buttonIcon = 'triangle-exclamation',
+            hoverText = 'View failed plots for this row',
+            buttonLabel = 'View Fails',
+            buttonClass = 'btn btn-xs',
+            buttonStyle = OhdsiShinyModules::actionButtonStyleWarning()
+          )
+        ),
         elementId = session$ns('dechal-rechal-main')
       )
       
 
       failData <- shiny::reactiveVal(NULL)
       shiny::observeEvent(tableOutputs$actionCount(), {
-        if(!is.null(tableOutputs$actionType())){
+        actionInfo <- tableOutputs$actionIndex()
+        actionRow <- if (!is.null(actionInfo) && !is.null(actionInfo$index)) actionInfo$index else NA
+
+        if(!is.null(tableOutputs$actionType()) && !is.na(actionRow) && actionRow > 0){
           if(tableOutputs$actionType() == 'fails'){
             result <- getDechalRechalFailData(
               characterizationTargetId = reactiveTargetRow()$characterizationTargetId,
               outcomeId = outcomeTableForSelect()[reactiveOutcomeRowId(),]$cohortId,
-              databaseId = allData()$databaseId[tableOutputs$actionIndex()$index], # update?
-              dechallengeStopInterval = allData()$dechallengeStopInterval[tableOutputs$actionIndex()$index],
-              dechallengeEvaluationWindow = allData()$dechallengeEvaluationWindow[tableOutputs$actionIndex()$index],
+              databaseId = allData()$databaseId[actionRow],
+              dechallengeStopInterval = allData()$dechallengeStopInterval[actionRow],
+              dechallengeEvaluationWindow = allData()$dechallengeEvaluationWindow[actionRow],
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings
             )

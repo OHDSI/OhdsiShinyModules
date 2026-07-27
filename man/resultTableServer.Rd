@@ -39,8 +39,10 @@ resultTableServer(
 
 \item{elementId}{optional string vector of element Id name for custom dropdown filtering if present in the customColDef list. Defaults to NULL.}
 
-\item{addActions}{add a button row selector column to the table to a column called 'actions'.
-actions must be a column in df}
+\item{addActions}{list of action button definitions created by
+createActionButton(). Each entry is rendered as a small
+per-row button in an 'actions' column and emits
+actionType/actionIndex/actionCount outputs when clicked.}
 
 \item{downloadedFileName}{string, desired name of downloaded data file. can use the name from the module that is being used}
 

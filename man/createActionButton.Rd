@@ -1,0 +1,33 @@
+% Generated manually to match package documentation style
+\name{createActionButton}
+\alias{createActionButton}
+\title{Create Action Button Definition}
+\usage{
+createActionButton(
+  actionType,
+  buttonIcon = "play",
+  hoverText = NULL,
+  buttonClass = "btn btn-default btn-xs",
+  buttonStyle = "margin-right: 4px; margin-bottom: 2px; padding: 2px 8px; font-size: 11px; line-height: 1.2;",
+  buttonLabel = NULL
+)
+}
+\arguments{
+\item{actionType}{string, action identifier emitted by the button click event.}
+
+\item{buttonIcon}{string, Font Awesome icon name (for shiny::icon). Use "" to hide the icon.}
+
+\item{hoverText}{string, button tooltip shown on hover.}
+
+\item{buttonClass}{string, CSS classes applied to the button element.}
+
+\item{buttonStyle}{string, inline CSS style applied to the button element.}
+
+\item{buttonLabel}{string, button text shown to the user.}
+}
+\value{
+A list with action button settings.
+}
+\description{
+Build an action button configuration for resultTableServer(addActions = ...).
+}
