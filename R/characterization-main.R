@@ -790,6 +790,20 @@ getTargetsUsedInCharMain <- function(
       dplyr::mutate(dplyr::across(dplyr::all_of(allColsOfInt), ~ tidyr::replace_na(.x, 0)))
   }
   
+  # add missing columns: 'databaseComparator', 'cohortComparator', 'dechalRechal',
+  #.       'riskFactors', 'timeToEvent', 'caseSeries', 'cohortIncidence'
+  requiredCols <- c('databaseComparator', 'cohortComparator', 'dechalRechal',
+                    'riskFactors', 'timeToEvent', 'caseSeries', 'cohortIncidence')
+
+  missingCols <- setdiff(requiredCols, colnames(result))
+  if (length(missingCols) > 0) {
+    for (col in missingCols) {
+      result[[col]] <- rep(0, nrow(result))
+    }
+  }
+  
+  
+  
   return(result)
   
 }
@@ -808,12 +822,12 @@ getTargetsUsedInChar <- function(
     shiny::incProgress(2/4, detail = paste("Extracting targets"))
     
     result <- getTargetsUsedInCharMain(
-      connectionHandler = connectionHandler,
-      schema = schema,
-      cgTablePrefix = cgTablePrefix,
-      cTablePrefix = cTablePrefix,
-      ciTablePrefix = ciTablePrefix
-    )
+        connectionHandler = connectionHandler,
+        schema = schema,
+        cgTablePrefix = cgTablePrefix,
+        cTablePrefix = cTablePrefix,
+        ciTablePrefix = ciTablePrefix
+      )
     
     shiny::incProgress(4/4, detail = paste("Done"))
     
@@ -836,15 +850,20 @@ getCharacterizationTargetId <- function(
     
     shiny::incProgress(2/4, detail = paste("Extracting targets"))
     
-    result <- OhdsiReportGenerator::getCharacterizationTargetSettings(
-      connectionHandler = connectionHandler,
-      schema = schema, 
-      cTablePrefix = cTablePrefix, 
-      cgTablePrefix = cgTablePrefix,
-      targetIds = targetId, 
-      addDatabaseDetails = TRUE, 
-      databaseTable = databaseTable
-    )
+    # adding a try catch incase only incidence results are available
+    result <- tryCatch({
+      OhdsiReportGenerator::getCharacterizationTargetSettings(
+        connectionHandler = connectionHandler,
+        schema = schema, 
+        cTablePrefix = cTablePrefix, 
+        cgTablePrefix = cgTablePrefix,
+        targetIds = targetId, 
+        addDatabaseDetails = TRUE, 
+        databaseTable = databaseTable
+      )}, error = function(e) {
+        message(paste("Warning: Failed to run getTargetsUsedInCharMain maybe due to no characterization results:", e$message))
+        NULL
+      })
 
       
     shiny::incProgress(4/4, detail = paste("Done"))

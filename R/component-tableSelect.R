@@ -47,35 +47,44 @@ tableSelectionServer <- function(
 
       # ---- helpers -----------------------------------------------------------
 
-      # Pick the best column(s) to use as the chip label for a selected row.
-      # Prefers columns whose name contains "name" or "label", then falls back
-      # to the first visible display column.
+      # Use the first display column as the chip label in the form
+      # '<column label> : <value>', with fallbacks when unavailable.
       chipLabelForRow <- function(rowData) {
         cols <- colnames(rowData)
         if (is.null(cols) || length(cols) == 0) {
           return("(no data)")
         }
-        nameCols <- cols[grepl("name|label", cols, ignore.case = TRUE)]
-        labelCols <- if (length(nameCols) > 0) nameCols[seq_len(min(2, length(nameCols)))] else cols[1]
 
-        parts <- vapply(labelCols, function(col) {
-          if (!(col %in% colnames(rowData))) {
-            return("")
-          }
-          humanLabel <- NULL
-          if (!is.null(displayColumns) && !is.null(displayColumns[[col]])) {
-            humanLabel <- displayColumns[[col]]$name
-          }
-          value <- as.character(rowData[[col]])
-          if (!is.null(humanLabel) && nzchar(humanLabel)) {
-            paste0(humanLabel, ": ", value)
-          } else {
-            value
-          }
-        }, character(1))
+        firstDisplayCol <- NULL
+        if (!is.null(displayColumns) && length(displayColumns) > 0) {
+          firstDisplayCol <- names(displayColumns)[1]
+        }
 
-        result <- paste(parts, collapse = " \u00b7 ")
-        if (nzchar(result)) result else "(no label)"
+        labelCol <- if (!is.null(firstDisplayCol) && !is.na(firstDisplayCol) &&
+                        nzchar(firstDisplayCol) && firstDisplayCol %in% cols) {
+          firstDisplayCol
+        } else {
+          cols[1]
+        }
+
+        displayLabel <- labelCol
+        if (!is.null(displayColumns) && !is.null(displayColumns[[labelCol]]) &&
+            !is.null(displayColumns[[labelCol]]$name) &&
+            nzchar(displayColumns[[labelCol]]$name)) {
+          displayLabel <- displayColumns[[labelCol]]$name
+        }
+
+        value <- rowData[[labelCol]][1]
+        if (is.na(value)) {
+          return("(no label)")
+        }
+
+        labelValue <- as.character(value)
+        if (!nzchar(labelValue)) {
+          return("(no label)")
+        }
+
+        paste0(displayLabel, " : ", labelValue)
       }
 
       # Build the expanded tooltip text showing all display columns

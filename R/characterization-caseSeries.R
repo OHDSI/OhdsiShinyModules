@@ -397,7 +397,8 @@ characterizationCaseSeriesServer <- function(
           ") - (", endAnchor, " + ", riskWindowEnd, ")"
         )
 
-        caseSettings[, c("outcomeName", "outcomeWashoutDays", "tar", "characterizationCaseId"), drop = FALSE]
+        caseSettings
+        #caseSettings[, c("outcomeName", "outcomeWashoutDays", "tar", "characterizationCaseId"), drop = FALSE]
       })
 
       # Reset outcomeRowId when the outcomes table changes to prevent stale indices
@@ -562,7 +563,8 @@ characterizationCaseSeriesServer <- function(
             allData <- characterizationGetCaseSeriesData(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
-              characterizationCaseId = selectedOutcomeCase$characterizationCaseId,
+              characterizationCaseId = selectedOutcomeCase$characterizationCaseId, 
+              oldColumns = selectedOutcomeCase,
               databaseId = databaseIds()[input$databaseName == databaseNames()]
             )
 
@@ -576,6 +578,7 @@ characterizationCaseSeriesServer <- function(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
               characterizationCaseId = selectedOutcomeCase$characterizationCaseId,
+              oldColumns = selectedOutcomeCase,
               databaseId = databaseIds()[input$databaseName == databaseNames()]
             )
             N <- counts$personCount[1]
@@ -702,63 +705,135 @@ characterizationGetCaseSeriesData <- function(
   connectionHandler,
   resultDatabaseSettings,
   characterizationCaseId,
+  oldColumns, # adding this for backwards compat pre version 3 
   databaseId
 ){
   
-  
-  shiny::withProgress(message = 'Getting case series data', value = 0, {
-    shiny::incProgress(1/4, detail = paste("Extracting binary"))
-    
-    binary <-   OhdsiReportGenerator::getBinaryCaseSeries(
-      connectionHandler = connectionHandler,
-      schema = resultDatabaseSettings$schema,
-      cTablePrefix = resultDatabaseSettings$cTablePrefix,
-      cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-      databaseTable = resultDatabaseSettings$databaseTable,
-      characterizationCaseId = characterizationCaseId,
-      databaseIds = databaseId
-    )
-    
-    binary <- binary %>%
-      dplyr::select(-dplyr::any_of(
-        c("databaseId","databaseName",
-        "targetName","targetCohortId", 
-        "outcomeName", "outcomeCohortId",
-        "riskWindowStart", "riskWindowEnd",
-        "startAnchor", "endAnchor"
-        ))
+  if(characterizationCaseId != 0){
+    shiny::withProgress(message = 'Getting case series data', value = 0, {
+      shiny::incProgress(1/4, detail = paste("Extracting binary"))
+      
+      binary <-   OhdsiReportGenerator::getBinaryCaseSeries(
+        connectionHandler = connectionHandler,
+        schema = resultDatabaseSettings$schema,
+        cTablePrefix = resultDatabaseSettings$cTablePrefix,
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+        databaseTable = resultDatabaseSettings$databaseTable,
+        characterizationCaseId = characterizationCaseId,
+        databaseIds = databaseId
+      )
+      
+      binary <- binary %>%
+        dplyr::select(-dplyr::any_of(
+          c("databaseId","databaseName",
+            "targetName","targetCohortId", 
+            "outcomeName", "outcomeCohortId",
+            "riskWindowStart", "riskWindowEnd",
+            "startAnchor", "endAnchor"
+          ))
         ) %>%
-      dplyr::relocate(.data$covariateName) %>%
-      parseCaseSeriesCovariates()
+        dplyr::relocate(.data$covariateName) %>%
+        parseCaseSeriesCovariates()
+      
+      shiny::incProgress(3/4, detail = paste("Extracting continuous"))
+      
+      continuous <- OhdsiReportGenerator::getContinuousCaseSeries(
+        connectionHandler = connectionHandler,
+        schema = resultDatabaseSettings$schema,
+        cTablePrefix = resultDatabaseSettings$cTablePrefix,
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+        databaseTable = resultDatabaseSettings$databaseTable,
+        characterizationCaseId = characterizationCaseId,
+        databaseIds = databaseId
+      )
+      
+      continuous <- continuous %>%
+        dplyr::select(-dplyr::any_of(
+          c("databaseId","databaseName",
+            "targetName","targetCohortId", 
+            "outcomeName", "outcomeCohortId",
+            "riskWindowStart", "riskWindowEnd",
+            "startAnchor", "endAnchor",
+            "covariateId"
+          ))
+        ) %>%
+        dplyr::relocate(.data$covariateName) %>%
+        parseCaseSeriesCovariates()
+      
+      shiny::incProgress(4/4, detail = paste("Done"))
+      
+    })
     
-  shiny::incProgress(3/4, detail = paste("Extracting continuous"))
-
-  continuous <- OhdsiReportGenerator::getContinuousCaseSeries(
-    connectionHandler = connectionHandler,
-    schema = resultDatabaseSettings$schema,
-    cTablePrefix = resultDatabaseSettings$cTablePrefix,
-    cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-    databaseTable = resultDatabaseSettings$databaseTable,
-    characterizationCaseId = characterizationCaseId,
-    databaseIds = databaseId
-  )
-  
-  continuous <- continuous %>%
-    dplyr::select(-dplyr::any_of(
-    c("databaseId","databaseName",
-      "targetName","targetCohortId", 
-      "outcomeName", "outcomeCohortId",
-      "riskWindowStart", "riskWindowEnd",
-      "startAnchor", "endAnchor",
-      "covariateId"
-    ))
-  ) %>%
-    dplyr::relocate(.data$covariateName) %>%
-    parseCaseSeriesCovariates()
-  
-  shiny::incProgress(4/4, detail = paste("Done"))
-  
-  })
+  } else{
+    # old code
+    shiny::withProgress(message = 'Getting case series data from old results', value = 0, {
+      shiny::incProgress(1/4, detail = paste("Extracting binary"))
+      
+      binary <-   OhdsiReportGenerator::getBinaryCaseSeries(
+        connectionHandler = connectionHandler,
+        schema = resultDatabaseSettings$schema,
+        cTablePrefix = resultDatabaseSettings$cTablePrefix,
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+        databaseTable = resultDatabaseSettings$databaseTable,
+        characterizationTargetId = oldColumns$characterizationTargetId, 
+        outcomeId = oldColumns$outcomeId, 
+        outcomeWashout = oldColumns$outcomeWashoutDays,
+        endAnchor = oldColumns$endAnchor, 
+        startAnchor = oldColumns$endAnchor, 
+        riskWindowEnd = oldColumns$riskWindowEnd, 
+        riskWindowStart = oldColumns$riskWindowStart,
+        
+        databaseIds = databaseId
+      )
+      
+      binary <- binary %>%
+        dplyr::select(-dplyr::any_of(
+          c("databaseId","databaseName",
+            "targetName","targetCohortId", 
+            "outcomeName", "outcomeCohortId",
+            "riskWindowStart", "riskWindowEnd",
+            "startAnchor", "endAnchor"
+          ))
+        ) %>%
+        dplyr::relocate(.data$covariateName) %>%
+        parseCaseSeriesCovariates()
+      
+      shiny::incProgress(3/4, detail = paste("Extracting continuous"))
+      
+      continuous <- OhdsiReportGenerator::getContinuousCaseSeries(
+        connectionHandler = connectionHandler,
+        schema = resultDatabaseSettings$schema,
+        cTablePrefix = resultDatabaseSettings$cTablePrefix,
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+        databaseTable = resultDatabaseSettings$databaseTable,
+        characterizationTargetId = oldColumns$characterizationTargetId, 
+        outcomeId = oldColumns$outcomeId, 
+        outcomeWashout = oldColumns$outcomeWashoutDays,
+        endAnchor = oldColumns$endAnchor, 
+        startAnchor = oldColumns$endAnchor, 
+        riskWindowEnd = oldColumns$riskWindowEnd, 
+        riskWindowStart = oldColumns$riskWindowStart,
+        databaseIds = databaseId
+      )
+      
+      continuous <- continuous %>%
+        dplyr::select(-dplyr::any_of(
+          c("databaseId","databaseName",
+            "targetName","targetCohortId", 
+            "outcomeName", "outcomeCohortId",
+            "riskWindowStart", "riskWindowEnd",
+            "startAnchor", "endAnchor",
+            "covariateId"
+          ))
+        ) %>%
+        dplyr::relocate(.data$covariateName) %>%
+        parseCaseSeriesCovariates()
+      
+      shiny::incProgress(4/4, detail = paste("Done"))
+      
+    })
+    
+  }
   
   return(
     list(
@@ -816,15 +891,33 @@ characterizationCaseSeriesOutcomeColumns <- function() {
       name = "Outcome",
       minWidth = 250
     ),
+    outcomeId = reactable::colDef(show = FALSE),
     outcomeWashoutDays = reactable::colDef(
       name = "Outcome Washout Days"
     ),
     tar = reactable::colDef(
       name = "Time-at-risk"
     ),
-    characterizationCaseId = reactable::colDef(
-      show = FALSE
-    )
+    characterizationCaseId = reactable::colDef(show = FALSE),
+    characterizationTargetId = reactable::colDef(show = FALSE),
+    settingId = reactable::colDef(show = FALSE),
+    targetId = reactable::colDef(show = FALSE),
+    targetName = reactable::colDef(show = FALSE),
+    limitToFirstInNDays = reactable::colDef(show = FALSE),
+    minPriorObservation = reactable::colDef(show = FALSE),
+    nestingCohortId = reactable::colDef(show = FALSE),
+    nestingName = reactable::colDef(show = FALSE),
+    minAge = reactable::colDef(show = FALSE),
+    maxAge = reactable::colDef(show = FALSE),
+    studyStart = reactable::colDef(show = FALSE),
+    studyEnd = reactable::colDef(show = FALSE),
+    genderConceptIds = reactable::colDef(show = FALSE),
+    riskWindowStart = reactable::colDef(show = FALSE),
+    startAnchor = reactable::colDef(show = FALSE),
+    riskWindowEnd = reactable::colDef(show = FALSE),
+    endAnchor = reactable::colDef(show = FALSE),
+    riskFactorSettings = reactable::colDef(show = FALSE),
+    caseSeriesSettings = reactable::colDef(show = FALSE)
   )
 }
 
@@ -1289,9 +1382,11 @@ characterizationGetCaseSeriesCounts <- function(
     connectionHandler,
     resultDatabaseSettings,
   characterizationCaseId,
+  oldColumns,
   databaseId
 ){
   
+  if(characterizationCaseId != 0){
   result <- OhdsiReportGenerator::getCaseCounts(
     connectionHandler = connectionHandler, 
     schema = resultDatabaseSettings$schema, 
@@ -1301,6 +1396,24 @@ characterizationGetCaseSeriesCounts <- function(
     characterizationCaseIds = characterizationCaseId,
     databaseIds = databaseId
     ) 
+  } else{
+    result <- OhdsiReportGenerator::getCaseCounts(
+      connectionHandler = connectionHandler, 
+      schema = resultDatabaseSettings$schema, 
+      cTablePrefix =  resultDatabaseSettings$cTablePrefix, 
+      cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+      databaseTable = resultDatabaseSettings$databaseTable, 
+      characterizationTargetIds = oldColumns$characterizationTargetId,
+      outcomeIds = oldColumns$outcomeId, 
+      outcomeWashout = oldColumns$outcomeWashoutDays,
+      endAnchor = oldColumns$endAnchor,
+      startAnchor = oldColumns$startAnchor,
+      riskWindowEnd = oldColumns$riskWindowEnd, 
+      riskWindowStart = oldColumns$riskWindowStart,
+      databaseIds = databaseId
+    ) 
+    
+  }
   
   if(nrow(result) > 0){
     result <- result %>%

@@ -405,7 +405,8 @@ characterizationRiskFactorServer <- function(
           ") - (", endAnchor, " + ", riskWindowEnd, ")"
         )
 
-        caseSettings[, c("outcomeName", "outcomeWashoutDays", "tar", "characterizationCaseId"), drop = FALSE]
+        caseSettings
+        #caseSettings[, c("outcomeName", "outcomeWashoutDays", "tar", "characterizationCaseId"), drop = FALSE]
       })
 
       # Reset outcomeRowId when the outcomes table changes to prevent stale indices
@@ -559,24 +560,20 @@ characterizationRiskFactorServer <- function(
             
             output$showRiskFactors <- shiny::reactive(1)
             
-            caseCount <- OhdsiReportGenerator::getCaseCounts(
+            caseCount <- getCaseCountsRF(
               connectionHandler = connectionHandler,
-              schema = resultDatabaseSettings$schema,
-              cTablePrefix = resultDatabaseSettings$cTablePrefix,
-              cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-              databaseTable = resultDatabaseSettings$databaseTable,
-              characterizationCaseIds = selectedOutcomeCase$characterizationCaseId,
-              databaseIds = databaseIds()[input$databaseName == databaseNames()]
+              resultDatabaseSettings = resultDatabaseSettings,
+              characterizationCaseId = selectedOutcomeCase$characterizationCaseId,
+              oldColumns = selectedOutcomeCase, 
+              databaseId = databaseIds()[input$databaseName == databaseNames()]
             )
             
-            targetCount <- OhdsiReportGenerator::getNonCaseCounts(
+            targetCount <- getNonCaseCountsRF(
               connectionHandler = connectionHandler,
-              schema = resultDatabaseSettings$schema,
-              cTablePrefix = resultDatabaseSettings$cTablePrefix,
-              cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-              databaseTable = resultDatabaseSettings$databaseTable,
-              characterizationCaseIds = selectedOutcomeCase$characterizationCaseId,
-              databaseIds = databaseIds()[input$databaseName == databaseNames()]
+              resultDatabaseSettings = resultDatabaseSettings,
+              characterizationCaseId = selectedOutcomeCase$characterizationCaseId,
+              oldColumns = selectedOutcomeCase, 
+              databaseId = databaseIds()[input$databaseName == databaseNames()]
             )
             
             output$helpTextBinary <- shiny::renderUI(
@@ -609,6 +606,7 @@ characterizationRiskFactorServer <- function(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
               characterizationCaseId = selectedOutcomeCase$characterizationCaseId,
+              oldColumns = selectedOutcomeCase, # added for backwards comp when case id wasnt used
               databaseId = databaseIds()[input$databaseName == databaseNames()]
             )
             
@@ -736,48 +734,199 @@ characterizationRiskFactorOutcomeColumns <- function() {
     ),
     characterizationCaseId = reactable::colDef(
       show = FALSE
-    )
+    ),
+    characterizationCaseId = reactable::colDef(show = FALSE),
+    characterizationTargetId = reactable::colDef(show = FALSE),
+    settingId = reactable::colDef(show = FALSE),
+    targetId = reactable::colDef(show = FALSE),
+    targetName = reactable::colDef(show = FALSE),
+    limitToFirstInNDays = reactable::colDef(show = FALSE),
+    minPriorObservation = reactable::colDef(show = FALSE),
+    nestingCohortId = reactable::colDef(show = FALSE),
+    nestingName = reactable::colDef(show = FALSE),
+    minAge = reactable::colDef(show = FALSE),
+    maxAge = reactable::colDef(show = FALSE),
+    studyStart = reactable::colDef(show = FALSE),
+    studyEnd = reactable::colDef(show = FALSE),
+    genderConceptIds = reactable::colDef(show = FALSE),
+    riskWindowStart = reactable::colDef(show = FALSE),
+    startAnchor = reactable::colDef(show = FALSE),
+    riskWindowEnd = reactable::colDef(show = FALSE),
+    endAnchor = reactable::colDef(show = FALSE),
+    riskFactorSettings = reactable::colDef(show = FALSE),
+    caseSeriesSettings = reactable::colDef(show = FALSE)
   )
 }
 
+# FETCHING THE DATA
+getCaseCountsRF <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    characterizationCaseId,
+    oldColumns,
+    databaseId
+){
+  
+  if(characterizationCaseId != 0){
+    result <- OhdsiReportGenerator::getCaseCounts(
+      connectionHandler = connectionHandler,
+      schema = resultDatabaseSettings$schema,
+      cTablePrefix = resultDatabaseSettings$cTablePrefix,
+      cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+      databaseTable = resultDatabaseSettings$databaseTable,
+      characterizationCaseIds = characterizationCaseId,
+      databaseIds = databaseId
+    )
+  } else{
+    # old code
+    result <- OhdsiReportGenerator::getCaseCounts(
+      connectionHandler = connectionHandler,
+      schema = resultDatabaseSettings$schema,
+      cTablePrefix = resultDatabaseSettings$cTablePrefix,
+      cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+      databaseTable = resultDatabaseSettings$databaseTable,
+      characterizationTargetIds = oldColumns$characterizationTargetId,
+      outcomeIds = oldColumns$outcomeId, 
+      outcomeWashout = oldColumns$outcomeWashoutDays,
+      endAnchor = oldColumns$endAnchor, 
+      startAnchor = oldColumns$startAnchor, 
+      riskWindowEnd = oldColumns$riskWindowEnd, 
+      riskWindowStart = oldColumns$riskWindowStart,
+      databaseIds = databaseId
+    )
+  }
+  
+  return(result)
+}
+
+getNonCaseCountsRF <- function(
+    connectionHandler,
+    resultDatabaseSettings,
+    characterizationCaseId,
+    oldColumns, 
+    databaseId
+){
+  
+  if(characterizationCaseId != 0){
+    result <- OhdsiReportGenerator::getNonCaseCounts(
+      connectionHandler = connectionHandler,
+      schema = resultDatabaseSettings$schema,
+      cTablePrefix = resultDatabaseSettings$cTablePrefix,
+      cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+      databaseTable = resultDatabaseSettings$databaseTable,
+      characterizationCaseIds = characterizationCaseId,
+      databaseIds = databaseId
+    )
+  } else{
+    # old code
+    result <- OhdsiReportGenerator::getNonCaseCounts(
+      connectionHandler = connectionHandler,
+      schema = resultDatabaseSettings$schema,
+      cTablePrefix = resultDatabaseSettings$cTablePrefix,
+      cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+      databaseTable = resultDatabaseSettings$databaseTable,
+      characterizationTargetIds = oldColumns$characterizationTargetId,
+      outcomeIds = oldColumns$outcomeId, 
+      outcomeWashout = oldColumns$outcomeWashout,
+      databaseIds = databaseId
+    )
+  }
+  
+  return(result)
+}
 
 characterizationGetRiskFactorData <- function(
   connectionHandler,
   resultDatabaseSettings,
   characterizationCaseId,
+  oldColumns,
   databaseId
 ){
   
-  shiny::withProgress(message = 'Getting risk factor data', value = 0, {
+  if(characterizationCaseId != 0){
+    shiny::withProgress(message = 'Getting risk factor data', value = 0, {
+      
+      shiny::incProgress(1/4, detail = paste("Extracting binary"))
+      
+      binary <- OhdsiReportGenerator::getBinaryRiskFactors(
+        connectionHandler = connectionHandler, 
+        schema = resultDatabaseSettings$schema, 
+        cTablePrefix = resultDatabaseSettings$cTablePrefix, 
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+        databaseTable = resultDatabaseSettings$databaseTable, 
+        characterizationCaseId = characterizationCaseId,
+        databaseId = databaseId, 
+        analysisIds = NULL
+      )
+      
+      message(paste0('Extracted ',nrow(binary),' binary RF rows'))
+      
+      shiny::incProgress(3/4, detail = paste("Extracting continuous"))
+      
+      continuous <- OhdsiReportGenerator::getContinuousRiskFactors(
+        connectionHandler = connectionHandler, 
+        schema = resultDatabaseSettings$schema, 
+        cTablePrefix = resultDatabaseSettings$cTablePrefix, 
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+        databaseTable = resultDatabaseSettings$databaseTable, 
+        characterizationCaseId = characterizationCaseId,
+        databaseIds = databaseId
+      ) 
+      
+      message(paste0('Extracted ',nrow(continuous),' continuous RF rows'))
+      
+      shiny::incProgress(4/4, detail = paste("Done"))
+      
+    })
+  } else{
     
-    shiny::incProgress(1/4, detail = paste("Extracting binary"))
-    
-    binary <- OhdsiReportGenerator::getBinaryRiskFactors(
-      connectionHandler = connectionHandler, 
-      schema = resultDatabaseSettings$schema, 
-      cTablePrefix = resultDatabaseSettings$cTablePrefix, 
-      cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
-      databaseTable = resultDatabaseSettings$databaseTable, 
-      characterizationCaseId = characterizationCaseId,
-      databaseId = databaseId, 
-      analysisIds = NULL
-    )
-    
-  message(paste0('Extracted ',nrow(binary),' binary RF rows'))
-  
-  shiny::incProgress(3/4, detail = paste("Extracting continuous"))
-
-  continuous <- OhdsiReportGenerator::getContinuousRiskFactors(
-    connectionHandler = connectionHandler, 
-    schema = resultDatabaseSettings$schema, 
-    cTablePrefix = resultDatabaseSettings$cTablePrefix, 
-    cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
-    databaseTable = resultDatabaseSettings$databaseTable, 
-    characterizationCaseId = characterizationCaseId,
-    databaseIds = databaseId
-  ) 
-  
-  message(paste0('Extracted ',nrow(continuous),' continuous RF rows'))
+    # old code
+    shiny::withProgress(message = 'Getting risk factor data', value = 0, {
+      
+      shiny::incProgress(1/4, detail = paste("Extracting binary"))
+      
+      binary <- OhdsiReportGenerator::getBinaryRiskFactors(
+        connectionHandler = connectionHandler, 
+        schema = resultDatabaseSettings$schema, 
+        cTablePrefix = resultDatabaseSettings$cTablePrefix, 
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+        databaseTable = resultDatabaseSettings$databaseTable, 
+        characterizationTargetId = oldColumns$characterizationTargetId, 
+        outcomeId = oldColumns$outcomeId, 
+        outcomeWashout = oldColumns$outcomeWashoutDays,
+        endAnchor = oldColumns$endAnchor, 
+        startAnchor = oldColumns$startAnchor,
+        riskWindowEnd = oldColumns$riskWindowEnd, 
+        riskWindowStart = oldColumns$riskWindowStart,
+        databaseId = databaseId, 
+        analysisIds = NULL
+      )
+      
+      message(paste0('Extracted ',nrow(binary),' binary RF rows'))
+      
+      shiny::incProgress(3/4, detail = paste("Extracting continuous"))
+      
+      continuous <- OhdsiReportGenerator::getContinuousRiskFactors(
+        connectionHandler = connectionHandler, 
+        schema = resultDatabaseSettings$schema, 
+        cTablePrefix = resultDatabaseSettings$cTablePrefix, 
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
+        databaseTable = resultDatabaseSettings$databaseTable, 
+        characterizationTargetId = oldColumns$characterizationTargetId, 
+        outcomeId = oldColumns$outcomeId, 
+        outcomeWashout = oldColumns$outcomeWashoutDays,
+        endAnchor = oldColumns$endAnchor, 
+        startAnchor = oldColumns$startAnchor,
+        riskWindowEnd = oldColumns$riskWindowEnd, 
+        riskWindowStart = oldColumns$riskWindowStart,
+        databaseIds = databaseId
+      ) 
+      
+      message(paste0('Extracted ',nrow(continuous),' continuous RF rows'))
+      shiny::incProgress(4/4, detail = paste("Done"))
+      
+    })
+  }
   
   binary <- binary %>%
     parseRiskFactorCovariates() %>%
@@ -786,10 +935,6 @@ characterizationGetRiskFactorData <- function(
   continuous <- continuous %>%
     parseRiskFactorCovariates() %>%
     sortRiskFactorRows()
-  
-  shiny::incProgress(4/4, detail = paste("Done"))
-  
-  })
   
   return(
     list(

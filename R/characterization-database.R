@@ -461,7 +461,7 @@ characterizationDatabaseComparisonServer <- function(
               label = 'Databases: ',
               choices = databaseChoices,
               selected = selectedDatabases,
-              multiple = T,
+              multiple = TRUE,
               width = '100%',
               options = shinyWidgets::pickerOptions(
                 actionsBox = TRUE,
