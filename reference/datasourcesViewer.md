@@ -20,7 +20,10 @@ The UI for the datasources module
 
 ## See also
 
-Other Utils: [`datasourcesHelperFile()`](datasourcesHelperFile.md),
+Other Utils: [`actionButtonStyleInfo()`](actionButtonStyleInfo.md),
+[`actionButtonStyleWarning()`](actionButtonStyleWarning.md),
+[`createActionButton()`](createActionButton.md),
+[`datasourcesHelperFile()`](datasourcesHelperFile.md),
 [`datasourcesServer()`](datasourcesServer.md),
 [`getLogoImage()`](getLogoImage.md),
 [`resultTableViewer()`](resultTableViewer.md)

@@ -14,7 +14,10 @@ The helper html file for the datasources module
 
 ## See also
 
-Other Utils: [`datasourcesServer()`](datasourcesServer.md),
+Other Utils: [`actionButtonStyleInfo()`](actionButtonStyleInfo.md),
+[`actionButtonStyleWarning()`](actionButtonStyleWarning.md),
+[`createActionButton()`](createActionButton.md),
+[`datasourcesServer()`](datasourcesServer.md),
 [`datasourcesViewer()`](datasourcesViewer.md),
 [`getLogoImage()`](getLogoImage.md),
 [`resultTableViewer()`](resultTableViewer.md)

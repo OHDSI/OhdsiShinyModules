@@ -37,7 +37,7 @@ get
 
 ### Public methods
 
-- [`LargeDataTable$new()`](#method-LargeDataTable-new)
+- [`LargeDataTable$new()`](#method-LargeDataTable-initialize)
 
 - [`LargeDataTable$getCount()`](#method-LargeDataTable-getCount)
 
@@ -49,7 +49,7 @@ get
 
 ------------------------------------------------------------------------
 
-### Method `new()`
+### `LargeDataTable$new()`
 
 #### Usage
 
@@ -76,7 +76,7 @@ self get count
 
 ------------------------------------------------------------------------
 
-### Method `getCount()`
+### `LargeDataTable$getCount()`
 
 execute count query with specified parameters
 
@@ -88,13 +88,15 @@ execute count query with specified parameters
 
 - `...`:
 
+  extra inputs
+
 #### Returns
 
 count Get Page
 
 ------------------------------------------------------------------------
 
-### Method `getPage()`
+### `LargeDataTable$getPage()`
 
 #### Usage
 
@@ -112,13 +114,15 @@ count Get Page
 
 - `...`:
 
+  extra inputs
+
 #### Returns
 
 data.frame of query result get all results
 
 ------------------------------------------------------------------------
 
-### Method `getAllResults()`
+### `LargeDataTable$getAllResults()`
 
 #### Usage
 
@@ -128,13 +132,15 @@ data.frame of query result get all results
 
 - `...`:
 
+  extra inputs
+
 #### Returns
 
 data.frame of all results. Used for large file downloads
 
 ------------------------------------------------------------------------
 
-### Method `clone()`
+### `LargeDataTable$clone()`
 
 The objects of this class are cloneable with this method.
 

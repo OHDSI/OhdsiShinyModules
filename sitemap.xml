@@ -18,6 +18,8 @@
 <url><loc>/reference/aboutHelperFile.html</loc></url>
 <url><loc>/reference/aboutServer.html</loc></url>
 <url><loc>/reference/aboutViewer.html</loc></url>
+<url><loc>/reference/actionButtonStyleInfo.html</loc></url>
+<url><loc>/reference/actionButtonStyleWarning.html</loc></url>
 <url><loc>/reference/characterizationHelperFile.html</loc></url>
 <url><loc>/reference/characterizationIncidenceServer.html</loc></url>
 <url><loc>/reference/characterizationIncidenceViewer.html</loc></url>
@@ -53,6 +55,7 @@
 <url><loc>/reference/cohortOverlapView.html</loc></url>
 <url><loc>/reference/compareCohortCharacterizationView.html</loc></url>
 <url><loc>/reference/conceptsInDataSourceView.html</loc></url>
+<url><loc>/reference/createActionButton.html</loc></url>
 <url><loc>/reference/createCdDatabaseDataSource.html</loc></url>
 <url><loc>/reference/createLargeSqlQueryDt.html</loc></url>
 <url><loc>/reference/dataDiagnosticDrillServer.html</loc></url>

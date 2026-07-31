@@ -8,6 +8,8 @@ A selection of shiny modules for exploring standardized OHDSI results
 
 Authors:
 
+- Jenna Reps <jreps@its.jnj.com>
+
 - Nathan Hall
 
 - Jamie Gibert
