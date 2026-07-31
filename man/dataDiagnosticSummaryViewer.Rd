@@ -19,12 +19,12 @@ The module viewer for exploring data-diagnostic summary results
 The user specifies the id for the module
 }
 \seealso{
-Other DataDiagnostics: 
-\code{\link{dataDiagnosticDrillServer}()},
-\code{\link{dataDiagnosticDrillViewer}()},
-\code{\link{dataDiagnosticHelperFile}()},
-\code{\link{dataDiagnosticServer}()},
-\code{\link{dataDiagnosticSummaryServer}()},
-\code{\link{dataDiagnosticViewer}()}
+Other DataDiagnostics:
+\code{\link[=dataDiagnosticDrillServer]{dataDiagnosticDrillServer()}},
+\code{\link[=dataDiagnosticDrillViewer]{dataDiagnosticDrillViewer()}},
+\code{\link[=dataDiagnosticHelperFile]{dataDiagnosticHelperFile()}},
+\code{\link[=dataDiagnosticServer]{dataDiagnosticServer()}},
+\code{\link[=dataDiagnosticSummaryServer]{dataDiagnosticSummaryServer()}},
+\code{\link[=dataDiagnosticViewer]{dataDiagnosticViewer()}}
 }
 \concept{DataDiagnostics}

@@ -16,10 +16,10 @@ The location of the OHDSI logo
 Returns the location of the OHDSI logo
 }
 \seealso{
-Other Utils: 
-\code{\link{datasourcesHelperFile}()},
-\code{\link{datasourcesServer}()},
-\code{\link{datasourcesViewer}()},
-\code{\link{resultTableViewer}()}
+Other Utils:
+\code{\link[=datasourcesHelperFile]{datasourcesHelperFile()}},
+\code{\link[=datasourcesServer]{datasourcesServer()}},
+\code{\link[=datasourcesViewer]{datasourcesViewer()}},
+\code{\link[=resultTableViewer]{resultTableViewer()}}
 }
 \concept{Utils}

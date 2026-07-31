@@ -45,52 +45,117 @@ aboutHelperFile <- function() {
 #' @export
 aboutViewer <- function(id = 'homepage') {
   ns <- shiny::NS(id)
-  
-  #shinydashboard::dashboardBody(
+
   shiny::div(
-    shiny::fluidRow(
-      shiny::tags$head(shiny::tags$style(
-        shiny::HTML(".small-box {height: 200px; width: 100%;}")
-      )),
-      shinydashboard::box(width = "100%",
-                          shiny::htmlTemplate(
-                            system.file("about-www", "about.html", package = utils::packageName())
-                          ))
-      # )
+
+    # ---- Hero banner ---------------------------------------------------------
+    shiny::div(
+      style = paste0(
+        "background: linear-gradient(135deg, #1a3a4a 0%, #1f6b8a 100%); ",
+        "color: white; padding: 28px 32px 24px; border-radius: 8px; ",
+        "margin-bottom: 24px; display: flex; align-items: center; gap: 20px; ",
+        "flex-wrap: wrap;"
+      ),
+      shiny::div(
+        style = paste0(
+          "background: rgba(255,255,255,0.15); border-radius: 50%; ",
+          "width: 64px; height: 64px; flex-shrink: 0; ",
+          "display: flex; align-items: center; justify-content: center;"
+        ),
+        shiny::icon("chart-bar", style = "font-size: 26px; color: white;")
+      ),
+      shiny::div(
+        shiny::h2(
+          "OHDSI Results Explorer",
+          style = "margin: 0 0 6px 0; font-size: 1.6em; font-weight: 700; color: white;"
+        ),
+        shiny::p(
+          paste0(
+            "An interactive viewer for standardized analysis results across ",
+            "characterization, estimation, and prediction studies."
+          ),
+          style = "margin: 0; opacity: 0.88; font-size: 0.95em; line-height: 1.5; color: white;"
+        )
+      )
     ),
-    shiny::fluidRow(
-      shinydashboard::valueBoxOutput(ns("datasourcesBox"), width = 3),
-      shinydashboard::valueBoxOutput(ns("cohortsBox"), width = 3),
-      shinydashboard::valueBoxOutput(ns("characterizationBox"), width = 3),
-      shinydashboard::valueBoxOutput(ns("cohortDiagnosticsBox"), width = 3)
+
+    # ---- How to use ----------------------------------------------------------
+    shiny::div(
+      style = "margin-bottom: 24px;",
+      shiny::h4(
+        shiny::icon("circle-question"), " How to use this app",
+        style = "margin: 0 0 14px 0; color: #2c3e50; font-weight: 600;"
+      ),
+      shiny::div(
+        style = "display: flex; gap: 14px; flex-wrap: wrap;",
+        lapply(list(
+          list(
+            step  = "1",
+            title = "Navigate",
+            text  = "Select a module from the sidebar on the left to switch between analyses."
+          ),
+          list(
+            step  = "2",
+            title = "Filter & Select",
+            text  = "Use the input controls on each page to choose cohorts, databases, and settings."
+          ),
+          list(
+            step  = "3",
+            title = "Explore Results",
+            text  = "Review tables and plots. Use the Report module to download a formatted summary."
+          )
+        ), function(s) {
+          shiny::div(
+            style = paste0(
+              "flex: 1; min-width: 200px; background: #f8fafc; ",
+              "border-radius: 8px; padding: 14px 16px; ",
+              "border-left: 4px solid #1f6b8a;"
+            ),
+            shiny::div(
+              style = "display: flex; align-items: center; gap: 10px; margin-bottom: 7px;",
+              shiny::div(
+                style = paste0(
+                  "background: #1f6b8a; color: white; border-radius: 50%; ",
+                  "width: 26px; height: 26px; flex-shrink: 0; font-weight: 700; ",
+                  "font-size: 0.82em; display: flex; align-items: center; justify-content: center;"
+                ),
+                s$step
+              ),
+              shiny::strong(s$title, style = "color: #2c3e50; font-size: 0.92em;")
+            ),
+            shiny::p(
+              s$text,
+              style = "margin: 0; font-size: 0.83em; color: #555; line-height: 1.45;"
+            )
+          )
+        })
+      )
     ),
-    shiny::fluidRow(
-      shinydashboard::valueBoxOutput(ns("estimationBox"), width = 3),
-      shinydashboard::valueBoxOutput(ns("predictionBox"), width = 3),
-      shinydashboard::valueBoxOutput(ns("reportGeneratorBox"), width = 3)
-      # ,
-      # shinydashboard::valueBoxOutput(ns("sccsBox"), width = 3),
-      # shinydashboard::valueBoxOutput(ns("evidenceSynthesisBox"), width = 3)
+
+    # ---- Module cards (filled by server) ------------------------------------
+    shiny::div(
+      shiny::h4(
+        shiny::icon("layer-group"), " Analysis Modules",
+        style = "margin: 0 0 14px 0; color: #2c3e50; font-weight: 600;"
+      ),
+      shiny::uiOutput(ns('moduleCards'))
+    ),
+
+    # ---- Footer --------------------------------------------------------------
+    shiny::div(
+      style = paste0(
+        "margin-top: 28px; padding: 12px 16px; background: #f0f4f8; ",
+        "border-radius: 6px; font-size: 0.81em; color: #666; line-height: 1.55;"
+      ),
+      shiny::HTML(paste0(
+        "<strong>Resources:</strong> Full documentation for all analysis tools is available on the ",
+        "<a href='https://ohdsi.github.io/Hades/' target='_blank'>HADES website</a>. ",
+        "For help with this viewer, visit the ",
+        "<a href='https://ohdsi.github.io/OhdsiShinyModules/' target='_blank'>",
+        "OhdsiShinyModules documentation</a>."
+      ))
     )
   )
-}
-
-targetedValueBox <- function(
-    value,
-    subtitle,
-    icon,
-    color,
-    href,
-    target = "_new"
-  ) {
-  valueBox <- shinydashboard::valueBox(
-    value = value,
-    subtitle = subtitle,
-    icon = icon,
-    color = color,
-    href = href
-  )
-  shiny::tagAppendAttributes(valueBox,.cssSelector="a", target=target)
 }
 
 #' The module server for the shiny app home
@@ -107,212 +172,152 @@ targetedValueBox <- function(
 #' The server for the shiny app home
 #'
 #' @export
-aboutServer <- function(id = 'homepage',
-                        connectionHandler = NULL,
-                        resultDatabaseSettings = NULL,
-                        config) {
-  shiny::moduleServer(id,
-                      function(input, output, session) {
-                        tab_names <- character()
-                        # Loop through shinyModules and extract tabName values
-                        for (i in seq_along(config[["shinyModules"]])) {
-                          tab_name <- config[["shinyModules"]][[i]][["tabName"]]
-                          tab_names <- c(tab_names, tab_name)
-                        }
-                        # View the extracted tabName values
-                        # print(tab_names)
-                        
-                        output$datasourcesBox <-
-                          shinydashboard::renderValueBox({
-                            if ("DataSources" %in% tab_names) {
-                              targetedValueBox(
-                                value = "Data Sources",
-                                subtitle = "Data sources used in this analysis",
-                                icon = shiny::icon("database"),
-                                color = "olive",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/DataSources.html"
-                              )
-                            } else {
-                              targetedValueBox(
-                                value = "Data Sources",
-                                subtitle = "This module was not included in this analysis",
-                                icon = shiny::icon("database"),
-                                color = "black",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/DataSources.html"
-                              )
-                            }
-                          })
-                        
-                        output$cohortsBox <-
-                          shinydashboard::renderValueBox({
-                            if ("Cohorts" %in% tab_names) {
-                              targetedValueBox(
-                                value = "Cohorts",
-                                subtitle = "Cohorts included in this analysis",
-                                icon = shiny::icon("user-gear"),
-                                color = "purple",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Cohorts.html"
-                              )
-                            } else {
-                              targetedValueBox(
-                                value = "Cohorts",
-                                subtitle = "This module was not included in this analysis",
-                                icon = shiny::icon("user-gear"),
-                                color = "black",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Cohorts.html"
-                              )
-                            }
-                          })
-                        
-                        output$characterizationBox <-
-                          shinydashboard::renderValueBox({
-                            if ("Characterization" %in% tab_names) {
-                              targetedValueBox(
-                                value = "Characterization",
-                                subtitle = "Characterization results for this analysis",
-                                icon = shiny::icon("table"),
-                                color = "red",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Characterization.html"
-                              )
-                            } else {
-                              targetedValueBox(
-                                value = "Characterization",
-                                subtitle = "This module was not included in this analysis",
-                                icon = shiny::icon("table"),
-                                color = "black",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Characterization.html"
-                              )
-                            }
-                          })
-                        
-                        output$cohortDiagnosticsBox <-
-                          shinydashboard::renderValueBox({
-                            if ("CohortDiagnostics" %in% tab_names) {
-                              targetedValueBox(
-                                value = "Cohort Diagnostics",
-                                subtitle = "Cohort Diagnostics results for the cohorts included in this analysis",
-                                icon = shiny::icon("users"),
-                                color = "yellow",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/CohortDiagnostics.html"
-                              )
-                            } else {
-                              targetedValueBox(
-                                value = "Cohort Diagnostics",
-                                subtitle = "This module was not included in this analysis",
-                                icon = shiny::icon("users"),
-                                color = "black",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/CohortDiagnostics.html"
-                              )
-                            }
-                          })
-                        
-                        
-                        output$estimationBox <-
-                          shinydashboard::renderValueBox({
-                            if ("Estimation" %in% tab_names) {
-                              targetedValueBox(
-                                value = "Estimation",
-                                subtitle = "Population-level effect estimation results for this analysis",
-                                icon = shiny::icon("chart-column"),
-                                color = "maroon",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Estimation.html"
-                              )
-                            } else {
-                              targetedValueBox(
-                                value = "Estimation",
-                                subtitle = "This module was not included in this analysis",
-                                icon = shiny::icon("chart-column"),
-                                color = "black",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Estimation.html"
-                              )
-                            }
-                          })
-                        
-                        output$predictionBox <-
-                          shinydashboard::renderValueBox({
-                            if ("Prediction" %in% tab_names) {
-                              targetedValueBox(
-                                value = "Prediction",
-                                subtitle = "Patient-level prediction results for this analysis",
-                                icon = shiny::icon("chart-line"),
-                                color = "blue",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Prediction.html"
-                              )
-                            } else {
-                              targetedValueBox(
-                                value = "Prediction",
-                                subtitle = "This module was not included in this analysis",
-                                icon = shiny::icon("chart-line"),
-                                color = "black",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/Prediction.html"
-                              )
-                            }
-                          })
-                        
-                        output$sccsBox <-
-                          shinydashboard::renderValueBox({
-                            if ("SCCS" %in% tab_names) {
-                              targetedValueBox(
-                                value = "SCCS",
-                                subtitle = "Self-Controlled Case Series results for this analysis",
-                                icon = shiny::icon("people-arrows"),
-                                color = "red",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/SelfControlledCaseSeries.html"
-                              )
-                            } else {
-                              targetedValueBox(
-                                value = "SCCS",
-                                subtitle = "This module was not included in this analysis",
-                                icon = shiny::icon("people-arrows"),
-                                color = "black",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/SelfControlledCaseSeries.html"
-                              )
-                            }
-                          })
-                        
-                        output$evidenceSynthesisBox <-
-                          shinydashboard::renderValueBox({
-                            if ("Meta" %in% tab_names) {
-                              targetedValueBox(
-                                value = "Meta",
-                                subtitle = "Meta Analysis results for this analysis",
-                                icon = shiny::icon("sliders"),
-                                color = "olive",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/EvidenceSynthesis.html"
-                              )
-                            } else {
-                              targetedValueBox(
-                                value = "Meta",
-                                subtitle =
-                                  "This module was not included in this analysis",
-                                icon = shiny::icon("sliders"),
-                                color = "black",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/EvidenceSynthesis.html"
-                              )
-                            }
-                          })
-                        
-                        output$reportGeneratorBox <-
-                          shinydashboard::renderValueBox({
-                            if ("Report" %in% tab_names) {
-                              targetedValueBox(
-                                value = "Report",
-                                subtitle = "Report Generator for this analysis",
-                                icon = shiny::icon("book"),
-                                color = "teal",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/ReportGenerator.html"
-                              )
-                            } else {
-                              targetedValueBox(
-                                value = "Report",
-                                subtitle =
-                                  "This module was not included in this analysis",
-                                icon = shiny::icon("book"),
-                                color = "black",
-                                href = "https://ohdsi.github.io/OhdsiShinyModules/articles/ReportGenerator.html"
-                              )
-                            }
-                          })
-                        
-                      })
+aboutServer <- function(
+    id = 'homepage',
+    connectionHandler = NULL,
+    resultDatabaseSettings = NULL,
+    config
+) {
+  shiny::moduleServer(id, function(input, output, session) {
+
+    # Metadata for every analysis module: shown as a card on the home page.
+    # accentColor is used for the card's top border and the icon circle.
+    moduleCardInfo <- list(
+      list(
+        tabName     = "DataSources",
+        title       = "Data Sources",
+        description = "Databases and data sources included in this study, with record and patient counts.",
+        icon        = "database",
+        accentColor = "#27ae60",
+        docUrl      = "https://ohdsi.github.io/OhdsiShinyModules/articles/DataSources.html"
+      ),
+      list(
+        tabName     = "Cohorts",
+        title       = "Cohorts",
+        description = "Cohort definitions used in this analysis, including inclusion rule diagnostics.",
+        icon        = "user-gear",
+        accentColor = "#8e44ad",
+        docUrl      = "https://ohdsi.github.io/OhdsiShinyModules/articles/Cohorts.html"
+      ),
+      list(
+        tabName     = "Characterization",
+        title       = "Characterization",
+        description = "Descriptive statistics and baseline characteristics for study populations.",
+        icon        = "table",
+        accentColor = "#c0392b",
+        docUrl      = "https://ohdsi.github.io/OhdsiShinyModules/articles/Characterization.html"
+      ),
+      list(
+        tabName     = "Estimation",
+        title       = "Estimation",
+        description = "Population-level effect estimation using comparative cohort and SCCS methods.",
+        icon        = "chart-column",
+        accentColor = "#1a3a8f",
+        docUrl      = "https://ohdsi.github.io/OhdsiShinyModules/articles/Estimation.html"
+      ),
+      list(
+        tabName     = "Prediction",
+        title       = "Prediction",
+        description = "Patient-level prediction model development and evaluation results.",
+        icon        = "chart-line",
+        accentColor = "#2980b9",
+        docUrl      = "https://ohdsi.github.io/OhdsiShinyModules/articles/Prediction.html"
+      ),
+      list(
+        tabName     = "Report",
+        title       = "Report Generator",
+        description = "Generate and download a formatted report summarizing key study results.",
+        icon        = "book",
+        accentColor = "#0e7fa8",
+        docUrl      = "https://ohdsi.github.io/OhdsiShinyModules/articles/ReportGenerator.html"
+      )
+    )
+
+    # Build a single card element for one module.
+    # isActive: TRUE when this module's tabName appears in the app config.
+    makeModuleCard <- function(mod, isActive) {
+      accentColor <- if (isActive) mod$accentColor else "#bdc3c7"
+
+      cardStyle <- paste0(
+        "background: ", if (isActive) "#ffffff" else "#f7f8fa", "; ",
+        "border-radius: 8px; overflow: hidden; ",
+        "box-shadow: ", if (isActive) "0 1px 6px rgba(0,0,0,0.10)" else "none", "; ",
+        "border-top: 4px solid ", accentColor, "; ",
+        "display: flex; flex-direction: column; ",
+        if (!isActive) "opacity: 0.65;" else ""
+      )
+
+      shiny::div(
+        style = cardStyle,
+        # Body
+        shiny::div(
+          style = "padding: 14px 16px 10px; flex: 1;",
+          shiny::div(
+            style = "display: flex; align-items: center; gap: 12px; margin-bottom: 9px;",
+            shiny::div(
+              style = paste0(
+                "width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; ",
+                "background: ", accentColor, "; ",
+                "display: flex; align-items: center; justify-content: center;"
+              ),
+              shiny::icon(mod$icon, style = "color: white; font-size: 14px;")
+            ),
+            shiny::div(
+              shiny::strong(
+                mod$title,
+                style = "font-size: 0.92em; color: #2c3e50; line-height: 1.25;"
+              ),
+              if (!isActive) {
+                shiny::div(
+                  "Not included",
+                  style = paste0(
+                    "font-size: 0.68em; font-weight: 700; color: #e74c3c; ",
+                    "text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px;"
+                  )
+                )
+              }
+            )
+          ),
+          shiny::p(
+            mod$description,
+            style = "margin: 0; font-size: 0.81em; color: #555; line-height: 1.45;"
+          )
+        ),
+        # Footer link
+        shiny::div(
+          style = "padding: 7px 16px; border-top: 1px solid #f0f0f0; background: #fafafa;",
+          shiny::tags$a(
+            href   = mod$docUrl,
+            target = "_blank",
+            style  = paste0(
+              "font-size: 0.78em; font-weight: 600; text-decoration: none; color: ",
+              accentColor, ";"
+            ),
+            "View documentation ",
+            shiny::icon("arrow-up-right-from-square", style = "font-size: 0.8em;")
+          )
+        )
+      )
+    }
+
+    # Collect which tabNames are active in this app's config
+    activeTabNames <- character()
+    for (i in seq_along(config[["shinyModules"]])) {
+      activeTabNames <- c(activeTabNames, config[["shinyModules"]][[i]][["tabName"]])
+    }
+
+    output$moduleCards <- shiny::renderUI({
+      shiny::div(
+        style = paste0(
+          "display: grid; ",
+          "grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); ",
+          "gap: 16px;"
+        ),
+        lapply(moduleCardInfo, function(mod) {
+          makeModuleCard(mod, isActive = mod$tabName %in% activeTabNames)
+        })
+      )
+    })
+
+  })
 }

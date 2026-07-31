@@ -108,14 +108,27 @@ estimationCmResultsServer <- function(
         id = "resultSummaryTable",
         df = data,
         colDefsInput = estimationGetCmResultSummaryTableColDef(), 
-        addActions = c('results'), # TODO wont work for esData
+        addActions = list(
+          OhdsiShinyModules::createActionButton(
+            actionType = 'results',
+            buttonIcon = 'chart-line',
+            hoverText = 'Open detailed results for this row',
+            buttonLabel = 'Open Results',
+            buttonClass = 'btn btn-xs',
+            buttonStyle = OhdsiShinyModules::actionButtonStyleInfo()
+          )
+        ), # TODO wont work for esData
         elementId = session$ns('resultSummaryTable')
       )
       
       selectedRow <- shiny::reactiveVal(value = NULL)
       shiny::observeEvent(resultTableOutputs$actionCount(), {
-        if(resultTableOutputs$actionType() == 'results'){ # add an and here to only work for cmData
-          selectedRow(data()[resultTableOutputs$actionIndex()$index,])
+        actionInfo <- resultTableOutputs$actionIndex()
+        actionRow <- if (!is.null(actionInfo) && !is.null(actionInfo$index)) actionInfo$index else NA
+
+        if(resultTableOutputs$actionType() == 'results' && !is.na(actionRow) &&
+           actionRow > 0 && !is.null(data()) && nrow(data()) >= actionRow){ # add an and here to only work for cmData
+          selectedRow(data()[actionRow,])
           shiny::updateTabsetPanel(session, "resultPanel", selected = "Results")
         }
       })

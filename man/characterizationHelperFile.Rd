@@ -16,10 +16,10 @@ The location of the characterization module helper file
 Returns the location of the characterization helper file
 }
 \seealso{
-Other Characterization: 
-\code{\link{characterizationIncidenceServer}()},
-\code{\link{characterizationIncidenceViewer}()},
-\code{\link{characterizationServer}()},
-\code{\link{characterizationViewer}()}
+Other Characterization:
+\code{\link[=characterizationIncidenceServer]{characterizationIncidenceServer()}},
+\code{\link[=characterizationIncidenceViewer]{characterizationIncidenceViewer()}},
+\code{\link[=characterizationServer]{characterizationServer()}},
+\code{\link[=characterizationViewer]{characterizationViewer()}}
 }
 \concept{Characterization}

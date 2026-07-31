@@ -27,12 +27,12 @@ The module server for exploring data-diagnostic
 The user specifies the id for the module
 }
 \seealso{
-Other DataDiagnostics: 
-\code{\link{dataDiagnosticDrillServer}()},
-\code{\link{dataDiagnosticDrillViewer}()},
-\code{\link{dataDiagnosticHelperFile}()},
-\code{\link{dataDiagnosticSummaryServer}()},
-\code{\link{dataDiagnosticSummaryViewer}()},
-\code{\link{dataDiagnosticViewer}()}
+Other DataDiagnostics:
+\code{\link[=dataDiagnosticDrillServer]{dataDiagnosticDrillServer()}},
+\code{\link[=dataDiagnosticDrillViewer]{dataDiagnosticDrillViewer()}},
+\code{\link[=dataDiagnosticHelperFile]{dataDiagnosticHelperFile()}},
+\code{\link[=dataDiagnosticSummaryServer]{dataDiagnosticSummaryServer()}},
+\code{\link[=dataDiagnosticSummaryViewer]{dataDiagnosticSummaryViewer()}},
+\code{\link[=dataDiagnosticViewer]{dataDiagnosticViewer()}}
 }
 \concept{DataDiagnostics}

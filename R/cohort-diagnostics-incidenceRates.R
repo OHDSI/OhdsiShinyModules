@@ -693,15 +693,19 @@ incidenceRatesModule <- function(id,
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     irRanges <- getIncidenceRateRanges(dataSource)
+
+    hasStratification <- function(label) {
+      isTRUE(label %in% input$irStratification)
+    }
+
     # Incidence rate ---------------------------
 
     incidenceRateData <- shiny::reactive({
       shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
       shiny::validate(shiny::need(length(cohortIds()) > 0, "No cohorts chosen"))
-      stratifyByAge <- "Age" %in% input$irStratification
-      stratifyByGender <- "Sex" %in% input$irStratification
-      stratifyByCalendarYear <-
-        "Calendar Year" %in% input$irStratification
+      stratifyByAge <- hasStratification("Age")
+      stratifyByGender <- hasStratification("Sex")
+      stratifyByCalendarYear <- hasStratification("Calendar Year")
       if (length(cohortIds()) > 0) {
         data <- getIncidenceRateResult(
           dataSource = dataSource,
@@ -828,7 +832,7 @@ incidenceRatesModule <- function(id,
 
     nplots <- shiny::reactive({
       nPlotsMade <- length(selectedDatabaseIds()) * length(cohortIds())
-      if ("Age" %in% input$irStratification) {
+      if (hasStratification("Age")) {
         nPlotsMade <- nPlotsMade * length(incidenceRateCalenderFilter())
       }
 
@@ -836,10 +840,23 @@ incidenceRatesModule <- function(id,
     })
 
     shiny::observeEvent(input$generatePlot, {
-      rowHeight <- ifelse(is.null(input$plotRowHeight) | is.na(input$plotRowHeight), 200, input$plotRowHeight)
-      plotHeight <- rowHeight *
-        length(selectedDatabaseIds()) *
-        length(cohortIds())
+      rowHeight <- input$plotRowHeight
+      if (is.null(rowHeight) || length(rowHeight) == 0 || is.na(rowHeight)) {
+        rowHeight <- 200
+      }
+
+      databaseCount <- length(selectedDatabaseIds())
+      cohortCount <- length(cohortIds())
+
+      if (databaseCount == 0 || cohortCount == 0) {
+        return(invisible(NULL))
+      }
+
+      plotHeight <- rowHeight * databaseCount * cohortCount
+      if (!is.finite(plotHeight) || plotHeight <= 0) {
+        plotHeight <- rowHeight
+      }
+
       shiny::removeUI(selector = paste0("#", ns("irPlotContainer")))
       shiny::insertUI(
         selector = paste0("#", ns("plotArea")),
@@ -861,10 +878,9 @@ incidenceRatesModule <- function(id,
     incidenceRateDataFiltered <- shiny::reactive({
       data <- incidenceRateData()
 
-      stratifyByAge <- "Age" %in% input$irStratification
-      stratifyByGender <- "Sex" %in% input$irStratification
-      stratifyByCalendarYear <-
-        "Calendar Year" %in% input$irStratification
+      stratifyByAge <- hasStratification("Age")
+      stratifyByGender <- hasStratification("Sex")
+      stratifyByCalendarYear <- hasStratification("Calendar Year")
 
       if (stratifyByAge && !"All" %in% input$incidenceRateAgeFilter) {
         data <- data %>%
@@ -899,14 +915,13 @@ incidenceRatesModule <- function(id,
       {
         data <- incidenceRateDataFiltered()
 
-        shiny::validate(shiny::need(all(!is.null(data), nrow(data) > 0), paste0("No data for this combination")))
+        shiny::validate(shiny::need(!is.null(data) && is.data.frame(data) && nrow(data) > 0, paste0("No data for this combination")))
 
-        stratifyByAge <- "Age" %in% input$irStratification
-        stratifyByGender <- "Sex" %in% input$irStratification
-        stratifyByCalendarYear <-
-          "Calendar Year" %in% input$irStratification
+        stratifyByAge <- hasStratification("Age")
+        stratifyByGender <- hasStratification("Sex")
+        stratifyByCalendarYear <- hasStratification("Calendar Year")
 
-        if (all(!is.null(data), nrow(data) > 0)) {
+        if (!is.null(data) && is.data.frame(data) && nrow(data) > 0) {
           plot <- plotIncidenceRate(
             data = data,
             cohortTable = cohortTable,
@@ -983,7 +998,7 @@ incidenceRatesModule <- function(id,
       groupBy <- c("cohortName", "databaseName")
       sorted <- c("cohortName")
 
-      if (!"Age" %in% input$irStratification) {
+      if (!hasStratification("Age")) {
         data <- data %>% dplyr::select(-"ageGroup")
       } else {
         groupBy <- c(groupBy, "ageGroup")
@@ -991,13 +1006,13 @@ incidenceRatesModule <- function(id,
         columnDefs$ageGroup <- reactable::colDef(name = "Age Group")
       }
 
-      if (!"Sex" %in% input$irStratification) {
+      if (!hasStratification("Sex")) {
         data <- data %>% dplyr::select(-"gender")
       } else {
         groupBy <- c(groupBy, "gender")
       }
 
-      if (!"Calendar Year" %in% input$irStratification) {
+      if (!hasStratification("Calendar Year")) {
         data <- data %>% dplyr::select(-"calendarYear")
       } else {
         sorted <- c(sorted, "calendarYear")

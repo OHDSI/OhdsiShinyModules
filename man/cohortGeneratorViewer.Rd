@@ -16,8 +16,8 @@ The user interface to the cohort generator results viewer
 The viewer of the main cohort generator module
 }
 \seealso{
-Other CohortGenerator: 
-\code{\link{cohortGeneratorHelperFile}()},
-\code{\link{cohortGeneratorServer}()}
+Other CohortGenerator:
+\code{\link[=cohortGeneratorHelperFile]{cohortGeneratorHelperFile()}},
+\code{\link[=cohortGeneratorServer]{cohortGeneratorServer()}}
 }
 \concept{CohortGenerator}

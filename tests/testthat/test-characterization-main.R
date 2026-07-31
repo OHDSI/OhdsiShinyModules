@@ -12,58 +12,86 @@ shiny::testServer(
     
     # check initial settinfs
     testthat::expect_true(nrow(targetTable)>0)
-    testthat::expect_true(is.null(outcomeTable()))
+    testthat::expect_true(is.null(reactiveOutcomeTable()))
     testthat::expect_true(resultType() == "")
     
-    
-    # check reactiveTargetRow triggers outcome and tars
-    reactiveTargetRow(targetTable[2,])
-    
-    # TODO fix below
-    ##testthat::expect_true(nrow(outcomeTable())>0)
-    
-    # TODO: check when it is unselected that things react correctly
-    
+    selectedTargetRowId <- NA_integer_
+    selectedTargetRow <- NULL
+    availableAnalyses <- character(0)
 
-    # check the tab selector works
-    session$setInputs(
-      resultType = "Dechallenge Rechallenge"
+    analysisMap <- c(
+      'Database Comparison' = 'databaseComparator',
+      'Cohort Comparison' = 'cohortComparator',
+      'Dechallenge Rechallenge' = 'dechalRechal',
+      'Risk Factors' = 'riskFactors',
+      'Time-to-event' = 'timeToEvent',
+      'Case Series' = 'caseSeries',
+      'Cohort Incidence' = 'cohortIncidence'
+    )
+
+    for (targetRow in seq_len(nrow(targetTable))) {
+      targetRowData <- targetTable[targetRow, , drop = FALSE]
+      candidateAnalyses <- names(analysisMap)[vapply(analysisMap, function(colName) {
+        colName %in% colnames(targetRowData) && as.integer(targetRowData[[colName]][1]) == 1
+      }, logical(1))]
+
+      if (length(candidateAnalyses) == 0) {
+        next
+      }
+
+      characterizations <- tryCatch(
+        getCharacterizationTargetId(
+          connectionHandler = connectionHandlerCharacterization,
+          schema = resultDatabaseSettingsCharacterization$schema,
+          databaseTable = resultDatabaseSettingsCharacterization$databaseTable,
+          targetId = targetRowData$cohortDefinitionId[1],
+          cgTablePrefix = resultDatabaseSettingsCharacterization$cgTablePrefix,
+          cTablePrefix = resultDatabaseSettingsCharacterization$cTablePrefix
+        ),
+        error = function(e) NULL
       )
-    testthat::expect_true(resultType() == "Dechallenge Rechallenge")
-    # can we check output$showOutcomeSelector is reactive(TRUE)?
-    #testthat::expect_true(resultType() == "Dechallenge Rechallenge")
+
+      if (is.null(characterizations) || nrow(characterizations) == 0) {
+        next
+      }
+
+      selectedTargetRowId <- targetRow
+      selectedTargetRow <- targetRowData
+      availableAnalyses <- candidateAnalyses
+      break
+    }
+
+    testthat::expect_true(!is.na(selectedTargetRowId))
+    testthat::expect_true(length(availableAnalyses) > 0)
+
+    # check selecting a target triggers characterization table + outcomes
+    testthat::expect_true(!is.null(selectedTargetRow))
+    reactiveTargetRowId(selectedTargetRowId)
+    session$flushReact()
+
+    if (nrow(reactiveTargetRow()) == 0) {
+      reactiveTargetRowId(selectedTargetRowId)
+      session$flushReact()
+    }
+
+    testthat::expect_true(nrow(reactiveTargetRow()) == 1)
+    testthat::expect_true(!is.null(reactiveCharacterizationTargetTable()))
+    testthat::expect_true(nrow(reactiveCharacterizationTargetTable()) > 0)
+    testthat::expect_true(!is.null(reactiveOutcomeTable()))
+    testthat::expect_true(nrow(reactiveOutcomeTable()) > 0)
+    testthat::expect_true(!is.null(output$analysesOptions))
+
+    # the server should auto-select one of the available analyses
+    testthat::expect_true(resultType() %in% availableAnalyses)
+
+    for (analysisName in availableAnalyses) {
+      session$setInputs(resultType = analysisName)
+      session$flushReact()
+      testthat::expect_true(resultType() == analysisName)
+      testthat::expect_true(!is.null(output$analysesResults))
+    }
     
-    # can we check the UI changes?
-    session$setInputs(
-      resultType = "Cohort Incidence"
-    )
-    testthat::expect_true(resultType() == "Cohort Incidence")
-    
-    session$setInputs(
-      resultType = "Database Comparison"
-    )
-    testthat::expect_true(resultType() == "Database Comparison")
-    
-    session$setInputs(
-      resultType = "Cohort Comparison"
-    )
-    testthat::expect_true(resultType() == "Cohort Comparison")
-    
-    session$setInputs(
-      resultType = "Time-to-event"
-    )
-    testthat::expect_true(resultType() == "Time-to-event")
-    
-    session$setInputs(
-      resultType = "Risk Factors"
-    )
-    testthat::expect_true(resultType() == "Risk Factors")
-    
-    session$setInputs(
-      resultType = "Case Series"
-    )
-    testthat::expect_true(resultType() == "Case Series")
-    
+    # check the tab selector works
   })
 
 

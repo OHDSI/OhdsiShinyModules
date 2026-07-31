@@ -77,14 +77,27 @@ estimationSccsResultsServer <- function(
       id = "resultSummaryTable",
       df = data,
       colDefsInput = estimationGetSccsResultSummaryTableColDef(), 
-      addActions = c('results'),
+      addActions = list(
+        OhdsiShinyModules::createActionButton(
+          actionType = 'results',
+          buttonIcon = 'chart-line',
+          hoverText = 'Open detailed results for this row',
+          buttonLabel = 'Open Results',
+          buttonClass = 'btn btn-xs',
+          buttonStyle = OhdsiShinyModules::actionButtonStyleInfo()
+        )
+      ),
       elementId = session$ns('resultSummaryTable')
     )
     
     selectedRow <- shiny::reactiveVal(value = NULL)
     shiny::observeEvent(resultTableOutputs$actionCount(), {
-      if(resultTableOutputs$actionType() == 'results'){ # TODO only work if non meta
-        selectedRow(data()[resultTableOutputs$actionIndex()$index,])
+      actionInfo <- resultTableOutputs$actionIndex()
+      actionRow <- if (!is.null(actionInfo) && !is.null(actionInfo$index)) actionInfo$index else NA
+
+      if(resultTableOutputs$actionType() == 'results' && !is.na(actionRow) &&
+         actionRow > 0 && !is.null(data()) && nrow(data()) >= actionRow){ # TODO only work if non meta
+        selectedRow(data()[actionRow,])
         shiny::updateTabsetPanel(session, "resultPanel", selected = "Results")
       }
     })

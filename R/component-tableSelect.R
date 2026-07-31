@@ -1,26 +1,25 @@
-# create a input selector 
-# that shows the options as columns and 
-
-# inputs: table to display
-# input columns 
-# output selected row id
+# Table-based input selector module.
+# Shows a button that opens a modal with a table; the user selects one or more
+# rows, which are then displayed as compact tags below the button.
+#
+# Inputs:
+#   table          - reactive data.frame of options
+#   selectedRowId  - reactive integer vector of selected row indices
+# Output:
+#   selectedRowId is updated when the user confirms a selection.
 
 tableSelectionViewer <- function(id = "input-selection") {
   ns <- shiny::NS(id)
-  
   shiny::div(
-    # UI for inputs - has a button that activates a model with the options as a table
     shiny::uiOutput(ns('selectionInput'))
-    
   )
-  
 }
 
 
 tableSelectionServer <- function(
-    id, 
-    table, # must be reactive
-    selectedRowId, # must be reactive
+    id,
+    table,           # must be reactive
+    selectedRowId,   # must be reactive
     helpText = 'Click the button to make your selection',
     selectMultiple = FALSE,
     inputColumns = NULL,
@@ -34,148 +33,351 @@ tableSelectionServer <- function(
   shiny::moduleServer(
     id,
     function(input, output, session) {
-      
-      # defaults
-      ##selectedRow <- shiny::reactiveVal(NULL)
-      selection <- ifelse(selectMultiple, 'multiple','single')
-      selectButtonText <- shiny::reactiveVal(selectButtonText)
-      helpTextReactive <- shiny::reactiveVal(helpText)
-      icon <- shiny::reactiveVal('plus')
-      
-      # reset if table changes - TODO remove this?
-      shiny::observeEvent(tableReset(),{
-        icon('plus')
-        helpTextReactive(helpText)
-        output$selectedRow <- NULL
-      })
-      
-      # create the main UI
-      output$selectionInput <- shiny::renderUI(
-        shinydashboard::box(
-          collapsible = TRUE,
-          title = shiny::actionButton(
-            inputId = session$ns('openModal'), 
-            icon = shiny::icon(icon()),
-            label = selectButtonText()
-          ),
-          width = "100%",
-          shiny::helpText(helpTextReactive()),
-          shiny::uiOutput(session$ns('selectedRow'))
-        )
-      )
-      
-      # when the selection button is pressed open a modal
-      # with the table to select from
-      shiny::observeEvent(
-        eventExpr = input$openModal, {
-          
-          shiny::showModal(
-            shiny::modalDialog(
-              size = 'l', 
-              easyClose = TRUE,
-            title = "Select row/s", 
-            shiny::helpText('Select row/s of interest by clicking on the selector and then scroll down to the bottom of the table to hit the "Select" button and confirm your selection.  Hitting the "Select" button will close the modal.'),
-            
-            resultTableViewer(
-              id = session$ns("input-table"), 
-              boxTitle = 'Options'
-            ),
 
-            footer = shiny::actionButton(
-              inputId = session$ns("confirmInput"), 
-              label = 'Select'
+      selection <- ifelse(selectMultiple, 'multiple', 'single')
+
+      # Track which chips are expanded (by their index in the current selection)
+      expandedChipIndices <- shiny::reactiveVal(integer())
+      
+      # Reset when tableReset fires
+      shiny::observeEvent(tableReset(), {
+        expandedChipIndices(integer())
+        tryCatch(selectedRowId(NULL), error = function(e) {})
+      })
+
+      # ---- helpers -----------------------------------------------------------
+
+      # Use the first display column as the chip label in the form
+      # '<column label> : <value>', with fallbacks when unavailable.
+      chipLabelForRow <- function(rowData) {
+        cols <- colnames(rowData)
+        if (is.null(cols) || length(cols) == 0) {
+          return("(no data)")
+        }
+
+        firstDisplayCol <- NULL
+        if (!is.null(displayColumns) && length(displayColumns) > 0) {
+          firstDisplayCol <- names(displayColumns)[1]
+        }
+
+        labelCol <- if (!is.null(firstDisplayCol) && !is.na(firstDisplayCol) &&
+                        nzchar(firstDisplayCol) && firstDisplayCol %in% cols) {
+          firstDisplayCol
+        } else {
+          cols[1]
+        }
+
+        displayLabel <- labelCol
+        if (!is.null(displayColumns) && !is.null(displayColumns[[labelCol]]) &&
+            !is.null(displayColumns[[labelCol]]$name) &&
+            nzchar(displayColumns[[labelCol]]$name)) {
+          displayLabel <- displayColumns[[labelCol]]$name
+        }
+
+        value <- rowData[[labelCol]][1]
+        if (is.na(value)) {
+          return("(no label)")
+        }
+
+        labelValue <- as.character(value)
+        if (!nzchar(labelValue)) {
+          return("(no label)")
+        }
+
+        paste0(displayLabel, " : ", labelValue)
+      }
+
+      # Build the expanded tooltip text showing all display columns
+      buildExpandedText <- function(rowData, displayCols) {
+        if (is.null(displayCols) || length(displayCols) == 0) {
+          return("")
+        }
+
+        parts <- character(0)
+        for (colName in names(displayCols)) {
+          if (colName %in% colnames(rowData)) {
+            colDef <- displayCols[[colName]]
+            humanLabel <- if (!is.null(colDef) && !is.null(colDef$name)) {
+              colDef$name
+            } else {
+              colName
+            }
+            value <- as.character(rowData[[colName]])
+            parts <- c(parts, paste0(humanLabel, ": ", value))
+          }
+        }
+
+        paste(parts, collapse = " - ")
+      }
+
+      # Build one pill/chip tag for a selected row
+      makeChip <- function(label, expandedText = "", chipIndex = NULL) {
+        isExpanded <- !is.null(chipIndex) && chipIndex %in% expandedChipIndices()
+        hasExpandableContent <- nzchar(expandedText)
+
+        shiny::tags$span(
+          style = paste0(
+            "display: inline-flex; align-items: center; gap: 5px; ",
+            "background-color: ", if (hasExpandableContent) "#dceee5" else "#eaf6ee", "; ",
+            "color: #1a6632; ",
+            "border: 1px solid ", if (hasExpandableContent) "#7eb99f" else "#a9d9b6", "; ",
+            "border-radius: 999px; ",
+            "padding: 3px 12px 3px 9px; margin: 3px 3px 3px 0; ",
+            "font-size: 0.82em; font-weight: 500; line-height: 1.4; ",
+            if (hasExpandableContent) "cursor: pointer;" else ""
+          ),
+          shiny::icon("check-circle"),
+          if (isExpanded && hasExpandableContent) {
+            # Show expanded text
+            shiny::tags$a(
+              href = "#",
+              onclick = paste0(
+                "Shiny.onInputChange('",
+                session$ns("toggleChip"), "', Math.random()); ",
+                "Shiny.setInputValue('", session$ns("chipIndex"), "', ", chipIndex, "); ",
+                "return false;"
+              ),
+              style = "color: #1a6632; text-decoration: none; display: flex; align-items: center; gap: 4px;",
+              expandedText,
+              shiny::icon("chevron-up", style = "font-size: 0.75em;")
+            )
+          } else {
+            # Show short label with click handler if expandedText available
+            if (hasExpandableContent) {
+              shiny::tags$a(
+                href = "#",
+                onclick = paste0(
+                  "Shiny.onInputChange('",
+                  session$ns("toggleChip"), "', Math.random()); ",
+                  "Shiny.setInputValue('", session$ns("chipIndex"), "', ", chipIndex, "); ",
+                  "return false;"
+                ),
+                style = "color: #1a6632; text-decoration: none; display: flex; align-items: center; gap: 4px;",
+                label,
+                shiny::icon("chevron-down", style = "font-size: 0.75em;")
+              )
+            } else {
+              label
+            }
+          }
+        )
+      }
+
+      # Render the chips (or a placeholder) for the currently selected rows
+      selectedChips <- function(rowIds, tbl) {
+        if (is.null(rowIds) || length(rowIds) == 0 || sum(rowIds) == 0) {
+          return(
+            shiny::div(
+              style = paste0(
+                "color: #888; font-size: 0.85em; font-style: italic; ",
+                "margin-top: 6px; padding: 6px 10px; ",
+                "border: 1px dashed #ccc; border-radius: 6px; ",
+                "background: #fafafa; display: inline-block;"
+              ),
+              shiny::icon("arrow-pointer"),
+              " No selection yet \u2014 click the button above to choose."
+            )
+          )
+        }
+
+        if (is.null(tbl)) {
+          return(NULL)
+        }
+        tblData <- tryCatch(tbl(), error = function(e) {NULL})
+        if (is.null(tblData)) {
+          return(NULL)
+        }
+        if (nrow(tblData) == 0) {
+          return(NULL)
+        }
+        selected <- tblData[rowIds, , drop = FALSE]
+        if (nrow(selected) == 0) {
+          return(NULL)
+        }
+        chips <- lapply(seq_len(nrow(selected)), function(i) {
+          rowData <- selected[i, , drop = FALSE]
+          label <- chipLabelForRow(rowData)
+          expandedText <- buildExpandedText(rowData, displayColumns)
+          makeChip(label, expandedText, chipIndex = i)
+        })
+
+        shiny::div(
+          style = "margin-top: 6px;",
+          shiny::div(
+            style = paste0(
+              "display: flex; align-items: center; gap: 8px; ",
+              "margin-bottom: 4px;"
+            ),
+            shiny::div(
+              style = paste0(
+                "font-size: 0.75em; font-weight: 600; color: #555; ",
+                "text-transform: uppercase; letter-spacing: 0.06em;"
+              ),
+              if (selectMultiple) "Selected items:" else "Selected:"
+            ),
+            shiny::span(
+              style = paste0(
+                "font-size: 0.7em; color: #888; font-style: italic; ",
+                "padding: 2px 6px; background: #fafafa; border-radius: 4px;"
+              ),
+              shiny::icon("hand-pointer", style = "font-size: 0.8em;"),
+              " Click to expand"
+            )
+          ),
+          shiny::div(chips)
+        )
+      }
+
+      # Build the full selection widget UI (button + chips area)
+      buildSelectionUI <- function(hasSelection, rowIds, tbl) {
+        btnStyle <- if (hasSelection) {
+          paste0(
+            "background-color: #27ae60; border-color: #219a52; color: #fff; ",
+            "font-weight: 600;"
+          )
+        } else {
+          paste0(
+            "background-color: #2980b9; border-color: #2471a3; color: #fff; ",
+            "font-weight: 600;"
+          )
+        }
+
+        btnIcon  <- if (hasSelection) shiny::icon("pen-to-square") else shiny::icon("table-list")
+        btnLabel <- if (hasSelection) paste("Change", selectButtonText) else selectButtonText
+
+        shiny::div(
+          style = "padding: 4px 0;",
+          # Row: button + help text (only shown when nothing selected)
+          shiny::div(
+            style = "display: flex; align-items: center; gap: 10px; flex-wrap: wrap;",
+            shiny::actionButton(
+              inputId = session$ns('openModal'),
+              icon    = btnIcon,
+              label   = btnLabel,
+              style   = btnStyle
+            ),
+            if (!hasSelection) {
+              shiny::span(
+                style = "color: #666; font-size: 0.88em; font-style: italic;",
+                helpText
+              )
+            }
+          ),
+          # Chips area below the button
+          selectedChips(rowIds, tbl)
+        )
+      }
+
+      # ---- main reactive UI --------------------------------------------------
+
+      output$selectionInput <- shiny::renderUI({
+        tblData <- tryCatch(table(), error = function(e) {NULL})
+        if (is.null(tblData)) {
+          return(NULL)
+        }
+        rowIds <- tryCatch(selectedRowId(), error = function(e) {NULL})
+        if (is.null(rowIds)) rowIds <- integer()
+        hasSelection <- !is.null(rowIds) && length(rowIds) > 0 && sum(rowIds) > 0
+        buildSelectionUI(hasSelection, rowIds, table)
+      })
+
+      # Toggle expanded state when a chip is clicked
+      shiny::observeEvent(input$toggleChip, {
+        chipIdx <- input$chipIndex
+        if (!is.null(chipIdx)) {
+          current <- expandedChipIndices()
+          if (chipIdx %in% current) {
+            expandedChipIndices(setdiff(current, chipIdx))
+          } else {
+            expandedChipIndices(c(current, chipIdx))
+          }
+        }
+      })
+
+      # ---- modal -------------------------------------------------------------
+
+      shiny::observeEvent(input$openModal, {
+
+        instructionText <- if (selectMultiple) {
+          paste0(
+            "Click one or more rows to highlight them, then press ",
+            "<strong>Confirm Selection</strong> to apply your choices."
+          )
+        } else {
+          paste0(
+            "Click a row to highlight it, then press ",
+            "<strong>Confirm Selection</strong> to apply your choice."
+          )
+        }
+
+        shiny::showModal(
+          shiny::modalDialog(
+            size      = 'l',
+            easyClose = TRUE,
+            title = shiny::div(
+              style = "display: flex; align-items: center; gap: 8px;",
+              shiny::icon("table-list"),
+              selectButtonText
+            ),
+            shiny::div(
+              class = "alert alert-info",
+              style = "margin-bottom: 12px; display: flex; align-items: flex-start; gap: 8px;",
+              shiny::icon("circle-info"),
+              shiny::HTML(instructionText)
+            ),
+            resultTableViewer(
+              id       = session$ns("input-table"),
+              boxTitle = NULL
+            ),
+            footer = shiny::tagList(
+              shiny::modalButton(
+                shiny::tagList(shiny::icon("xmark"), "Cancel")
+              ),
+              shiny::actionButton(
+                inputId = session$ns("confirmInput"),
+                label   = shiny::tagList(shiny::icon("check"), "Confirm Selection"),
+                style   = "background-color: #2980b9; border-color: #2471a3; color: #fff; font-weight: 600;"
               )
             )
           )
-          
-          # code to update the selected rows
-          # using setSelected()
-          oldSetSelected <- setSelected()
-          setSelected(oldSetSelected + 1)
-        }
         )
-      
+
+        oldSetSelected <- setSelected()
+        setSelected(oldSetSelected + 1)
+      })
+
+      # ---- table server ------------------------------------------------------
+
       setSelected <- shiny::reactiveVal(0)
       getSelected <- shiny::reactiveVal(0)
-       resultTableServer(
-         id = "input-table", #string
-         df = table, #data.frame
-         colDefsInput = inputColumns,
-         columnGroups = columnGroups,
-         details = data.frame(), # details about the data.frame such as target and database name
-         selectedCols = NULL,
-         elementId = elementId,
-         addActions = NULL,
-         downloadedFileName = NULL,
-         groupBy = groupBy,
-         selection = selection,
-         getSelected = getSelected,
-         selectedRowId = selectedRowId,
-         setSelected = setSelected,
-         showPageSizeOptions = TRUE,
-         pageSizeOptions = c(5,25,50,500),
-         defaultPageSize = 5 
-       )
-       
-       # when modal button is clicked update the selected row and 
-       # remove model
-       shiny::observeEvent(input$confirmInput,{
-         shiny::removeModal() # close the modal
-         
-         # change getSelected to trigger selectedRowId to update
-         oldCount <- getSelected()
-         getSelected(oldCount+1) 
-       }
-       )
-       
-       
-       # observe the row change to update the selected
-       # need this for it to work across servers
-       shiny::observeEvent(selectedRowId(), {
-         print(session$ns('In tableSelect'))
-         print(selectedRowId())
-         
-         if(sum(selectedRowId()) == 0){
-           icon('plus')
-           helpTextReactive(helpText)
-           output$selectedRow <- NULL
-         } else{
-           if(nrow(table()[selectedRowId(),]) > 0){
-             # update the icon if a row is selected
-             icon('redo')
-             helpTextReactive("")
-             
-             output$selectedRow <- shiny::renderUI(
-               shiny::div(
-                 #shiny::h4('Selected: '),
-                 reactable::reactable(
-                   data = table()[selectedRowId(),], 
-                   columns = displayColumns[names(displayColumns) %in% colnames(table())],
-                   sortable = FALSE,
-                   filterable = FALSE, 
-                   searchable = FALSE, 
-                   compact = TRUE,
-                   pagination = FALSE,
-                   showPageInfo = FALSE, 
-                   height = 400, # this makes headers sticky 
-                   theme = reactable::reactableTheme(
-                     style = list(fontFamily = "-system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif")
-                   )
-                 )
-               )
-             )
-             
-           } else{
-             icon('plus')
-             helpTextReactive(helpText)
-             output$selectedRow <- NULL
-           }
-         }
-       }
-         
-       )
-       
-      
+
+      resultTableServer(
+        id                = "input-table",
+        df                = table,
+        colDefsInput      = inputColumns,
+        columnGroups      = columnGroups,
+        details           = data.frame(),
+        selectedCols      = NULL,
+        elementId         = elementId,
+        addActions        = NULL,
+        downloadedFileName = NULL,
+        groupBy           = groupBy,
+        selection         = selection,
+        getSelected       = getSelected,
+        selectedRowId     = selectedRowId,
+        setSelected       = setSelected,
+        showPageSizeOptions = TRUE,
+        pageSizeOptions   = c(5, 25, 50, 500),
+        defaultPageSize   = 5
+      )
+
+      # Close the modal and commit the selection
+      shiny::observeEvent(input$confirmInput, {
+        shiny::removeModal()
+        oldCount <- getSelected()
+        getSelected(oldCount + 1)
+      })
+
     }
   )
 }

@@ -30,8 +30,8 @@ The module server for the shiny app home
 The user specifies the id for the module
 }
 \seealso{
-Other About: 
-\code{\link{aboutHelperFile}()},
-\code{\link{aboutViewer}()}
+Other About:
+\code{\link[=aboutHelperFile]{aboutHelperFile()}},
+\code{\link[=aboutViewer]{aboutViewer()}}
 }
 \concept{About}

@@ -9,7 +9,7 @@ characterizationIncidenceServer(
   connectionHandler,
   resultDatabaseSettings,
   reactiveTargetRow,
-  outcomeTable
+  reactiveOutcomeTable
 )
 }
 \arguments{
@@ -21,7 +21,7 @@ characterizationIncidenceServer(
 
 \item{reactiveTargetRow}{a reactive data.frame with the target of interest details}
 
-\item{outcomeTable}{A reactive data.frame with the outcome table for the target of interest}
+\item{reactiveOutcomeTable}{A reactive data.frame with the outcome table for the target of interest}
 }
 \value{
 The server to the prediction incidence module
@@ -33,10 +33,10 @@ The module server for exploring incidence results
 The user specifies the id for the module
 }
 \seealso{
-Other Characterization: 
-\code{\link{characterizationHelperFile}()},
-\code{\link{characterizationIncidenceViewer}()},
-\code{\link{characterizationServer}()},
-\code{\link{characterizationViewer}()}
+Other Characterization:
+\code{\link[=characterizationHelperFile]{characterizationHelperFile()}},
+\code{\link[=characterizationIncidenceViewer]{characterizationIncidenceViewer()}},
+\code{\link[=characterizationServer]{characterizationServer()}},
+\code{\link[=characterizationViewer]{characterizationViewer()}}
 }
 \concept{Characterization}

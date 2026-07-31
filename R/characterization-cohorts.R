@@ -21,53 +21,278 @@
 characterizationCohortComparisonViewer <- function(id) {
   ns <- shiny::NS(id)
   
-    # module that does input selection for a single row DF
+  shiny::div(
+    shiny::tags$style(
+      '
+      .cohort-viewer-shell {
+        display: grid;
+        gap: 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .cohort-hero {
+        border-radius: 22px;
+        padding: 22px 24px;
+        background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #fdfcff 100%);
+        border: 1px solid #dbe6f3;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .cohort-hero-top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 8px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        flex-wrap: wrap;
+      }
+      .cohort-hero-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        background: linear-gradient(135deg, #2563eb, #60a5fa);
+        box-shadow: 0 12px 20px rgba(37, 99, 235, 0.24);
+        flex: 0 0 auto;
+      }
+      .cohort-hero-title {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #102033;
+        margin: 0;
+        display: inline-block;
+        white-space: nowrap;
+      }
+      .cohort-hero-copy {
+        color: #526173;
+        margin: 0;
+        line-height: 1.5;
+        max-width: 880px;
+        overflow-wrap: anywhere;
+      }
+      .cohort-hero-top > div:last-child {
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+      .cohort-options-box.box {
+        border-radius: 18px;
+        border-top: 4px solid #2563eb;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        box-sizing: border-box;
+      }
+      .cohort-options-box .box-header,
+      .cohort-results-wrap .box-header {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .cohort-options-box .box-title,
+      .cohort-results-wrap .box-title {
+        display: block;
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
+      }
+      .cohort-options-box .box-body {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        background: #f8fbff;
+        overflow-x: auto;
+        box-sizing: border-box;
+      }
+      .cohort-options-card {
+        background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+        border: 1px solid #dbe6f3;
+        border-radius: 16px;
+        padding: 14px 16px 8px 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .cohort-options-card > div,
+      .cohort-options-card .shiny-html-output,
+      .cohort-options-card .table-responsive,
+      .cohort-options-card .reactable,
+      .cohort-options-card .rt-table,
+      .cohort-options-card table {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .cohort-options-card .form-group,
+      .cohort-options-card .bootstrap-select,
+      .cohort-options-card .bootstrap-select > .dropdown-toggle,
+      .cohort-options-card .dropdown-menu {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box;
+      }
+      .cohort-options-card .bootstrap-select,
+      .cohort-options-card .bootstrap-select > .dropdown-toggle {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .cohort-options-card .bootstrap-select .dropdown-menu {
+        max-width: 100% !important;
+      }
+      .cohort-options-card .bootstrap-select .dropdown-toggle {
+        overflow: hidden;
+      }
+      .cohort-options-card .bootstrap-select .dropdown-toggle .filter-option,
+      .cohort-options-card .bootstrap-select .dropdown-toggle .filter-option-inner,
+      .cohort-options-card .bootstrap-select .dropdown-toggle .filter-option-inner-inner {
+        max-width: 100% !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .cohort-results-wrap {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .cohort-results-wrap .nav-tabs,
+      .cohort-results-wrap .nav-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        border-bottom: none;
+      }
+      .cohort-results-wrap .nav > li {
+        float: none;
+        margin: 0;
+      }
+      .cohort-results-wrap .nav > li > a {
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .cohort-results-wrap .nav-pills > li.active > a,
+      .cohort-results-wrap .nav-pills > li.active > a:focus,
+      .cohort-results-wrap .nav-pills > li.active > a:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+        box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+      }
+      .cohort-results-wrap .tab-content,
+      .cohort-results-wrap .tab-pane {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .cohort-results-wrap .box {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+        border: 1px solid #dbe5f1;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .cohort-results-wrap .box-header {
+        background: linear-gradient(135deg, #8b5a12 0%, #f59e0b 100%);
+        color: #ffffff;
+        border-bottom: none;
+      }
+      .cohort-results-wrap .box-title {
+        font-weight: 700;
+      }
+      .cohort-results-panel {
+        margin-top: 14px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      '
+    ),
     shiny::div(
-      
-      shiny::helpText('Compare covariates at index between two cohorts within the same database.'),
-      
-      # UI for inputs
-      # summary table
-      shinydashboard::box(
-        collapsible = TRUE,
-        title = "Options",
-        width = "100%",
-        shiny::uiOutput(ns("inputs"))
-      ),
-      
-      # displayed inputs
-      shiny::conditionalPanel(
-        condition = "output.showCohortComp != 0", 
-        ns = ns,
-        
-        inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
-        
-        # add basic table 
-        shiny::tabsetPanel(
-          type = 'pills',
-          
-          shiny::tabPanel(
-            title = 'Binary Table',
-            shiny::uiOutput(outputId = ns('helpTextBinary')),
-            resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
+      class = 'cohort-viewer-shell',
+      shiny::div(
+        class = 'cohort-hero',
+        shiny::div(
+          class = 'cohort-hero-top',
+          shiny::div(
+            class = 'cohort-hero-icon',
+            shiny::icon('users')
           ),
-          
-          shiny::tabPanel(
-            title = "Binary Plot",
-            shiny::helpText('Pick two databases and compare binary features across the databases.'),
-            shinycssloaders::withSpinner(
-              plotly::plotlyOutput(ns('scatterPlot'))
+          shiny::div(
+            shiny::tags$h2(class = 'cohort-hero-title', 'Cohort comparison'),
+            shiny::tags$p(
+              class = 'cohort-hero-copy',
+              'Compare covariates at index between two cohorts within the same database in a cleaner, easier-to-scan layout.'
             )
-          ),
-          
-          shiny::tabPanel(
-            title = 'Continuous',
-            shiny::uiOutput(outputId = ns('helpTextContinuous')),
-            resultTableViewer(id = ns('continuousTable'), boxTitle = 'Continuous')
           )
         )
-        
+      ),
+      shinydashboard::box(
+        collapsible = TRUE,
+        title = shiny::tagList(shiny::icon('sliders'), 'Analysis options'),
+        width = '100%',
+        class = 'cohort-options-box',
+        shiny::div(
+          class = 'cohort-options-card',
+          shiny::uiOutput(ns('inputs'))
+        )
+      ),
+      shiny::conditionalPanel(
+        condition = 'output.showResults != 0', 
+        ns = ns,
+        shiny::div(
+          class = 'cohort-results-wrap',
+          shiny::tabsetPanel(
+            type = 'pills',
+            shiny::tabPanel(
+              title = 'Binary Covariates',
+              shiny::div(
+                class = 'cohort-results-panel',
+                shiny::uiOutput(outputId = ns('helpTextBinary')),
+                resultTableViewer(id = ns('mainTable'), boxTitle = 'Binary')
+              )
+            ),
+            shiny::tabPanel(
+              title = 'Continuous Covariates',
+              shiny::div(
+                class = 'cohort-results-panel',
+                shiny::uiOutput(outputId = ns('helpTextContinuous')),
+                resultTableViewer(id = ns('continuousTable'), boxTitle = 'Continuous')
+              )
+            )
+          )
+        )
       )
+    )
     )
 }
 
@@ -78,48 +303,165 @@ characterizationCohortComparisonServer <- function(
     connectionHandler,
     resultDatabaseSettings,
     targetTable,
-    reactiveTargetRow
+    reactiveCharacterizationTargetTable
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
+      # restrict to populations with cohort comp data
+      moduleCharacterizationTargetTable <- shiny::reactive({
+        if(!is.null(reactiveCharacterizationTargetTable())){
+          reactiveCharacterizationTargetTable() %>%
+            dplyr::filter(as.integer(.data$cohortComparator) == 1)
+        } else{
+          NULL
+        }
+      })
       
+    # have the targetRowId be per analysis
+      reactiveCharacterizationTargetRowId <- shiny::reactiveVal(NULL)
+      
+      # Reset targetRowId when the table changes to prevent stale indices
+      shiny::observeEvent(moduleCharacterizationTargetTable(), {
+        reactiveCharacterizationTargetRowId(NULL)
+        reactiveComparatorRowId(NULL)
+        comparatorCharacterizationTableRowId(NULL)
+      })
+      
+      # target reactive
+      reactiveTargetRow <- shiny::reactive({
+        rowId <- reactiveCharacterizationTargetRowId()
+        cTargetTable <- moduleCharacterizationTargetTable()
+        
+        if (is.null(rowId) || length(rowId) == 0 || is.null(cTargetTable) || nrow(cTargetTable) == 0) {
+          return(data.frame())
+        }
+        
+        cTargetTable[rowId, , drop = FALSE]
+      })
+      
+      # comparator reactives:
+      #=======================
+      comparatorTable <- shiny::reactive({
+        targetTable %>%
+          dplyr::filter(.data$cohortComparator == 1) %>%
+          dplyr::select("cohortName", "cohortDefinitionId")
+      })
+      reactiveComparatorRowId <- shiny::reactiveVal(NULL)
+      
+      # Reset comparatorRowId when the table changes to prevent stale indices
+      shiny::observeEvent(comparatorTable(), {
+        reactiveComparatorRowId(NULL)
+        comparatorCharacterizationTableRowId(NULL)
+      })
+      
+      reactiveComparatorTargetId <- shiny::reactive({
+        rowId <- reactiveComparatorRowId()
+        cTargetTable <- comparatorTable()
+        
+        if (is.null(rowId) || length(rowId) == 0 || is.null(cTargetTable) || nrow(cTargetTable) == 0) {
+          return(NULL)
+        }
+        
+        cTargetTable$cohortDefinitionId[rowId]
+      })
+      
+      comparatorCharacterizationTable <- shiny::reactiveVal(NULL)
+      comparatorCharacterizationTableRowId <- shiny::reactiveVal(NULL)
+      
+      # Reset comparatorCharacterizationTableRowId when the table changes to prevent stale indices
+      shiny::observeEvent(comparatorCharacterizationTable(), {
+        comparatorCharacterizationTableRowId(NULL)
+      })
+      
+      shiny::observeEvent(reactiveComparatorTargetId(), {
+        comparatorTargetId <- reactiveComparatorTargetId()
+
+        if (!is.null(comparatorTargetId) && length(comparatorTargetId) == 1) {
+          res <- getCharacterizationTargetId(
+            connectionHandler = connectionHandler,
+            schema = resultDatabaseSettings$schema,
+            databaseTable = resultDatabaseSettings$databaseTable,
+            targetId = comparatorTargetId,
+            cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+            cTablePrefix = resultDatabaseSettings$cTablePrefix
+          ) %>%
+            dplyr::filter(.data$cohortComparator == 1)
+          
+          comparatorCharacterizationTable(res)
+        } else {
+          comparatorCharacterizationTable(data.frame())
+          comparatorCharacterizationTableRowId(NULL)
+        }
+      })
+      
+      reactiveComparatorRow <- shiny::reactive({
+        rowId <- comparatorCharacterizationTableRowId()
+        cTargetTable <- comparatorCharacterizationTable()
+        
+        if (is.null(rowId) || length(rowId) == 0 || is.null(cTargetTable) || nrow(cTargetTable) == 0) {
+          return(data.frame())
+        }
+        
+        cTargetTable[rowId, , drop = FALSE]
+      })
+      #=======================
+      
+      
+      # Conditional results updater:
+      #=======================
       # initially do not show results
-      output$showCohortComp <- shiny::reactive(0)
-      shiny::outputOptions(output, "showCohortComp", suspendWhenHidden = FALSE)
+      output$showResults <- shiny::reactive(0)
+      shiny::outputOptions(output, "showResults", suspendWhenHidden = FALSE)
       
       # if target or outcome changes hide results
       shiny::observeEvent(reactiveTargetRow(), {
-        output$showCohortComp <- shiny::reactive(0)
+        output$showResults <- shiny::reactive(0)
       })
+      shiny::observeEvent(reactiveComparatorRow(), {
+        output$showResults <- shiny::reactive(0)
+      })
+      shiny::observeEvent(input$databaseName, {
+        output$showResults <- shiny::reactive(0)
+      })
+      #=======================
+      
+      tableSelectionServer(
+        id = 'char-pop-select-cohorts',
+        table = moduleCharacterizationTargetTable, 
+        selectedRowId = reactiveCharacterizationTargetRowId,
+        selectMultiple = FALSE, 
+        elementId = session$ns('table-selector-cohorts'),
+        inputColumns = characterizationTargetsColumns(),
+        displayColumns = characterizationSelectedTargetsColumns(), 
+        selectButtonText = 'Select Population'
+      )
       
       # get the databases that the target cohort has data in
-      databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseString, split = ', ')))
-      databaseIds <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseIdString, split = ', ')))
+      databaseNames <- shiny::reactive({
+        if(length(reactiveCharacterizationTargetRowId()) == 0){return(NULL)}
+        unlist(strsplit(x = moduleCharacterizationTargetTable()[reactiveCharacterizationTargetRowId(),]$databaseString, split = ', '))
+      })
+      databaseIds <- shiny::reactive({
+        if(length(reactiveCharacterizationTargetRowId()) == 0){return(NULL)}
+        unlist(strsplit(x = moduleCharacterizationTargetTable()[reactiveCharacterizationTargetRowId(),]$databaseIdString, split = ', '))
+      })
       
       # add the server for the comparator table select
-      reactiveComparatorRowId <- shiny::reactiveVal(NULL)
+
       tableSelectionServer(
         id = 'comparator-selector', 
-        table = shiny::reactive(targetTable %>%
-                                  dplyr::filter(.data$cohortComparator == 1) %>%
-                                  dplyr::filter(.data$cohortId != reactiveTargetRow()$cohortId) %>%
-                                  dplyr::select("parentName", "cohortName", "cohortId")
-                                ), 
+        table = comparatorTable, 
         selectedRowId = reactiveComparatorRowId,
         selectMultiple = FALSE, 
         elementId = session$ns('comp-selector'),
         inputColumns = list(
-          parentName = reactable::colDef(
-            name = 'Comparator', 
-            minWidth = 150
-          ),
           cohortName = reactable::colDef(
-            name = 'Subset',
+            name = 'Cohort Name',
             minWidth = 300
           ),
-          cohortId = reactable::colDef(
+          cohortDefinitionId = reactable::colDef(
             show = TRUE,
             name = 'Cohort ID'
           )
@@ -127,195 +469,245 @@ characterizationCohortComparisonServer <- function(
         selectButtonText = 'Select Comparator'
       )
       
-      # hide results if reactiveComparatorRow changes
-      shiny::observeEvent(reactiveComparatorRowId(),{
-        output$showCohortComp <- shiny::reactive(0)
-      })
+      tableSelectionServer(
+        id = 'comparator-pop-selector', 
+        table = comparatorCharacterizationTable, 
+        selectedRowId = comparatorCharacterizationTableRowId,
+        selectMultiple = FALSE, 
+        elementId = session$ns('comp-pop-selector'),
+        inputColumns = characterizationTargetsColumns(),
+        displayColumns = characterizationSelectedTargetsColumns(), 
+        selectButtonText = 'Select Comparator Population'
+      )
       
       
       # initial comp chilren
       output$inputs <- shiny::renderUI({
+        hasTarget <- nrow(reactiveTargetRow()) > 0
+        comparatorSelected <- reactiveComparatorRowId()
+        showComparatorPopulation <- !is.null(comparatorSelected) &&
+          length(comparatorSelected) > 0 &&
+          all(comparatorSelected > 0)
+        hasComparator <- nrow(reactiveComparatorRow()) > 0
+        hasDatabase <- !is.null(input$databaseName) && nzchar(input$databaseName)
+        canGenerate <- hasTarget && hasComparator && hasDatabase
         
         shiny::div(
+          style = 'width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; box-sizing: border-box;',
           
-          tableSelectionViewer(
-            id = session$ns('comparator-selector')
-            ),
-          
-        shinyWidgets::pickerInput(
-          inputId = session$ns('databaseName'),
-          label = 'Database: ',
-          choices = databaseNames(),
-          selected = databaseNames(),
-          multiple = F,
-          options = shinyWidgets::pickerOptions(
-            actionsBox = TRUE,
-            liveSearch = TRUE,
-            dropupAuto = F,
-            size = 10,
-            liveSearchStyle = "contains",
-            liveSearchPlaceholder = "Type here to search",
-            virtualScroll = 500
-          )
-        ),
-        
-        shiny::actionButton(
-          inputId = session$ns('generate'), 
-          label = 'Generate'
+          tableSelectionViewer(id = session$ns('char-pop-select-cohorts')),
+
+          if (hasTarget) {
+            tableSelectionViewer(id = session$ns('comparator-selector'))
+          },
+
+          if (hasTarget && showComparatorPopulation) {
+            tableSelectionViewer(id = session$ns('comparator-pop-selector'))
+          },
+
+          if (hasTarget && hasComparator) {
+            shinyWidgets::pickerInput(
+              inputId = session$ns('databaseName'),
+              label = 'Database: ',
+              choices = databaseNames(),
+              selected = input$databaseName,
+              multiple = FALSE,
+              options = shinyWidgets::pickerOptions(
+                actionsBox = TRUE,
+                liveSearch = TRUE,
+                dropupAuto = FALSE,
+                size = 10,
+                liveSearchStyle = "contains",
+                liveSearchPlaceholder = "Type here to search",
+                virtualScroll = 500
+              )
             )
-      )
+          },
+
+          shiny::tags$button(
+            id = session$ns('generate'),
+            type = 'button',
+            class = if (canGenerate) 'btn btn-primary action-button' else 'btn btn-default action-button',
+            disabled = if (!canGenerate) 'disabled' else NULL,
+            'Generate'
+          ),
+
+          if (!canGenerate) {
+            shiny::helpText('Select a population, comparator, and database to enable Generate.')
+          }
+        )
       
       })
       
-      # show selected inputs to user
-      inputSelectionDfServer(
-        id = 'inputSelected', 
-        dataFrameRow = selected,
-        ncol = 1
-      )
-      
       #get results
-      selected <- shiny::reactiveVal()
       shiny::observeEvent(input$generate,{
+        hasTarget <- nrow(reactiveTargetRow()) > 0
+        hasComparator <- nrow(reactiveComparatorRow()) > 0
+        hasDatabase <- !is.null(input$databaseName) && nzchar(input$databaseName)
+
+        if (!hasTarget || !hasComparator || !hasDatabase) {
+          output$showResults <- shiny::reactive(0)
+          shiny::showNotification('Must select a population, comparator, and database')
+          return(invisible(NULL))
+        }
       
-        # got to apply same filter  
-      filteredTable <- targetTable %>%
-          dplyr::filter(.data$cohortComparator == 1) %>%
-          dplyr::filter(.data$cohortId != reactiveTargetRow()$cohortId)
-      reactiveComparatorRow <- filteredTable[reactiveComparatorRowId(),]
-        
         # TODO update logic for running 
-        if(is.null(reactiveComparatorRow) | is.null(reactiveTargetRow())){
-          output$showCohortComp <- shiny::reactive(0)
+        if (nrow(reactiveTargetRow()) == 0 || nrow(reactiveComparatorRow()) == 0) {
+          output$showResults <- shiny::reactive(0)
           shiny::showNotification('Must select a comparison')
         } else{
-          if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveComparatorRow) > 0){
-            
-            selected(
-              data.frame(
-                Target = reactiveTargetRow()$cohortName,
-                Comparator = reactiveComparatorRow$cohortName,
-                Database = input$databaseName
-              )
-            )
+          if (nrow(reactiveTargetRow()) > 0 && nrow(reactiveComparatorRow()) > 0) {
             
             result <- characterizatonGetCohortData(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
-              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow$cohortId),
+              characterizationTargetIds = c(
+                reactiveTargetRow()$characterizationTargetId,
+                reactiveComparatorRow()$characterizationTargetId
+              ),
               databaseIds = databaseIds()[databaseNames() == input$databaseName],
               minThreshold = 0
             )
-            resultTable <- result$covariates
+            resultTable <- result$covariates %>%
+              parseCohortComparisonCovariates()
             countTable <- result$covRef
             
             # if no results in database
             if(is.null(countTable)){
               shiny::showNotification('No covariate data for selected database')
-              output$showCohortComp <- shiny::reactive(0)
+              output$showResults <- shiny::reactive(0)
             } else if(nrow(countTable) == 1){
               shiny::showNotification(paste0('Unable to compare as only cohort ', unique(countTable$cohortName) ,' has covariate data in selected database.'))
-              output$showCohortComp <- shiny::reactive(0)
+              output$showResults <- shiny::reactive(0)
             } else{
-              output$showCohortComp <- shiny::reactive(1)
+              output$showResults <- shiny::reactive(1)
           
             output$helpTextBinary <- shiny::renderUI(
-              shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts (restricted to first exposure in ",countTable$limitToFirstInNDays[1]," and requiring ",
-                                     countTable$minPriorObservation[1]," days observation prior to index) with a history of each binary features across databases."))
+              shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts with a history of each binary features across databases."))
             )
             output$helpTextContinuous <- shiny::renderUI(
-              shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts (restricted to first exposure in ",countTable$limitToFirstInNDays[1]," and requiring ",
-                                     countTable$minPriorObservation[1]," days observation prior to index) with a history of each continuous features across databases."))
+              shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts with a history of each continuous features across databases."))
             )
             
             continuous <- characterizatonGetCohortComparisonDataContinuous(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
-              targetIds = c(reactiveTargetRow()$cohortId,reactiveComparatorRow$cohortId),
+              characterizationTargetIds = c(
+                reactiveTargetRow()$characterizationTargetId,
+                reactiveComparatorRow()$characterizationTargetId
+              ),
               databaseIds = databaseIds()[databaseNames() == input$databaseName]
             )
             
-            continuousTable <- continuous$covariates
+            continuousTable <- continuous$covariates %>%
+              parseCohortComparisonCovariates()
             
-            getDbCount <- function(cohortId){
+            getDbCount <- function(characterizationTargetId){
               countOfInt <- countTable %>% 
-                dplyr::filter(.data$cohortId == !!cohortId)
+                dplyr::filter(.data$characterizationTargetId == !!characterizationTargetId)
               
               return(countOfInt)
             }
             
             groupColumns <- list()
             
-            targetRows <- getDbCount(reactiveTargetRow()$cohortId)
-            for(j in 1:nrow(targetRows)){
-              groupColumns[[length(groupColumns) + 1]] <- reactable::colGroup(
-                name = paste0('Target with ',targetRows$minPriorObservation[j], ' days obs (N = ',targetRows$n[j],')'), 
-                columns = c(
-                  paste0('sumValue_',targetRows$id[j]), 
-                  paste0('averageValue_',targetRows$id[j]))
-              )
+            targetRows <- getDbCount(reactiveTargetRow()$characterizationTargetId)
+            for (j in seq_len(nrow(targetRows))) {
+              # only group columns that exist
+              incGroup <- paste0('sumValue_',targetRows$id[j]) %in% colnames(resultTable)
+              if(incGroup){
+                groupColumns[[length(groupColumns) + 1]] <- reactable::colGroup(
+                  name = paste0('Target (N = ',targetRows$n[j],')'), 
+                  columns = c(
+                    paste0('sumValue_',targetRows$id[j]), 
+                    paste0('averageValue_',targetRows$id[j]))
+                )
+              }
             }
-            compRows <- getDbCount(reactiveComparatorRow$cohortId)
-            for(j in 1:nrow(compRows)){
-              groupColumns[[length(groupColumns) + 1]] <- reactable::colGroup(
-                name = paste0('Comparator with ',compRows$minPriorObservation[j], ' days obs (N = ',compRows$n[j],')'), 
-                columns = c(
-                  paste0('sumValue_',compRows$id[j]), 
-                  paste0('averageValue_',compRows$id[j]))
-              )
+            compRows <- getDbCount(reactiveComparatorRow()$characterizationTargetId)
+            for (j in seq_len(nrow(compRows))) {
+              # only group columns that exist
+              incGroup <- paste0('sumValue_',compRows$id[j]) %in% colnames(resultTable)
+              if(incGroup){
+                groupColumns[[length(groupColumns) + 1]] <- reactable::colGroup(
+                  name = paste0('Comparator (N = ',compRows$n[j],')'), 
+                  columns = c(
+                    paste0('sumValue_',compRows$id[j]), 
+                    paste0('averageValue_',compRows$id[j]))
+                )
+              }
             }
             
             # figure out the column names and how to present them to reactable
-            binColumns <- list(
-              averageValue_1 = reactable::colDef(
+            binColumns <- list()
+            
+            # Only add column definitions for columns that exist in resultTable
+            if ("averageValue_1" %in% colnames(resultTable)) {
+              binColumns$averageValue_1 <- reactable::colDef(
                 name = '%',
                 header = withTooltip(
                   paste0('%'),
                   paste0("The percentage of the target population in database who had the covariate prior.")
                 ),
                 cell = function(value) {
+                  if(is.null(value)){value <- -1}
+                  if(is.na(value)){value <- -1}
                   if (value >= 0) paste0(round(value*100, digits = 3),' %') else '< min threshold'
                 }
-              ),
-              averageValue_2 = reactable::colDef(
+              )
+            }
+            
+            if ("averageValue_2" %in% colnames(resultTable)) {
+              binColumns$averageValue_2 <- reactable::colDef(
                 name = '%',
                 header = withTooltip(
                   paste0('%'),
                   paste0("The percentage of the comparator population in database who had the covariate prior.")
                 ),
                 cell = function(value) {
+                  if(is.null(value)){value <- -1}
+                  if(is.na(value)){value <- -1}
                   if (value >= 0) paste0(round(value*100, digits = 3),' %') else '< min threshold'
                 }
-              ),
-              sumValue_1 = reactable::colDef(
+              )
+            }
+            
+            if ("sumValue_1" %in% colnames(resultTable)) {
+              binColumns$sumValue_1 <- reactable::colDef(
                 name = 'Count',
                 header = withTooltip(
                   paste0("Count"),
                   paste0("The number of people in the target cohort in database who have the covariate prior.")
                 ),
                 cell = function(value) {
+                  if(is.null(value)){value <- -1}
+                  if(is.na(value)){value <- -1}
                   if (value >= 0) value else '< min threshold'
                 }
               )
-              ,
-              sumValue_2 = reactable::colDef(
+            }
+            
+            if ("sumValue_2" %in% colnames(resultTable)) {
+              binColumns$sumValue_2 <- reactable::colDef(
                 name = 'Count',
                 header = withTooltip(
                   paste0("Count"),
                   paste0("The number of people in the comparator cohort in database who have the covariate prior.")
                 ),
                 cell = function(value) {
+                  if(is.null(value)){value <- -1}
+                  if(is.na(value)){value <- -1}
                   if (value >= 0) value else '< min threshold'
                 }
               )
-          )
+            }
             
             resultTableServer(
               id = 'mainTable',
               df = resultTable,
               details = data.frame(
                 Target = reactiveTargetRow()$cohortName,
-                Comparator = reactiveComparatorRow$cohortName,
+                Comparator = reactiveComparatorRow()$cohortName,
                 Database = input$databaseName,
                 Analysis = 'Cohort comparison within database'
               ),
@@ -332,111 +724,128 @@ characterizationCohortComparisonServer <- function(
             # column formatting for continuous
             # create group columns for continuous
             groupColumnsContinuous <- list()
-
-              groupColumnsContinuous[[1]] <- reactable::colGroup(
-                name = paste0('Target with ',countTable$minPriorObservation[1] ,' days prior obs (N = ',countTable$n[1],')'), 
-                columns = c(
-                  paste0('countValue_',1), 
-                  paste0('averageValue_',1),
-                  paste0('standardDeviation_',1),
-                  paste0('medianValue_',1),
-                  paste0('minValue_',1),
-                  paste0('maxValue_',1)
+            
+            for (k in seq_len(nrow(countTable))) {
+              # Build expected column names for this cohort
+              cohortCols <- c(
+                paste0('countValue_', k),
+                paste0('averageValue_', k),
+                paste0('standardDeviation_', k),
+                paste0('medianValue_', k),
+                paste0('minValue_', k),
+                paste0('maxValue_', k)
+              )
+              
+              # Only add colGroup if columns exist in continuousTable
+              if (all(cohortCols %in% colnames(continuousTable))) {
+                groupColumnsContinuous[[length(groupColumnsContinuous) + 1]] <- reactable::colGroup(
+                  name = paste0(ifelse(k == 1, 'Target', 'Comparator'), ' (N = ', countTable$n[k], ')'),
+                  columns = cohortCols
                 )
+              }
+            }
+              
+              continuousCols <- characterizationCohortsColumnsContinuous(
+                elementId = session$ns('continuous-table-filter')
               )
               
-              groupColumnsContinuous[[2]] <- reactable::colGroup(
-                name = paste0('Comparator with ',countTable$minPriorObservation[2] ,' days prior obs (N = ',countTable$n[2],')'), 
-                columns = c(
-                  paste0('countValue_',2), 
-                  paste0('averageValue_',2),
-                  paste0('standardDeviation_',2),
-                  paste0('medianValue_',2),
-                  paste0('minValue_',2),
-                  paste0('maxValue_',2)
-                )
-              )
-              
-              continuousCols <- characterizationCohortsColumnsContinuous()
-              
-              for(i in 1:2){
-              newCols <- list(
-                countValue = reactable::colDef(
-                  name = 'Count',
-                  header = withTooltip("Count",
-                                       "Number of people with the covariate in the cohort."),
-                  cell = function(value) {
-                    if (value >= 0) value else paste0('< ', abs(value))
-                  },
-                  filterable = T
-                ),
-                averageValue = reactable::colDef(
-                  name = 'Mean',
-                  header = withTooltip("Mean",
-                                       "The mean value of the covariate in the cohort"),
-                  cell = function(value) {
-                    if (value >= 0) round(value, digits = 3) else paste0('< ', abs(round(value, digits = 3)))
-                  }
-                ),
-                standardDeviation = reactable::colDef(
-                  name = 'StDev',
-                  header = withTooltip("StDev",
-                                       "The standard deviation value of the covariate in the cohort"),
-                  cell = function(value) {
-                    if (value >= 0) round(value, digits = 3) else paste0('< ', abs(round(value, digits = 3)))
-                  }
-                ),
-                medianValue = reactable::colDef(
-                  name = 'Median',
-                  header = withTooltip("Median",
-                                       "The median value of the covariate in the cohort."),
-                  cell = function(value) {
-                    round(value, digits = 3)
-                  }
-                ),
-                minValue = reactable::colDef(
-                  name = 'Min Value',
-                  header = withTooltip("Min Value",
-                                       "Minimum value of the covariate in the cohort"),
-                  format = reactable::colFormat(digits = 3)
-                ),
-                maxValue = reactable::colDef(
-                  name = 'Max Value',
-                  header = withTooltip("Max Value",
-                                       "Maximum value the covariate in the cohort"),
-                  format = reactable::colFormat(digits = 3)
-                ),
-                p25Value = reactable::colDef(
-                  show = FALSE,
-                  header = withTooltip("25th %tile",
-                                       "25th percentile value of the covariate in the cohort"),
-                  format = reactable::colFormat(digits = 3)
-                ),
-                p75Value = reactable::colDef(
-                  show = FALSE,
-                  header = withTooltip("75th %tile",
-                                       "75th percentile value of the covariate in the cohort"),
-                  format = reactable::colFormat(digits = 3)
-                ),
-                p10Value = reactable::colDef(
-                  show = FALSE,
-                  header = withTooltip("10th %tile",
-                                       "10th percentile value of the covariate in the cohort"),
-                  format = reactable::colFormat(digits = 3)
-                ),
-                p90Value = reactable::colDef(
-                  show = FALSE,
-                  header = withTooltip("90th %tile",
-                                       "90th percentile value of the covariate in the cohort"),
-                  format = reactable::colFormat(digits = 3)
-                )
-              )
-              names(newCols) <- paste0(names(newCols),'_',i)
-              
-              continuousCols <- append(
-                continuousCols, 
-                newCols
-              )
+              for(i in seq_len(nrow(countTable))){
+                # Check if columns for this cohort exist in continuousTable
+                
+                # Only add column defs if main columns exist
+                if (all(c(
+                  paste0('countValue_', i),
+                  paste0('averageValue_', i),
+                  paste0('standardDeviation_', i),
+                  paste0('medianValue_', i),
+                  paste0('minValue_', i),
+                  paste0('maxValue_', i)
+                ) %in% colnames(continuousTable))) {
+                  
+                  newCols <- list(
+                    countValue = reactable::colDef(
+                      name = 'Count',
+                      header = withTooltip("Count",
+                                           "Number of people with the covariate in the cohort."),
+                      cell = function(value) {
+                        if(is.null(value)){value <- -1}
+                        if(is.na(value)){value <- -1}
+                        if (value >= 0) value else paste0('< ', abs(value))
+                      },
+                      filterable = T
+                    ),
+                    averageValue = reactable::colDef(
+                      name = 'Mean',
+                      header = withTooltip("Mean",
+                                           "The mean value of the covariate in the cohort"),
+                      cell = function(value) {
+                        if(is.null(value)){value <- -1}
+                        if(is.na(value)){value <- -1}
+                        if (value >= 0) round(value, digits = 3) else paste0('< ', abs(round(value, digits = 3)))
+                      }
+                    ),
+                    standardDeviation = reactable::colDef(
+                      name = 'StDev',
+                      header = withTooltip("StDev",
+                                           "The standard deviation value of the covariate in the cohort"),
+                      cell = function(value) {
+                        if(is.null(value)){value <- -1}
+                        if(is.na(value)){value <- -1}
+                        if (value >= 0) round(value, digits = 3) else paste0('< ', abs(round(value, digits = 3)))
+                      }
+                    ),
+                    medianValue = reactable::colDef(
+                      name = 'Median',
+                      header = withTooltip("Median",
+                                           "The median value of the covariate in the cohort."),
+                      cell = function(value) {
+                        round(value, digits = 3)
+                      }
+                    ),
+                    minValue = reactable::colDef(
+                      name = 'Min Value',
+                      header = withTooltip("Min Value",
+                                           "Minimum value of the covariate in the cohort"),
+                      format = reactable::colFormat(digits = 3)
+                    ),
+                    maxValue = reactable::colDef(
+                      name = 'Max Value',
+                      header = withTooltip("Max Value",
+                                           "Maximum value the covariate in the cohort"),
+                      format = reactable::colFormat(digits = 3)
+                    ),
+                    p25Value = reactable::colDef(
+                      show = FALSE,
+                      header = withTooltip("25th %tile",
+                                           "25th percentile value of the covariate in the cohort"),
+                      format = reactable::colFormat(digits = 3)
+                    ),
+                    p75Value = reactable::colDef(
+                      show = FALSE,
+                      header = withTooltip("75th %tile",
+                                           "75th percentile value of the covariate in the cohort"),
+                      format = reactable::colFormat(digits = 3)
+                    ),
+                    p10Value = reactable::colDef(
+                      show = FALSE,
+                      header = withTooltip("10th %tile",
+                                           "10th percentile value of the covariate in the cohort"),
+                      format = reactable::colFormat(digits = 3)
+                    ),
+                    p90Value = reactable::colDef(
+                      show = FALSE,
+                      header = withTooltip("90th %tile",
+                                           "90th percentile value of the covariate in the cohort"),
+                      format = reactable::colFormat(digits = 3)
+                    )
+                  )
+                  names(newCols) <- paste0(names(newCols),'_',i)
+                  
+                  continuousCols <- append(
+                    continuousCols, 
+                    newCols
+                  )
+                }
               }
               
             resultTableServer(
@@ -444,7 +853,7 @@ characterizationCohortComparisonServer <- function(
               df = continuousTable,
               details = data.frame(
                 Target = reactiveTargetRow()$cohortName,
-                Comparator = reactiveComparatorRow$cohortName,
+                Comparator = reactiveComparatorRow()$cohortName,
                 Database = input$databaseName,
                 Analysis = 'Cohort comparison within database'
               ),
@@ -454,70 +863,6 @@ characterizationCohortComparisonServer <- function(
               elementId = session$ns('continuous-table-filter')
             ) 
 
-          
-            # clean plot data
-            if(nrow(resultTable) > 0){
-              plotDf <- resultTable
-              if(sum(is.na(plotDf)) > 0){
-                plotDf <- plotDf %>%
-                  tidyr::replace_na(list(
-                    averageValue_1 = 0,
-                    averageValue_2 = 0
-                ))
-              }
-            plotDf <- plotDf %>%
-              dplyr::mutate(domain = dplyr::case_when(
-                grepl("condition_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "condition" ~ "Condition",
-                grepl("drug_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "drug" ~ "Drug",
-                grepl("procedure_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "procedure" ~ "Procedure",
-                grepl("measurement_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "measurement" ~ "Measurement",
-                grepl("observation_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "observation" ~ "Observation",
-                grepl("device_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "device" ~ "Device",
-                grepl("cohort_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "cohort" ~ "Cohort",
-                grepl("visit_", .data$covariateName) | sub("\\s.*", "", .data$covariateName) == "visit" ~ "Visit",
-                .default = "Demographic"
-              ))
-            
-            # Create hover text for plotly
-            plotDf$hoverText <- paste(
-              "Covariate Name:", plotDf$covariateName, 
-              "<br>", "Target", ":", scales::percent(plotDf$averageValue_1), 
-              "<br>", "Comparator", ":", scales::percent(plotDf$averageValue_2)
-            )
-            
-            #removing negatives, which come from "< min threshold"
-            plotDf$averageValue_1[plotDf$averageValue_1 < 0] <- 0
-            plotDf$averageValue_2[plotDf$averageValue_2 < 0] <- 0
-            
-            output$scatterPlot <- plotly::renderPlotly({
-              
-              # Create the scatter plot with the diagonal line (x = y)
-              p <- ggplot2::ggplot(plotDf, ggplot2::aes(       x = .data$averageValue_1,
-                                                               y = .data$averageValue_2,
-                                                               color = .data$domain,
-                                                               text = .data$hoverText)) +  # Use hoverText for hover labels
-                ggplot2::geom_point(size = 2) +    # Smaller point size
-                ggplot2::geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +  # Diagonal x=y line in black
-                ggplot2::labs(
-                  x = paste0("Target", " %"),
-                  y = paste0("Comparator", " %"),
-                  color = "Domain",
-                  title = paste0("Database: ", input$databaseName)
-                  ) +
-                ggplot2::theme_minimal() +          # Optional: use a clean theme
-                ggplot2::theme(
-                  plot.title = ggplot2::element_text(margin = ggplot2::margin(b = 10), hjust = 0.5, size = 25, face="bold"),
-                  legend.position = "right",        # Position legend as needed
-                  axis.title = ggplot2::element_text(size = 12),  # Adjust axis title size
-                  axis.text = ggplot2::element_text(size = 10)    # Adjust axis text size
-                ) +
-                ggplot2::scale_x_continuous(labels = scales::percent_format()) +  # Format x-axis as percentage
-                ggplot2::scale_y_continuous(labels = scales::percent_format())    # Format y-axis as percentage
-              
-              # Convert to a plotly object for interactivity
-              plotly::ggplotly(p, tooltip = "text")  # Use the custom hover text
-            })
-            } # if nrow >0
           } # end if counts not NULL
           } else{
             shiny::showNotification('Must select a comparison and target cohort')
@@ -539,13 +884,42 @@ characterizationCohortsColumns <- function(
     ){
   
   res <- list(
-    covariateName = reactable::colDef(
-      name = "Covariate Name",
-      header = withTooltip(
-        "Covariate Name",
-        "The name of the covariate"
-      ), 
+    Covariate = reactable::colDef(
+      name = "Covariate",
+      header = withTooltip("Covariate",
+                           "Concept name of the covariate"),
+      filterable = TRUE,
       minWidth = 300
+    ),
+    domain = reactable::colDef(
+      name = "Domain",
+      header = withTooltip("Domain",
+                           "Clinical domain for the covariate"),
+      filterable = TRUE,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          shiny::tags$option(value = "", "All"),
+          lapply(sort(unique(values)), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
+    ),
+    start = reactable::colDef(
+      name = "Start",
+      header = withTooltip("Start",
+                           "Start of the observed time window when available"),
+      filterable = TRUE
+    ),
+    end = reactable::colDef(
+      name = "End",
+      header = withTooltip("End",
+                           "End of the observed time window when available"),
+      filterable = TRUE
+    ),
+    covariateName = reactable::colDef(
+      show = FALSE
     ),
     covariateId = reactable::colDef(
       show = FALSE,
@@ -589,16 +963,44 @@ characterizationCohortsColumns <- function(
 }
 
 
-characterizationCohortsColumnsContinuous <- function(){
+characterizationCohortsColumnsContinuous <- function(elementId){
   res <- list(
+    Covariate = reactable::colDef(
+      name = "Covariate",
+      header = withTooltip("Covariate",
+                           "Concept name of the covariate"),
+      filterable = TRUE,
+      minWidth = 300
+    ),
+    domain = reactable::colDef(
+      name = "Domain",
+      header = withTooltip("Domain",
+                           "Clinical domain for the covariate"),
+      filterable = TRUE,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          shiny::tags$option(value = "", "All"),
+          lapply(sort(unique(values)), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
+    ),
+    start = reactable::colDef(
+      name = "Start",
+      header = withTooltip("Start",
+                           "Start of the observed time window when available"),
+      filterable = TRUE
+    ),
+    end = reactable::colDef(
+      name = "End",
+      header = withTooltip("End",
+                           "End of the observed time window when available"),
+      filterable = TRUE
+    ),
     covariateName = reactable::colDef(
-      name = "Covariate Name",
-      header = withTooltip(
-        "Covariate Name",
-        "The name of the covariate"
-      ), 
-      filterable = T, 
-      minWidth = 300,
+      show = FALSE
     ),
     covariateId = reactable::colDef(
       show = FALSE,
@@ -636,10 +1038,69 @@ characterizationCohortsColumnsContinuous <- function(){
 }
 
 
+parseCohortComparisonCovariates <- function(df) {
+  if (is.null(df) || nrow(df) == 0 || !"covariateName" %in% colnames(df)) {
+    return(df)
+  }
+
+  extractDayWindow <- function(covariateNames) {
+    start <- rep(NA_real_, length(covariateNames))
+    end <- rep(NA_real_, length(covariateNames))
+
+    patternThrough <- "day\\s*(-?[0-9]+)\\s*through\\s*(-?[0-9]+)"
+    matchesThrough <- regexec(patternThrough, covariateNames, ignore.case = TRUE)
+    capturesThrough <- regmatches(covariateNames, matchesThrough)
+    hasThrough <- lengths(capturesThrough) >= 3
+    if (any(hasThrough)) {
+      start[hasThrough] <- suppressWarnings(as.numeric(vapply(capturesThrough[hasThrough], `[[`, character(1), 2)))
+      end[hasThrough] <- suppressWarnings(as.numeric(vapply(capturesThrough[hasThrough], `[[`, character(1), 3)))
+    }
+
+    patternTo <- "day\\s*(-?[0-9]+)\\s*to\\s*(-?[0-9]+)"
+    matchesTo <- regexec(patternTo, covariateNames, ignore.case = TRUE)
+    capturesTo <- regmatches(covariateNames, matchesTo)
+    hasTo <- lengths(capturesTo) >= 3 & is.na(start)
+    if (any(hasTo)) {
+      start[hasTo] <- suppressWarnings(as.numeric(vapply(capturesTo[hasTo], `[[`, character(1), 2)))
+      end[hasTo] <- suppressWarnings(as.numeric(vapply(capturesTo[hasTo], `[[`, character(1), 3)))
+    }
+
+    list(start = start, end = end)
+  }
+
+  hasPattern <- !is.na(df$covariateName) & grepl(": ", df$covariateName)
+  dayWindow <- extractDayWindow(df$covariateName)
+
+  df$domain <- ifelse(
+    hasPattern,
+    sub("^([^ ]+).*$", "\\1", df$covariateName),
+    NA_character_
+  )
+  df$start <- ifelse(
+    hasPattern,
+    dayWindow$start,
+    NA_real_
+  )
+  df$end <- ifelse(
+    hasPattern,
+    dayWindow$end,
+    NA_real_
+  )
+  df$Covariate <- ifelse(
+    hasPattern,
+    sub("^.*?:\\s*", "", df$covariateName),
+    df$covariateName
+  )
+
+  df %>%
+    dplyr::relocate(.data$Covariate, .data$domain, .data$start, .data$end, .before = .data$covariateName)
+}
+
+
 characterizatonGetCohortData <- function(
     connectionHandler,
     resultDatabaseSettings,
-    targetIds,
+    characterizationTargetIds,
     databaseIds,
     minThreshold = 0.01
 ){
@@ -649,24 +1110,24 @@ characterizatonGetCohortData <- function(
     shiny::incProgress(1/4, detail = paste("Checking inputs"))
     
   
-  if(is.null(targetIds) |  is.null(databaseIds)){
+  if(is.null(characterizationTargetIds) |  is.null(databaseIds)){
     warning('Ids cannot be NULL')
    return(NULL)
   }
     
     shiny::incProgress(2/4, detail = paste("Extracting data"))
     
-    result <- OhdsiReportGenerator::getCharacterizationCohortBinary(
+    result <- OhdsiReportGenerator::characterizationCompareBinary(
       connectionHandler = connectionHandler,
       schema = resultDatabaseSettings$schema,
       cTablePrefix = resultDatabaseSettings$cTablePrefix,
       cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
       databaseTable = resultDatabaseSettings$databaseTable,
-      targetIds = targetIds,
+      characterizationTargetIds = characterizationTargetIds,
       databaseIds = databaseIds,
       minThreshold = minThreshold
     )
-    
+
     shiny::incProgress(4/4, detail = paste("Done"))
   })
   
@@ -678,7 +1139,7 @@ characterizatonGetCohortData <- function(
 characterizatonGetCohortComparisonDataContinuous <- function(
   connectionHandler,
   resultDatabaseSettings,
-  targetIds,
+  characterizationTargetIds,
   databaseIds,
   minThreshold = 0.01
 ){
@@ -688,24 +1149,24 @@ characterizatonGetCohortComparisonDataContinuous <- function(
     shiny::incProgress(1/4, detail = paste("Checking inputs"))
     
 
-  if(is.null(targetIds) |  is.null(databaseIds)){
+  if(is.null(characterizationTargetIds) |  is.null(databaseIds)){
     warning('Ids cannot be NULL')
     return(NULL)
   }
     
-  targetIds <- unique(targetIds)
-  databaseIds <- unique(databaseIds)
+    characterizationTargetIds <- unique(characterizationTargetIds)
+    databaseIds <- unique(databaseIds)
   
     
     shiny::incProgress(2/4, detail = paste("Extracting data"))
     
-    result <- OhdsiReportGenerator::getCharacterizationCohortContinuous(
+    result <- OhdsiReportGenerator::characterizationCompareContinuous(
       connectionHandler = connectionHandler,
       schema = resultDatabaseSettings$schema,
       cTablePrefix = resultDatabaseSettings$cTablePrefix,
       cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
       databaseTable = resultDatabaseSettings$databaseTable,
-      targetIds = targetIds,
+      characterizationTargetIds = characterizationTargetIds,
       databaseIds = databaseIds,
       minThreshold = minThreshold
     )

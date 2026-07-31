@@ -20,29 +20,216 @@
 characterizationDechallengeRechallengeViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
-    
-    shiny::helpText('View how often the outcome occurs just before the target stops (a positive dechallenge) and how often the outcome restarts shortly after the target restarts (positive rechallenge)'),
-    
-    shinydashboard::box(
-      collapsible = TRUE,
-      title = "Options",
-      width = "100%",
-      shiny::uiOutput(ns("inputs"))
+    shiny::tags$style(
+      '
+      .dcrc-viewer-shell {
+        display: grid;
+        gap: 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .dcrc-hero {
+        border-radius: 22px;
+        padding: 22px 24px;
+        background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #fdfcff 100%);
+        border: 1px solid #dbe6f3;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .dcrc-hero-top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 8px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        flex-wrap: wrap;
+      }
+      .dcrc-hero-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        background: linear-gradient(135deg, #7c3aed, #a855f7);
+        box-shadow: 0 12px 20px rgba(124, 58, 237, 0.24);
+        flex: 0 0 auto;
+      }
+      .dcrc-hero-title {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #102033;
+        margin: 0;
+        display: inline-block;
+        white-space: nowrap;
+      }
+      .dcrc-hero-copy {
+        color: #526173;
+        margin: 0;
+        line-height: 1.5;
+        max-width: 880px;
+        overflow-wrap: anywhere;
+      }
+      .dcrc-hero-top > div:last-child {
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+      .dcrc-options-box.box {
+        border-radius: 18px;
+        border-top: 4px solid #2563eb;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        box-sizing: border-box;
+      }
+      .dcrc-options-box .box-header,
+      .dcrc-results-card .box-header {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .dcrc-options-box .box-title,
+      .dcrc-results-card .box-title {
+        display: block;
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
+      }
+      .dcrc-options-box .box-body {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        background: #f8fbff;
+        overflow-x: auto;
+        box-sizing: border-box;
+      }
+      .dcrc-options-card {
+        background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+        border: 1px solid #dbe6f3;
+        border-radius: 16px;
+        padding: 14px 16px 8px 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .dcrc-options-card > div,
+      .dcrc-options-card .shiny-html-output,
+      .dcrc-options-card .table-responsive,
+      .dcrc-options-card .reactable,
+      .dcrc-options-card .rt-table,
+      .dcrc-options-card table {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .dcrc-results-wrap {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .dcrc-results-card {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+        border: 1px solid #dbe5f1;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .dcrc-results-card .box-header {
+        background: linear-gradient(135deg, #123a63 0%, #1d4ed8 100%);
+        color: #ffffff;
+        border-bottom: none;
+      }
+      .dcrc-results-card .box-title {
+        font-weight: 700;
+      }
+      .dcrc-results-card .box-body {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .dcrc-results-panel {
+        margin-top: 14px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      '
     ),
-    
-    shiny::conditionalPanel(
-      condition = 'output.showDechalRechal != 0', 
-      ns = ns,
-      
-      inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
-      
-      shiny::uiOutput(ns('warning')),
-      
+    shiny::div(
+      class = 'dcrc-viewer-shell',
+      shiny::div(
+        class = 'dcrc-hero',
+        shiny::div(
+          class = 'dcrc-hero-top',
+          shiny::div(
+            class = 'dcrc-hero-icon',
+            shiny::icon('redo')
+          ),
+          shiny::div(
+            shiny::tags$h2(class = 'dcrc-hero-title', 'Dechallenge / rechallenge'),
+            shiny::tags$p(
+              class = 'dcrc-hero-copy',
+              'View how often the outcome occurs just before the target stops and how often it restarts shortly after the target restarts.'
+            )
+          )
+        )
+      ),
       shinydashboard::box(
-        status = 'info', 
+        collapsible = TRUE,
+        title = shiny::tagList(shiny::icon('sliders'), 'Analysis options'),
         width = '100%',
-        solidHeader = TRUE,
-        resultTableViewer(ns('tableResults'))
+        class = 'dcrc-options-box',
+        shiny::div(
+          class = 'dcrc-options-card',
+          shiny::uiOutput(ns('inputs'))
+        )
+      ),
+      shiny::conditionalPanel(
+        condition = 'output.showDechalRechal != 0', 
+        ns = ns,
+        shiny::div(
+          class = 'dcrc-results-wrap',
+          shiny::uiOutput(ns('warning')),
+          shinydashboard::box(
+            class = 'dcrc-results-card',
+            status = 'info', 
+            width = '100%',
+            solidHeader = TRUE,
+            shiny::div(
+              class = 'dcrc-results-panel',
+              resultTableViewer(ns('tableResults'))
+            )
+          )
+        )
       )
     )
   )
@@ -52,18 +239,79 @@ characterizationDechallengeRechallengeServer <- function(
   id, 
   connectionHandler,
   resultDatabaseSettings,
-  reactiveTargetRow,
-  outcomeTable,
-  reactiveOutcomeRowId
+  reactiveCharacterizationTargetTable,
+  reactiveOutcomeTable
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       
+      # moving the selections within module rather than shared across
+      reactiveOutcomeRowId <- shiny::reactiveVal(NULL)
+      reactiveCharacterizationTargetRowId <- shiny::reactiveVal(NULL)
+
+      # Reset targetRowId when the table changes to prevent stale indices
+      shiny::observeEvent(moduleCharacterizationTargetTable(), {
+        reactiveCharacterizationTargetRowId(NULL)
+        reactiveOutcomeRowId(NULL)
+      })
+      
+      # restrict to populations with cohort comp data
+      moduleCharacterizationTargetTable <- shiny::reactive({
+        if(!is.null(reactiveCharacterizationTargetTable())){
+          reactiveCharacterizationTargetTable() %>%
+            dplyr::filter(as.integer(.data$dechalRechal) == 1)
+        } else{
+          NULL
+        }
+      })
+      
+      
+      reactiveTargetRow <- shiny::reactive({
+        rowId <- reactiveCharacterizationTargetRowId()
+        targetTable <-  moduleCharacterizationTargetTable()
+        
+        if (is.null(rowId) || length(rowId) == 0 || is.null(targetTable) || nrow(targetTable) == 0) {
+          return(data.frame())
+        }
+        
+        targetTable[rowId, , drop = FALSE]
+      })
+      
+      tableSelectionServer(
+        id = 'char-pop-select-dcrc',
+        table =  moduleCharacterizationTargetTable, 
+        selectedRowId = reactiveCharacterizationTargetRowId,
+        selectMultiple = FALSE, 
+        elementId = session$ns('table-selector-dcrc'),
+        inputColumns = characterizationTargetsColumns(),
+        displayColumns = characterizationSelectedTargetsColumns(), 
+        selectButtonText = 'Select Population'
+      )
+      
       
       output$showDechalRechal <- shiny::reactive(0)
       shiny::outputOptions(output, "showDechalRechal", suspendWhenHidden = FALSE)
       allData <- shiny::reactiveVal(NULL)
+
+      outcomeTableForSelect <- shiny::reactive({
+        out <- reactiveOutcomeTable()
+
+        if (is.null(out) || nrow(out) == 0) {
+          return(data.frame())
+        }
+
+        if (!("cohortId" %in% colnames(out)) && ("cohortDefinitionId" %in% colnames(out))) {
+          out$cohortId <- out$cohortDefinitionId
+        }
+
+        out
+      })
+      
+      # Reset outcomeRowId when the outcome table changes to prevent stale indices
+      shiny::observeEvent(outcomeTableForSelect(), {
+        reactiveOutcomeRowId(NULL)
+      })
       
       # if target or outcome changes hide results
       shiny::observeEvent(reactiveTargetRow(), {
@@ -76,24 +324,40 @@ characterizationDechallengeRechallengeServer <- function(
       
       # INPUTS
       output$inputs <- shiny::renderUI({ # need to make reactive?
+        hasTarget <- !is.null(reactiveTargetRow()) && nrow(reactiveTargetRow()) > 0
+        hasOutcome <- !is.null(reactiveOutcomeRowId()) &&
+          length(reactiveOutcomeRowId()) > 0 &&
+          all(reactiveOutcomeRowId() > 0)
+        canGenerate <- hasTarget && hasOutcome
         
         shiny::div(
-          
-          tableSelectionViewer(id = session$ns('outcome-table-select-dechal')),
-            
-          shiny::actionButton(
-            inputId = session$ns('generate'), 
-            label = 'Generate'
-          )
+          style = 'width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; box-sizing: border-box;',
+        
+          tableSelectionViewer(id = session$ns('char-pop-select-dcrc')),
+
+          if (hasTarget) {
+            tableSelectionViewer(id = session$ns('outcome-table-select-dechal'))
+          },
+
+          shiny::tags$button(
+            id = session$ns('generate'),
+            type = 'button',
+            class = if (canGenerate) 'btn btn-primary action-button' else 'btn btn-default action-button',
+            disabled = if (!canGenerate) 'disabled' else NULL,
+            'Generate'
+          ),
+
+          if (!canGenerate) {
+            shiny::helpText('Select both a population and an outcome to enable Generate.')
+          }
         )
       })
       
       # server for outcome seleciton table
       tableSelectionServer(
         id = 'outcome-table-select-dechal',
-        table = shiny::reactive(outcomeTable() %>%
-                                  dplyr::select("parentName", "cohortName", "cohortId") %>%
-                                  dplyr::relocate("parentName", .before = "cohortName") %>%
+        table = shiny::reactive(outcomeTableForSelect() %>%
+                                  dplyr::select("cohortName", "cohortId") %>%
                                   dplyr::relocate("cohortId", .after = "cohortName")
         ), 
         selectedRowId = reactiveOutcomeRowId,
@@ -104,22 +368,29 @@ characterizationDechallengeRechallengeServer <- function(
         selectButtonText = 'Select Outcome'
       )
       
-      # show selected inputs to user
-      selected <- shiny::reactiveVal()
-      inputSelectionDfServer(
-        id = 'inputSelected', 
-        dataFrameRow = selected,
-        ncol = 1
-      )
 
-      
       # wait for generate to extract data
       shiny::observeEvent(input$generate, {
+        targetRow <- reactiveTargetRow()
+        outcomeTable <- outcomeTableForSelect()
+        outcomeRowId <- reactiveOutcomeRowId()
+        validOutcomeRowId <- outcomeRowId[!is.na(outcomeRowId) & outcomeRowId > 0]
+
+        hasTarget <- !is.null(targetRow) && nrow(targetRow) > 0
+        hasOutcome <- !is.null(outcomeRowId) && length(validOutcomeRowId) > 0 &&
+          !is.null(outcomeTable) && nrow(outcomeTable) >= max(validOutcomeRowId)
+
+        if (!hasTarget || !hasOutcome) {
+          output$showDechalRechal <- shiny::reactive(0)
+          allData(NULL)
+          shiny::showNotification('Select both a population and an outcome before generating.')
+          return(NULL)
+        }
         
-        reactiveOutcomeRow <- outcomeTable()[reactiveOutcomeRowId(),]
+        reactiveOutcomeRow <- outcomeTableForSelect()[reactiveOutcomeRowId(), , drop = FALSE]
         
         if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow)){
-          output$showTimeToEvent <- shiny::reactive(0)
+          output$showDechalRechal <- shiny::reactive(0)
           allData(NULL)
           return(NULL)
         } else{
@@ -128,58 +399,13 @@ characterizationDechallengeRechallengeServer <- function(
             
             output$showDechalRechal <- shiny::reactive(1)
             
-            selected(
-              data.frame(
-                Target = reactiveTargetRow()$cohortName,
-                Outcome = reactiveOutcomeRow$cohortName
-              )
-            )
-            
             allData(
               getDechalRechalInputsData(
-                targetId = reactiveTargetRow()$cohortId,
+                characterizationTargetId = reactiveTargetRow()$characterizationTargetId,
                 outcomeId = reactiveOutcomeRow$cohortId,
                 connectionHandler = connectionHandler,
                 resultDatabaseSettings
               )
-            )
-            
-            
-            # code to add warning when not unique
-            #========
-            targetUniquePeople <- isCohortUniquePeople(
-                connectionHandler = connectionHandler, 
-                resultDatabaseSettings = resultDatabaseSettings,
-                cohortId = reactiveTargetRow()$cohortId
-              )
-            
-            outcomeUniquePeople <- isCohortUniquePeople(
-                connectionHandler = connectionHandler, 
-                resultDatabaseSettings = resultDatabaseSettings,
-                cohortId = reactiveOutcomeRow$cohortId
-              )
-            
-            output$warning <- shiny::renderUI(
-              if(targetUniquePeople || outcomeUniquePeople){
-                shinydashboard::box(
-                  status = 'warning', 
-                  width = '100%',
-                  title = shiny::span( shiny::icon("triangle-exclamation"),'Warnings'),
-                  solidHeader = TRUE,
-                  shiny::p(
-                    ifelse(targetUniquePeople,
-                           'WARNING: The target cohort does not have multiple records per person, so observing rechallenge attempts not possible.',
-                           '') 
-                  ),
-                  shiny::p(
-                    ifelse(outcomeUniquePeople,
-                           'WARNING: The outcome cohort does not have multiple records per person, so observing rechallenge attempts not possible.',
-                           '') 
-                  )
-                )
-              } else{
-                shiny::renderUI(shiny::div())
-              }
             )
             
             #========
@@ -198,26 +424,38 @@ characterizationDechallengeRechallengeServer <- function(
         df = allData,
         details = shiny::reactive(data.frame(
           target = reactiveTargetRow()$cohortName,
-          outcome = outcomeTable()[reactiveOutcomeRowId(),]$chortName,
+          outcome = outcomeTableForSelect()[reactiveOutcomeRowId(),]$cohortName,
           Analysis = 'Exposed Cases Summary - Dechallenge-Rechallenge'
         ))(),
         downloadedFileName = 'dechallege-rechallenge',
         colDefsInput = characteriationDechalRechalColDefs(),
-        addActions = c('fails'), 
+        addActions = list(
+          OhdsiShinyModules::createActionButton(
+            actionType = 'fails',
+            buttonIcon = 'triangle-exclamation',
+            hoverText = 'View failed plots for this row',
+            buttonLabel = 'View Fails',
+            buttonClass = 'btn btn-xs',
+            buttonStyle = OhdsiShinyModules::actionButtonStyleWarning()
+          )
+        ),
         elementId = session$ns('dechal-rechal-main')
       )
       
 
       failData <- shiny::reactiveVal(NULL)
       shiny::observeEvent(tableOutputs$actionCount(), {
-        if(!is.null(tableOutputs$actionType())){
+        actionInfo <- tableOutputs$actionIndex()
+        actionRow <- if (!is.null(actionInfo) && !is.null(actionInfo$index)) actionInfo$index else NA
+
+        if(!is.null(tableOutputs$actionType()) && !is.na(actionRow) && actionRow > 0){
           if(tableOutputs$actionType() == 'fails'){
             result <- getDechalRechalFailData(
-              targetId = reactiveTargetRow()$cohortId,
-              outcomeId = outcomeTable()[reactiveOutcomeRowId(),]$cohortId,
-              databaseId = allData()$databaseId[tableOutputs$actionIndex()$index], # update?
-              dechallengeStopInterval = allData()$dechallengeStopInterval[tableOutputs$actionIndex()$index],
-              dechallengeEvaluationWindow = allData()$dechallengeEvaluationWindow[tableOutputs$actionIndex()$index],
+              characterizationTargetId = reactiveTargetRow()$characterizationTargetId,
+              outcomeId = outcomeTableForSelect()[reactiveOutcomeRowId(),]$cohortId,
+              databaseId = allData()$databaseId[actionRow],
+              dechallengeStopInterval = allData()$dechallengeStopInterval[actionRow],
+              dechallengeEvaluationWindow = allData()$dechallengeEvaluationWindow[actionRow],
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings
             )
@@ -259,13 +497,13 @@ characterizationDechallengeRechallengeServer <- function(
 
 # pulls all data for a target and outcome
 getDechalRechalInputsData <- function(
-  targetId,
+    characterizationTargetId,
   outcomeId,
   connectionHandler,
   resultDatabaseSettings
 ){
   
-  if(is.null(targetId)){
+  if(is.null(characterizationTargetId)){
     return(NULL)
   }
   
@@ -278,7 +516,7 @@ getDechalRechalInputsData <- function(
       cTablePrefix = resultDatabaseSettings$cTablePrefix, 
       cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
       databaseTable = resultDatabaseSettings$databaseTable, 
-      targetIds = targetId, 
+      characterizationTargetIds = characterizationTargetId, 
       outcomeIds = outcomeId
         )
   
@@ -291,7 +529,7 @@ getDechalRechalInputsData <- function(
 
 
 getDechalRechalFailData <- function(
-  targetId,
+    characterizationTargetId,
   outcomeId,
   databaseId,
   dechallengeStopInterval,
@@ -300,7 +538,7 @@ getDechalRechalFailData <- function(
   resultDatabaseSettings
 ){
 
-  if(is.null(targetId)){
+  if(is.null(characterizationTargetId)){
     return(NULL)
   }
 
@@ -313,7 +551,7 @@ getDechalRechalFailData <- function(
       connectionHandler = connectionHandler, 
       schema = resultDatabaseSettings$schema,
       cTablePrefix = resultDatabaseSettings$cTablePrefix,
-      targetId = targetId, 
+      characterizationTargetId = characterizationTargetId, 
       outcomeId = outcomeId,
       databaseId = databaseId,
       dechallengeStopInterval = dechallengeStopInterval,
@@ -326,33 +564,6 @@ getDechalRechalFailData <- function(
   
   return(data)
   
-}
-
-isCohortUniquePeople <- function(
-    connectionHandler, 
-    resultDatabaseSettings,
-    cohortId
-) {
-  
-  sql <- "SELECT 
-  cc.database_id, cc.cohort_id, cc.cohort_entries, cc.cohort_subjects
-  FROM @schema.@cg_table_prefixCOHORT_COUNT cc
-  where cc.cohort_id = @cohort_id
-  ;"
-  res <- tryCatch({connectionHandler$queryDb(
-      sql = sql,
-      schema = resultDatabaseSettings$schema,
-      cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
-      cohort_id = cohortId
-  )}, error = function(e){return(NULL)}
-  )
-  
-  # if table is missing the warning will not happen
-  if(is.null(res)){
-    return(TRUE)
-  }else{
-    return(sum(res$cohortEntries == res$cohortSubjects) == nrow(res))
-  }
 }
 
 plotDechalRechal <- function(
@@ -397,7 +608,7 @@ plotDechalRechal <- function(
         dplyr::select(
           c(
           "PID", 
-          "targetCohortDefinitionId", 
+          "characterizationTargetId", 
           "outcomeCohortDefinitionId", 
           "personKey", 
           "dechallengeExposureNumber",
@@ -426,7 +637,7 @@ plotDechalRechal <- function(
         dplyr::select(
           c(
           "PID", 
-          "targetCohortDefinitionId", 
+          "characterizationTargetId", 
           "outcomeCohortDefinitionId", 
           "personKey", 
           "dechallengeOutcomeNumber", 
@@ -447,7 +658,7 @@ plotDechalRechal <- function(
         dplyr::select(
           c(
           "PID", 
-          "targetCohortDefinitionId", 
+          "characterizationTargetId", 
           "outcomeCohortDefinitionId", 
           "personKey", 
           "rechallengeExposureNumber", 
@@ -480,7 +691,7 @@ plotDechalRechal <- function(
         dplyr::select(
           c(
           "PID", 
-          "targetCohortDefinitionId", 
+          "characterizationTargetId", 
           "outcomeCohortDefinitionId", 
           "personKey", 
           "rechallengeOutcomeNumber", 
@@ -594,12 +805,22 @@ characteriationDechalRechalColDefs <- function(){
     databaseId = reactable::colDef(
       show = FALSE
     ),
+    characterizationTargetId = reactable::colDef(
+      show = FALSE
+    ),
     targetId = reactable::colDef(
       show = FALSE
     ),
-    targetName = reactable::colDef(
-      show = FALSE
-    ),
+    targetName = reactable::colDef(show = FALSE),
+    limitToFirstInNDays = reactable::colDef(show = FALSE),    
+    minPriorObservation= reactable::colDef(show = FALSE),
+    nestingCohortId = reactable::colDef(show = FALSE),
+    nestingName = reactable::colDef(show = FALSE),
+    minAge = reactable::colDef(show = FALSE),
+    maxAge = reactable::colDef(show = FALSE),
+    studyStart= reactable::colDef(show = FALSE),
+    studyEnd = reactable::colDef(show = FALSE),
+    genderConceptIds= reactable::colDef(show = FALSE),
     outcomeId = reactable::colDef(
       show = FALSE
     ),

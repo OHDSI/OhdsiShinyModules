@@ -9,7 +9,7 @@ targetCohort <- OhdsiReportGenerator::getTargetTable(
 outcomeCohort <- OhdsiReportGenerator::getOutcomeTable(
   connectionHandler = connectionHandlerCharacterization,
   schema = resultDatabaseSettingsCharacterization$schema, 
-  targetId = targetCohort$cohortId[4],
+  targetId = targetCohort$cohortDefinitionId[4],
   ciTablePrefix = resultDatabaseSettingsCharacterization$incidenceTablePrefix
 )
 
@@ -20,7 +20,7 @@ shiny::testServer(
     connectionHandler = connectionHandlerCharacterization,
     resultDatabaseSettings = resultDatabaseSettingsCharacterization,
     reactiveTargetRow = shiny::reactive(targetCohort[4,]), 
-    outcomeTable = shiny::reactive(outcomeCohort)
+    reactiveOutcomeTable = shiny::reactive(outcomeCohort)
   ), 
   expr = {
     
@@ -45,12 +45,14 @@ shiny::testServer(
     
     # adding code to manually set incidenceFullData()
     # figure out why it is not working with generate?
-    data <- OhdsiReportGenerator::getIncidenceRates(
+    data <- getCharacterizationIncidence(
       connectionHandler = connectionHandler, 
       schema = resultDatabaseSettings$schema, 
       ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix, 
-      targetIds = targetCohort$cohortId[4], 
-      outcomeIds = outcomeCohort$cohortId[1]
+      cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+      databaseTable = resultDatabaseSettings$databaseTable,
+      targetIds = reactiveTargetRow()$cohortDefinitionId, 
+      outcomeIds = reactiveOutcomeRows()$cohortDefinitionId
       )
     testthat::expect_true(nrow(data) > 0 )
     incidenceFullData(data)
@@ -66,7 +68,7 @@ shiny::testServer(
     session$setInputs(
       databaseSelectorPlot = databaseNames()[1],
       outcomesPlot = unique(outcomeCohort$cohortName),
-      xAxis = FALSE,
+      xAxis = 'Age',
       sexStratifyPlot = FALSE,
       scaleVal = FALSE
     )

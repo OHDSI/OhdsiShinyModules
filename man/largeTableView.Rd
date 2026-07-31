@@ -26,8 +26,8 @@ More limited than other table components in terms of automatic handling of searc
 filtering but will allow responsive apps
 }
 \seealso{
-Other LargeTables: 
-\code{\link{createLargeSqlQueryDt}()},
-\code{\link{largeTableServer}()}
+Other LargeTables:
+\code{\link[=createLargeSqlQueryDt]{createLargeSqlQueryDt()}},
+\code{\link[=largeTableServer]{largeTableServer()}}
 }
 \concept{LargeTables}

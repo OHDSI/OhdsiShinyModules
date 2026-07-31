@@ -20,48 +20,284 @@
 characterizationTimeToEventViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
-    
-    shiny::helpText('View the timing of all outcomes relative to the target index date and whether the outcome was the frist or subsequent.'),
-    
-    shinydashboard::box(
-      collapsible = TRUE,
-      title = "Options",
-      width = "100%",
-      shiny::uiOutput(ns("inputs"))
+    shiny::tags$style(
+      '
+      .tte-viewer-shell {
+        display: grid;
+        gap: 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+      .tte-hero {
+        border-radius: 22px;
+        padding: 22px 24px;
+        background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #fdfcff 100%);
+        border: 1px solid #dbe6f3;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .tte-hero-top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 8px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        flex-wrap: wrap;
+      }
+      .tte-hero-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        background: linear-gradient(135deg, #f59e0b, #fb923c);
+        box-shadow: 0 12px 20px rgba(245, 158, 11, 0.24);
+        flex: 0 0 auto;
+      }
+      .tte-hero-title {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #102033;
+        margin: 0;
+        display: inline-block;
+        white-space: nowrap;
+      }
+      .tte-hero-copy {
+        color: #526173;
+        margin: 0;
+        line-height: 1.5;
+        max-width: 880px;
+        overflow-wrap: anywhere;
+      }
+      .tte-hero-top > div:last-child {
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+      .tte-options-box.box {
+        border-radius: 18px;
+        border-top: 4px solid #2563eb;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        box-sizing: border-box;
+      }
+      .tte-options-box .box-header,
+      .tte-results-card .box-header {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .tte-options-box .box-title,
+      .tte-results-card .box-title {
+        display: block;
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
+      }
+      .tte-results-card {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+        border: 1px solid #dbe5f1;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .tte-tabs,
+      .tte-tabs .tab-content,
+      .tte-tabs .tab-pane {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .tte-tabs .nav-tabs,
+      .tte-tabs .nav-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        border-bottom: none;
+      }
+      .tte-tabs .nav > li {
+        float: none;
+        margin: 0;
+      }
+      .tte-results-card .box-header {
+        background: linear-gradient(135deg, #123a63 0%, #1d4ed8 100%);
+        color: #ffffff;
+        border-bottom: none;
+      }
+      .tte-results-card .box-title {
+        font-weight: 700;
+      }
+      .tte-tabs .nav > li > a {
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .tte-tabs .nav-pills > li.active > a,
+      .tte-tabs .nav-pills > li.active > a:focus,
+      .tte-tabs .nav-pills > li.active > a:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+        box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+      }
+      .tte-tab-panel-wrap {
+        margin-top: 14px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .tte-filters-card {
+        background: #f8fbff;
+        border: 1px solid #dde7f2;
+        border-radius: 16px;
+        padding: 14px 16px 6px 16px;
+        margin-bottom: 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .tte-filters-card > div,
+      .tte-filters-card .shiny-html-output,
+      .tte-filters-card .table-responsive,
+      .tte-filters-card .reactable,
+      .tte-filters-card .rt-table,
+      .tte-filters-card table {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .tte-filters-card .form-group,
+      .tte-filters-card .form-control,
+      .tte-filters-card .bootstrap-select,
+      .tte-filters-card .bootstrap-select > .dropdown-toggle,
+      .tte-filters-card .dropdown-menu {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box;
+      }
+      .tte-filters-card .bootstrap-select,
+      .tte-filters-card .bootstrap-select > .dropdown-toggle {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .tte-filters-card .bootstrap-select .dropdown-menu {
+        max-width: 100% !important;
+      }
+      .tte-filters-card .bootstrap-select .dropdown-toggle {
+        overflow: hidden;
+      }
+      .tte-filters-card .bootstrap-select .dropdown-toggle .filter-option,
+      .tte-filters-card .bootstrap-select .dropdown-toggle .filter-option-inner,
+      .tte-filters-card .bootstrap-select .dropdown-toggle .filter-option-inner-inner {
+        max-width: 100% !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tte-options-box .box-body,
+      .tte-results-card .box-body {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        box-sizing: border-box;
+      }
+      '
     ),
-    
-    shiny::conditionalPanel(
-      condition = 'output.showTimeToEvent != 0', 
-      ns = ns,
-      
-      inputSelectionDfViewer(id = ns('inputSelected'), title = 'Selected'),
-      
-      shiny::tabsetPanel(
-        type = 'pills',
-        id = ns('tteMainPanel'),
-        
-        shiny::tabPanel(
-          title = "Time-to-event Plots",
-          
-          shinydashboard::box(
-            width = "100%",
-            title = "",
-            
-            shiny::uiOutput(ns('timeToEventPlotInputs')),
-            shinycssloaders::withSpinner(
-              shiny::plotOutput(ns('timeToEvent'))
+    shiny::div(
+      class = 'tte-viewer-shell',
+      shiny::div(
+        class = 'tte-hero',
+        shiny::div(
+          class = 'tte-hero-top',
+          shiny::div(
+            class = 'tte-hero-icon',
+            shiny::icon('clock')
+          ),
+          shiny::div(
+            shiny::tags$h2(class = 'tte-hero-title', 'Time-to-event'),
+            shiny::tags$p(
+              class = 'tte-hero-copy',
+              'Explore when outcomes occur relative to the target index date, compare timing patterns across databases, and review the underlying counts in a polished, easy-to-scan view.'
             )
           )
-        ),
-        
-        shiny::tabPanel(
-          title = "Time-to-event Table",
-          
-          shinydashboard::box(
-            status = 'info', 
-            width = '100%',
-            solidHeader = TRUE,
-            resultTableViewer(ns('tableResults'))
+        )
+      ),
+      shinydashboard::box(
+        collapsible = TRUE,
+        title = shiny::tagList(shiny::icon('sliders'), 'Analysis options'),
+        width = '100%',
+        class = 'tte-options-box',
+        shiny::div(
+          class = 'tte-filters-card',
+          shiny::uiOutput(ns('inputs'))
+        )
+      ),
+      shiny::conditionalPanel(
+        condition = 'output.showTimeToEvent != 0',
+        ns = ns,
+        shiny::div(
+          class = 'tte-tabs',
+          shiny::tabsetPanel(
+            type = 'pills',
+            id = ns('tteMainPanel'),
+            shiny::tabPanel(
+              title = 'Time-to-event Plots',
+              shiny::div(
+                class = 'tte-tab-panel-wrap',
+                shinydashboard::box(
+                  width = '100%',
+                  class = 'tte-results-card',
+                  title = '',
+                  shiny::uiOutput(ns('timeToEventPlotInputs')),
+                  shinycssloaders::withSpinner(
+                    shiny::plotOutput(ns('timeToEvent'))
+                  )
+                )
+              )
+            ),
+            shiny::tabPanel(
+              title = 'Time-to-event Table',
+              shiny::div(
+                class = 'tte-tab-panel-wrap',
+                shinydashboard::box(
+                  class = 'tte-results-card',
+                  status = 'info',
+                  width = '100%',
+                  solidHeader = TRUE,
+                  resultTableViewer(ns('tableResults'))
+                )
+              )
+            )
           )
         )
       )
@@ -74,14 +310,59 @@ characterizationTimeToEventServer <- function(
   id, 
   connectionHandler,
   resultDatabaseSettings,
-  reactiveTargetRow,
-  outcomeTable,
-  reactiveOutcomeRowId,
-  outcomeRow
+  reactiveCharacterizationTargetTable,
+  reactiveOutcomeTable
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
+      
+      # moving the selections within module rather than shared across
+      reactiveOutcomeRowId <- shiny::reactiveVal(NULL)
+      reactiveCharacterizationTargetRowId <- shiny::reactiveVal(NULL)
+
+      # Reset outcomeRowId when the outcome table changes to prevent stale indices
+      shiny::observeEvent(reactiveOutcomeTable(), {
+        reactiveOutcomeRowId(NULL)
+      })
+
+      # Reset targetRowId when the table changes to prevent stale indices
+      shiny::observeEvent(moduleCharacterizationTargetTable(), {
+        reactiveCharacterizationTargetRowId(NULL)
+        reactiveOutcomeRowId(NULL)
+      })
+      
+      # restrict to populations with cohort comp data
+      moduleCharacterizationTargetTable <- shiny::reactive({
+        if(!is.null(reactiveCharacterizationTargetTable())){
+          reactiveCharacterizationTargetTable() %>%
+            dplyr::filter(as.integer(.data$timeToEvent) == 1)
+        } else{
+          NULL
+        }
+      })
+      
+      reactiveTargetRow <- shiny::reactive({
+        rowId <- reactiveCharacterizationTargetRowId()
+        targetTable <- moduleCharacterizationTargetTable()
+        
+        if (is.null(rowId) || length(rowId) == 0 || is.null(targetTable) || nrow(targetTable) == 0) {
+          return(data.frame())
+        }
+        
+        targetTable[rowId, , drop = FALSE]
+      })
+      
+      tableSelectionServer(
+        id = 'char-pop-select-tte',
+        table = moduleCharacterizationTargetTable, 
+        selectedRowId = reactiveCharacterizationTargetRowId,
+        selectMultiple = FALSE, 
+        elementId = session$ns('table-selector-tte'),
+        inputColumns = characterizationTargetsColumns(),
+        displayColumns = characterizationSelectedTargetsColumns(), 
+        selectButtonText = 'Select Population'
+      )
       
       output$showTimeToEvent <- shiny::reactive(0)
       shiny::outputOptions(output, "showTimeToEvent", suspendWhenHidden = FALSE)
@@ -97,26 +378,44 @@ characterizationTimeToEventServer <- function(
       
       # inputs
       output$inputs <- shiny::renderUI({ # need to make reactive?
+        targetRowId <- reactiveCharacterizationTargetRowId()
+        outcomeRowId <- reactiveOutcomeRowId()
+        outcomeTable <- reactiveOutcomeTable()
+        validOutcomeRowId <- outcomeRowId[!is.na(outcomeRowId) & outcomeRowId > 0]
+
+        hasTarget <- !is.null(targetRowId) && length(targetRowId) > 0 && all(targetRowId > 0)
+        hasOutcome <- !is.null(outcomeRowId) && length(validOutcomeRowId) > 0 &&
+          !is.null(outcomeTable) && nrow(outcomeTable) >= max(validOutcomeRowId)
+        canGenerate <- hasTarget && hasOutcome
         
         shiny::div(
+          style = 'width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; box-sizing: border-box;',
           
-          tableSelectionViewer(id = session$ns('outcome-table-select-tte')),
+          tableSelectionViewer(id = session$ns('char-pop-select-tte')),
 
-          shiny::actionButton(
-            inputId = session$ns('generate'), 
-            label = 'Generate'
-            ),
-        )})
+          if (hasTarget) {
+            tableSelectionViewer(id = session$ns('outcome-table-select-tte'))
+          },
+
+          shiny::tags$button(
+            id = session$ns('generate'),
+            type = 'button',
+            class = if (canGenerate) 'btn btn-primary action-button' else 'btn btn-default action-button',
+            disabled = if (!canGenerate) 'disabled' else NULL,
+            'Generate'
+          ),
+
+          if (!canGenerate) {
+            shiny::helpText('Select both a population and an outcome to enable Generate.')
+          }
+        )
+      })
       
       
       # server for outcome seleciton table
       tableSelectionServer(
         id = 'outcome-table-select-tte',
-        table = shiny::reactive(outcomeTable() %>%
-                                  dplyr::select("parentName", "cohortName", "cohortId") %>%
-                                  dplyr::relocate("parentName", .before = "cohortName") %>%
-                                  dplyr::relocate("cohortId", .after = "cohortName")
-        ), 
+        table = reactiveOutcomeTable, 
         selectedRowId = reactiveOutcomeRowId,
         selectMultiple = FALSE, 
         elementId = session$ns('table-outcome-selector'),
@@ -124,19 +423,12 @@ characterizationTimeToEventServer <- function(
         displayColumns = characterizationOutcomeDisplayColumns(), 
         selectButtonText = 'Select Outcome'
       )
-      
-      # show selected inputs to user
-      selected <- shiny::reactiveVal()
-      inputSelectionDfServer(
-        id = 'inputSelected', 
-        dataFrameRow = selected,
-        ncol = 1
-      )
+  
       
       # wait for generate to extract data
       shiny::observeEvent(input$generate, {
         
-        reactiveOutcomeRow <- outcomeTable()[reactiveOutcomeRowId(),]
+        reactiveOutcomeRow <- reactiveOutcomeTable()[reactiveOutcomeRowId(),]
         
         if(is.null(reactiveTargetRow()) | is.null(reactiveOutcomeRow)){
           output$showTimeToEvent <- shiny::reactive(0)
@@ -146,19 +438,12 @@ characterizationTimeToEventServer <- function(
           
           if(nrow(reactiveTargetRow()) > 0 & nrow(reactiveOutcomeRow) > 0 ){
             
-            selected(
-              data.frame(
-                Target = reactiveTargetRow()$cohortName,
-                Outcome = reactiveOutcomeRow$cohortName
-              )
-            )
-            
             # add code to show T and O selected 
             
             output$showTimeToEvent <- shiny::reactive(1)
             
             allData(getTimeToEventData(
-              targetId = reactiveTargetRow()$cohortId,
+              characterizationTargetId = reactiveTargetRow()$characterizationTargetId,
               outcomeId = reactiveOutcomeRow$cohortId,
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings
@@ -220,31 +505,36 @@ characterizationTimeToEventServer <- function(
                 shiny::selectInput(
                   inputId = session$ns("times"), 
                   label = "Timespan:",
-                  multiple = T, 
+                  multiple = FALSE,
                   choices =  unique(allData()$timeScale),
-                  selected =  unique(allData()$timeScale)
+                  selected =  unique(allData()$timeScale)[1]
                 )
               ),
               
               shiny::column(
                 width = 3,
-                shiny::selectInput(
-                  inputId = session$ns("outcomeTypes"), 
-                  label = "Outcome occurrence type:",
-                  multiple = T, 
-                  choices =  unique(allData()$outcomeType),
-                  selected =  unique(allData()$outcomeType)
+                shiny::checkboxInput(
+                  inputId = session$ns("colorByOutcomeTypes"),
+                  label = "Color by outcome occurrence type",
+                  value = FALSE
                 )
               ),
               
               shiny::column(
-                width = 6,
-                shiny::selectInput(
-                  inputId = session$ns("targetOutcomeTypes"), 
-                  label = "Timing of outcome:",
-                  multiple = T, 
-                  choices =  unique(allData()$targetOutcomeType),
-                  selected =  unique(allData()$targetOutcomeType)
+                width = 3,
+                shiny::checkboxInput(
+                  inputId = session$ns("colorByTargetOutcomeTypes"),
+                  label = "Color by timing of outcome",
+                  value = FALSE
+                )
+              ),
+
+              shiny::column(
+                width = 3,
+                shiny::checkboxInput(
+                  inputId = session$ns("freeYByDatabase"),
+                  label = "Free y-axis by database",
+                  value = TRUE
                 )
               )
             )
@@ -260,8 +550,9 @@ characterizationTimeToEventServer <- function(
             timeToEventData = allData, # reactive
             databases = input$databases,
             times = input$times,
-            outcomeTypes = input$outcomeTypes,
-            targetOutcomeTypes = input$targetOutcomeTypes
+            colorByOutcomeTypes = input$colorByOutcomeTypes,
+            colorByTargetOutcomeTypes = input$colorByTargetOutcomeTypes,
+            freeYByDatabase = input$freeYByDatabase
           )
         )
     
@@ -274,12 +565,12 @@ characterizationTimeToEventServer <- function(
 
 # pulls all data for a target and outcome
 getTimeToEventData <- function(
-  targetId,
+    characterizationTargetId,
   outcomeId,
   connectionHandler,
   resultDatabaseSettings
 ){
-  if(is.null(targetId)){
+  if(is.null(characterizationTargetId)){
     return(NULL)
   }
   
@@ -293,7 +584,7 @@ getTimeToEventData <- function(
       cTablePrefix = resultDatabaseSettings$cTablePrefix, 
       cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
       databaseTable = resultDatabaseSettings$databaseTable, 
-      targetIds = targetId, 
+      characterizationTargetIds = characterizationTargetId, 
       outcomeIds = outcomeId
     ) 
   
@@ -308,8 +599,9 @@ plotTimeToEvent <- function(
   timeToEventData,
   databases,
   times,
-  outcomeTypes,
-  targetOutcomeTypes
+  colorByOutcomeTypes,
+  colorByTargetOutcomeTypes,
+  freeYByDatabase
 ){
   
   if(is.null(timeToEventData())){
@@ -334,11 +626,7 @@ plotTimeToEvent <- function(
   
   # remove censored data
   timeToEventData <- timeToEventData %>% 
-    dplyr::filter(
-      .data$outcomeType %in% outcomeTypes &
-      .data$targetOutcomeType %in% targetOutcomeTypes &
-      .data$numEvents > 0
-      )
+    dplyr::filter(.data$numEvents > 0)
   
   # TODO plot censored as black?
   
@@ -348,16 +636,34 @@ plotTimeToEvent <- function(
   }
   
   nDatabases <- length(unique(timeToEventData$databaseId))
+  facetScales <- if (isTRUE(freeYByDatabase)) "free_y" else "fixed"
   
   shiny::withProgress(message = 'Plotting time to event', value = 0, {
   
   shiny::incProgress(1/2, detail = paste("Generating plot"))
+
+  fillGroup <- rep("All events", nrow(timeToEventData))
+  if (isTRUE(colorByOutcomeTypes) && isTRUE(colorByTargetOutcomeTypes)) {
+    fillGroup <- paste0(timeToEventData$outcomeType, " - ", timeToEventData$targetOutcomeType)
+  } else if (isTRUE(colorByOutcomeTypes)) {
+    fillGroup <- timeToEventData$outcomeType
+  } else if (isTRUE(colorByTargetOutcomeTypes)) {
+    fillGroup <- timeToEventData$targetOutcomeType
+  }
+
+  timeToEventData$fillGroup <- fillGroup
+
+  legendTitle <- ""
+  if (isTRUE(colorByOutcomeTypes) && isTRUE(colorByTargetOutcomeTypes)) {
+    legendTitle <- "Outcome Type + Timing"
+  } else if (isTRUE(colorByOutcomeTypes)) {
+    legendTitle <- "Outcome Type"
+  } else if (isTRUE(colorByTargetOutcomeTypes)) {
+    legendTitle <- "Timing of Outcome"
+  }
   
   plot <- ggplot2::ggplot(
-    data = timeToEventData %>% 
-      dplyr::mutate(
-        fillGroup = paste0(.data$outcomeType, '-', .data$targetOutcomeType)
-        ), 
+    data = timeToEventData,
     ggplot2::aes(
       x = .data$timeToEvent, 
       y = .data$numEvents,
@@ -369,11 +675,21 @@ plotTimeToEvent <- function(
       stat = "identity"
       ) +
     ggplot2::facet_wrap(ncol = nDatabases ,
-      .data$timeScale ~ .data$databaseName , scales = 'free'
+      .data$timeScale ~ .data$databaseName , scales = facetScales
         ) +
     ggplot2::theme_minimal() + 
-    ggplot2::guides(fill=ggplot2::guide_legend(title="Outcome Type")) + 
-    ggplot2::labs(y= "# of Events", x = "Time (days) to Event")
+    ggplot2::scale_x_continuous(labels = scales::label_comma()) +
+    ggplot2::labs(y= "# of Events", x = "Time (days) to Event") +
+    ggplot2::theme(
+      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)
+    )
+
+  if (isTRUE(colorByOutcomeTypes) || isTRUE(colorByTargetOutcomeTypes)) {
+    plot <- plot + ggplot2::guides(fill = ggplot2::guide_legend(title = legendTitle))
+  } else {
+    plot <- plot +
+      ggplot2::scale_fill_manual(values = c("All events" = "black"), guide = "none")
+  }
   
   shiny::incProgress(2/2, detail = paste("Finished"))
   
