@@ -17,6 +17,9 @@ The viewer function for hte datasources module
 }
 \seealso{
 Other Utils:
+\code{\link[=actionButtonStyleInfo]{actionButtonStyleInfo()}},
+\code{\link[=actionButtonStyleWarning]{actionButtonStyleWarning()}},
+\code{\link[=createActionButton]{createActionButton()}},
 \code{\link[=datasourcesHelperFile]{datasourcesHelperFile()}},
 \code{\link[=datasourcesServer]{datasourcesServer()}},
 \code{\link[=getLogoImage]{getLogoImage()}},

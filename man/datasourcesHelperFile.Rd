@@ -14,6 +14,9 @@ Define the helper file for the module
 }
 \seealso{
 Other Utils:
+\code{\link[=actionButtonStyleInfo]{actionButtonStyleInfo()}},
+\code{\link[=actionButtonStyleWarning]{actionButtonStyleWarning()}},
+\code{\link[=createActionButton]{createActionButton()}},
 \code{\link[=datasourcesServer]{datasourcesServer()}},
 \code{\link[=datasourcesViewer]{datasourcesViewer()}},
 \code{\link[=getLogoImage]{getLogoImage()}},

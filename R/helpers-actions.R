@@ -8,6 +8,8 @@
 #' @param buttonClass string, CSS classes applied to the button element.
 #' @param buttonStyle string, inline CSS style applied to the button element.
 #' @param buttonLabel string, button text shown to the user.
+#' 
+#' @family Utils
 #'
 #' @return A list with action button settings.
 #' @export
@@ -46,6 +48,8 @@ createActionButton <- function(
 #' Shared styling for neutral/info action pills used in result tables.
 #'
 #' @return A CSS style string.
+#' @family Utils
+#' 
 #' @export
 actionButtonStyleInfo <- function() {
   paste0(
@@ -61,6 +65,8 @@ actionButtonStyleInfo <- function() {
 #' Shared styling for warning/attention action pills used in result tables.
 #'
 #' @return A CSS style string.
+#' @family Utils
+#' 
 #' @export
 actionButtonStyleWarning <- function() {
   paste0(
