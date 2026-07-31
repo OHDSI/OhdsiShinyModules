@@ -1,3 +1,8 @@
+OhdsiShinyModules v3.6.0
+========================
+- updated characterization/about/data/cohort modules to give asthetic facelift
+- updated characterization module to handle new study pop that includes age, gender, study date, nesting id
+
 OhdsiShinyModules v3.5.1
 ========================
 - updated cohort method viewer to handle nesting id (indication id) in new CM result model
