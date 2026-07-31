@@ -27,7 +27,7 @@ Imports:
     plotly,
     reactable,
     readr,
-    OhdsiReportGenerator (>= 2.2.0),
+    OhdsiReportGenerator (>= 2.3.0),
     jsonlite,
     rlang,
     scales,
