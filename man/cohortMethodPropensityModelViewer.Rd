@@ -16,24 +16,24 @@ The user interface to the cohort method propensity score model covariates/coeffi
 The module viewer for rendering the PLE propensity score model covariates/coefficients
 }
 \seealso{
-Other Estimation: 
-\code{\link{cohortMethodAttritionServer}()},
-\code{\link{cohortMethodAttritionViewer}()},
-\code{\link{cohortMethodCovariateBalanceServer}()},
-\code{\link{cohortMethodCovariateBalanceViewer}()},
-\code{\link{cohortMethodKaplanMeierServer}()},
-\code{\link{cohortMethodKaplanMeierViewer}()},
-\code{\link{cohortMethodPopulationCharacteristicsServer}()},
-\code{\link{cohortMethodPopulationCharacteristicsViewer}()},
-\code{\link{cohortMethodPowerServer}()},
-\code{\link{cohortMethodPowerViewer}()},
-\code{\link{cohortMethodPropensityModelServer}()},
-\code{\link{cohortMethodPropensityScoreDistServer}()},
-\code{\link{cohortMethodPropensityScoreDistViewer}()},
-\code{\link{cohortMethodSystematicErrorServer}()},
-\code{\link{cohortMethodSystematicErrorViewer}()},
-\code{\link{estimationHelperFile}()},
-\code{\link{estimationServer}()},
-\code{\link{estimationViewer}()}
+Other Estimation:
+\code{\link[=cohortMethodAttritionServer]{cohortMethodAttritionServer()}},
+\code{\link[=cohortMethodAttritionViewer]{cohortMethodAttritionViewer()}},
+\code{\link[=cohortMethodCovariateBalanceServer]{cohortMethodCovariateBalanceServer()}},
+\code{\link[=cohortMethodCovariateBalanceViewer]{cohortMethodCovariateBalanceViewer()}},
+\code{\link[=cohortMethodKaplanMeierServer]{cohortMethodKaplanMeierServer()}},
+\code{\link[=cohortMethodKaplanMeierViewer]{cohortMethodKaplanMeierViewer()}},
+\code{\link[=cohortMethodPopulationCharacteristicsServer]{cohortMethodPopulationCharacteristicsServer()}},
+\code{\link[=cohortMethodPopulationCharacteristicsViewer]{cohortMethodPopulationCharacteristicsViewer()}},
+\code{\link[=cohortMethodPowerServer]{cohortMethodPowerServer()}},
+\code{\link[=cohortMethodPowerViewer]{cohortMethodPowerViewer()}},
+\code{\link[=cohortMethodPropensityModelServer]{cohortMethodPropensityModelServer()}},
+\code{\link[=cohortMethodPropensityScoreDistServer]{cohortMethodPropensityScoreDistServer()}},
+\code{\link[=cohortMethodPropensityScoreDistViewer]{cohortMethodPropensityScoreDistViewer()}},
+\code{\link[=cohortMethodSystematicErrorServer]{cohortMethodSystematicErrorServer()}},
+\code{\link[=cohortMethodSystematicErrorViewer]{cohortMethodSystematicErrorViewer()}},
+\code{\link[=estimationHelperFile]{estimationHelperFile()}},
+\code{\link[=estimationServer]{estimationServer()}},
+\code{\link[=estimationViewer]{estimationViewer()}}
 }
 \concept{Estimation}

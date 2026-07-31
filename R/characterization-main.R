@@ -85,35 +85,26 @@ characterizationServer <- function(
       # finds all the targets in every analysis and gets the counts
       # targetId, parentId, targetName, parentName, cohortSize, 
       # incC, incCI, incCM, incSCCS, incPLP
-      targetTable <- OhdsiReportGenerator::getTargetTable(
-        connectionHandler = connectionHandler, 
+      targetTable <- getTargetsUsedInChar(
+        connectionHandler = connectionHandler,
         schema = resultDatabaseSettings$schema,
         cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
         cTablePrefix = resultDatabaseSettings$cTablePrefix,
-        ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
-        cmTablePrefix = resultDatabaseSettings$cmTablePrefix,
-        sccsTablePrefix = resultDatabaseSettings$sccsTablePrefix,
-        plpTablePrefix = resultDatabaseSettings$plpTablePrefix,
-        databaseTable = resultDatabaseSettings$databaseTable, 
-        getPredictionInclusion = FALSE, 
-        getCohortMethodInclusion = FALSE, 
-        getSccsInclusion = FALSE
+        ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix
       )
-      
+        
       resultType <- shiny::reactiveVal("")
-      outcomeTable <- shiny::reactiveVal(NULL)
+      reactiveOutcomeTable <- shiny::reactiveVal(NULL)
+      reactiveCharacterizationTargetTable <- shiny::reactiveVal(NULL)
 
       # create reactive that saves selected rowIds for targetTable and outcomeTable
       reactiveTargetRowId <- shiny::reactiveVal(NULL)
-      reactiveOutcomeRowId <- shiny::reactiveVal(NULL)
+      reactiveTargetRow <- shiny::reactiveVal(NULL)
       
+      # the table with all the possible targetIds
       tableSelectionServer(
         id = 'target-table-select',
-        table = shiny::reactive(targetTable %>%
-          dplyr::select(-"cohortMethod", -"selfControlledCaseSeries", -"prediction") %>%
-          dplyr::relocate("parentName", .before = "cohortName") %>%
-          dplyr::relocate("cohortId", .after = "cohortName")
-          ), 
+        table = shiny::reactive(targetTable), 
         selectedRowId = reactiveTargetRowId,
         selectMultiple = FALSE, 
         elementId = session$ns('table-selector'),
@@ -123,69 +114,341 @@ characterizationServer <- function(
         )
       
       # react to the target being set
-      reactiveTargetRow <- shiny::reactiveVal(NULL)
       shiny::observeEvent(reactiveTargetRowId(),{
+        targetRowId <- reactiveTargetRowId()
+
+        hasValidTargetRowId <- !is.null(targetRowId) &&
+          length(targetRowId) == 1 &&
+          !is.na(targetRowId) &&
+          targetRowId > 0 &&
+          targetRowId <= nrow(targetTable)
+
+        if (!hasValidTargetRowId) {
+          reactiveTargetRow(data.frame())
+          reactiveCharacterizationTargetTable(NULL)
+          reactiveOutcomeTable(NULL)
+          output$analysesOptions <- NULL
+          output$analysesResults <- NULL
+          resultType('')
+          return(invisible(NULL))
+        }
+         
+        selectedTargetRow <- targetTable[targetRowId, , drop = FALSE]
+        reactiveTargetRow(selectedTargetRow)
+
+        selectedTargetId <- selectedTargetRow$cohortDefinitionId[1]
+
+        # get the characterization target ids
+        if (!is.null(selectedTargetId) && length(selectedTargetId) == 1 && !is.na(selectedTargetId)) {
+          reactiveCharacterizationTargetTable(
+            getCharacterizationTargetId(
+              connectionHandler = connectionHandler,
+              schema = resultDatabaseSettings$schema,
+              databaseTable = resultDatabaseSettings$databaseTable,
+              targetId = selectedTargetId,
+              cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+              cTablePrefix = resultDatabaseSettings$cTablePrefix
+            )
+          )
+        } else {
+          reactiveCharacterizationTargetTable(NULL)
+        }
         
-        reactiveTargetRow(targetTable[reactiveTargetRowId(),])
         # reset the outcome row id
-        reactiveOutcomeRowId(0)
+        #reactiveOutcomeRowId(0)
         
-        if(nrow(reactiveTargetRow()) > 0){
+        if (nrow(selectedTargetRow) > 0) {
+          analyses <- c('Database Comparison',
+                        'Cohort Comparison',
+                        'Dechallenge Rechallenge',
+                        'Risk Factors',
+                        'Time-to-event',
+                        'Case Series',
+                        'Cohort Incidence')
           
           # display the result options to select 
-          analysesWithResults <- reactiveTargetRow()[c(
-            'databaseComparator', 'cohortComparator',
-            'dechalRechal', 'riskFactors',
-             'timeToEvent', 'caseSeries',
-             'cohortIncidence')] == 1
+          analysisToColMap <- c(
+            'Database Comparison' = 'databaseComparator',
+            'Cohort Comparison' = 'cohortComparator',
+            'Dechallenge Rechallenge' = 'dechalRechal',
+            'Risk Factors' = 'riskFactors',
+            'Time-to-event' = 'timeToEvent',
+            'Case Series' = 'caseSeries',
+            'Cohort Incidence' = 'cohortIncidence'
+          )
+          analysesWithResults <- sapply(analysisToColMap, function(col) {
+            ifelse(col %in% colnames(selectedTargetRow), 
+                   as.logical(as.integer(selectedTargetRow[[col]][1]) == 1), 
+                   FALSE)
+          })
           
           if(sum(analysesWithResults) > 0){
             
             output$analysesOptions <- shiny::renderUI(
               shiny::div(
-                # add a note showing what analyses are not available
-                shiny::helpText(
-                  ifelse(sum(analysesWithResults) != 7,
-                         paste0('Note: ', paste0(c('Database Comparison',
-                                                   'Cohort Comparison',
-                                                   'Dechallenge Rechallenge',
-                                                   'Risk Factors',
-                                                   'Time-to-event',
-                                                   'Case Series',
-                                                   'Cohort Incidence'
-                         )[analysesWithResults == 0], collapse = '/') ,' not available.'),
-                         ''
-                  )
+                shiny::tags$style(
+                  '
+                  .analysis-selector {
+                    margin: 8px 0 14px 0;
+                  }
+                  .analysis-selector-header {
+                    margin-bottom: 12px;
+                  }
+                  .analysis-selector-title {
+                    font-size: 16px;
+                    font-weight: 700;
+                    color: #1f2937;
+                    margin: 0 0 4px 0;
+                  }
+                  .analysis-selector-subtitle {
+                    color: #6b7280;
+                    margin: 0;
+                  }
+                  .analysis-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    gap: 14px;
+                  }
+                  .analysis-card {
+                    position: relative;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                    width: 100%;
+                    min-height: 164px;
+                    padding: 16px 16px 14px 16px;
+                    border-radius: 18px;
+                    border: 1px solid #d7dde5;
+                    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+                    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+                    text-align: left;
+                    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+                  }
+                  .analysis-card.available {
+                    cursor: pointer;
+                  }
+                  .analysis-card.available:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+                  }
+                  .analysis-card.active {
+                    border-color: var(--analysis-accent);
+                    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.15);
+                    transform: translateY(-1px);
+                  }
+                  .analysis-card.disabled {
+                    background: linear-gradient(180deg, #fafbfc 0%, #f1f4f7 100%);
+                    opacity: 0.72;
+                    cursor: not-allowed;
+                  }
+                  .analysis-card-top {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 12px;
+                  }
+                  .analysis-card-icon {
+                    flex: 0 0 auto;
+                    width: 46px;
+                    height: 46px;
+                    border-radius: 15px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #ffffff;
+                    background: linear-gradient(135deg, var(--analysis-accent-start), var(--analysis-accent-end));
+                    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.16);
+                  }
+                  .analysis-card-name {
+                    font-size: 17px;
+                    font-weight: 700;
+                    color: #132238;
+                    line-height: 1.25;
+                    margin: 0;
+                  }
+                  .analysis-card-text {
+                    color: #556271;
+                    line-height: 1.45;
+                    margin: 0;
+                    flex: 1 1 auto;
+                  }
+                  .analysis-card-footer {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 10px;
+                    margin-top: auto;
+                  }
+                  .analysis-card-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    padding: 5px 10px;
+                    border-radius: 999px;
+                    font-size: 12px;
+                    font-weight: 700;
+                    letter-spacing: 0.02em;
+                  }
+                  .analysis-card-badge.available {
+                    background: rgba(34, 197, 94, 0.12);
+                    color: #15803d;
+                  }
+                  .analysis-card-badge.disabled {
+                    background: rgba(148, 163, 184, 0.18);
+                    color: #64748b;
+                  }
+                  '
                 ),
-                shinyWidgets::radioGroupButtons(
-                  inputId = session$ns("resultType"), 
-                  label = "Choose Analysis:", 
-                  direction = "horizontal",
-                  choices = c('Database Comparison',
-                              'Cohort Comparison',
-                              'Dechallenge Rechallenge',
-                              'Risk Factors',
-                              'Time-to-event',
-                              'Case Series',
-                              'Cohort Incidence'
-                              )[analysesWithResults]
+                shiny::div(
+                  class = 'analysis-selector',
+                  shiny::div(
+                    class = 'analysis-selector-header',
+                    shiny::tags$div(class = 'analysis-selector-title', 'Choose an analysis to explore'),
+                    shiny::tags$div(
+                      class = 'analysis-selector-subtitle',
+                      'Each card explains what the result type answers.'
+                    )
+                  ),
+                  shiny::div(
+                    class = 'analysis-grid',
+                    lapply(seq_along(analyses), function(i) {
+                      analysisName <- analyses[i]
+                      isAvailable <- analysesWithResults[analysisName]
+                      isActive <- identical(resultType(), analysisName)
+
+                      analysisMeta <- switch(
+                        analysisName,
+                        'Database Comparison' = list(
+                          icon = 'database',
+                          accentStart = '#0f766e',
+                          accentEnd = '#14b8a6',
+                          description = 'Compare characteristics of the target population between databases.'
+                        ),
+                        'Cohort Comparison' = list(
+                          icon = 'users',
+                          accentStart = '#2563eb',
+                          accentEnd = '#60a5fa',
+                          description = 'Compare characteristics of two populations side by side.'
+                        ),
+                        'Dechallenge Rechallenge' = list(
+                          icon = 'redo',
+                          accentStart = '#7c3aed',
+                          accentEnd = '#a855f7',
+                          description = 'See how outcomes change when exposure is withdrawn and restarted.'
+                        ),
+                        'Risk Factors' = list(
+                          icon = 'user-shield',
+                          accentStart = '#db2777',
+                          accentEnd = '#f472b6',
+                          description = 'Answer who is at risk for the outcome.'
+                        ),
+                        'Time-to-event' = list(
+                          icon = 'clock',
+                          accentStart = '#ea580c',
+                          accentEnd = '#fb923c',
+                          description = 'See when the outcome occurs relative to the target index.'
+                        ),
+                        'Case Series' = list(
+                          icon = 'table',
+                          accentStart = '#0891b2',
+                          accentEnd = '#22d3ee',
+                          description = 'Explore how people with the outcome change over key time points.'
+                        ),
+                        'Cohort Incidence' = list(
+                          icon = 'chart-line',
+                          accentStart = '#16a34a',
+                          accentEnd = '#4ade80',
+                          description = 'See how often the outcome occurs within a population.'
+                        )
+                      )
+
+                      cardClasses <- c('analysis-card')
+                      if (isAvailable) {
+                        cardClasses <- c(cardClasses, 'available')
+                      } else {
+                        cardClasses <- c(cardClasses, 'disabled')
+                      }
+                      if (isActive) {
+                        cardClasses <- c(cardClasses, 'active')
+                      }
+
+                      cardAttributes <- list(
+                        class = paste(cardClasses, collapse = ' '),
+                        style = paste0(
+                          '--analysis-accent: ', analysisMeta$accentEnd, '; ',
+                          '--analysis-accent-start: ', analysisMeta$accentStart, '; ',
+                          '--analysis-accent-end: ', analysisMeta$accentEnd, ';'
+                        )
+                      )
+
+                      if (isAvailable) {
+                        safeAnalysisName <- gsub("'", "\\\\'", analysisName, fixed = TRUE)
+                        cardAttributes$onclick <- sprintf(
+                          "Shiny.setInputValue('%s', '%s', {priority: 'event'}); setTimeout(function() { var el = document.getElementById('%s'); if (el) { var header = document.querySelector('.main-header'); var headerHeight = header ? header.getBoundingClientRect().height : 0; var y = el.getBoundingClientRect().top + window.scrollY - headerHeight - 16; window.scrollTo({top: Math.max(y, 0), behavior: 'smooth'}); } }, 0); return false;",
+                          session$ns('resultType'),
+                          safeAnalysisName,
+                          session$ns('analysesResults')
+                        )
+                        cardAttributes$onkeydown <- sprintf(
+                          "if(event.key === 'Enter' || event.key === ' ') { Shiny.setInputValue('%s', '%s', {priority: 'event'}); setTimeout(function() { var el = document.getElementById('%s'); if (el) { var header = document.querySelector('.main-header'); var headerHeight = header ? header.getBoundingClientRect().height : 0; var y = el.getBoundingClientRect().top + window.scrollY - headerHeight - 16; window.scrollTo({top: Math.max(y, 0), behavior: 'smooth'}); } }, 0); event.preventDefault(); }",
+                          session$ns('resultType'),
+                          safeAnalysisName,
+                          session$ns('analysesResults')
+                        )
+                        cardAttributes$tabindex <- '0'
+                        cardAttributes$role <- 'button'
+                      } else {
+                        cardAttributes$title <- 'analysis not available for selected target cohort id'
+                        cardAttributes$role <- 'note'
+                      }
+
+                      do.call(
+                        shiny::tags$div,
+                        c(
+                          cardAttributes,
+                          list(
+                            shiny::tags$div(
+                              class = 'analysis-card-top',
+                              shiny::tags$div(
+                                class = 'analysis-card-icon',
+                                shiny::icon(analysisMeta$icon)
+                              ),
+                              shiny::tags$div(
+                                style = 'min-width: 0; flex: 1 1 auto;',
+                                shiny::tags$div(class = 'analysis-card-name', analysisName),
+                                shiny::tags$div(class = 'analysis-card-text', analysisMeta$description)
+                              )
+                            ),
+                            shiny::tags$div(
+                              class = 'analysis-card-footer',
+                              shiny::tags$span(
+                                class = paste('analysis-card-badge', if (isAvailable) 'available' else 'disabled'),
+                                if (isAvailable) 'Available' else 'Unavailable'
+                              ),
+                              if (isActive && isAvailable) {
+                                shiny::tags$span(
+                                  class = 'analysis-card-badge available',
+                                  'Selected'
+                                )
+                              }
+                            )
+                          )
+                        )
+                      )
+                    })
+                  )
                 )
               )
             )
             
-            # set the resultType to the first 
-            resultType(c('Database Comparison',
-                         'Cohort Comparison',
-                         'Dechallenge Rechallenge',
-                         'Risk Factors',
-                         'Time-to-event',
-                         'Case Series',
-                         'Cohort Incidence'
-            )[analysesWithResults][1])
+            availableAnalyses <- analyses[analysesWithResults]
+
+            # only reset to first available analysis when current one is not available
+            if (!(resultType() %in% availableAnalyses)) {
+              resultType(availableAnalyses[1])
+            }
             
           } else{
             # set values to take you back to start
-            outcomeTable(NULL)
+            reactiveOutcomeTable(NULL)
             output$analysesOptions <- NULL
             resultType("") # update resultType to get UI to change 
             output$analysesOptions <- shiny::renderUI(shiny::helpText('No analyses results to show'))
@@ -194,37 +457,36 @@ characterizationServer <- function(
           
           # if a case series set the outcome table
           # update the outcomes for the selected target id
-          analysesWithResultsOutcome <- reactiveTargetRow()[c(
-            'dechalRechal', 'riskFactors',
-            'timeToEvent', 'caseSeries',
-            'cohortIncidence')] == 1
+          colsToSelectOutcome <- intersect(
+            c('dechalRechal', 'riskFactors',
+              'timeToEvent', 'caseSeries',
+              'cohortIncidence'),
+            colnames(selectedTargetRow)
+          )
+          analysesWithResultsOutcome <- selectedTargetRow[colsToSelectOutcome] == 1
           
           # TODO - figure out how to handle if CI has diff outcomes
           
           if(sum(analysesWithResultsOutcome) > 0){
           
-          outcomeTable(getShinyOutcomeTable(
+          reactiveOutcomeTable(getOutcomesUsedInChar(
             connectionHandler = connectionHandler,
             resultDatabaseSettings = resultDatabaseSettings,
-            targetId = reactiveTargetRow()$cohortId[1],
-            getPredictionInclusion = FALSE, 
-            getCohortMethodInclusion = FALSE,
-            getSccsInclusion = FALSE
-          ) %>%
-            dplyr::select(-"cohortMethod", -"selfControlledCaseSeries", -"prediction") %>%
-            dplyr::relocate("parentName", .before = "cohortName"))
+            targetId = selectedTargetId
+          ))
             
         } else{
-          outcomeTable(NULL)
+          reactiveOutcomeTable(NULL)
         }
           
         } else{ # if no target selected set outcome table to null
-          outcomeTable(NULL)
+          reactiveOutcomeTable(NULL)
           output$analysesOptions <- NULL
           resultType("") # update resultType to get UI to change 
         }
 
       })
+      # end react to target id
       
       # update resultType when input changes
       shiny::observeEvent(input$resultType,{
@@ -285,53 +547,47 @@ characterizationServer <- function(
     
       # add the servers
       characterizationDatabaseComparisonServer(
-        id = 'database-comparison', 
-        connectionHandler = connectionHandler, 
+        id = 'database-comparison',
+        connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings,
-        reactiveTargetRow = reactiveTargetRow
-        )
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable
+      )
       characterizationCohortComparisonServer(
         id = 'cohort-comparison', 
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
         targetTable = targetTable,
-        reactiveTargetRow = reactiveTargetRow
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable
       )
       
       characterizationTimeToEventServer(
         id = 'time-to-event', 
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
-        reactiveTargetRow = reactiveTargetRow,
-        outcomeTable = outcomeTable,
-        reactiveOutcomeRowId = reactiveOutcomeRowId
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable,
+        reactiveOutcomeTable = reactiveOutcomeTable
       )
       
       characterizationDechallengeRechallengeServer(
         id = 'dechal-rechal', 
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
-        reactiveTargetRow = reactiveTargetRow,
-        outcomeTable = outcomeTable,
-        reactiveOutcomeRowId = reactiveOutcomeRowId
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable,
+        reactiveOutcomeTable = reactiveOutcomeTable
       )
       
       characterizationRiskFactorServer(
         id = 'risk-factor', 
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
-        reactiveTargetRow = reactiveTargetRow,
-        outcomeTable = outcomeTable,
-        reactiveOutcomeRowId = reactiveOutcomeRowId
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable
       )
       
       characterizationCaseSeriesServer(
         id = 'case-series', 
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
-        reactiveTargetRow = reactiveTargetRow,
-        outcomeTable = outcomeTable,
-        reactiveOutcomeRowId = reactiveOutcomeRowId
+        reactiveCharacterizationTargetTable = reactiveCharacterizationTargetTable
       )
       
       characterizationIncidenceServer(
@@ -339,7 +595,7 @@ characterizationServer <- function(
         connectionHandler = connectionHandler, 
         resultDatabaseSettings = resultDatabaseSettings,
         reactiveTargetRow = reactiveTargetRow,
-        outcomeTable = outcomeTable
+        reactiveOutcomeTable = reactiveOutcomeTable
         )
 
  
@@ -351,37 +607,16 @@ characterizationServer <- function(
 characterizationTargetInputColumns <- function(){
   return(
     list(
-      databaseString  = reactable::colDef(show = FALSE),
-      numDatabase = reactable::colDef(show = FALSE),
-      minSubjectCount = reactable::colDef(show = FALSE),
-      maxSubjectCount = reactable::colDef(show = FALSE),
-      minEntryCount = reactable::colDef(show = FALSE),
-      maxEntryCount = reactable::colDef(show = FALSE),
-      subsetDefinitionJson = reactable::colDef(show = FALSE),
-      subsetCohortId = reactable::colDef(show = FALSE),
-      cohortId = reactable::colDef(
+    
+      cohortDefinitionId = reactable::colDef(
         show = TRUE,
         name = 'Cohort ID'
         ),
-      
-      parentName = reactable::colDef(
-        name = 'Target',
-        minWidth = 150
-      ),
       cohortName = reactable::colDef(
-        name = 'Subset',
+        name = 'Cohort Name',
         minWidth = 300
       ),
-      subsetParent = reactable::colDef(show = FALSE),
-      subsetDefinitionId = reactable::colDef(show = FALSE),
       
-      databaseIdString = reactable::colDef(show = FALSE),
-      
-      databaseStringCount  = reactable::colDef(
-        show = FALSE,
-        name = "Database Counts", 
-        minWidth = 300
-      ),
       timeToEvent = reactable::colDef(
         name = 'Time To Event',
         cell = function(value) {
@@ -396,6 +631,20 @@ characterizationTargetInputColumns <- function(){
           if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
         }
       ), 
+      databaseComparator = reactable::colDef(
+        name = 'Database Comparator',
+        cell = function(value) {
+          # Render as an X mark or check mark
+          if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+        }
+      ),
+      cohortComparator = reactable::colDef(
+        name = 'Cohort Comparator',
+        cell = function(value) {
+          # Render as an X mark or check mark
+          if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+        }
+      ),
       riskFactors = reactable::colDef(
         name = 'Risk Factors',
         cell = function(value) {
@@ -414,21 +663,7 @@ characterizationTargetInputColumns <- function(){
         name = 'Incidence',
         cell = function(value) {
           # Render as an X mark or check mark
-          if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
-        }
-      ),
-      databaseComparator = reactable::colDef(
-        name = 'Database Comparator',
-        cell = function(value) {
-          # Render as an X mark or check mark
-          if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
-        }
-      ),
-      cohortComparator = reactable::colDef(
-        name = 'Cohort Comparator',
-        cell = function(value) {
-          # Render as an X mark or check mark
-          if (value == 0) "\u274c No" else "\u2714\ufe0f Yes"
+          if (value == 0 ) "\u274c No" else "\u2714\ufe0f Yes"
         }
       )
     )
@@ -439,55 +674,13 @@ characterizationTargetInputColumns <- function(){
 characterizationTargetDisplayColumns <- function(){
   return(
     list(
-      databaseString  = reactable::colDef(show = FALSE),
-      numDatabase = reactable::colDef(show = FALSE),
-      minSubjectCount = reactable::colDef(show = FALSE),
-      maxSubjectCount = reactable::colDef(show = FALSE),
-      minEntryCount = reactable::colDef(show = FALSE),
-      maxEntryCount = reactable::colDef(show = FALSE),
-      subsetDefinitionJson = reactable::colDef(show = FALSE),
-      subsetCohortId = reactable::colDef(show = FALSE),
-      cohortId = reactable::colDef(
+      cohortDefinitionId = reactable::colDef(
         show = TRUE,
         name = 'Cohort ID'
       ),
-      
-      parentName = reactable::colDef(
-        name = 'Target',
-        minWidth = 150
-      ),
       cohortName = reactable::colDef(
-        name = 'Subset',
+        name = 'Cohort Name',
         minWidth = 300
-      ),
-      subsetParent = reactable::colDef(show = FALSE),
-      subsetDefinitionId = reactable::colDef(show = FALSE),
-      
-      databaseIdString = reactable::colDef(show = FALSE),
-      
-      databaseStringCount  = reactable::colDef(
-        show = FALSE
-      ),
-      timeToEvent = reactable::colDef(
-        show = FALSE
-      ), 
-      dechalRechal = reactable::colDef(
-        show = FALSE
-      ), 
-      riskFactors = reactable::colDef(
-        show = FALSE
-      ), 
-      caseSeries = reactable::colDef(
-        show = FALSE
-      ),
-      cohortIncidence = reactable::colDef(
-        show = FALSE
-      ),
-      databaseComparator = reactable::colDef(
-        show = FALSE
-      ),
-      cohortComparator = reactable::colDef(
-        show = FALSE
       )
     )
   )
@@ -498,18 +691,28 @@ characterizationOutcomeDisplayColumns <- function(){
   return(
     list(
 
-      cohortId = reactable::colDef(
+      cohortDefinitionId = reactable::colDef(
         show = TRUE,
         name = 'Cohort ID'
       ),
-      
-      parentName = reactable::colDef(
-        name = 'Outcome',
-        minWidth = 150
-      ),
       cohortName = reactable::colDef(
-        name = 'Subset',
+        name = 'Cohort Name',
         minWidth = 300
+      ),
+      timeToEvent = reactable::colDef(
+        show = FALSE
+      ), 
+      dechalRechal = reactable::colDef(
+        show = FALSE
+      ),
+      riskFactors = reactable::colDef(
+        show = FALSE
+      ), 
+      caseSeries = reactable::colDef(
+        show = FALSE
+      ),
+      cohortIncidence = reactable::colDef(
+        show = FALSE
       )
       
     )
@@ -517,38 +720,225 @@ characterizationOutcomeDisplayColumns <- function(){
 }
 
 
+# this gets the cohort_definition_id, cohort_name, parent_name, parent_id and 
+# what modules used the cohortd
+getTargetsUsedInCharMain <- function(
+    connectionHandler,
+    schema,
+    cgTablePrefix = 'cg_',
+    cTablePrefix = 'c_',
+    ciTablePrefix = 'ci_'
+){
+  
+  charTargets <- tryCatch({
+    OhdsiReportGenerator::getTargetsUsedInCharacterization(
+      connectionHandler = connectionHandler,
+      schema = schema, 
+      cTablePrefix = cTablePrefix, 
+      cgTablePrefix = cgTablePrefix
+    )
+  }, error = function(e) {
+    message(paste("Warning: Failed to get characterization targets:", e$message))
+    NULL
+  })
+  
+  incidenceTargets <- tryCatch({
+    OhdsiReportGenerator::getTargetsUsedInIncidence(
+      connectionHandler = connectionHandler,
+      schema = schema, 
+      ciTablePrefix = ciTablePrefix, 
+      cgTablePrefix = cgTablePrefix
+    )
+  }, error = function(e) {
+    message(paste("Warning: Failed to get incidence targets:", e$message))
+    NULL
+  })
+  
+  # Handle cases where one or both queries failed
+  if (is.null(charTargets) && is.null(incidenceTargets)) {
+    # Both failed - return empty data frame with expected columns
+    result <- data.frame(
+      cohortDefinitionId = integer(),
+      cohortName = character(),
+      stringsAsFactors = FALSE
+    )
+  } else if (is.null(charTargets)) {
+    # Only characterization failed - use incidence targets
+    result <- incidenceTargets
+  } else if (is.null(incidenceTargets)) {
+    # Only incidence failed - use characterization targets
+    result <- charTargets
+  } else {
+    # Both succeeded - merge them
+    result <- merge(
+      x = charTargets,
+      y = incidenceTargets, 
+      all = TRUE, 
+      by = c('cohortName', 'cohortDefinitionId')
+    )
+    
+    if (sum(is.na(result$cohortIncidence)) > 0) {
+      result$cohortIncidence[is.na(result$cohortIncidence)] <- 0
+    }
+  }
+  
+  # Replace NA with 0 in all columns of interest
+  allColsOfInt <- colnames(result)[!colnames(result) %in% c('cohortName', 'cohortDefinitionId')]
+  
+  if (length(allColsOfInt) > 0) {
+    result <- result %>%
+      dplyr::mutate(dplyr::across(dplyr::all_of(allColsOfInt), ~ tidyr::replace_na(.x, 0)))
+  }
+  
+  # add missing columns: 'databaseComparator', 'cohortComparator', 'dechalRechal',
+  #.       'riskFactors', 'timeToEvent', 'caseSeries', 'cohortIncidence'
+  requiredCols <- c('databaseComparator', 'cohortComparator', 'dechalRechal',
+                    'riskFactors', 'timeToEvent', 'caseSeries', 'cohortIncidence')
+
+  missingCols <- setdiff(requiredCols, colnames(result))
+  if (length(missingCols) > 0) {
+    for (col in missingCols) {
+      result[[col]] <- rep(0, nrow(result))
+    }
+  }
+  
+  
+  
+  return(result)
+  
+}
+
+# this add a progress message to getTargetsUsedInCharMain
+getTargetsUsedInChar <- function(
+    connectionHandler,
+    schema,
+    cgTablePrefix = 'cg_',
+    cTablePrefix = 'c_',
+    ciTablePrefix = 'ci_'
+    ){
+  
+  shiny::withProgress(message = 'Loading targets', value = 0, {
+    
+    shiny::incProgress(2/4, detail = paste("Extracting targets"))
+    
+    result <- getTargetsUsedInCharMain(
+        connectionHandler = connectionHandler,
+        schema = schema,
+        cgTablePrefix = cgTablePrefix,
+        cTablePrefix = cTablePrefix,
+        ciTablePrefix = ciTablePrefix
+      )
+    
+    shiny::incProgress(4/4, detail = paste("Done"))
+    
+  })
+  
+  return(result)
+}
+
+# This gets the characterizationTargetIds for the specific targetId
+getCharacterizationTargetId <- function(
+    connectionHandler,
+    schema,
+    targetId,
+    databaseTable = 'database_meta_data',
+    cgTablePrefix = 'cg_',
+    cTablePrefix = 'c_'
+){
+  
+  shiny::withProgress(message = 'Loading targets', value = 0, {
+    
+    shiny::incProgress(2/4, detail = paste("Extracting targets"))
+    
+    # adding a try catch incase only incidence results are available
+    result <- tryCatch({
+      OhdsiReportGenerator::getCharacterizationTargetSettings(
+        connectionHandler = connectionHandler,
+        schema = schema, 
+        cTablePrefix = cTablePrefix, 
+        cgTablePrefix = cgTablePrefix,
+        targetIds = targetId, 
+        addDatabaseDetails = TRUE, 
+        databaseTable = databaseTable
+      )}, error = function(e) {
+        message(paste("Warning: Failed to run getTargetsUsedInCharMain maybe due to no characterization results:", e$message))
+        NULL
+      })
+
+      
+    shiny::incProgress(4/4, detail = paste("Done"))
+    
+  })
+  
+  return(result)
+}
+
+
+
 # adding progress report around outcome extraction as it can be slow
-getShinyOutcomeTable <- function(
+getOutcomesUsedInChar <- function(
     connectionHandler,
     resultDatabaseSettings,
-    targetId , 
-    getIncidenceInclusion = TRUE,
-    getCharacterizationInclusion = TRUE,
-    getPredictionInclusion = TRUE, 
-    getCohortMethodInclusion = TRUE,
-    getSccsInclusion = TRUE
+    targetId
 ){
   
   shiny::withProgress(message = 'Loading outcomes for selected target', value = 0, {
     
     shiny::incProgress(2/4, detail = paste("Extracting data"))
     
-    result <- OhdsiReportGenerator::getOutcomeTable(
-      connectionHandler = connectionHandler,
-      schema = resultDatabaseSettings$schema, 
-      cTablePrefix = resultDatabaseSettings$cTablePrefix,
-      cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-      ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
-      targetId = targetId, 
-      getIncidenceInclusion = getIncidenceInclusion, 
-      getCharacterizationInclusion = getCharacterizationInclusion,
-      getPredictionInclusion = getPredictionInclusion, 
-      getCohortMethodInclusion = getCohortMethodInclusion,
-      getSccsInclusion = getSccsInclusion
-    )
+    cOutcomes <- tryCatch({
+      OhdsiReportGenerator::getOutcomesUsedInCharacterization(
+        connectionHandler = connectionHandler,
+        schema = resultDatabaseSettings$schema, 
+        cTablePrefix = resultDatabaseSettings$cTablePrefix,
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+        targetId = targetId
+      )
+    }, error = function(e) {
+      message(paste("Warning: Failed to get characterization outcomes:", e$message))
+      NULL
+    })
     
-    message(paste0('Extracted ',nrow(result),' outcomes'))
-  
+    ciOutcomes <- tryCatch({
+      OhdsiReportGenerator::getOutcomesUsedInIncidence(
+        connectionHandler = connectionHandler,
+        schema = resultDatabaseSettings$schema, 
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+        ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
+        targetId = targetId
+      )
+    }, error = function(e) {
+      message(paste("Warning: Failed to get incidence outcomes:", e$message))
+      NULL
+    })
+    
+    # Handle cases where one or both queries failed
+    if (is.null(cOutcomes) && is.null(ciOutcomes)) {
+      # Both failed - return empty data frame with expected columns
+      result <- data.frame(
+        cohortDefinitionId = integer(),
+        cohortName = character(),
+        stringsAsFactors = FALSE
+      )
+    } else if (is.null(cOutcomes)) {
+      # Only characterization failed - use incidence outcomes
+      result <- ciOutcomes
+    } else if (is.null(ciOutcomes)) {
+      # Only incidence failed - use characterization outcomes
+      result <- cOutcomes
+    } else {
+      # Both succeeded - merge them
+      result <- merge(
+        x = cOutcomes, 
+        y = ciOutcomes, 
+        by = c('cohortName', 'cohortDefinitionId'),
+        all = TRUE
+      )
+    }
+    
+    # Note: may need to add missing columns if either queries return 0 rows
+    
+    message(paste0('Extracted ', nrow(result), ' outcomes'))
     
     shiny::incProgress(4/4, detail = paste("Done"))
     

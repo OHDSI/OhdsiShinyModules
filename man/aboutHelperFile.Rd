@@ -16,8 +16,8 @@ The location of the about module helper file
 Returns the location of the about helper file
 }
 \seealso{
-Other About: 
-\code{\link{aboutServer}()},
-\code{\link{aboutViewer}()}
+Other About:
+\code{\link[=aboutServer]{aboutServer()}},
+\code{\link[=aboutViewer]{aboutViewer()}}
 }
 \concept{About}

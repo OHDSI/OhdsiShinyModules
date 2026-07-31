@@ -20,8 +20,8 @@ the cohort generator results viewer main module server
 The module server for the main cohort generator module
 }
 \seealso{
-Other CohortGenerator: 
-\code{\link{cohortGeneratorHelperFile}()},
-\code{\link{cohortGeneratorViewer}()}
+Other CohortGenerator:
+\code{\link[=cohortGeneratorHelperFile]{cohortGeneratorHelperFile()}},
+\code{\link[=cohortGeneratorViewer]{cohortGeneratorViewer()}}
 }
 \concept{CohortGenerator}

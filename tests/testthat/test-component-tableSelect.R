@@ -11,20 +11,25 @@ shiny::testServer(
     ),
     selectedRowId = shiny::reactiveVal(0),
     selectButtonText = 'abc',
-    helpText = 'help'
+    helpText = 'help',
+    inputColumns = list(
+      madeUp = reactable::colDef(name = 'Made Up'),
+      id = reactable::colDef(name = 'ID')
+    )
   ), 
   expr = {
     
     testthat::expect_true(selectedRowId() == 0)
-    testthat::expect_true(selection == 'single')
-    testthat::expect_true(selectButtonText() == 'abc')
-    testthat::expect_true(helpTextReactive() == 'help')
-    
-    # select row
-    reactable::updateReactable(outputId = 'inputTable', selected = 1)
-    
-    # input$confirmInput
-    session$setInputs(confirmInput = TRUE)
+    testthat::expect_true(grepl('abc', output$selectionInput$html, fixed = TRUE))
+    testthat::expect_true(grepl('help', output$selectionInput$html, fixed = TRUE))
+    testthat::expect_true(grepl('No selection yet', output$selectionInput$html, fixed = TRUE))
+
+    selectedRowId(1)
+    session$flushReact()
+
+    testthat::expect_true(selectedRowId() == 1)
+    testthat::expect_true(grepl('Change abc', output$selectionInput$html, fixed = TRUE))
+    testthat::expect_false(grepl('help', output$selectionInput$html, fixed = TRUE))
     
   })
 

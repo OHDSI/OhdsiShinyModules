@@ -23,7 +23,7 @@ The module server for exploring summary html files
 The user specifies the id for the module
 }
 \seealso{
-Other Home: 
-\code{\link{homeHelperFile}()}
+Other Home:
+\code{\link[=homeHelperFile]{homeHelperFile()}}
 }
 \concept{Home}

@@ -19,10 +19,10 @@ The module viewer for exploring characterization studies
 The user specifies the id for the module
 }
 \seealso{
-Other Characterization: 
-\code{\link{characterizationHelperFile}()},
-\code{\link{characterizationIncidenceServer}()},
-\code{\link{characterizationIncidenceViewer}()},
-\code{\link{characterizationServer}()}
+Other Characterization:
+\code{\link[=characterizationHelperFile]{characterizationHelperFile()}},
+\code{\link[=characterizationIncidenceServer]{characterizationIncidenceServer()}},
+\code{\link[=characterizationIncidenceViewer]{characterizationIncidenceViewer()}},
+\code{\link[=characterizationServer]{characterizationServer()}}
 }
 \concept{Characterization}

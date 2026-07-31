@@ -16,8 +16,8 @@ The user interface to the phevaluator results viewer
 The viewer of the phevaluator module
 }
 \seealso{
-Other PheValuator: 
-\code{\link{phevaluatorHelperFile}()},
-\code{\link{phevaluatorServer}()}
+Other PheValuator:
+\code{\link[=phevaluatorHelperFile]{phevaluatorHelperFile()}},
+\code{\link[=phevaluatorServer]{phevaluatorServer()}}
 }
 \concept{PheValuator}

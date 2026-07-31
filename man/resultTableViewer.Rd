@@ -18,10 +18,13 @@ shiny module UI
 Result Table Viewer
 }
 \seealso{
-Other Utils: 
-\code{\link{datasourcesHelperFile}()},
-\code{\link{datasourcesServer}()},
-\code{\link{datasourcesViewer}()},
-\code{\link{getLogoImage}()}
+Other Utils:
+\code{\link[=actionButtonStyleInfo]{actionButtonStyleInfo()}},
+\code{\link[=actionButtonStyleWarning]{actionButtonStyleWarning()}},
+\code{\link[=createActionButton]{createActionButton()}},
+\code{\link[=datasourcesHelperFile]{datasourcesHelperFile()}},
+\code{\link[=datasourcesServer]{datasourcesServer()}},
+\code{\link[=datasourcesViewer]{datasourcesViewer()}},
+\code{\link[=getLogoImage]{getLogoImage()}}
 }
 \concept{Utils}

@@ -20,10 +20,13 @@ The server for the datasources module
 The server function for the datasources module
 }
 \seealso{
-Other Utils: 
-\code{\link{datasourcesHelperFile}()},
-\code{\link{datasourcesViewer}()},
-\code{\link{getLogoImage}()},
-\code{\link{resultTableViewer}()}
+Other Utils:
+\code{\link[=actionButtonStyleInfo]{actionButtonStyleInfo()}},
+\code{\link[=actionButtonStyleWarning]{actionButtonStyleWarning()}},
+\code{\link[=createActionButton]{createActionButton()}},
+\code{\link[=datasourcesHelperFile]{datasourcesHelperFile()}},
+\code{\link[=datasourcesViewer]{datasourcesViewer()}},
+\code{\link[=getLogoImage]{getLogoImage()}},
+\code{\link[=resultTableViewer]{resultTableViewer()}}
 }
 \concept{Utils}

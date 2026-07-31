@@ -31,50 +31,322 @@
 characterizationIncidenceViewer <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
-    
-    shiny::uiOutput(ns("inputOptions")),
-    
-    shiny::conditionalPanel(
-      condition = 'output.showIncidence != 0',
-      ns = ns,
-      
-      shiny::tabsetPanel(
-        type = 'pills',
-        id = ns('incMainPanel'),
-        
-        shiny::tabPanel(
-          title = "Incidence Rate Table",
-          shiny::uiOutput(ns("tableFilter")),
-          
-          shiny::conditionalPanel(
-            condition = 'output.showTable != 0',
-            ns = ns,
-            resultTableViewer(
-              ns("incidenceRateTable")
+    shiny::tags$style(
+      '
+      .inc-viewer-shell {
+        display: grid;
+        gap: 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .inc-hero {
+        border-radius: 22px;
+        padding: 22px 24px;
+        background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #fdfcff 100%);
+        border: 1px solid #dbe6f3;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .inc-hero-top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 8px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        flex-wrap: wrap;
+      }
+      .inc-hero-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        background: linear-gradient(135deg, #16a34a, #4ade80);
+        box-shadow: 0 12px 20px rgba(34, 197, 94, 0.24);
+        flex: 0 0 auto;
+      }
+      .inc-hero-title {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #102033;
+        margin: 0;
+        display: inline-block;
+        white-space: nowrap;
+      }
+      .inc-hero-copy {
+        color: #526173;
+        margin: 0;
+        line-height: 1.5;
+        max-width: 880px;
+        overflow-wrap: anywhere;
+      }
+      .inc-hero-top > div:last-child {
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+      .inc-options-box.box {
+        border-radius: 18px;
+        border-top: 4px solid #2563eb;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        box-sizing: border-box;
+      }
+      .inc-options-box .box-header,
+      .inc-results-card .box-header {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .inc-options-box .box-title,
+      .inc-results-card .box-title {
+        display: block;
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
+      }
+      .inc-options-box .box-body {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        background: #f8fbff;
+        overflow-x: auto;
+        box-sizing: border-box;
+      }
+      .inc-options-card {
+        background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+        border: 1px solid #dbe6f3;
+        border-radius: 16px;
+        padding: 14px 16px 8px 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .inc-options-card > div,
+      .inc-options-card .shiny-html-output,
+      .inc-options-card .table-responsive,
+      .inc-options-card .reactable,
+      .inc-options-card .rt-table,
+      .inc-options-card table {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .inc-options-card .form-group,
+      .inc-options-card .bootstrap-select,
+      .inc-options-card .bootstrap-select > .dropdown-toggle,
+      .inc-options-card .dropdown-menu {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box;
+      }
+      .inc-options-card .bootstrap-select,
+      .inc-options-card .bootstrap-select > .dropdown-toggle {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .inc-options-card .bootstrap-select .dropdown-menu {
+        max-width: 100% !important;
+      }
+      .inc-options-card .bootstrap-select .dropdown-toggle {
+        overflow: hidden;
+      }
+      .inc-options-card .bootstrap-select .dropdown-toggle .filter-option,
+      .inc-options-card .bootstrap-select .dropdown-toggle .filter-option-inner,
+      .inc-options-card .bootstrap-select .dropdown-toggle .filter-option-inner-inner {
+        max-width: 100% !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .inc-results-wrap {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .inc-results-wrap .nav-tabs,
+      .inc-results-wrap .nav-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        border-bottom: none;
+      }
+      .inc-results-wrap .nav > li {
+        float: none;
+        margin: 0;
+      }
+      .inc-results-wrap .nav > li > a {
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .inc-results-wrap .nav-pills > li.active > a,
+      .inc-results-wrap .nav-pills > li.active > a:focus,
+      .inc-results-wrap .nav-pills > li.active > a:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+        box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+      }
+      .inc-results-wrap .tab-content,
+      .inc-results-wrap .tab-pane {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .inc-results-card {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+        border: 1px solid #dbe5f1;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        box-sizing: border-box;
+      }
+      .inc-results-card .box-header {
+        background: linear-gradient(135deg, #123a63 0%, #1d4ed8 100%);
+        color: #ffffff;
+        border-bottom: none;
+      }
+      .inc-results-card .box-title {
+        font-weight: 700;
+      }
+      .inc-results-panel {
+        margin-top: 14px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      .inc-plot-panel {
+        margin-top: 14px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        box-sizing: border-box;
+      }
+      '
+    ),
+    shiny::div(
+      class = 'inc-viewer-shell',
+      shiny::div(
+        class = 'inc-hero',
+        shiny::div(
+          class = 'inc-hero-top',
+          shiny::div(
+            class = 'inc-hero-icon',
+            shiny::icon('chart-line')
+          ),
+          shiny::div(
+            shiny::tags$h2(class = 'inc-hero-title', 'Incidence'),
+            shiny::tags$p(
+              class = 'inc-hero-copy',
+              'Explore incidence rates and plots in a cleaner, more polished layout with consistent styling across characterization modules.'
             )
           )
-        ),
-        shiny::tabPanel(
-          title = "Incidence Rate Plots",
-          
-          shiny::uiOutput(ns("plotFilter")),
-          
-          shiny::conditionalPanel(
-            condition = 'output.showPlot != 0',
-            ns = ns,
-            shinycssloaders::withSpinner(
-              shiny::plotOutput(
-                ns('incidencePlot'),
-                width="100%",
-                height="600px"
+        )
+      ),
+      shinydashboard::box(
+        collapsible = TRUE,
+        title = shiny::tagList(shiny::icon('sliders'), 'Analysis options'),
+        width = '100%',
+        class = 'inc-options-box',
+        shiny::div(
+          class = 'inc-options-card',
+          shiny::uiOutput(ns("inputOptions"))
+        )
+      ),
+      shiny::conditionalPanel(
+        condition = 'output.showIncidence != 0',
+        ns = ns,
+        shiny::div(
+          class = 'inc-results-wrap',
+          shiny::tabsetPanel(
+            type = 'pills',
+            id = ns('incMainPanel'),
+            shiny::tabPanel(
+              title = 'Incidence Rate Table',
+              shiny::div(
+                class = 'inc-results-panel',
+                shiny::uiOutput(ns("tableFilter")),
+                shiny::conditionalPanel(
+                  condition = 'output.showTable != 0',
+                  ns = ns,
+                  shinydashboard::box(
+                    class = 'inc-results-card',
+                    width = '100%',
+                    title = '',
+                    resultTableViewer(ns("incidenceRateTable"))
+                  )
+                )
+              )
+            ),
+            shiny::tabPanel(
+              title = 'Incidence Rate Plots',
+              shiny::div(
+                class = 'inc-plot-panel',
+                shiny::uiOutput(ns("plotFilter")),
+                shiny::conditionalPanel(
+                  condition = 'output.showPlot != 0',
+                  ns = ns,
+                  shinydashboard::box(
+                    class = 'inc-results-card',
+                    width = '100%',
+                    title = '',
+                    shinycssloaders::withSpinner(
+                      shiny::plotOutput(
+                        ns('incidencePlot'),
+                        width = '100%',
+                        height = '600px'
+                      )
+                    )
+                  )
+                )
               )
             )
-          ) # end condition panel
-        ) # end plot
+          )
+        )
       )
-      
-    ) # conditional results panel
-        
+    )
   )
 }
 
@@ -88,7 +360,7 @@ characterizationIncidenceViewer <- function(id) {
 #' @param connectionHandler the connection to the prediction result database
 #' @param resultDatabaseSettings a list containing the characterization result schema, dbms, tablePrefix, databaseTable and cgTablePrefix
 #' @param reactiveTargetRow a reactive data.frame with the target of interest details
-#' @param outcomeTable A reactive data.frame with the outcome table for the target of interest
+#' @param reactiveOutcomeTable A reactive data.frame with the outcome table for the target of interest
 #' @family Characterization
 #' @return
 #' The server to the prediction incidence module
@@ -98,8 +370,8 @@ characterizationIncidenceServer <- function(
     id, 
     connectionHandler,
     resultDatabaseSettings,
-    reactiveTargetRow, # reactive
-    outcomeTable # reactive
+    reactiveTargetRow,
+    reactiveOutcomeTable
 ) {
   shiny::moduleServer(
     id,
@@ -120,8 +392,13 @@ characterizationIncidenceServer <- function(
       })
       
       # get the databases that the target cohort has data in
-      databaseNames <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseString, split = ', ')))
-      databaseIds <- shiny::reactive(unlist(strsplit(x = reactiveTargetRow()$databaseIdString, split = ', ')))
+      databases <- OhdsiReportGenerator::getDatabaseDetails(
+        connectionHandler = connectionHandler, 
+        schema = resultDatabaseSettings$schema, 
+        databaseTable = resultDatabaseSettings$databaseTable
+      )
+      databaseNames <- shiny::reactive({databases$databaseName })
+      databaseIds <- shiny::reactive({databases$databaseId })
       
       output$inputOptions <- shiny::renderUI({
         shinydashboard::box(
@@ -146,8 +423,8 @@ characterizationIncidenceServer <- function(
             inputId = session$ns('databaseSelector'),
             label = 'Filter By Database: ',
             choices = sort(databaseNames()),
-            selected = databaseNames()[1],
-            multiple = T,
+            selected = sort(databaseNames())[1],
+            multiple = TRUE,
             options = shinyWidgets::pickerOptions(
               actionsBox = TRUE,
               liveSearch = TRUE,
@@ -197,17 +474,12 @@ characterizationIncidenceServer <- function(
       
       reactiveOutcomeRowIds <- shiny::reactiveVal(NULL)
       reactiveOutcomeRows <- shiny::reactive({
-        outcomeTable()[reactiveOutcomeRowIds(),]
+        reactiveOutcomeTable()[reactiveOutcomeRowIds(),]
       })
       
       tableSelectionServer(
         id = 'outcome-table-select',
-        table = shiny::reactive(outcomeTable() %>%
-                                  dplyr::filter(.data$cohortIncidence == 1) %>%
-                                  dplyr::select('parentName','cohortName','cohortId') %>%
-                                  dplyr::relocate("parentName", .before = "cohortName") %>%
-                                  dplyr::relocate("cohortId", .after = "cohortName")
-        ), 
+        table = reactiveOutcomeTable, 
         selectedRowId = reactiveOutcomeRowIds,
         selectMultiple = TRUE, 
         #elementId = session$ns('table-selector'),
@@ -243,8 +515,8 @@ characterizationIncidenceServer <- function(
             ciTablePrefix = resultDatabaseSettings$incidenceTablePrefix,
             cgTablePrefix = resultDatabaseSettings$cgTablePrefix, 
             databaseTable = resultDatabaseSettings$databaseTable, 
-            targetIds = reactiveTargetRow()$cohortId, 
-            outcomeIds = reactiveOutcomeRows()$cohortId
+            targetIds = reactiveTargetRow()$cohortDefinitionId, 
+            outcomeIds = reactiveOutcomeRows()$cohortDefinitionId
           ) 
         
           incidenceFullData(data)
@@ -363,16 +635,6 @@ characterizationIncidenceServer <- function(
                 value = TRUE
               )
             )
-            
-            #  shiny::column(width = 3,
-            #                shiny::div(
-            #                  style = "display:inline-block; float:right",
-            #                  shiny::downloadButton(ns("downloadPlotStandardAge"),
-            #                                        "Download Plot",
-            #                                        icon = shiny::icon("download")
-            #                  )
-            #                )
-            #  ) 
             
           ),
           
