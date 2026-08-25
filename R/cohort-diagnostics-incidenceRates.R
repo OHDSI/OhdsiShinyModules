@@ -566,6 +566,7 @@ incidenceRatesView <- function(id) {
               multiple = TRUE,
               choicesOpt = list(style = rep_len("color: black;", 999)),
               options = shinyWidgets::pickerOptions(
+                container = "body",
                 actionsBox = TRUE,
                 liveSearch = TRUE,
                 size = 10,
@@ -590,6 +591,7 @@ incidenceRatesView <- function(id) {
               multiple = TRUE,
               choicesOpt = list(style = rep_len("color: black;", 999)),
               options = shinyWidgets::pickerOptions(
+                container = "body",
                 actionsBox = TRUE,
                 liveSearch = TRUE,
                 size = 10,

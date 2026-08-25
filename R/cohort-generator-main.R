@@ -595,9 +595,10 @@ cohortGeneratorServer <- function(
             selected = cohortDefInputs[1],
             multiple = FALSE,
             options = shinyWidgets::pickerOptions(
+              container = "body",
               actionsBox = TRUE,
               liveSearch = TRUE,
-              dropupAuto = F,
+              dropupAuto = FALSE,
               #size = 10,
               liveSearchStyle = "contains",
               liveSearchPlaceholder = "Type here to search",

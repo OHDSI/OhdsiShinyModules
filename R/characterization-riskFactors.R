@@ -280,6 +280,56 @@ characterizationRiskFactorViewer <- function(id) {
               shiny::div(
                 class = 'rf-results-panel',
                 shiny::uiOutput(outputId = ns('helpTextBinary')),
+                shiny::fluidRow(
+                  shiny::column(
+                    width = 6,
+                    shiny::numericInput(
+                      inputId = ns('minAbsSmd'),
+                      label = 'Only show features with an absolute SMD of at least:',
+                      value = 0,
+                      min = 0,
+                      step = 0.05
+                    )
+                  ),
+                  shiny::column(
+                    width = 6,
+                    shiny::numericInput(
+                      inputId = ns('minCovariateFrequency'),
+                      label = 'Only show features found in at least this % of cases or non-cases:',
+                      value = 0,
+                      min = 0,
+                      max = 100,
+                      step = 1
+                    )
+                  )
+                ),
+                shiny::conditionalPanel(
+                  condition = 'output.showAggregate != 0',
+                  ns = ns,
+                  shiny::fluidRow(
+                    shiny::column(
+                      width = 6,
+                      shiny::numericInput(
+                        inputId = ns('minConsistency'),
+                        label = 'Only show features where at least this share of databases agreed (0 to 1):',
+                        value = 0,
+                        min = 0,
+                        max = 1,
+                        step = 0.05
+                      )
+                    ),
+                    shiny::column(
+                      width = 6,
+                      shiny::numericInput(
+                        inputId = ns('minNumDbs'),
+                        label = 'Only show features with results in at least this many databases:',
+                        value = 0,
+                        min = 0,
+                        step = 1
+                      )
+                    )
+                  )
+                ),
                 resultTableViewer(ns('binaryTable'))
               )
             ),
@@ -288,6 +338,56 @@ characterizationRiskFactorViewer <- function(id) {
               shiny::div(
                 class = 'rf-results-panel',
                 shiny::uiOutput(outputId = ns('helpTextContinuous')),
+                shiny::fluidRow(
+                  shiny::column(
+                    width = 6,
+                    shiny::numericInput(
+                      inputId = ns('minAbsSmdContinuous'),
+                      label = 'Only show features with an absolute SMD of at least:',
+                      value = 0,
+                      min = 0,
+                      step = 0.05
+                    )
+                  ),
+                  shiny::column(
+                    width = 6,
+                    shiny::numericInput(
+                      inputId = ns('minCovariateFrequencyContinuous'),
+                      label = 'Only show features found in at least this % of cases or non-cases:',
+                      value = 0,
+                      min = 0,
+                      max = 100,
+                      step = 1
+                    )
+                  )
+                ),
+                shiny::conditionalPanel(
+                  condition = 'output.showAggregate != 0',
+                  ns = ns,
+                  shiny::fluidRow(
+                    shiny::column(
+                      width = 6,
+                      shiny::numericInput(
+                        inputId = ns('minConsistencyContinuous'),
+                        label = 'Only show features where at least this share of databases agreed (0 to 1):',
+                        value = 0,
+                        min = 0,
+                        max = 1,
+                        step = 0.05
+                      )
+                    ),
+                    shiny::column(
+                      width = 6,
+                      shiny::numericInput(
+                        inputId = ns('minNumDbsContinuous'),
+                        label = 'Only show features with results in at least this many databases:',
+                        value = 0,
+                        min = 0,
+                        step = 1
+                      )
+                    )
+                  )
+                ),
                 resultTableViewer(ns('continuousTable'))
               )
             )
@@ -439,6 +539,12 @@ characterizationRiskFactorServer <- function(
       output$showRiskFactors <- shiny::reactive(0)
       shiny::outputOptions(output, "showRiskFactors", suspendWhenHidden = FALSE)
       
+      # the cross-database filters only make sense for the pooled 'All' results
+      output$showAggregate <- shiny::reactive({
+        as.numeric(!is.null(input$databaseName) && input$databaseName == 'All')
+      })
+      shiny::outputOptions(output, "showAggregate", suspendWhenHidden = FALSE)
+      
       # if target or outcome changes hide results
       shiny::observeEvent(reactiveTargetRow(), {
         output$showRiskFactors <- shiny::reactive(0)
@@ -478,6 +584,9 @@ characterizationRiskFactorServer <- function(
         targetRow <- reactiveTargetRow()
         selectedOutcomeCase <- reactiveSelectedOutcomeCaseRow()
         databaseChoices <- databaseNames()
+        if (hasAggregateRiskFactorSupport()) {
+          databaseChoices <- c('All', databaseChoices)
+        }
         selectedDatabase <- shiny::isolate(input$databaseName)
 
         if (is.null(selectedDatabase) || !(selectedDatabase %in% databaseChoices)) {
@@ -518,6 +627,79 @@ characterizationRiskFactorServer <- function(
         
       })
       
+
+      binaryData <- shiny::reactiveVal(NULL)
+      
+      # the absolute SMD and frequency filters live outside the table so users
+      # can narrow the features before scanning the results
+      filteredBinaryData <- shiny::reactive({
+        data <- binaryData()
+        if(is.null(data) || nrow(data) == 0){
+          return(data)
+        }
+        
+        minAbsSmd <- input$minAbsSmd
+        if(!is.null(minAbsSmd) && !is.na(minAbsSmd) && 'absSmd' %in% colnames(data)){
+          data <- data[!is.na(data$absSmd) & data$absSmd >= minAbsSmd, ]
+        }
+        
+        minFrequency <- input$minCovariateFrequency
+        counts <- populationCounts()
+        if(!is.null(minFrequency) && !is.na(minFrequency)){
+          if(all(c('caseAverage', 'nonCaseAverage') %in% colnames(data))){
+            maxAverage <- pmax(
+              ifelse(is.na(data$caseAverage), 0, data$caseAverage),
+              ifelse(is.na(data$nonCaseAverage), 0, data$nonCaseAverage)
+            )
+            data <- data[maxAverage >= minFrequency/100, ]
+          } else if(!is.null(counts) &&
+                    all(c('caseCount', 'nonCaseCount') %in% colnames(data))){
+            # the aggregated results only have counts, so derive the fraction
+            maxAverage <- pmax(
+              abs(ifelse(is.na(data$caseCount), 0, data$caseCount))/max(counts$caseN, 1),
+              abs(ifelse(is.na(data$nonCaseCount), 0, data$nonCaseCount))/max(counts$nonCaseN, 1)
+            )
+            data <- data[maxAverage >= minFrequency/100, ]
+          }
+        }
+        
+        applyAggregateFilters(
+          data = data, 
+          minConsistency = input$minConsistency, 
+          minNumDbs = input$minNumDbs
+        )
+      })
+
+      continuousData <- shiny::reactiveVal(NULL)
+      populationCounts <- shiny::reactiveVal(NULL)
+      
+      filteredContinuousData <- shiny::reactive({
+        data <- continuousData()
+        if(is.null(data) || nrow(data) == 0){
+          return(data)
+        }
+        
+        minAbsSmd <- input$minAbsSmdContinuous
+        if(!is.null(minAbsSmd) && !is.na(minAbsSmd) && 'absSmd' %in% colnames(data)){
+          data <- data[!is.na(data$absSmd) & data$absSmd >= minAbsSmd, ]
+        }
+        
+        minFrequency <- input$minCovariateFrequencyContinuous
+        counts <- populationCounts()
+        if(!is.null(minFrequency) && !is.na(minFrequency) && !is.null(counts) &&
+           all(c('caseCountValue', 'targetCountValue') %in% colnames(data))){
+          # counts are negative when censored, so use the absolute value
+          caseFraction <- abs(ifelse(is.na(data$caseCountValue), 0, data$caseCountValue))/max(counts$caseN, 1)
+          nonCaseFraction <- abs(ifelse(is.na(data$targetCountValue), 0, data$targetCountValue))/max(counts$nonCaseN, 1)
+          data <- data[pmax(caseFraction, nonCaseFraction) >= minFrequency/100, ]
+        }
+        
+        applyAggregateFilters(
+          data = data, 
+          minConsistency = input$minConsistencyContinuous, 
+          minNumDbs = input$minNumDbsContinuous
+        )
+      })
 
       shiny::observeEvent(input$generate, {
         # add target, selected case, and database checks
@@ -560,12 +742,20 @@ characterizationRiskFactorServer <- function(
             
             output$showRiskFactors <- shiny::reactive(1)
             
+            # 'All' pools the results across every database the target has data in
+            useAllDatabases <- input$databaseName == 'All'
+            selectedDatabaseIds <- if(useAllDatabases){
+              databaseIds()
+            } else {
+              databaseIds()[input$databaseName == databaseNames()]
+            }
+            
             caseCount <- getCaseCountsRF(
               connectionHandler = connectionHandler,
               resultDatabaseSettings = resultDatabaseSettings,
               characterizationCaseId = selectedOutcomeCase$characterizationCaseId,
               oldColumns = selectedOutcomeCase, 
-              databaseId = databaseIds()[input$databaseName == databaseNames()]
+              databaseId = selectedDatabaseIds
             )
             
             targetCount <- getNonCaseCountsRF(
@@ -573,7 +763,7 @@ characterizationRiskFactorServer <- function(
               resultDatabaseSettings = resultDatabaseSettings,
               characterizationCaseId = selectedOutcomeCase$characterizationCaseId,
               oldColumns = selectedOutcomeCase, 
-              databaseId = databaseIds()[input$databaseName == databaseNames()]
+              databaseId = selectedDatabaseIds
             )
             
             output$helpTextBinary <- shiny::renderUI(
@@ -583,9 +773,17 @@ characterizationRiskFactorServer <- function(
               shiny::helpText(paste0("This analysis shows the fraction of patients in the cohorts stratified by whether they had the outcome during the time-at-risk with a history of each continuous features across databases."))
             )
             
-            caseN <- caseCount$personCount[1]
+            caseN <- if(useAllDatabases){
+              sum(caseCount$personCount, na.rm = TRUE)
+            } else {
+              caseCount$personCount[1]
+            }
             
-            nonCaseN <- targetCount$personCount[1]
+            nonCaseN <- if(useAllDatabases){
+              sum(targetCount$personCount, na.rm = TRUE)
+            } else {
+              targetCount$personCount[1]
+            }
 
             groupColumns <- list(
               reactable::colGroup(
@@ -607,13 +805,25 @@ characterizationRiskFactorServer <- function(
               resultDatabaseSettings = resultDatabaseSettings,
               characterizationCaseId = selectedOutcomeCase$characterizationCaseId,
               oldColumns = selectedOutcomeCase, # added for backwards comp when case id wasnt used
-              databaseId = databaseIds()[input$databaseName == databaseNames()]
+              databaseId = selectedDatabaseIds,
+              aggregate = useAllDatabases
             )
+            
+            binaryData(
+              tryCatch({allData$binary},
+                       error = function(e){return(NULL)})
+            )
+            
+            continuousData(
+              tryCatch({allData$continuous},
+                       error = function(e){return(NULL)})
+            )
+            
+            populationCounts(list(caseN = caseN, nonCaseN = nonCaseN))
             
             resultTableServer(
               id = "binaryTable", 
-              df = tryCatch({allData$binary},
-              error = function(e){return(NULL)}),
+              df = filteredBinaryData,
               details = data.frame(
                 target = reactiveTargetRow()$cohortName,
                 outcome = selectedOutcomeName,
@@ -628,7 +838,10 @@ characterizationRiskFactorServer <- function(
                 elementId = session$ns('binary-table-filter')
               ), # function below
               addActions = NULL,
-              columnGroups = groupColumns,
+              columnGroups = trimColumnGroups(
+                columnGroups = groupColumns, 
+                df = allData$binary
+              ),
               elementId = session$ns('binary-table-filter'), 
             )
             
@@ -659,8 +872,7 @@ characterizationRiskFactorServer <- function(
             
             resultTableServer(
               id = "continuousTable", 
-              df = tryCatch({allData$continuous},
-                error = function(e){return(NULL)}),
+              df = filteredContinuousData,
               details = data.frame(
                 target = reactiveTargetRow()$cohortName,
                 outcome = selectedOutcomeName,
@@ -675,7 +887,10 @@ characterizationRiskFactorServer <- function(
                 elementId = session$ns('continuous-table-filter')
               ),
               addActions = NULL,
-              columnGroups = groupColumnsContinuous, 
+              columnGroups = trimColumnGroups(
+                columnGroups = groupColumnsContinuous, 
+                df = allData$continuous
+              ), 
               elementId = session$ns('risk_factor_continuous')
             )
             
@@ -840,10 +1055,80 @@ characterizationGetRiskFactorData <- function(
   resultDatabaseSettings,
   characterizationCaseId,
   oldColumns,
-  databaseId
+  databaseId,
+  aggregate = FALSE
 ){
   
-  if(characterizationCaseId != 0){
+  if(aggregate){
+    
+    # the aggregate queries pool every database, so they take no databaseId
+    selectionArgs <- if(characterizationCaseId != 0){
+      list(characterizationCaseId = characterizationCaseId)
+    } else {
+      list(
+        characterizationTargetId = oldColumns$characterizationTargetId,
+        outcomeId = oldColumns$outcomeId,
+        outcomeWashout = oldColumns$outcomeWashoutDays,
+        riskWindowStart = oldColumns$riskWindowStart,
+        riskWindowEnd = oldColumns$riskWindowEnd,
+        startAnchor = oldColumns$startAnchor,
+        endAnchor = oldColumns$endAnchor
+      )
+    }
+    
+    sharedArgs <- list(
+      connectionHandler = connectionHandler,
+      schema = resultDatabaseSettings$schema,
+      cTablePrefix = resultDatabaseSettings$cTablePrefix,
+      cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+      analysisIds = NULL
+    )
+    
+    # older result databases do not support the aggregate queries, so fail softly
+    aggregateResults <- tryCatch(
+      {
+        shiny::withProgress(message = 'Getting risk factor data across databases', value = 0, {
+          
+          shiny::incProgress(1/4, detail = paste("Extracting binary"))
+          
+          binaryResult <- do.call(
+            what = OhdsiReportGenerator::getAggregateBinaryRiskFactors,
+            args = c(sharedArgs, selectionArgs)
+          )
+          
+          message(paste0('Extracted ',nrow(binaryResult),' aggregate binary RF rows'))
+          
+          shiny::incProgress(3/4, detail = paste("Extracting continuous"))
+          
+          continuousResult <- do.call(
+            what = OhdsiReportGenerator::getAggregateContinuousRiskFactors,
+            args = c(
+              sharedArgs, 
+              selectionArgs, 
+              list(databaseTable = resultDatabaseSettings$databaseTable)
+            )
+          )
+          
+          message(paste0('Extracted ',nrow(continuousResult),' aggregate continuous RF rows'))
+          
+          shiny::incProgress(4/4, detail = paste("Done"))
+          
+          list(binary = binaryResult, continuous = continuousResult)
+        })
+      },
+      error = function(e){
+        warning(paste0(
+          'Unable to get results across all databases, this may not be supported by the result database: ', 
+          e$message
+        ))
+        list(binary = NULL, continuous = NULL)
+      }
+    )
+    
+    binary <- aggregateResults$binary
+    continuous <- aggregateResults$continuous
+    
+  } else if(characterizationCaseId != 0){
     shiny::withProgress(message = 'Getting risk factor data', value = 0, {
       
       shiny::incProgress(1/4, detail = paste("Extracting binary"))
@@ -930,10 +1215,12 @@ characterizationGetRiskFactorData <- function(
   
   binary <- binary %>%
     parseRiskFactorCovariates() %>%
+    addRiskFactorConsistency() %>%
     sortRiskFactorRows()
 
   continuous <- continuous %>%
     parseRiskFactorCovariates() %>%
+    addRiskFactorConsistency() %>%
     sortRiskFactorRows()
   
   return(
@@ -942,6 +1229,65 @@ characterizationGetRiskFactorData <- function(
       continuous = continuous
     )
   )
+}
+
+
+# older OhdsiReportGenerator versions cannot pool results across databases
+hasAggregateRiskFactorSupport <- function(){
+  "getAggregateBinaryRiskFactors" %in% getNamespaceExports("OhdsiReportGenerator")
+}
+
+
+# these columns only exist for the pooled 'All databases' results
+applyAggregateFilters <- function(data, minConsistency, minNumDbs){
+  if(is.null(data) || nrow(data) == 0){
+    return(data)
+  }
+  
+  if(!is.null(minConsistency) && !is.na(minConsistency) && 'consistency' %in% colnames(data)){
+    data <- data[!is.na(data$consistency) & data$consistency >= minConsistency, ]
+  }
+  
+  if(!is.null(minNumDbs) && !is.na(minNumDbs) && 'numDbs' %in% colnames(data)){
+    data <- data[!is.na(data$numDbs) & data$numDbs >= minNumDbs, ]
+  }
+  
+  data
+}
+
+
+# how often the databases agreed on the direction of the difference
+addRiskFactorConsistency <- function(df){
+  if(is.null(df) || nrow(df) == 0 ||
+     !all(c('numDbs', 'posDbs', 'negDbs') %in% colnames(df))){
+    return(df)
+  }
+  
+  df$consistency <- ifelse(
+    df$numDbs > 0,
+    pmax(df$posDbs, df$negDbs)/df$numDbs,
+    NA_real_
+  )
+  df
+}
+
+
+# drop grouped columns (and empty groups) that the query did not return
+trimColumnGroups <- function(columnGroups, df){
+  if(is.null(columnGroups) || is.null(df)){
+    return(NULL)
+  }
+  
+  trimmed <- lapply(columnGroups, function(group){
+    group$columns <- group$columns[group$columns %in% colnames(df)]
+    group
+  })
+  trimmed <- trimmed[vapply(trimmed, function(group){length(group$columns) > 0}, logical(1))]
+  
+  if(length(trimmed) == 0){
+    return(NULL)
+  }
+  trimmed
 }
 
 
@@ -1160,24 +1506,33 @@ characteriationRiskFactorColDefs <- function(
       header = withTooltip("absSMD",
                            "Absolute value of standardized mean difference"),
       format = reactable::colFormat(digits = 2, percent = FALSE),
-      filterable = TRUE,
-      filterMethod = reactable::JS("function(rows, columnId, filterValue) {
-        return rows.filter(function(row) {
-          return row.values[columnId] >= filterValue
-        })
-      }"),
-      filterInput = function(values, name) {
-        oninput <- sprintf("Reactable.setFilter('%s', '%s', this.value)", elementId, name)
-        shiny::tags$input(
-          type = "range",
-          min = floor(min(values, na.rm = TRUE)),
-          max = ceiling(max(values, na.rm = TRUE)),
-          value = floor(min(values, na.rm = TRUE)),
-          oninput = oninput,
-          onchange = oninput, # For IE11 support
-          "aria-label" = sprintf("Filter by minimum %s", name)
-        )
-      }
+      filterable = FALSE
+    ),
+    
+    numDbs = reactable::colDef(
+      name = "No. Databases",
+      header = withTooltip("No. Databases",
+                           "The number of databases with a result for this feature"),
+      filterable = FALSE
+    ),
+    posDbs = reactable::colDef(
+      name = "No. Databases Higher in Cases",
+      header = withTooltip("No. Databases Higher in Cases",
+                           "The number of databases where the feature was more common in cases than non-cases (a positive SMD)"),
+      filterable = FALSE
+    ),
+    negDbs = reactable::colDef(
+      name = "No. Databases Lower in Cases",
+      header = withTooltip("No. Databases Lower in Cases",
+                           "The number of databases where the feature was less common in cases than non-cases (a negative SMD)"),
+      filterable = FALSE
+    ),
+    consistency = reactable::colDef(
+      name = "Agreement Across Databases",
+      header = withTooltip("Agreement Across Databases",
+                           "The largest share of databases that agreed on the direction of the difference: 1 means every database pointed the same way"),
+      filterable = FALSE,
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     )
   )
   return(result)
@@ -1440,7 +1795,32 @@ characteriationRiskFactorContColDefs <- function(
       header = withTooltip("absSMD",
                            "Absolute value of the standardized mean difference"), 
       format = reactable::colFormat(digits = 2, percent = FALSE),
-      filterable = TRUE
+      filterable = FALSE
+    ),
+    numDbs = reactable::colDef(
+      name = "No. Databases",
+      header = withTooltip("No. Databases",
+                           "The number of databases with a result for this feature"),
+      filterable = FALSE
+    ),
+    posDbs = reactable::colDef(
+      name = "No. Databases Higher in Cases",
+      header = withTooltip("No. Databases Higher in Cases",
+                           "The number of databases where the feature was higher in cases than non-cases (a positive SMD)"),
+      filterable = FALSE
+    ),
+    negDbs = reactable::colDef(
+      name = "No. Databases Lower in Cases",
+      header = withTooltip("No. Databases Lower in Cases",
+                           "The number of databases where the feature was lower in cases than non-cases (a negative SMD)"),
+      filterable = FALSE
+    ),
+    consistency = reactable::colDef(
+      name = "Agreement Across Databases",
+      header = withTooltip("Agreement Across Databases",
+                           "The largest share of databases that agreed on the direction of the difference: 1 means every database pointed the same way"),
+      filterable = FALSE,
+      format = reactable::colFormat(digits = 2, percent = FALSE)
     )
   )
   return(result)

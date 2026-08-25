@@ -48,6 +48,8 @@ cohortDiagCharacterizationView <- function(id) {
             label = "Select Cohort",
             choices = NULL,
             options = shinyWidgets::pickerOptions(
+              dropupAuto = FALSE,
+              container = "body",
               actionsBox = TRUE,
               liveSearch = TRUE,
               size = 10,
@@ -67,6 +69,8 @@ cohortDiagCharacterizationView <- function(id) {
             multiple = TRUE,
             choicesOpt = list(style = rep_len("color: black;", 999)),
             options = shinyWidgets::pickerOptions(
+              dropupAuto = FALSE,
+              container = "body",
               actionsBox = TRUE,
               liveSearch = TRUE,
               size = 10,
@@ -92,6 +96,8 @@ cohortDiagCharacterizationView <- function(id) {
               choicesOpt = list(style = rep_len("color: black;", 999)),
               selected = NULL,
               options = shinyWidgets::pickerOptions(
+                dropupAuto = FALSE,
+                container = "body",
                 actionsBox = TRUE,
                 liveSearch = TRUE,
                 maxOptions = 5, # Selecting even this many will be slow
@@ -114,6 +120,8 @@ cohortDiagCharacterizationView <- function(id) {
               width = "100%",
               choicesOpt = list(style = rep_len("color: black;", 999)),
               options = shinyWidgets::pickerOptions(
+                dropupAuto = FALSE,
+                container = "body",
                 actionsBox = TRUE,
                 liveSearch = TRUE,
                 size = 10,
@@ -135,6 +143,8 @@ cohortDiagCharacterizationView <- function(id) {
               width = "100%",
               choicesOpt = list(style = rep_len("color: black;", 999)),
               options = shinyWidgets::pickerOptions(
+                dropupAuto = FALSE,
+                container = "body",
                 actionsBox = TRUE,
                 liveSearch = TRUE,
                 size = 10,
@@ -174,6 +184,8 @@ cohortDiagCharacterizationView <- function(id) {
               label = "Subset to Concept Set",
               choices = NULL,
               options = shinyWidgets::pickerOptions(
+                dropupAuto = FALSE,
+                container = "body",
                 actionsBox = TRUE,
                 liveSearch = TRUE,
                 size = 10,

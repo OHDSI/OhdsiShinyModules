@@ -9,8 +9,7 @@ createActionButton(
   buttonIcon = "play",
   hoverText = NULL,
   buttonClass = "btn btn-default btn-xs",
-  buttonStyle =
-    "margin-right: 4px; margin-bottom: 2px; padding: 2px 8px; font-size: 11px; line-height: 1.2;",
+  buttonStyle = NULL,
   buttonLabel = NULL
 )
 }
@@ -23,7 +22,7 @@ createActionButton(
 
 \item{buttonClass}{string, CSS classes applied to the button element.}
 
-\item{buttonStyle}{string, inline CSS style applied to the button element.}
+\item{buttonStyle}{string, inline CSS style applied to the button element. Uses a compact pill style when NULL.}
 
 \item{buttonLabel}{string, button text shown to the user.}
 }

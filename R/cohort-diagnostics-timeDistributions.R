@@ -285,6 +285,7 @@ timeDistributionsView <- function(id) {
             selected = selectableTimeMeasures,
             choices = selectableTimeMeasures,
             options = shinyWidgets::pickerOptions(
+              container = "body",
               actionsBox = TRUE,
               liveSearch = TRUE,
               size = 10,
@@ -307,6 +308,7 @@ timeDistributionsView <- function(id) {
               selected = selectableCols,
               choices = selectableCols,
               options = shinyWidgets::pickerOptions(
+                container = "body",
                 actionsBox = TRUE,
                 liveSearch = TRUE,
                 size = 10,

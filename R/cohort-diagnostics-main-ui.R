@@ -27,6 +27,8 @@ cdUiControls <- function(ns) {
         multiple = FALSE,
         choicesOpt = list(style = rep_len("color: black;", 999)),
         options = shinyWidgets::pickerOptions(
+          dropupAuto = FALSE,
+          container = "body",
           actionsBox = TRUE,
           liveSearch = TRUE,
           size = 10,
@@ -54,6 +56,8 @@ cdUiControls <- function(ns) {
         multiple = TRUE,
         choicesOpt = list(style = rep_len("color: black;", 999)),
         options = shinyWidgets::pickerOptions(
+          dropupAuto = FALSE,
+          container = "body",
           actionsBox = TRUE,
           liveSearch = TRUE,
           size = 10,
@@ -78,6 +82,8 @@ cdUiControls <- function(ns) {
         multiple = FALSE,
         choicesOpt = list(style = rep_len("color: black;", 999)),
         options = shinyWidgets::pickerOptions(
+          dropupAuto = FALSE,
+          container = "body",
           actionsBox = TRUE,
           liveSearch = TRUE,
           liveSearchStyle = "contains",
@@ -101,11 +107,12 @@ cdUiControls <- function(ns) {
         multiple = TRUE,
         choicesOpt = list(style = rep_len("color: black;", 999)),
         options = shinyWidgets::pickerOptions(
+          container = "body",
           actionsBox = TRUE,
           liveSearch = TRUE,
           liveSearchStyle = "contains",
           size = 10,
-          dropupAuto = TRUE,
+          dropupAuto = FALSE,
           liveSearchPlaceholder = "Type here to search",
           virtualScroll = 50
         )
@@ -124,6 +131,8 @@ cdUiControls <- function(ns) {
         multiple = TRUE,
         choicesOpt = list(style = rep_len("color: black;", 999)),
         options = shinyWidgets::pickerOptions(
+          dropupAuto = FALSE,
+          container = "body",
           actionsBox = TRUE,
           liveSearch = TRUE,
           size = 10,

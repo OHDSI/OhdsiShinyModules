@@ -158,6 +158,8 @@ phevaluatorServer <- function(
                 choicesOpt = list(style = rep_len("color: black;", 999)),
                 multiple = T,
                 options = shinyWidgets::pickerOptions(
+                  dropupAuto = FALSE,
+                  container = "body",
                   actionsBox = TRUE,
                   liveSearch = TRUE,
                   size = 10,
@@ -178,6 +180,8 @@ phevaluatorServer <- function(
                 choicesOpt = list(style = rep_len("color: black;", 999)),
                 multiple = T,
                 options = shinyWidgets::pickerOptions(
+                  dropupAuto = FALSE,
+                  container = "body",
                   actionsBox = TRUE,
                   liveSearch = TRUE,
                   size = 10,

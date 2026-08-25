@@ -505,10 +505,11 @@ characterizationCaseSeriesServer <- function(
               selected = selectedDatabase,
               multiple = F,
               options = shinyWidgets::pickerOptions(
+                container = "body",
                 actionsBox = TRUE,
                 liveSearch = TRUE,
                 size = 10,
-                dropupAuto = TRUE,
+                dropupAuto = FALSE,
                 liveSearchStyle = "contains",
                 liveSearchPlaceholder = "Type here to search",
                 virtualScroll = 50

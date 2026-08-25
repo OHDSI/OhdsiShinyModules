@@ -264,6 +264,17 @@ characterizationIncidenceViewer <- function(id) {
         overflow-y: hidden;
         box-sizing: border-box;
       }
+      /* pickers use container = "body" so the menu escapes the clipping boxes */
+      body > .bootstrap-select.dropdown {
+        z-index: 1060;
+      }
+      body > .bootstrap-select .dropdown-menu {
+        z-index: 1060;
+      }
+      body > .bootstrap-select .dropdown-menu .inner {
+        max-height: 320px !important;
+        overflow-y: auto;
+      }
       '
     ),
     shiny::div(
@@ -430,6 +441,7 @@ characterizationIncidenceServer <- function(
               liveSearch = TRUE,
               size = 10,
               dropupAuto = FALSE,
+              container = "body",
               liveSearchStyle = "contains",
               liveSearchPlaceholder = "Type here to search",
               virtualScroll = 50
@@ -573,6 +585,8 @@ characterizationIncidenceServer <- function(
       # PLOT FILTER
       output$plotFilter <- shiny::renderUI({
         
+        tarChoices <- sort(unique(incidenceFullData()$tar))
+        
         shiny::div(
           shinyWidgets::pickerInput(
             inputId = session$ns('databaseSelectorPlot'),
@@ -585,6 +599,7 @@ characterizationIncidenceServer <- function(
               liveSearch = TRUE,
               size = 10,
               dropupAuto = FALSE,
+              container = "body",
               liveSearchStyle = "contains",
               liveSearchPlaceholder = "Type here to search",
               virtualScroll = 50
@@ -602,6 +617,24 @@ characterizationIncidenceServer <- function(
               liveSearch = TRUE,
               size = 10,
               dropupAuto = FALSE,
+              container = "body",
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
+          ),
+          
+          shinyWidgets::pickerInput(
+            inputId = session$ns('tarPlot'),
+            label = 'Time at risk: ',
+            choices = tarChoices,
+            selected = tarChoices[1],
+            multiple = FALSE,
+            options = shinyWidgets::pickerOptions(
+              liveSearch = TRUE,
+              size = 10,
+              dropupAuto = FALSE,
+              container = "body",
               liveSearchStyle = "contains",
               liveSearchPlaceholder = "Type here to search",
               virtualScroll = 50
@@ -610,17 +643,35 @@ characterizationIncidenceServer <- function(
           
           shiny::fluidRow(
             shiny::column(
-              width = 4,
-              shiny::selectInput(
+              width = 3,
+              shinyWidgets::pickerInput(
                 inputId = session$ns('xAxis'), 
                 label = 'Report Type:', 
                 choices = c('Age', 'Year'), 
                 selected = 'Age', 
-                multiple = FALSE
-                  )
+                multiple = FALSE,
+                options = shinyWidgets::pickerOptions(
+                  dropupAuto = FALSE,
+                  container = "body"
+                )
+              )
             ),
             shiny::column(
-              width = 4,
+              width = 3,
+              shinyWidgets::pickerInput(
+                inputId = session$ns('yScaleType'), 
+                label = 'Y-axis scale:', 
+                choices = c('Log scale', 'Standard scale'), 
+                selected = 'Standard scale', 
+                multiple = FALSE,
+                options = shinyWidgets::pickerOptions(
+                  dropupAuto = FALSE,
+                  container = "body"
+                )
+              )
+            ),
+            shiny::column(
+              width = 3,
               shiny::checkboxInput(
                 inputId = session$ns('sexStratifyPlot'), 
                 label = 'sex stratify incidence', 
@@ -628,7 +679,7 @@ characterizationIncidenceServer <- function(
               )
             ),
             shiny::column(
-              width = 4,
+              width = 3,
               shiny::checkboxInput(
                 inputId = session$ns('scaleVal'), 
                 label = 'Fixed y-scale', 
@@ -689,43 +740,110 @@ characterizationIncidenceServer <- function(
           ) %>%
           dplyr::filter(
             .data$outcomeName %in% input$outcomesPlot
+          ) %>%
+          dplyr::filter(
+            .data$tar %in% input$tarPlot
           )
         
         if(nrow(plotData) > 0){
           
+          plotData <- plotData %>% 
+            dplyr::select(
+              "databaseName", "outcomeName", "ageGroupName", "startYear",
+              "genderName", "incidenceRateP100py", "tar", "cleanWindow"
+            ) %>% 
+            dplyr::mutate(
+              facetLabel = paste0(.data$outcomeName, "\n(clean window: ", .data$cleanWindow, ")"),
+              # a negative rate means the true rate is below that value (censored small counts)
+              valueType = factor(
+                x = ifelse(.data$incidenceRateP100py < 0, "Less than the plotted value", "Reported rate"),
+                levels = c("Reported rate", "Less than the plotted value")
+              ),
+              incidenceRateP100py = abs(.data$incidenceRateP100py)
+            )
+          
+          if(xAxis == 'ageGroupName'){
+            plotData$ageGroupName <- factor(
+              x = plotData$ageGroupName, 
+              levels = sortAgeGroupNames(plotData$ageGroupName)
+            )
+          } else {
+            plotData$startYear <- factor(
+              x = plotData$startYear, 
+              levels = sort(unique(plotData$startYear))
+            )
+          }
+          
+          useLogScale <- input$yScaleType == 'Log scale'
+          
+          if(useLogScale){
+            yScale <- ggplot2::scale_y_continuous(
+              trans = scales::pseudo_log_trans(base = 10),
+              n.breaks = 4
+            )
+            yName <- "Incidence rate per 100 patient years (log scale)"
+            scaleNote <- "the y-axis uses a log-like scale, so equal spacing does not mean equal difference."
+          } else {
+            yScale <- ggplot2::scale_y_continuous(n.breaks = 5)
+            yName <- "Incidence rate per 100 patient years"
+            scaleNote <- "the y-axis uses a standard scale, so small rates may be hard to tell apart."
+          }
+          
           output$incidencePlot <- shiny::renderPlot(
             ggplot2::ggplot(
-              data = plotData  %>% 
-                dplyr::select("databaseName", "outcomeName","ageGroupName","startYear","genderName","incidenceRateP100py", "tar", "cleanWindow"),
+              data = plotData,
               mapping = ggplot2::aes(x = .data[[xAxis]],
                                      y = .data$incidenceRateP100py,
                                      color = .data[[color]],
                                      group = .data[[color]]
               )
             ) + 
+              ggplot2::geom_line(
+                linewidth = 0.9,
+                alpha = 0.9
+              ) +
               ggplot2::geom_point(
-                size = 3
+                mapping = ggplot2::aes(shape = .data$valueType),
+                size = 2.6,
+                stroke = 1.1,
+                fill = "white"
               ) + 
-              ggplot2::geom_line() +
               ggplot2::facet_grid(
-                .data$databaseName ~ paste0(.data$outcomeName," (clean win ",.data$cleanWindow,"): ",.data$tar),
-                #. ~ paste0(.data$outcomeName," (clean win ",.data$cleanWindow,"): ",.data$tar),
+                .data$databaseName ~ .data$facetLabel,
                 scales = scaleVal
                 ) +
-              ggplot2::scale_y_continuous(
-                trans = scales::pseudo_log_trans(base = 10),
-                n.breaks = 4
-              ) + 
+              yScale + 
+              ggplot2::scale_color_viridis_d(end = 0.9) +
+              ggplot2::scale_shape_manual(
+                values = c("Reported rate" = 16, "Less than the plotted value" = 21),
+                drop = FALSE
+              ) +
               ggplot2::labs(
                 title = "Incidence Rates",
+                subtitle = paste0("Time at risk: ", input$tarPlot),
                 x = xName,
-                y = "Incidence rate per 100 patient years",
-                color = colorName
+                y = yName,
+                color = colorName,
+                shape = "Value type",
+                caption = paste0(
+                  "Notes: ", scaleNote, "\n",
+                  "Hollow points are censored small counts: the true rate is somewhere below the plotted value."
+                )
               )  +
+              ggplot2::theme_bw(base_size = 14) +
               ggplot2::theme(
-                #strip.text.y = ggplot2::element_text(angle = 0, hjust = 0, vjust = 0),
-                legend.position="bottom",
-                strip.text.y = ggplot2::element_text(angle=0)
+                legend.position = "bottom",
+                legend.title = ggplot2::element_text(face = "bold"),
+                plot.title = ggplot2::element_text(face = "bold"),
+                plot.subtitle = ggplot2::element_text(color = "grey30"),
+                plot.caption = ggplot2::element_text(color = "grey40", hjust = 0),
+                panel.grid.minor = ggplot2::element_blank(),
+                panel.grid.major.x = ggplot2::element_blank(),
+                panel.spacing = ggplot2::unit(1, "lines"),
+                strip.background = ggplot2::element_rect(fill = "grey93", color = NA),
+                strip.text = ggplot2::element_text(face = "bold", size = 11),
+                strip.text.y = ggplot2::element_text(angle = 0),
+                axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)
               )
           )
         } else{
@@ -739,6 +857,33 @@ characterizationIncidenceServer <- function(
       return(invisible(NULL)) ############# end of server
       
     })
+}
+
+# order age group labels such as '0-4', '10-14', '>110' by the age they start at
+sortAgeGroupNames <- function(ageGroupNames){
+  uniqueNames <- unique(as.character(ageGroupNames))
+  startAge <- suppressWarnings(
+    as.numeric(sub(pattern = "^[^0-9]*([0-9]+).*$", replacement = "\\1", x = uniqueNames))
+  )
+  startAge[is.na(startAge)] <- Inf
+  uniqueNames[order(startAge, uniqueNames)]
+}
+
+# negative counts/rates indicate the true value is censored, so show them as '<value'
+formatCensoredValue <- function(value, digits = 0){
+  if(length(value) == 0 || is.na(value)){
+    return("")
+  }
+  formatted <- formatC(
+    x = abs(value), 
+    format = "f", 
+    digits = digits, 
+    big.mark = ","
+  )
+  if(value < 0){
+    return(paste0("<", formatted))
+  }
+  formatted
 }
 
 characterizationIncidenceColumnDefs <- function(elementId){
@@ -851,24 +996,26 @@ characterizationIncidenceColumnDefs <- function(elementId){
       name = "No. Outcomes",
       filterable = FALSE,
       header = withTooltip("No. Outcomes",
-                           "The number of outcomes within the people at risk during time-at-risk")
+                           "The number of outcomes within the people at risk during time-at-risk"),
+      cell = function(value){ formatCensoredValue(value = value, digits = 0) }
     ),
     incidenceProportionP100p = reactable::colDef(
       name = "Incidence proportion per 100 persons",
       filterable = FALSE,
       header = withTooltip("Incidence proportion per 100 persons",
                            "The number of outcomes divided by the number of patients multipled by 100"),
-      format = reactable::colFormat(digits = 2)
+      cell = function(value){ formatCensoredValue(value = value, digits = 2) }
     ), 
     incidenceRateP100py = reactable::colDef(
       name = "Incidence rate per 100 person years",
       filterable = FALSE,
       header = withTooltip("Incidence rate per 100 person years",
                            "The number of outcomes divided by the number of person days exposed multipled by 100 times 365"), 
-      format = reactable::colFormat(digits = 2)
+      cell = function(value){ formatCensoredValue(value = value, digits = 2) }
     ),
     personOutcomes = reactable::colDef(
-      name = 'No. Person Outcomes'
+      name = 'No. Person Outcomes',
+      cell = function(value){ formatCensoredValue(value = value, digits = 0) }
     ),
     
     personDaysPe = reactable::colDef(
