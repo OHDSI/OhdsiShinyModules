@@ -257,6 +257,12 @@ Utilities for tables that contain large amounts of rows
 
 Shared usable utility functions
 
+- [`actionButtonStyleInfo()`](actionButtonStyleInfo.md) : Action Button
+  Style (Info)
+- [`actionButtonStyleWarning()`](actionButtonStyleWarning.md) : Action
+  Button Style (Warning)
+- [`createActionButton()`](createActionButton.md) : Create Action Button
+  Definition
 - [`datasourcesHelperFile()`](datasourcesHelperFile.md) : Define the
   helper file for the module
 - [`datasourcesServer()`](datasourcesServer.md) : The server function

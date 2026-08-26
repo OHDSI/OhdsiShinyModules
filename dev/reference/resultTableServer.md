@@ -61,8 +61,10 @@ resultTableServer(
 
 - addActions:
 
-  add a button row selector column to the table to a column called
-  'actions'. actions must be a column in df
+  list of action button definitions created by createActionButton().
+  Each entry is rendered as a small per-row button in an 'actions'
+  column and emits actionType/actionIndex/actionCount outputs when
+  clicked.
 
 - downloadedFileName:
 

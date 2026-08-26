@@ -10,7 +10,7 @@ characterizationIncidenceServer(
   connectionHandler,
   resultDatabaseSettings,
   reactiveTargetRow,
-  outcomeTable
+  reactiveOutcomeTable
 )
 ```
 
@@ -33,7 +33,7 @@ characterizationIncidenceServer(
 
   a reactive data.frame with the target of interest details
 
-- outcomeTable:
+- reactiveOutcomeTable:
 
   A reactive data.frame with the outcome table for the target of
   interest

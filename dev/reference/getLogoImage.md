@@ -18,7 +18,10 @@ Returns the location of the OHDSI logo
 
 ## See also
 
-Other Utils: [`datasourcesHelperFile()`](datasourcesHelperFile.md),
+Other Utils: [`actionButtonStyleInfo()`](actionButtonStyleInfo.md),
+[`actionButtonStyleWarning()`](actionButtonStyleWarning.md),
+[`createActionButton()`](createActionButton.md),
+[`datasourcesHelperFile()`](datasourcesHelperFile.md),
 [`datasourcesServer()`](datasourcesServer.md),
 [`datasourcesViewer()`](datasourcesViewer.md),
 [`resultTableViewer()`](resultTableViewer.md)
