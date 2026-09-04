@@ -267,6 +267,7 @@ selfControlledCohortCombineResults <- function(estimation, meta) {
   commonCols <- c(
     "databaseName", "databaseId", "analysisId", "description",
     "targetId", "targetName", "outcomeId", "outcomeName", "meta",
+    "unblind",
     "calibratedRr", "calibratedLb95", "calibratedUb95", "calibratedPValue",
     "numPersons", "timeAtRiskExposed", "timeAtRiskUnexposed",
     "numOutcomesExposed", "numOutcomesUnexposed", "numExposures"
@@ -350,6 +351,14 @@ selfControlledCohortDetailedColDef <- function() {
       name = "Analysis settings",
       filterable = TRUE,
       minWidth = 220
+    ),
+    unblind = reactable::colDef(
+      name = "Unblinded",
+      filterable = TRUE,
+      minWidth = 90,
+      cell = function(value) {
+        if (is.na(value)) "-" else if (value == 1) "Yes" else "No"
+      }
     ),
     calibratedRr = reactable::colDef(
       name = "Calibrated IRR",
