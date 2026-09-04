@@ -36,11 +36,13 @@ Other SelfControlledCohort:
 \code{\link{selfControlledCohortHelperFile}()},
 \code{\link{selfControlledCohortMetaExplorationColDef}()},
 \code{\link{selfControlledCohortMetaExplorationViewer}()},
+\code{\link{selfControlledCohortMetaSql}()},
 \code{\link{selfControlledCohortPairServer}()},
 \code{\link{selfControlledCohortPairViewer}()},
 \code{\link{selfControlledCohortServer}()},
 \code{\link{selfControlledCohortSignalsColDef}()},
 \code{\link{selfControlledCohortSignalsServer}()},
+\code{\link{selfControlledCohortSignalsSql}()},
 \code{\link{selfControlledCohortSignalsViewer}()},
 \code{\link{selfControlledCohortViewer}()}
 }

@@ -27,6 +27,33 @@ selfControlledCohortPairViewer <- function(id = "pair") {
   ns <- shiny::NS(id)
 
   shiny::div(
+    shiny::fluidRow(
+      shinydashboard::box(
+        width = 12,
+        title = shiny::span(shiny::icon("magnifying-glass-chart"), "Choose an exposure-outcome pair"),
+        collapsible = TRUE,
+        collapsed = FALSE,
+        shiny::fluidRow(
+          shiny::column(
+            width = 4,
+            shiny::uiOutput(ns("targetSelector"))
+          ),
+          shiny::column(
+            width = 4,
+            shiny::uiOutput(ns("outcomeSelector"))
+          ),
+          shiny::column(
+            width = 4,
+            shiny::actionButton(
+              ns("viewPair"),
+              "View pair",
+              icon = shiny::icon("play"),
+              style = "color: #fff; background-color: #337ab7; border-color: #2e6da4"
+            )
+          )
+        )
+      )
+    ),
     shiny::uiOutput(ns("pairSummary")),
     shiny::p(
       "All results shown below are empirically calibrated estimates.",
@@ -105,16 +132,85 @@ selfControlledCohortPairServer <- function(
     id,
     function(input, output, session) {
 
+      chosenPair <- shiny::reactiveVal(NULL)
+
+      # allow a pair to be opened from elsewhere (e.g. via a link from the
+      # parent module)
+      shiny::observe({
+        if (!is.null(selectedPair())) {
+          chosenPair(selectedPair())
+        }
+      })
+
+      targets <- shiny::reactive({
+        OhdsiReportGenerator::getSccTargets(
+          connectionHandler = connectionHandler,
+          schema = resultDatabaseSettings$schema,
+          sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
+          cgTablePrefix = resultDatabaseSettings$cgTablePrefix
+        )
+      })
+
+      output$targetSelector <- shiny::renderUI({
+        df <- targets()
+        choices <- stats::setNames(df$cohortDefinitionId, df$cohortName)
+        shiny::selectInput(
+          inputId = session$ns("targetId"),
+          label = "Exposure (target cohort)",
+          choices = choices,
+          selected = if (nrow(df) > 0) df$cohortDefinitionId[1] else NULL
+        )
+      })
+
+      outcomes <- shiny::reactive({
+        shiny::req(input$targetId)
+        OhdsiReportGenerator::getSccOutcomes(
+          connectionHandler = connectionHandler,
+          schema = resultDatabaseSettings$schema,
+          sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
+          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+          targetIds = as.numeric(input$targetId)
+        )
+      })
+
+      output$outcomeSelector <- shiny::renderUI({
+        df <- outcomes()
+        choices <- stats::setNames(df$cohortDefinitionId, df$cohortName)
+        shiny::selectInput(
+          inputId = session$ns("outcomeId"),
+          label = "Outcome cohort",
+          choices = choices,
+          selected = if (nrow(df) > 0) df$cohortDefinitionId[1] else NULL
+        )
+      })
+
+      shiny::observeEvent(input$viewPair, {
+        shiny::req(input$targetId, input$outcomeId)
+        targetDf <- targets()
+        outcomeDf <- outcomes()
+        chosenPair(data.frame(
+          targetId = as.numeric(input$targetId),
+          targetName = targetDf$cohortName[match(
+            as.numeric(input$targetId), targetDf$cohortDefinitionId
+          )],
+          outcomeId = as.numeric(input$outcomeId),
+          outcomeName = outcomeDf$cohortName[match(
+            as.numeric(input$outcomeId), outcomeDf$cohortDefinitionId
+          )],
+          stringsAsFactors = FALSE
+        ))
+      })
+
       pair <- shiny::reactive({
-        selectedPair()
+        chosenPair()
       })
 
       output$pairSummary <- shiny::renderUI({
         p <- pair()
         if (is.null(p)) {
           return(shiny::p(
-            "No pair selected.  Select a pair in the signal discovery view to
-            explore the self controlled cohort results.",
+            "No pair selected.  Choose an exposure and outcome above and press
+            'View pair' to explore the self controlled cohort results.",
             style = "font-weight: bold;"
           ))
         }

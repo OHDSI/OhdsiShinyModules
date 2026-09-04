@@ -32,11 +32,17 @@ The module server for the self controlled cohort signal discovery grid
 Other SelfControlledCohort: 
 \code{\link{selfControlledCohortCombineResults}()},
 \code{\link{selfControlledCohortDetailedColDef}()},
+\code{\link{selfControlledCohortDiagnosticsColDef}()},
 \code{\link{selfControlledCohortHelperFile}()},
+\code{\link{selfControlledCohortMetaExplorationColDef}()},
+\code{\link{selfControlledCohortMetaExplorationServer}()},
+\code{\link{selfControlledCohortMetaExplorationViewer}()},
+\code{\link{selfControlledCohortMetaSql}()},
 \code{\link{selfControlledCohortPairServer}()},
 \code{\link{selfControlledCohortPairViewer}()},
 \code{\link{selfControlledCohortServer}()},
 \code{\link{selfControlledCohortSignalsColDef}()},
+\code{\link{selfControlledCohortSignalsSql}()},
 \code{\link{selfControlledCohortSignalsViewer}()},
 \code{\link{selfControlledCohortViewer}()}
 }

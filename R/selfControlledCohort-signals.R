@@ -128,12 +128,14 @@ selfControlledCohortSignalsViewer <- function(id = "signals") {
       )
     ),
     shiny::p(
-      "Select a row to open the exposure-outcome pair in the pair explorer.",
+      "Results are loaded from the database in pages.  Change the filters and
+      press 'Apply filters' to update the table.  Click 'Open' on a row to
+      explore that exposure-outcome pair in the pair explorer.",
       style = "margin-top: 10px;"
     ),
-    resultTableViewer(
+    largeTableView(
       id = ns("signalsTable"),
-      boxTitle = "Signal discovery grid"
+      selectedPageSize = 25
     )
   )
 }
@@ -179,94 +181,164 @@ selfControlledCohortSignalsServer <- function(
         )
       })
 
-      signalsData <- shiny::eventReactive(input$apply, {
-        shiny::req(input$analysisId)
-        if (nrow(analyses()) == 0) {
-          return(data.frame())
+      # the parameters that are passed to the (server side paginated) query.
+      # They are only refreshed when the apply filters button is pressed so
+      # changing a filter does not trigger a query
+      appliedParams <- shiny::reactiveVal(list(
+        schema = resultDatabaseSettings$schema,
+        scc_table_prefix = resultDatabaseSettings$sccTablePrefix,
+        cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+        es_table_prefix = resultDatabaseSettings$esTablePrefix,
+        analysis_id = 1,
+        benefit_rr = 0.8,
+        lower_benefit_rr = 0,
+        risk_rr = 1.25,
+        p_cut = 0.05,
+        filter_by_meta = 0,
+        min_benefit_sources = 0,
+        max_risk_sources = 100,
+        target_search = "",
+        outcome_search = ""
+      ))
+
+      setDefaultParams <- function() {
+        appliedParams(list(
+          schema = resultDatabaseSettings$schema,
+          scc_table_prefix = resultDatabaseSettings$sccTablePrefix,
+          cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+          es_table_prefix = resultDatabaseSettings$esTablePrefix,
+          analysis_id = if (nrow(analyses()) > 0) analyses()$analysisId[1] else 1,
+          benefit_rr = 0.8,
+          lower_benefit_rr = 0,
+          risk_rr = 1.25,
+          p_cut = 0.05,
+          filter_by_meta = 0,
+          min_benefit_sources = 0,
+          max_risk_sources = 100,
+          target_search = "",
+          outcome_search = ""
+        ))
+      }
+
+      # populate the table once with the default filters when the module loads
+      shiny::observe({
+        shiny::req(nrow(analyses()) > 0)
+        if (is.null(input$apply) || input$apply == 0) {
+          setDefaultParams()
         }
-        result <- OhdsiReportGenerator::getSccSignals(
+      })
+
+      shiny::observeEvent(input$apply, {
+        shiny::req(input$analysisId)
+        appliedParams(list(
+          schema = resultDatabaseSettings$schema,
+          scc_table_prefix = resultDatabaseSettings$sccTablePrefix,
+          cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+          es_table_prefix = resultDatabaseSettings$esTablePrefix,
+          analysis_id = as.numeric(input$analysisId),
+          benefit_rr = as.numeric(input$benefitRr),
+          lower_benefit_rr = 0,
+          risk_rr = as.numeric(input$riskRr),
+          p_cut = as.numeric(input$pCut),
+          filter_by_meta = ifelse(input$filterMode == "meta", 1, 0),
+          min_benefit_sources = as.numeric(input$minBenefitSources),
+          max_risk_sources = as.numeric(input$maxRiskSources),
+          target_search = input$targetSearch,
+          outcome_search = input$outcomeSearch
+        ))
+      })
+
+      baseSql <- selfControlledCohortSignalsSql(
+        schema = resultDatabaseSettings$schema,
+        sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+        esTablePrefix = resultDatabaseSettings$esTablePrefix
+      )
+      ldt <- createLargeSqlQueryDt(
+        connectionHandler = connectionHandler,
+        baseQuery = baseSql
+      )
+
+      # add a link to open the pair in the pair explorer
+      nsOpen <- session$ns("openPairRow")
+      columns <- selfControlledCohortSignalsColDef()
+      columns$pairKey <- reactable::colDef(
+        name = "Open",
+        width = 90,
+        sortable = FALSE,
+        filterable = FALSE,
+        cell = function(value) {
+          parts <- strsplit(as.character(value), "\\|")[[1]]
+          if (length(parts) != 2) {
+            return("")
+          }
+          onclick <- sprintf(
+            "Shiny.setInputValue('%s', { targetId: %s, outcomeId: %s, seed: Math.random() }, { priority: 'event' }); return false;",
+            nsOpen, parts[1], parts[2]
+          )
+          shiny::tags$a(
+            href = "#",
+            class = "btn btn-xs btn-info",
+            onclick = onclick,
+            shiny::icon("magnifying-glass-chart"),
+            " Open"
+          )
+        }
+      )
+
+      targetMap <- shiny::reactive({
+        OhdsiReportGenerator::getSccTargets(
           connectionHandler = connectionHandler,
           schema = resultDatabaseSettings$schema,
           sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
-          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-          esTablePrefix = resultDatabaseSettings$esTablePrefix,
-          analysisIds = as.numeric(input$analysisId),
-          benefit = as.numeric(input$benefitRr),
-          lowerBenefit = 0,
-          risk = as.numeric(input$riskRr),
-          pValueCut = as.numeric(input$pCut),
-          calibrated = TRUE,
-          filterByMeta = input$filterMode == "meta",
-          minBenefitSources = as.numeric(input$minBenefitSources),
-          maxRiskSources = as.numeric(input$maxRiskSources)
+          cgTablePrefix = resultDatabaseSettings$cgTablePrefix
         )
-
-        if (nrow(result) > 0) {
-          # if more than one evidence synthesis analysis contributes rows for a
-          # pair, show the pair only once
-          result <- result |>
-            dplyr::distinct(.data$targetId, .data$outcomeId, .keep_all = TRUE)
-
-          if (nzchar(input$targetSearch)) {
-            result <- result |>
-              dplyr::filter(grepl(
-                pattern = input$targetSearch,
-                x = .data$targetName,
-                ignore.case = TRUE
-              ))
-          }
-          if (nzchar(input$outcomeSearch)) {
-            result <- result |>
-              dplyr::filter(grepl(
-                pattern = input$outcomeSearch,
-                x = .data$outcomeName,
-                ignore.case = TRUE
-              ))
-          }
-        }
-        return(result)
       })
 
-      # only display results once the apply filters button has been pressed
-      signalsTableData <- shiny::reactive({
-        if (is.null(input$apply) || input$apply == 0) {
-          return(data.frame())
+      shiny::observeEvent(input$openPairRow, {
+        event <- input$openPairRow
+        if (is.null(event) || is.null(event$targetId)) {
+          return()
         }
-        return(signalsData())
-      })
-
-      resultTableOutputs <- resultTableServer(
-        id = "signalsTable",
-        df = signalsTableData,
-        colDefsInput = selfControlledCohortSignalsColDef(),
-        addActions = list(
-          createActionButton(
-            actionType = "openPair",
-            buttonIcon = "magnifying-glass-chart",
-            hoverText = "Open this pair in the pair explorer",
-            buttonLabel = "Open",
-            buttonClass = "btn btn-xs",
-            buttonStyle = actionButtonStyleInfo()
-          )
-        ),
-        elementId = session$ns("signalsTable")
-      )
-
-      shiny::observeEvent(resultTableOutputs$actionCount(), {
-        actionInfo <- resultTableOutputs$actionIndex()
-        actionRow <- if (!is.null(actionInfo) && !is.null(actionInfo$index)) {
-          actionInfo$index
+        targetId <- as.numeric(event$targetId)
+        outcomeId <- as.numeric(event$outcomeId)
+        targetDf <- targetMap()
+        outcomeDf <- tryCatch(
+          OhdsiReportGenerator::getSccOutcomes(
+            connectionHandler = connectionHandler,
+            schema = resultDatabaseSettings$schema,
+            sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
+            cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+            targetIds = targetId
+          ),
+          error = function(e) data.frame()
+        )
+        targetName <- if (length(i <- match(targetId, targetDf$cohortDefinitionId)) > 0) {
+          targetDf$cohortName[i]
         } else {
-          NA
+          as.character(targetId)
         }
-
-        data <- signalsTableData()
-        if (resultTableOutputs$actionType() == "openPair" &&
-            !is.na(actionRow) && actionRow > 0 &&
-            !is.null(data) && nrow(data) >= actionRow) {
-          selectedPair(data[actionRow, ])
+        outcomeName <- if (nrow(outcomeDf) > 0 &&
+                           length(j <- match(outcomeId, outcomeDf$cohortDefinitionId)) > 0) {
+          outcomeDf$cohortName[j]
+        } else {
+          as.character(outcomeId)
         }
+        selectedPair(data.frame(
+          targetId = targetId,
+          targetName = targetName,
+          outcomeId = outcomeId,
+          outcomeName = outcomeName,
+          stringsAsFactors = FALSE
+        ))
       })
+
+      largeTableServer(
+        id = "signalsTable",
+        ldt = ldt,
+        inputParams = appliedParams,
+        columns = shiny::reactive(columns)
+      )
     }
   )
 }
@@ -298,10 +370,6 @@ selfControlledCohortSignalsColDef <- function() {
     riskCount = reactable::colDef(
       name = "Databases showing risk",
       format = reactable::colFormat(digits = 0)
-    ),
-    requiredBenefitCount = reactable::colDef(
-      name = "Required databases showing benefit",
-      show = FALSE
     ),
     metaRr = reactable::colDef(
       name = "Meta RR",

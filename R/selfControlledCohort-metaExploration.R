@@ -69,12 +69,14 @@ selfControlledCohortMetaExplorationViewer <- function(id = "metaExploration") {
       pair are shown with their counts, descriptive statistics and study
       diagnostics.  Effect estimates are only revealed for pairs that passed
       the study diagnostics - failed pairs are blinded (effect estimates
-      shown as -).  Select a row to open the pair in the pair explorer.",
+      shown as -).  Results are loaded from the database in pages - change the
+      filters and press 'Apply filters' to update the table.  Click 'Open' on
+      a row to explore that exposure-outcome pair in the pair explorer.",
       style = "margin-top: 10px;"
     ),
-    resultTableViewer(
+    largeTableView(
       id = ns("metaTable"),
-      boxTitle = "Meta analytic target-outcome pairs"
+      selectedPageSize = 25
     )
   )
 }
@@ -124,65 +126,137 @@ selfControlledCohortMetaExplorationServer <- function(
         )
       })
 
-      metaData <- shiny::eventReactive(input$apply, {
-        shiny::req(input$analysisId)
-        if (nrow(analyses()) == 0) {
-          return(data.frame())
+      metaTableParams <- shiny::reactiveVal(list(
+        schema = resultDatabaseSettings$schema,
+        scc_table_prefix = resultDatabaseSettings$sccTablePrefix,
+        cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+        es_table_prefix = resultDatabaseSettings$esTablePrefix,
+        analysis_id = 1,
+        status_value = "All"
+      ))
+
+      setDefaultParams <- function() {
+        metaTableParams(list(
+          schema = resultDatabaseSettings$schema,
+          scc_table_prefix = resultDatabaseSettings$sccTablePrefix,
+          cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+          es_table_prefix = resultDatabaseSettings$esTablePrefix,
+          analysis_id = if (nrow(analyses()) > 0) analyses()$analysisId[1] else 1,
+          status_value = "All"
+        ))
+      }
+
+      # populate the table once with the default filters when the module loads
+      shiny::observe({
+        shiny::req(nrow(analyses()) > 0)
+        if (is.null(input$apply) || input$apply == 0) {
+          setDefaultParams()
         }
-        result <- OhdsiReportGenerator::getSccMetaExploration(
+      })
+
+      shiny::observeEvent(input$apply, {
+        shiny::req(input$analysisId)
+        metaTableParams(list(
+          schema = resultDatabaseSettings$schema,
+          scc_table_prefix = resultDatabaseSettings$sccTablePrefix,
+          cg_table_prefix = resultDatabaseSettings$cgTablePrefix,
+          es_table_prefix = resultDatabaseSettings$esTablePrefix,
+          analysis_id = as.numeric(input$analysisId),
+          status_value = input$status
+        ))
+      })
+
+      baseSql <- selfControlledCohortMetaSql(
+        schema = resultDatabaseSettings$schema,
+        sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
+        cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+        esTablePrefix = resultDatabaseSettings$esTablePrefix
+      )
+      ldt <- createLargeSqlQueryDt(
+        connectionHandler = connectionHandler,
+        baseQuery = baseSql
+      )
+
+      # add a link to open the pair in the pair explorer
+      nsOpen <- session$ns("openPairRow")
+      columns <- selfControlledCohortMetaExplorationColDef()
+      columns$pairKey <- reactable::colDef(
+        name = "Open",
+        width = 90,
+        sortable = FALSE,
+        filterable = FALSE,
+        cell = function(value) {
+          parts <- strsplit(as.character(value), "\\|")[[1]]
+          if (length(parts) != 2) {
+            return("")
+          }
+          onclick <- sprintf(
+            "Shiny.setInputValue('%s', { targetId: %s, outcomeId: %s, seed: Math.random() }, { priority: 'event' }); return false;",
+            nsOpen, parts[1], parts[2]
+          )
+          shiny::tags$a(
+            href = "#",
+            class = "btn btn-xs btn-info",
+            onclick = onclick,
+            shiny::icon("magnifying-glass-chart"),
+            " Open"
+          )
+        }
+      )
+
+      targetMap <- shiny::reactive({
+        OhdsiReportGenerator::getSccTargets(
           connectionHandler = connectionHandler,
           schema = resultDatabaseSettings$schema,
           sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
-          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-          esTablePrefix = resultDatabaseSettings$esTablePrefix,
-          analysisIds = as.numeric(input$analysisId)
+          cgTablePrefix = resultDatabaseSettings$cgTablePrefix
         )
-        if (nrow(result) > 0 && input$status != "All") {
-          result <- result |>
-            dplyr::filter(.data$overallStatus == input$status)
-        }
-        return(result)
       })
 
-      # only display results once the apply filters button has been pressed
-      metaTableData <- shiny::reactive({
-        if (is.null(input$apply) || input$apply == 0) {
-          return(data.frame())
+      shiny::observeEvent(input$openPairRow, {
+        event <- input$openPairRow
+        if (is.null(event) || is.null(event$targetId)) {
+          return()
         }
-        return(metaData())
-      })
-
-      resultTableOutputs <- resultTableServer(
-        id = "metaTable",
-        df = metaTableData,
-        colDefsInput = selfControlledCohortMetaExplorationColDef(),
-        addActions = list(
-          createActionButton(
-            actionType = "openPair",
-            buttonIcon = "magnifying-glass-chart",
-            hoverText = "Open this pair in the pair explorer",
-            buttonLabel = "Open",
-            buttonClass = "btn btn-xs",
-            buttonStyle = actionButtonStyleInfo()
-          )
-        ),
-        elementId = session$ns("metaTable")
-      )
-
-      shiny::observeEvent(resultTableOutputs$actionCount(), {
-        actionInfo <- resultTableOutputs$actionIndex()
-        actionRow <- if (!is.null(actionInfo) && !is.null(actionInfo$index)) {
-          actionInfo$index
+        targetId <- as.numeric(event$targetId)
+        outcomeId <- as.numeric(event$outcomeId)
+        targetDf <- targetMap()
+        outcomeDf <- tryCatch(
+          OhdsiReportGenerator::getSccOutcomes(
+            connectionHandler = connectionHandler,
+            schema = resultDatabaseSettings$schema,
+            sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
+            cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+            targetIds = targetId
+          ),
+          error = function(e) data.frame()
+        )
+        targetName <- if (length(i <- match(targetId, targetDf$cohortDefinitionId)) > 0) {
+          targetDf$cohortName[i]
         } else {
-          NA
+          as.character(targetId)
         }
-        data <- metaTableData()
-        if (resultTableOutputs$actionType() == "openPair" &&
-            !is.na(actionRow) && actionRow > 0 &&
-            !is.null(data) && nrow(data) >= actionRow) {
-          selectedPair(data[actionRow, ])
+        outcomeName <- if (nrow(outcomeDf) > 0 &&
+                           length(j <- match(outcomeId, outcomeDf$cohortDefinitionId)) > 0) {
+          outcomeDf$cohortName[j]
+        } else {
+          as.character(outcomeId)
         }
+        selectedPair(data.frame(
+          targetId = targetId,
+          targetName = targetName,
+          outcomeId = outcomeId,
+          outcomeName = outcomeName,
+          stringsAsFactors = FALSE
+        ))
       })
+
+      largeTableServer(
+        id = "metaTable",
+        ldt = ldt,
+        inputParams = metaTableParams,
+        columns = shiny::reactive(columns)
+      )
     }
   )
 }
@@ -205,16 +279,9 @@ selfControlledCohortMetaExplorationColDef <- function() {
     analysisId = reactable::colDef(show = FALSE),
     evidenceSynthesisAnalysisId = reactable::colDef(show = FALSE),
     databaseName = reactable::colDef(show = FALSE),
-    mdrrDiagnostic = reactable::colDef(show = FALSE),
-    i2Diagnostic = reactable::colDef(show = FALSE),
-    tauDiagnostic = reactable::colDef(show = FALSE),
-    easeDiagnostic = reactable::colDef(show = FALSE),
     unblind = reactable::colDef(show = FALSE),
-    p = reactable::colDef(show = FALSE),
-    calibratedP = reactable::colDef(show = FALSE),
-    rr = reactable::colDef(show = FALSE),
-    ci95Lb = reactable::colDef(show = FALSE),
-    ci95Ub = reactable::colDef(show = FALSE),
+    timeAtRiskExposed = reactable::colDef(show = FALSE),
+    timeAtRiskUnexposed = reactable::colDef(show = FALSE),
 
     targetName = reactable::colDef(
       name = "Exposure",
