@@ -30,10 +30,14 @@ selfControlledCohortPairViewer <- function(id = "pair") {
     shiny::fluidRow(
       shinydashboard::box(
         width = 12,
-        title = shiny::span(shiny::icon("magnifying-glass-chart"), "Choose an exposure-outcome pair"),
+        title = shiny::span(shiny::icon("magnifying-glass-chart"), "Choose an exposure-outcome pair and analysis setting"),
         collapsible = TRUE,
         collapsed = FALSE,
         shiny::fluidRow(
+          shiny::column(
+            width = 4,
+            shiny::uiOutput(ns("analysisSelector"))
+          ),
           shiny::column(
             width = 4,
             shiny::uiOutput(ns("targetSelector"))
@@ -41,9 +45,12 @@ selfControlledCohortPairViewer <- function(id = "pair") {
           shiny::column(
             width = 4,
             shiny::uiOutput(ns("outcomeSelector"))
-          ),
+          )
+        ),
+        shiny::fluidRow(
           shiny::column(
-            width = 4,
+            width = 12,
+            style = "margin-top: 10px;",
             shiny::actionButton(
               ns("viewPair"),
               "View pair",
@@ -142,12 +149,44 @@ selfControlledCohortPairServer <- function(
         }
       })
 
+      analysesData <- shiny::reactive({
+        OhdsiReportGenerator::getSccAnalysisSettings(
+          connectionHandler = connectionHandler,
+          schema = resultDatabaseSettings$schema,
+          sccTablePrefix = resultDatabaseSettings$sccTablePrefix
+        )
+      })
+
+      output$analysisSelector <- shiny::renderUI({
+        df <- analysesData()
+        choices <- if (nrow(df) > 0) {
+          stats::setNames(df$analysisId, df$description)
+        } else {
+          c("No analyses" = 1)
+        }
+        shiny::selectInput(
+          inputId = session$ns("analysisId"),
+          label = "SCC analysis setting",
+          choices = choices,
+          selected = if (nrow(df) > 0) df$analysisId[1] else 1
+        )
+      })
+
+      selectedAnalysis <- shiny::reactive({
+        if (is.null(input$analysisId)) {
+          if (nrow(analysesData()) > 0) analysesData()$analysisId[1] else 1
+        } else {
+          as.numeric(input$analysisId)
+        }
+      })
+
       targets <- shiny::reactive({
         OhdsiReportGenerator::getSccTargets(
           connectionHandler = connectionHandler,
           schema = resultDatabaseSettings$schema,
           sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
-          cgTablePrefix = resultDatabaseSettings$cgTablePrefix
+          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+          analysisIds = selectedAnalysis()
         )
       })
 
@@ -169,6 +208,7 @@ selfControlledCohortPairServer <- function(
           schema = resultDatabaseSettings$schema,
           sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
           cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+          analysisIds = selectedAnalysis(),
           targetIds = as.numeric(input$targetId)
         )
       })
@@ -205,18 +245,41 @@ selfControlledCohortPairServer <- function(
         chosenPair()
       })
 
+      # changing the analysis setting changes which estimates are relevant, so
+      # clear a displayed pair when the user changes the analysis selection
+      # (but not when the selector is first populated)
+      previousAnalysis <- shiny::reactiveVal(NULL)
+      shiny::observeEvent(input$analysisId, {
+        newAnalysis <- input$analysisId
+        oldAnalysis <- previousAnalysis()
+        previousAnalysis(newAnalysis)
+        if (!is.null(newAnalysis) && !is.null(oldAnalysis) &&
+            as.numeric(oldAnalysis) != as.numeric(newAnalysis)) {
+          chosenPair(NULL)
+        }
+      })
+
       output$pairSummary <- shiny::renderUI({
         p <- pair()
         if (is.null(p)) {
           return(shiny::p(
-            "No pair selected.  Choose an exposure and outcome above and press
-            'View pair' to explore the self controlled cohort results.",
+            "No pair selected.  Choose an exposure, outcome and SCC analysis
+            setting above and press 'View pair' to explore the self controlled
+            cohort results.",
             style = "font-weight: bold;"
           ))
+        }
+        analysisDf <- analysesData()
+        analysisId <- selectedAnalysis()
+        analysisDescription <- if (nrow(analysisDf) > 0) {
+          analysisDf$description[match(analysisId, analysisDf$analysisId)]
+        } else {
+          as.character(analysisId)
         }
         shiny::p(
           shiny::strong("Exposure:"), p$targetName,
           shiny::strong(" Outcome:"), p$outcomeName,
+          shiny::strong(" Analysis:"), analysisDescription,
           if (!is.null(p$metaRr)) {
             shiny::tagList(
               shiny::strong(" Meta RR:"), round(p$metaRr, 2)
@@ -238,6 +301,7 @@ selfControlledCohortPairServer <- function(
             sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
             cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
             databaseTable = resultDatabaseSettings$databaseTable,
+            analysisIds = selectedAnalysis(),
             targetIds = p$targetId,
             outcomeIds = p$outcomeId
           ),
@@ -250,6 +314,7 @@ selfControlledCohortPairServer <- function(
             sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
             cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
             esTablePrefix = resultDatabaseSettings$esTablePrefix,
+            analysisIds = selectedAnalysis(),
             targetIds = p$targetId,
             outcomeIds = p$outcomeId
           ),
@@ -276,6 +341,7 @@ selfControlledCohortPairServer <- function(
           sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
           cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
           databaseTable = resultDatabaseSettings$databaseTable,
+          analysisIds = selectedAnalysis(),
           targetIds = p$targetId,
           outcomeIds = p$outcomeId
         )
@@ -312,6 +378,7 @@ selfControlledCohortPairServer <- function(
           sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
           cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
           databaseTable = resultDatabaseSettings$databaseTable,
+          analysisIds = selectedAnalysis(),
           targetIds = p$targetId
         )
       })
@@ -338,6 +405,7 @@ selfControlledCohortPairServer <- function(
           sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
           cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
           databaseTable = resultDatabaseSettings$databaseTable,
+          analysisIds = selectedAnalysis(),
           statTypes = NULL,
           targetIds = p$targetId,
           outcomeIds = p$outcomeId
