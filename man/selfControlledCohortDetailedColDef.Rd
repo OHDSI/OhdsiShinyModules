@@ -20,7 +20,11 @@ distinguished)
 \seealso{
 Other SelfControlledCohort: 
 \code{\link{selfControlledCohortCombineResults}()},
+\code{\link{selfControlledCohortDiagnosticsColDef}()},
 \code{\link{selfControlledCohortHelperFile}()},
+\code{\link{selfControlledCohortMetaExplorationColDef}()},
+\code{\link{selfControlledCohortMetaExplorationServer}()},
+\code{\link{selfControlledCohortMetaExplorationViewer}()},
 \code{\link{selfControlledCohortPairServer}()},
 \code{\link{selfControlledCohortPairViewer}()},
 \code{\link{selfControlledCohortServer}()},

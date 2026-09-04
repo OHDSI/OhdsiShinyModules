@@ -32,7 +32,11 @@ The module server for exploring a single exposure-outcome pair
 Other SelfControlledCohort: 
 \code{\link{selfControlledCohortCombineResults}()},
 \code{\link{selfControlledCohortDetailedColDef}()},
+\code{\link{selfControlledCohortDiagnosticsColDef}()},
 \code{\link{selfControlledCohortHelperFile}()},
+\code{\link{selfControlledCohortMetaExplorationColDef}()},
+\code{\link{selfControlledCohortMetaExplorationServer}()},
+\code{\link{selfControlledCohortMetaExplorationViewer}()},
 \code{\link{selfControlledCohortPairViewer}()},
 \code{\link{selfControlledCohortServer}()},
 \code{\link{selfControlledCohortSignalsColDef}()},

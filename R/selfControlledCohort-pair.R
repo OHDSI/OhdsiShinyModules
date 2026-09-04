@@ -44,6 +44,14 @@ selfControlledCohortPairViewer <- function(id = "pair") {
         )
       ),
       shiny::tabPanel(
+        title = "Diagnostics",
+        value = "diagnostics",
+        resultTableViewer(
+          id = ns("diagnosticsTable"),
+          boxTitle = "Study diagnostics"
+        )
+      ),
+      shiny::tabPanel(
         title = "Forest plot",
         value = "forest",
         shinycssloaders::withSpinner(
@@ -159,6 +167,29 @@ selfControlledCohortPairServer <- function(
         df = combinedData,
         colDefsInput = selfControlledCohortDetailedColDef(),
         elementId = session$ns("detailedTable")
+      )
+
+      diagnosticsData <- shiny::reactive({
+        p <- pair()
+        if (is.null(p)) {
+          return(data.frame())
+        }
+        OhdsiReportGenerator::getSccDiagnosticsData(
+          connectionHandler = connectionHandler,
+          schema = resultDatabaseSettings$schema,
+          sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
+          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+          databaseTable = resultDatabaseSettings$databaseTable,
+          targetIds = p$targetId,
+          outcomeIds = p$outcomeId
+        )
+      })
+
+      resultTableServer(
+        id = "diagnosticsTable",
+        df = diagnosticsData,
+        colDefsInput = selfControlledCohortDiagnosticsColDef(),
+        elementId = session$ns("diagnosticsTable")
       )
 
       output$forestPlot <- shiny::renderPlot({
@@ -379,6 +410,75 @@ selfControlledCohortDetailedColDef <- function() {
       name = "Calibrated P",
       format = reactable::colFormat(digits = 4),
       na = "-"
+    )
+  )
+  return(results)
+}
+
+#' The column definitions for the per database study diagnostics table
+#'
+#' @details
+#' The diagnostics come from the scc_diagnostics_summary table (MDRR, EASE,
+#' pre exposure tests etc) and the summaryValue column reflects whether the
+#' pair passed the diagnostics in each database
+#'
+#' @family SelfControlledCohort
+#' @return
+#' A named list of reactable::colDef
+#' @export
+selfControlledCohortDiagnosticsColDef <- function() {
+  results <- list(
+    databaseId = reactable::colDef(show = FALSE),
+    targetId = reactable::colDef(show = FALSE),
+    outcomeId = reactable::colDef(show = FALSE),
+    analysisId = reactable::colDef(show = FALSE),
+    targetName = reactable::colDef(show = FALSE),
+    outcomeName = reactable::colDef(show = FALSE),
+    unblindForCalibration = reactable::colDef(show = FALSE),
+    eventDependentObservation = reactable::colDef(show = FALSE),
+
+    databaseName = reactable::colDef(
+      name = "Data source",
+      filterable = TRUE,
+      minWidth = 200
+    ),
+    description = reactable::colDef(
+      name = "Analysis settings",
+      filterable = TRUE,
+      minWidth = 220
+    ),
+    mdrr = reactable::colDef(
+      name = "MDRR",
+      format = reactable::colFormat(digits = 2),
+      na = "-"
+    ),
+    ease = reactable::colDef(
+      name = "EASE",
+      format = reactable::colFormat(digits = 3),
+      na = "-"
+    ),
+    preExposurePValue = reactable::colDef(
+      name = "Pre-exposure P",
+      format = reactable::colFormat(digits = 4),
+      na = "-"
+    ),
+    preExposureRateRatio = reactable::colDef(
+      name = "Pre-exposure RR",
+      format = reactable::colFormat(digits = 2),
+      na = "-"
+    ),
+    unblind = reactable::colDef(
+      name = "Unblinded",
+      filterable = TRUE,
+      minWidth = 90,
+      cell = function(value) {
+        if (is.na(value)) "-" else if (value == 1) "Yes" else "No"
+      }
+    ),
+    summaryValue = reactable::colDef(
+      name = "Status",
+      filterable = TRUE,
+      minWidth = 90
     )
   )
   return(results)

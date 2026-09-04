@@ -70,6 +70,12 @@ selfControlledCohortViewer <- function(id = "selfControlledCohort") {
       ),
 
       shiny::tabPanel(
+        title = "Meta exploration",
+        value = "metaExploration",
+        selfControlledCohortMetaExplorationViewer(ns("metaExploration"))
+      ),
+
+      shiny::tabPanel(
         title = "Pair explorer",
         value = "pair",
         selfControlledCohortPairViewer(ns("pair"))
@@ -106,6 +112,13 @@ selfControlledCohortServer <- function(
 
       selfControlledCohortSignalsServer(
         id = "signals",
+        connectionHandler = connectionHandler,
+        resultDatabaseSettings = resultDatabaseSettings,
+        selectedPair = selectedPair
+      )
+
+      selfControlledCohortMetaExplorationServer(
+        id = "metaExploration",
         connectionHandler = connectionHandler,
         resultDatabaseSettings = resultDatabaseSettings,
         selectedPair = selectedPair
