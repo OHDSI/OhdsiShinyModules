@@ -88,7 +88,7 @@ selfControlledCohortSignalsViewer <- function(id = "signals") {
             shiny::numericInput(
               ns("minBenefitSources"),
               "Minimum databases showing a benefit",
-              value = 0,
+              value = 1,
               min = 0,
               max = 100,
               step = 1
@@ -99,7 +99,7 @@ selfControlledCohortSignalsViewer <- function(id = "signals") {
             shiny::numericInput(
               ns("maxRiskSources"),
               "Maximum databases showing a risk",
-              value = 100,
+              value = 0,
               min = 0,
               max = 100,
               step = 1
@@ -195,8 +195,8 @@ selfControlledCohortSignalsServer <- function(
         risk_rr = 1.25,
         p_cut = 0.05,
         filter_by_meta = 0,
-        min_benefit_sources = 0,
-        max_risk_sources = 100,
+        min_benefit_sources = 1,
+        max_risk_sources = 0,
         target_search = "",
         outcome_search = ""
       ))
@@ -213,8 +213,8 @@ selfControlledCohortSignalsServer <- function(
           risk_rr = 1.25,
           p_cut = 0.05,
           filter_by_meta = 0,
-          min_benefit_sources = 0,
-          max_risk_sources = 100,
+          min_benefit_sources = 1,
+          max_risk_sources = 0,
           target_search = "",
           outcome_search = ""
         ))

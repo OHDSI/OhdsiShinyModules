@@ -57,8 +57,26 @@ selfControlledCohortSignalsSql <- function(
       sr.outcome_cohort_id,
       sr.database_id,
       CASE WHEN COALESCE(sdun.diagnostic_value, 0) = 0 THEN NULL
+           WHEN EXISTS (
+             SELECT 1 FROM @schema.@scc_table_prefixdiagnostics_summary fdg
+             WHERE fdg.database_id = sr.database_id
+               AND fdg.analysis_id = sr.analysis_id
+               AND fdg.target_cohort_id = sr.target_cohort_id
+               AND fdg.outcome_cohort_id = sr.outcome_cohort_id
+               AND fdg.diagnostic_name NOT IN ('UNBLIND', 'UNBLIND_FOR_CALIBRATION')
+               AND COALESCE(fdg.pass, 0) = 0
+           ) THEN NULL
            ELSE sr.calibrated_rr END AS measure_rr,
       CASE WHEN COALESCE(sdun.diagnostic_value, 0) = 0 THEN NULL
+           WHEN EXISTS (
+             SELECT 1 FROM @schema.@scc_table_prefixdiagnostics_summary fdg
+             WHERE fdg.database_id = sr.database_id
+               AND fdg.analysis_id = sr.analysis_id
+               AND fdg.target_cohort_id = sr.target_cohort_id
+               AND fdg.outcome_cohort_id = sr.outcome_cohort_id
+               AND fdg.diagnostic_name NOT IN ('UNBLIND', 'UNBLIND_FOR_CALIBRATION')
+               AND COALESCE(fdg.pass, 0) = 0
+           ) THEN NULL
            ELSE sr.calibrated_p_value END AS measure_p
     FROM @schema.@scc_table_prefixresult sr
     LEFT JOIN @schema.@scc_table_prefixdiagnostics_summary sdun ON (
@@ -93,10 +111,18 @@ selfControlledCohortSignalsSql <- function(
     SELECT
       esr.target_cohort_id,
       esr.outcome_cohort_id,
-      CASE WHEN COALESCE(esds.unblind, 0) = 0 THEN NULL
-           ELSE esr.calibrated_rr END AS meta_rr,
-      CASE WHEN COALESCE(esds.unblind, 0) = 0 THEN NULL
-           ELSE esr.calibrated_p END AS meta_p,
+      CASE WHEN COALESCE(esds.unblind, 0) = 0
+                OR esds.mdrr_diagnostic = 'FAIL'
+                OR esds.i_2_diagnostic = 'FAIL'
+                OR esds.tau_diagnostic = 'FAIL'
+                OR esds.ease_diagnostic = 'FAIL'
+           THEN NULL ELSE esr.calibrated_rr END AS meta_rr,
+      CASE WHEN COALESCE(esds.unblind, 0) = 0
+                OR esds.mdrr_diagnostic = 'FAIL'
+                OR esds.i_2_diagnostic = 'FAIL'
+                OR esds.tau_diagnostic = 'FAIL'
+                OR esds.ease_diagnostic = 'FAIL'
+           THEN NULL ELSE esr.calibrated_p END AS meta_p,
       esds.i_2 AS i2,
       esr.n_databases
     FROM @schema.@es_table_prefixscc_result esr
@@ -153,10 +179,11 @@ selfControlledCohortSignalsSql <- function(
   WHERE 1 = 1
     AND lower(cgt.cohort_name) LIKE '%' || lower('@target_search') || '%'
     AND lower(cgo.cohort_name) LIKE '%' || lower('@outcome_search') || '%'
+    AND mt.meta_rr IS NOT NULL
     AND (
       CASE WHEN @filter_by_meta = 1 THEN
         mt.meta_rr <= @benefit_rr AND mt.meta_rr >= @lower_benefit_rr
-        AND mt.meta_p < @p_cut AND mt.meta_rr IS NOT NULL
+        AND mt.meta_p < @p_cut
       ELSE
         COALESCE(bt.benefit_count, 0) >= @min_benefit_sources
         AND COALESCE(rt.risk_count, 0) <= @max_risk_sources
