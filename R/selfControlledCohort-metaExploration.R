@@ -32,7 +32,7 @@ selfControlledCohortMetaExplorationViewer <- function(id = "metaExploration") {
         width = 12,
         title = shiny::span(shiny::icon("sliders"), "Filters"),
         collapsible = TRUE,
-        collapsed = TRUE,
+        collapsed = FALSE,
         shiny::fluidRow(
           shiny::column(
             width = 4,
@@ -50,6 +50,15 @@ selfControlledCohortMetaExplorationViewer <- function(id = "metaExploration") {
               ),
               selected = "All",
               inline = TRUE
+            )
+          ),
+          shiny::column(
+            width = 4,
+            shiny::actionButton(
+              ns("apply"),
+              "Apply filters",
+              icon = shiny::icon("play"),
+              style = "color: #fff; background-color: #337ab7; border-color: #2e6da4"
             )
           )
         )
@@ -115,7 +124,7 @@ selfControlledCohortMetaExplorationServer <- function(
         )
       })
 
-      metaData <- shiny::reactive({
+      metaData <- shiny::eventReactive(input$apply, {
         shiny::req(input$analysisId)
         if (nrow(analyses()) == 0) {
           return(data.frame())
@@ -135,9 +144,17 @@ selfControlledCohortMetaExplorationServer <- function(
         return(result)
       })
 
+      # only display results once the apply filters button has been pressed
+      metaTableData <- shiny::reactive({
+        if (is.null(input$apply) || input$apply == 0) {
+          return(data.frame())
+        }
+        return(metaData())
+      })
+
       resultTableOutputs <- resultTableServer(
         id = "metaTable",
-        df = metaData,
+        df = metaTableData,
         colDefsInput = selfControlledCohortMetaExplorationColDef(),
         addActions = list(
           createActionButton(
@@ -159,7 +176,7 @@ selfControlledCohortMetaExplorationServer <- function(
         } else {
           NA
         }
-        data <- metaData()
+        data <- metaTableData()
         if (resultTableOutputs$actionType() == "openPair" &&
             !is.na(actionRow) && actionRow > 0 &&
             !is.null(data) && nrow(data) >= actionRow) {
