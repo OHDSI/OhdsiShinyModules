@@ -111,14 +111,12 @@ selfControlledCohortSignalsSql <- function(
     SELECT
       esr.target_cohort_id,
       esr.outcome_cohort_id,
-      CASE WHEN COALESCE(esds.unblind, 0) = 0
-                OR esds.mdrr_diagnostic = 'FAIL'
+      CASE WHEN esds.mdrr_diagnostic = 'FAIL'
                 OR esds.i_2_diagnostic = 'FAIL'
                 OR esds.tau_diagnostic = 'FAIL'
                 OR esds.ease_diagnostic = 'FAIL'
            THEN NULL ELSE esr.calibrated_rr END AS meta_rr,
-      CASE WHEN COALESCE(esds.unblind, 0) = 0
-                OR esds.mdrr_diagnostic = 'FAIL'
+      CASE WHEN esds.mdrr_diagnostic = 'FAIL'
                 OR esds.i_2_diagnostic = 'FAIL'
                 OR esds.tau_diagnostic = 'FAIL'
                 OR esds.ease_diagnostic = 'FAIL'
@@ -245,15 +243,12 @@ selfControlledCohortMetaSql <- function(
            THEN 'Fail' ELSE 'Pass' END AS overall_status,
       CASE WHEN esds.mdrr_diagnostic = 'FAIL' OR esds.i_2_diagnostic = 'FAIL'
                 OR esds.tau_diagnostic = 'FAIL' OR esds.ease_diagnostic = 'FAIL'
-                OR COALESCE(esds.unblind, 0) <> 1
            THEN NULL ELSE esr.calibrated_rr END AS calibrated_rr,
       CASE WHEN esds.mdrr_diagnostic = 'FAIL' OR esds.i_2_diagnostic = 'FAIL'
                 OR esds.tau_diagnostic = 'FAIL' OR esds.ease_diagnostic = 'FAIL'
-                OR COALESCE(esds.unblind, 0) <> 1
            THEN NULL ELSE esr.calibrated_ci_95_lb END AS calibrated_ci_95_lb,
       CASE WHEN esds.mdrr_diagnostic = 'FAIL' OR esds.i_2_diagnostic = 'FAIL'
                 OR esds.tau_diagnostic = 'FAIL' OR esds.ease_diagnostic = 'FAIL'
-                OR COALESCE(esds.unblind, 0) <> 1
            THEN NULL ELSE esr.calibrated_ci_95_ub END AS calibrated_ci_95_ub
     FROM @schema.@es_table_prefixscc_result esr
     INNER JOIN @schema.@es_table_prefixscc_diagnostics_summary esds ON (
