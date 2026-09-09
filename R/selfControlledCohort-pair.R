@@ -103,6 +103,13 @@ selfControlledCohortPairViewer <- function(id = "pair") {
       shiny::tabPanel(
         title = "Systematic error",
         value = "systematicError",
+        shiny::uiOutput(ns("systematicDbSelector")),
+        shiny::p(
+          "Negative control estimates are per database - choose a single
+          database to view its systematic error, or keep 'All databases' for
+          the pooled view.",
+          style = "color: #555; font-style: italic; margin-bottom: 10px;"
+        ),
         shinycssloaders::withSpinner(
           shiny::plotOutput(ns("systematicErrorPlot"), height = "600px")
         )
@@ -447,7 +454,7 @@ selfControlledCohortPairServer <- function(
         return(plot)
       })
 
-      controlEstimates <- shiny::reactive({
+      allControlEstimates <- shiny::reactive({
         p <- pair()
         if (is.null(p)) {
           return(data.frame())
@@ -486,6 +493,35 @@ selfControlledCohortPairServer <- function(
           error = function(e) data.frame()
         )
         return(byOutcome)
+      })
+
+      output$systematicDbSelector <- shiny::renderUI({
+        data <- allControlEstimates()
+        if (nrow(data) == 0) {
+          return(NULL)
+        }
+        dbChoices <- data |>
+          dplyr::distinct(.data$databaseId, .data$databaseName) |>
+          dplyr::arrange(.data$databaseName)
+        choices <- stats::setNames(dbChoices$databaseId, dbChoices$databaseName)
+        choices <- c("All databases" = "All", choices)
+        shiny::selectInput(
+          inputId = session$ns("systematicDb"),
+          label = "Database",
+          choices = choices,
+          selected = "All"
+        )
+      })
+
+      controlEstimates <- shiny::reactive({
+        data <- allControlEstimates()
+        if (nrow(data) == 0 || is.null(input$systematicDb) ||
+            input$systematicDb == "All") {
+          return(data)
+        }
+        data <- data |>
+          dplyr::filter(.data$databaseId == input$systematicDb)
+        return(data)
       })
 
       output$systematicErrorPlot <- shiny::renderPlot({
