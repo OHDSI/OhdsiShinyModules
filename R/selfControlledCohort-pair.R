@@ -372,23 +372,49 @@ selfControlledCohortPairServer <- function(
         if (is.null(p)) {
           return(data.frame())
         }
-        OhdsiReportGenerator::getSccNegativeControlEstimates(
-          connectionHandler = connectionHandler,
-          schema = resultDatabaseSettings$schema,
-          sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
-          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-          databaseTable = resultDatabaseSettings$databaseTable,
-          analysisIds = selectedAnalysis(),
-          targetIds = p$targetId
+        # outcome control design: the negative controls for an exposure are
+        # the control outcomes for the selected target
+        byTarget <- tryCatch(
+          OhdsiReportGenerator::getSccNegativeControlEstimates(
+            connectionHandler = connectionHandler,
+            schema = resultDatabaseSettings$schema,
+            sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
+            cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+            databaseTable = resultDatabaseSettings$databaseTable,
+            analysisIds = selectedAnalysis(),
+            targetIds = p$targetId,
+            outcomeIds = NULL
+          ),
+          error = function(e) data.frame()
         )
+        if (nrow(byTarget) > 0) {
+          return(byTarget)
+        }
+        # exposure control design: the negative controls for an outcome are the
+        # control exposures for the selected outcome
+        byOutcome <- tryCatch(
+          OhdsiReportGenerator::getSccNegativeControlEstimates(
+            connectionHandler = connectionHandler,
+            schema = resultDatabaseSettings$schema,
+            sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
+            cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+            databaseTable = resultDatabaseSettings$databaseTable,
+            analysisIds = selectedAnalysis(),
+            targetIds = NULL,
+            outcomeIds = p$outcomeId
+          ),
+          error = function(e) data.frame()
+        )
+        return(byOutcome)
       })
 
       output$systematicErrorPlot <- shiny::renderPlot({
         shiny::req(pair())
         data <- controlEstimates()
-        if (nrow(data) == 0) {
-          return(NULL)
-        }
+        shiny::validate(shiny::need(
+          nrow(data) > 0,
+          "No negative control estimates found for this pair and analysis setting."
+        ))
         plot <- OhdsiReportGenerator::plotSccSystematicError(data)
         return(plot)
       })
