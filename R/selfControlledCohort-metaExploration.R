@@ -357,6 +357,26 @@ selfControlledCohortMetaExplorationColDef <- function() {
       name = "Calibrated UB",
       format = reactable::colFormat(digits = 4),
       na = "-"
+    ),
+    mdrrDiagnostic = reactable::colDef(
+      name = "MDRR result",
+      filterable = TRUE,
+      minWidth = 105
+    ),
+    easeDiagnostic = reactable::colDef(
+      name = "EASE result",
+      filterable = TRUE,
+      minWidth = 105
+    ),
+    i2Diagnostic = reactable::colDef(
+      name = "I2 result",
+      filterable = TRUE,
+      minWidth = 90
+    ),
+    tauDiagnostic = reactable::colDef(
+      name = "Tau result",
+      filterable = TRUE,
+      minWidth = 95
     )
   )
   return(results)

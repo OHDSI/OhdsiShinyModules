@@ -237,6 +237,10 @@ selfControlledCohortMetaSql <- function(
       esds.i_2 AS i2,
       esds.tau,
       esds.ease,
+      esds.mdrr_diagnostic,
+      esds.i_2_diagnostic AS i2_diagnostic,
+      esds.tau_diagnostic,
+      esds.ease_diagnostic,
       esds.unblind,
       CASE WHEN esds.mdrr_diagnostic = 'FAIL' OR esds.i_2_diagnostic = 'FAIL'
                 OR esds.tau_diagnostic = 'FAIL' OR esds.ease_diagnostic = 'FAIL'
@@ -282,6 +286,10 @@ selfControlledCohortMetaSql <- function(
     mt.i2,
     mt.tau,
     mt.ease,
+    mt.mdrr_diagnostic,
+    mt.i2_diagnostic,
+    mt.tau_diagnostic,
+    mt.ease_diagnostic,
     mt.unblind,
     mt.overall_status,
     mt.calibrated_rr,

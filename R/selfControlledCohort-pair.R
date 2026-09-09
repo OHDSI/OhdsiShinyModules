@@ -86,6 +86,14 @@ selfControlledCohortPairViewer <- function(id = "pair") {
         )
       ),
       shiny::tabPanel(
+        title = "Meta diagnostics",
+        value = "metaDiagnostics",
+        resultTableViewer(
+          id = ns("metaDiagnosticsTable"),
+          boxTitle = "Meta analysis diagnostics"
+        )
+      ),
+      shiny::tabPanel(
         title = "Forest plot",
         value = "forest",
         shinycssloaders::withSpinner(
@@ -391,6 +399,39 @@ selfControlledCohortPairServer <- function(
         df = diagnosticsData,
         colDefsInput = selfControlledCohortDiagnosticsColDef(),
         elementId = session$ns("diagnosticsTable")
+      )
+
+      metaDiagnosticsData <- shiny::reactive({
+        p <- pair()
+        if (is.null(p)) {
+          return(data.frame())
+        }
+        displayCols <- c(
+          "description", "overallStatus",
+          "mdrr", "mdrrDiagnostic", "ease", "easeDiagnostic",
+          "i2", "i2Diagnostic", "tau", "tauDiagnostic",
+          "nDatabases", "numPersons", "numExposures",
+          "numOutcomesExposed", "numOutcomesUnexposed"
+        )
+        result <- OhdsiReportGenerator::getSccMetaExploration(
+          connectionHandler = connectionHandler,
+          schema = resultDatabaseSettings$schema,
+          sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
+          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+          esTablePrefix = resultDatabaseSettings$esTablePrefix,
+          analysisIds = selectedAnalysis(),
+          targetIds = p$targetId,
+          outcomeIds = p$outcomeId
+        )
+        result <- result[, intersect(displayCols, colnames(result)), drop = FALSE]
+        return(result)
+      })
+
+      resultTableServer(
+        id = "metaDiagnosticsTable",
+        df = metaDiagnosticsData,
+        colDefsInput = selfControlledCohortMetaDiagnosticsColDef(),
+        elementId = session$ns("metaDiagnosticsTable")
       )
 
       output$forestPlot <- shiny::renderPlot({
@@ -708,6 +749,92 @@ selfControlledCohortDiagnosticsColDef <- function() {
       name = "Status",
       filterable = TRUE,
       minWidth = 90
+    )
+  )
+  return(results)
+}
+
+#' The column definitions for the pair level meta analysis diagnostics
+#'
+#' @details
+#' Shows the evidence synthesis diagnostic values and their PASS/FAIL status so
+#' the reason a meta analytic result is blinded (failed a diagnostic) is
+#' visible
+#'
+#' @family SelfControlledCohort
+#' @return
+#' A named list of reactable::colDef
+#' @export
+selfControlledCohortMetaDiagnosticsColDef <- function() {
+  results <- list(
+    description = reactable::colDef(
+      name = "Analysis settings",
+      minWidth = 200
+    ),
+    overallStatus = reactable::colDef(
+      name = "Status",
+      filterable = TRUE,
+      minWidth = 80
+    ),
+    mdrr = reactable::colDef(
+      name = "MDRR",
+      format = reactable::colFormat(digits = 3),
+      na = "-"
+    ),
+    mdrrDiagnostic = reactable::colDef(
+      name = "MDRR result",
+      filterable = TRUE,
+      minWidth = 105
+    ),
+    ease = reactable::colDef(
+      name = "EASE",
+      format = reactable::colFormat(digits = 4),
+      na = "-"
+    ),
+    easeDiagnostic = reactable::colDef(
+      name = "EASE result",
+      filterable = TRUE,
+      minWidth = 105
+    ),
+    i2 = reactable::colDef(
+      name = "I2",
+      format = reactable::colFormat(digits = 2),
+      na = "-"
+    ),
+    i2Diagnostic = reactable::colDef(
+      name = "I2 result",
+      filterable = TRUE,
+      minWidth = 90
+    ),
+    tau = reactable::colDef(
+      name = "Tau",
+      format = reactable::colFormat(digits = 4),
+      na = "-"
+    ),
+    tauDiagnostic = reactable::colDef(
+      name = "Tau result",
+      filterable = TRUE,
+      minWidth = 95
+    ),
+    nDatabases = reactable::colDef(
+      name = "Databases",
+      format = reactable::colFormat(digits = 0)
+    ),
+    numPersons = reactable::colDef(
+      name = "Persons",
+      format = reactable::colFormat(digits = 0)
+    ),
+    numExposures = reactable::colDef(
+      name = "Exposures",
+      format = reactable::colFormat(digits = 0)
+    ),
+    numOutcomesExposed = reactable::colDef(
+      name = "Outcomes exposed",
+      format = reactable::colFormat(digits = 0)
+    ),
+    numOutcomesUnexposed = reactable::colDef(
+      name = "Outcomes unexposed",
+      format = reactable::colFormat(digits = 0)
     )
   )
   return(results)

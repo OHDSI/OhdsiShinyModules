@@ -23,6 +23,7 @@ Other SelfControlledCohort:
 \code{\link{selfControlledCohortDetailedColDef}()},
 \code{\link{selfControlledCohortDiagnosticsColDef}()},
 \code{\link{selfControlledCohortHelperFile}()},
+\code{\link{selfControlledCohortMetaDiagnosticsColDef}()},
 \code{\link{selfControlledCohortMetaExplorationServer}()},
 \code{\link{selfControlledCohortMetaExplorationViewer}()},
 \code{\link{selfControlledCohortMetaSql}()},
