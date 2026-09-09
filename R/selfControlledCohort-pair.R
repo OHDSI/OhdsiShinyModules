@@ -181,13 +181,32 @@ selfControlledCohortPairServer <- function(
       })
 
       targets <- shiny::reactive({
-        OhdsiReportGenerator::getSccTargets(
-          connectionHandler = connectionHandler,
-          schema = resultDatabaseSettings$schema,
-          sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
-          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-          analysisIds = selectedAnalysis()
+        result <- tryCatch(
+          OhdsiReportGenerator::getSccTargets(
+            connectionHandler = connectionHandler,
+            schema = resultDatabaseSettings$schema,
+            sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
+            cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+            analysisIds = selectedAnalysis()
+          ),
+          error = function(e) data.frame()
         )
+        # if the interest pair reference table is missing or empty for the
+        # analysis, fall back to any exposure with results
+        if (nrow(result) == 0) {
+          result <- tryCatch(
+            OhdsiReportGenerator::getSccTargets(
+              connectionHandler = connectionHandler,
+              schema = resultDatabaseSettings$schema,
+              sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
+              cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+              analysisIds = selectedAnalysis(),
+              restrictToInterest = FALSE
+            ),
+            error = function(e) data.frame()
+          )
+        }
+        result
       })
 
       output$targetSelector <- shiny::renderUI({
@@ -203,14 +222,34 @@ selfControlledCohortPairServer <- function(
 
       outcomes <- shiny::reactive({
         shiny::req(input$targetId)
-        OhdsiReportGenerator::getSccOutcomes(
-          connectionHandler = connectionHandler,
-          schema = resultDatabaseSettings$schema,
-          sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
-          cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
-          analysisIds = selectedAnalysis(),
-          targetIds = as.numeric(input$targetId)
+        result <- tryCatch(
+          OhdsiReportGenerator::getSccOutcomes(
+            connectionHandler = connectionHandler,
+            schema = resultDatabaseSettings$schema,
+            sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
+            cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+            analysisIds = selectedAnalysis(),
+            targetIds = as.numeric(input$targetId)
+          ),
+          error = function(e) data.frame()
         )
+        # if the interest pair reference table is missing or empty for the
+        # analysis, fall back to any outcome with results for the exposure
+        if (nrow(result) == 0) {
+          result <- tryCatch(
+            OhdsiReportGenerator::getSccOutcomes(
+              connectionHandler = connectionHandler,
+              schema = resultDatabaseSettings$schema,
+              sccTablePrefix = resultDatabaseSettings$sccTablePrefix,
+              cgTablePrefix = resultDatabaseSettings$cgTablePrefix,
+              analysisIds = selectedAnalysis(),
+              targetIds = as.numeric(input$targetId),
+              restrictToInterest = FALSE
+            ),
+            error = function(e) data.frame()
+          )
+        }
+        result
       })
 
       output$outcomeSelector <- shiny::renderUI({
