@@ -56,7 +56,7 @@ selfControlledCohortSignalsSql <- function(
       sr.target_cohort_id,
       sr.outcome_cohort_id,
       sr.database_id,
-      CASE WHEN COALESCE(sdun.diagnostic_value, 0) = 0 THEN NULL
+      CASE WHEN COALESCE(sdun.pass, 0) = 0 THEN NULL
            WHEN EXISTS (
              SELECT 1 FROM @schema.@scc_table_prefixdiagnostics_summary fdg
              WHERE fdg.database_id = sr.database_id
@@ -67,7 +67,7 @@ selfControlledCohortSignalsSql <- function(
                AND COALESCE(fdg.pass, 0) = 0
            ) THEN NULL
            ELSE sr.calibrated_rr END AS measure_rr,
-      CASE WHEN COALESCE(sdun.diagnostic_value, 0) = 0 THEN NULL
+      CASE WHEN COALESCE(sdun.pass, 0) = 0 THEN NULL
            WHEN EXISTS (
              SELECT 1 FROM @schema.@scc_table_prefixdiagnostics_summary fdg
              WHERE fdg.database_id = sr.database_id
