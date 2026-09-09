@@ -154,12 +154,13 @@ selfControlledCohortSignalsSql <- function(
   FROM (
     SELECT DISTINCT rs.target_cohort_id, rs.outcome_cohort_id
     FROM @schema.@scc_table_prefixresult rs
-    INNER JOIN @schema.@scc_table_prefixoutcome_exposure oex ON (
-      oex.target_cohort_id = rs.target_cohort_id AND
-      oex.outcome_cohort_id = rs.outcome_cohort_id AND
-      oex.true_effect_size IS NULL
-    )
     WHERE rs.analysis_id = @analysis_id
+      AND NOT EXISTS (
+        SELECT 1 FROM @schema.@scc_table_prefixoutcome_exposure c
+        WHERE c.target_cohort_id = rs.target_cohort_id
+          AND c.outcome_cohort_id = rs.outcome_cohort_id
+          AND c.true_effect_size IS NOT NULL
+      )
   ) fr
   INNER JOIN @schema.@cg_table_prefixcohort_definition cgt
     ON cgt.cohort_definition_id = fr.target_cohort_id
@@ -177,7 +178,6 @@ selfControlledCohortSignalsSql <- function(
   WHERE 1 = 1
     AND lower(cgt.cohort_name) LIKE '%' || lower('@target_search') || '%'
     AND lower(cgo.cohort_name) LIKE '%' || lower('@outcome_search') || '%'
-    AND mt.meta_rr IS NOT NULL
     AND (
       CASE WHEN @filter_by_meta = 1 THEN
         mt.meta_rr <= @benefit_rr AND mt.meta_rr >= @lower_benefit_rr
