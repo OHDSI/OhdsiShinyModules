@@ -50,5 +50,5 @@ Suggests:
     testthat,
     withr
 Remotes:
-    ohdsi/OhdsiReportGenerator@develop
+    ohdsi/OhdsiReportGenerator@scc_report
 Config/roxygen2/version: 8.0.0
