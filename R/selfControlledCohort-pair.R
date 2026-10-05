@@ -155,11 +155,17 @@ selfControlledCohortPairServer <- function(
     function(input, output, session) {
 
       chosenPair <- shiny::reactiveVal(NULL)
+      # the pair that the selectors should reflect when it is opened from
+      # elsewhere (e.g. via a link from the signal discovery or meta
+      # exploration tabs).  This is kept separate from chosenPair so the
+      # selectors can be synced to the newly opened pair.
+      desiredPair <- shiny::reactiveVal(NULL)
 
       # allow a pair to be opened from elsewhere (e.g. via a link from the
       # parent module)
-      shiny::observe({
+      shiny::observeEvent(selectedPair(), {
         if (!is.null(selectedPair())) {
+          desiredPair(selectedPair())
           chosenPair(selectedPair())
         }
       })
@@ -179,11 +185,17 @@ selfControlledCohortPairServer <- function(
         } else {
           c("No analyses" = 1)
         }
+        selected <- if (nrow(df) > 0) df$analysisId[1] else 1
+        dp <- desiredPair()
+        if (!is.null(dp) && !is.null(dp$analysisId) && nrow(df) > 0 &&
+            as.numeric(dp$analysisId) %in% as.numeric(df$analysisId)) {
+          selected <- as.numeric(dp$analysisId)
+        }
         shiny::selectInput(
           inputId = session$ns("analysisId"),
           label = "SCC analysis setting",
           choices = choices,
-          selected = if (nrow(df) > 0) df$analysisId[1] else 1
+          selected = selected
         )
       })
 
@@ -227,11 +239,27 @@ selfControlledCohortPairServer <- function(
       output$targetSelector <- shiny::renderUI({
         df <- targets()
         choices <- stats::setNames(df$cohortDefinitionId, df$cohortName)
+        selected <- if (nrow(df) > 0) df$cohortDefinitionId[1] else NULL
+        valid <- as.numeric(df$cohortDefinitionId)
+        dp <- desiredPair()
+        # a pair opened from another tab should take precedence, but only while
+        # its analysis is still the selected one
+        dpActive <- !is.null(dp) && !is.null(dp$targetId) && nrow(df) > 0 &&
+          (is.null(dp$analysisId) ||
+             as.numeric(dp$analysisId) == selectedAnalysis()) &&
+          as.numeric(dp$targetId) %in% valid
+        current <- shiny::isolate(input$targetId)
+        if (dpActive) {
+          selected <- as.numeric(dp$targetId)
+        } else if (!is.null(current) && as.numeric(current) %in% valid) {
+          # keep the current exposure when the analysis setting changes
+          selected <- as.numeric(current)
+        }
         shiny::selectInput(
           inputId = session$ns("targetId"),
           label = "Exposure (target cohort)",
           choices = choices,
-          selected = if (nrow(df) > 0) df$cohortDefinitionId[1] else NULL
+          selected = selected
         )
       })
 
@@ -270,11 +298,27 @@ selfControlledCohortPairServer <- function(
       output$outcomeSelector <- shiny::renderUI({
         df <- outcomes()
         choices <- stats::setNames(df$cohortDefinitionId, df$cohortName)
+        selected <- if (nrow(df) > 0) df$cohortDefinitionId[1] else NULL
+        valid <- as.numeric(df$cohortDefinitionId)
+        dp <- desiredPair()
+        dpActive <- !is.null(dp) && !is.null(dp$targetId) &&
+          !is.null(dp$outcomeId) && !is.null(input$targetId) && nrow(df) > 0 &&
+          as.numeric(input$targetId) == as.numeric(dp$targetId) &&
+          (is.null(dp$analysisId) ||
+             as.numeric(dp$analysisId) == selectedAnalysis()) &&
+          as.numeric(dp$outcomeId) %in% valid
+        current <- shiny::isolate(input$outcomeId)
+        if (dpActive) {
+          selected <- as.numeric(dp$outcomeId)
+        } else if (!is.null(current) && as.numeric(current) %in% valid) {
+          # keep the current outcome when the analysis setting changes
+          selected <- as.numeric(current)
+        }
         shiny::selectInput(
           inputId = session$ns("outcomeId"),
           label = "Outcome cohort",
           choices = choices,
-          selected = if (nrow(df) > 0) df$cohortDefinitionId[1] else NULL
+          selected = selected
         )
       })
 
@@ -282,7 +326,7 @@ selfControlledCohortPairServer <- function(
         shiny::req(input$targetId, input$outcomeId)
         targetDf <- targets()
         outcomeDf <- outcomes()
-        chosenPair(data.frame(
+        picked <- data.frame(
           targetId = as.numeric(input$targetId),
           targetName = targetDf$cohortName[match(
             as.numeric(input$targetId), targetDf$cohortDefinitionId
@@ -291,8 +335,12 @@ selfControlledCohortPairServer <- function(
           outcomeName = outcomeDf$cohortName[match(
             as.numeric(input$outcomeId), outcomeDf$cohortDefinitionId
           )],
+          analysisId = selectedAnalysis(),
           stringsAsFactors = FALSE
-        ))
+        )
+        # keep the selectors in sync with the pair the user has just chosen
+        desiredPair(picked)
+        chosenPair(picked)
       })
 
       pair <- shiny::reactive({
@@ -301,7 +349,8 @@ selfControlledCohortPairServer <- function(
 
       # changing the analysis setting changes which estimates are relevant, so
       # clear a displayed pair when the user changes the analysis selection
-      # (but not when the selector is first populated)
+      # (but not when the selector is first populated, or when the analysis is
+      # being set automatically to match a pair opened from another tab)
       previousAnalysis <- shiny::reactiveVal(NULL)
       shiny::observeEvent(input$analysisId, {
         newAnalysis <- input$analysisId
@@ -309,7 +358,16 @@ selfControlledCohortPairServer <- function(
         previousAnalysis(newAnalysis)
         if (!is.null(newAnalysis) && !is.null(oldAnalysis) &&
             as.numeric(oldAnalysis) != as.numeric(newAnalysis)) {
-          chosenPair(NULL)
+          dp <- desiredPair()
+          openedAnalysis <- if (!is.null(dp) && !is.null(dp$analysisId)) {
+            as.numeric(dp$analysisId)
+          } else {
+            NULL
+          }
+          if (is.null(openedAnalysis) ||
+              openedAnalysis != as.numeric(newAnalysis)) {
+            chosenPair(NULL)
+          }
         }
       })
 

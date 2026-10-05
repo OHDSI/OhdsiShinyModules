@@ -247,6 +247,7 @@ selfControlledCohortMetaExplorationServer <- function(
           targetName = targetName,
           outcomeId = outcomeId,
           outcomeName = outcomeName,
+          analysisId = as.numeric(metaTableParams()$analysis_id),
           stringsAsFactors = FALSE
         ))
       })

@@ -329,6 +329,7 @@ selfControlledCohortSignalsServer <- function(
           targetName = targetName,
           outcomeId = outcomeId,
           outcomeName = outcomeName,
+          analysisId = as.numeric(appliedParams()$analysis_id),
           stringsAsFactors = FALSE
         ))
       })
