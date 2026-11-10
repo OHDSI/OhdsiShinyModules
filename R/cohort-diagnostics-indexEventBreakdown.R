@@ -175,16 +175,21 @@ getIndexEventBreakdown <- function(dataSource,
 
   # Results exported before cohort_start_year was added to the results data
   # model have no year dimension - mark those rows so the UI can degrade
-  if (!hasIndexEventBreakdownColumn(data,
-                                    columnName = "cohortStartYear")) {
+  hasYearColumn <- hasIndexEventBreakdownColumn(
+    data,
+    columnName = "cohortStartYear"
+  )
+  if (!hasYearColumn) {
     data <- data %>%
       dplyr::mutate(cohortStartYear = NA_integer_, .after = "cohortId")
+  } else {
+    # Rows backfilled by the migration carry -1 ("year not recorded"). Drop
+    # those so the per-year rows sum to the unstratified totals, but keep
+    # everything else - including the NA-year rows added above, which are the
+    # only data that exists for results predating the year dimension.
+    data <- data %>%
+      dplyr::filter(is.na(.data$cohortStartYear) | .data$cohortStartYear != -1)
   }
-
-  # drop any legacy breakdown rows that carry no year so the rows shown by year
-  # sum to the unstratified totals
-  data <- data %>%
-    dplyr::filter(!is.na(.data$cohortStartYear))
 
   if (hasData(cohortStartYears)) {
     data <- data %>%

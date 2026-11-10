@@ -6,3 +6,4 @@
 rsconnect/rconnect.jnj.com/NHall6/phevaluator_v01.dcf
 errorReportSql.txt
 tests/testthat/Rplots.pdf
+.pr_body_*.md
