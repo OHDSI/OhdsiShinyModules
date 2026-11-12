@@ -74,18 +74,13 @@ indexEventBreakdownView <- function(id) {
               )
             )
           ),
-          # only rendered by indexEventBreakdownServer when the loaded results
-          # include cohort_start_year (CohortDiagnostics 4.0.0 and later)
-          shiny::tags$tr(
-            shiny::tags$td(
-              shiny::uiOutput(outputId = ns("yearControls"))
-            )
-          )
         )
       ),
       shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("breakdownTable"))),
       reactableCsvDownloadButton(ns, "breakdownTable"),
-      shiny::uiOutput(outputId = ns("yearPlotArea"))
+      # Only rendered when the results carry a cohort start year: the table then
+      # has one row per code and expanding a row shows that code over time.
+      shiny::uiOutput(outputId = ns("yearDetailHint"))
     )
   )
 }
@@ -180,16 +175,12 @@ getIndexEventBreakdown <- function(dataSource,
     columnName = "cohortStartYear"
   )
   if (!hasYearColumn) {
+    # no year dimension at all: treat every row as an overall row
     data <- data %>%
       dplyr::mutate(cohortStartYear = NA_integer_, .after = "cohortId")
-  } else {
-    # Rows backfilled by the migration carry -1 ("year not recorded"). Drop
-    # those so the per-year rows sum to the unstratified totals, but keep
-    # everything else - including the NA-year rows added above, which are the
-    # only data that exists for results predating the year dimension.
-    data <- data %>%
-      dplyr::filter(is.na(.data$cohortStartYear) | .data$cohortStartYear != -1)
   }
+  # Note: -1 rows are the OVERALL figures for each code and must be kept -
+  # splitIndexEventBreakdown() separates them from the per-year rows.
 
   if (hasData(cohortStartYears)) {
     data <- data %>%
@@ -207,215 +198,138 @@ getIndexEventBreakdown <- function(dataSource,
 
   return(data)
 }
-
-#' Plot the index event breakdown by cohort start year
+#' Split an index event breakdown into overall figures and year detail
 #' @description
-#' Plotly plot showing, for each database, the number of persons whose cohort
-#' entry had each index event concept on the cohort start date, broken down by
-#' the calendar year of the cohort start date. A concept whose series starts
-#' late or ends early (e.g. a deprecated HCPCS code) shows up as a line that
-#' stops before the other concepts.
-#' @param data data.frame as returned by getIndexEventBreakdown containing
-#'  conceptId, conceptName, cohortId, databaseId, cohortStartYear, subjectCount,
-#'  conceptCount and subjectPercent
-#' @param cohortTable data.frame with the cohortId and cohortName of the cohorts
-#'  in data
-#' @param showAsPercent if TRUE plot persons as a percentage of the cohort
-#'  subjects (subjectPercent) rather than the persons count
-#' @return a plotly object, or NULL when there is nothing to plot
+#' The breakdown is stored as two kinds of row:
+#'
+#'  * one overall row per code, carrying counts over the whole cohort, marked by
+#'    `cohortStartYear == -1`; and
+#'  * one row per code per cohort start year, for the trend.
+#'
+#' The overall rows must be used as they stand. They cannot be reconstructed by
+#' adding the per-year rows together: `subjectCount` is a count of distinct
+#' people *within* a period, so summing it across years counts a subject once per
+#' year they appear in and can exceed the number of people in the cohort. For the
+#' demo cohort the per-year subject counts sum to 2.6x the true distinct count.
+#'
+#' @param data data.frame from getIndexEventBreakdown
+#' @return list with `overall` (one row per database/cohort/code) and `byYear`
+#'  (the per-year rows, or NULL when the results predate the year breakdown).
+#'  Results exported before the year breakdown have no `cohortStartYear` at all;
+#'  those rows are treated as overall.
 #' @family CohortDiagnostics
 #' @noRd
-plotIndexEventBreakdownByYear <- function(data,
-                                          cohortTable = NULL,
-                                          showAsPercent = FALSE) {
-  if (!hasData(data) || !"cohortStartYear" %in% colnames(data)) {
-    return(NULL)
-  }
-  data <- data %>%
-    dplyr::filter(
-      .data$conceptId > 0,
-      !is.na(.data$cohortStartYear),
-      !is.na(.data$conceptName)
-    )
+splitIndexEventBreakdown <- function(data) {
   if (!hasData(data)) {
-    return(NULL)
+    return(list(overall = data, byYear = NULL))
   }
 
-  cohortNames <- as.character(data$cohortId)
-  if (hasData(cohortTable) &&
-        all(c("cohortId", "cohortName") %in% colnames(cohortTable))) {
-    nameIndex <- match(data$cohortId, cohortTable$cohortId)
-    found <- !is.na(nameIndex)
-    cohortNames[found] <- as.character(cohortTable$cohortName[nameIndex[found]])
-  }
-  data <- data %>%
-    dplyr::mutate(cohortName = cohortNames)
-
-  showAsPercent <- isTRUE(showAsPercent)
-  valueColumn <- if (showAsPercent) "subjectPercent" else "subjectCount"
-  yAxisTitle <- if (showAsPercent) {
-    "persons (% of cohort subjects)"
-  } else {
-    "persons"
-  }
-  formatValue <- function(value) {
-    if (showAsPercent) {
-      sprintf("%.2f%%", 100 * value)
-    } else {
-      scales::comma(value, accuracy = 1)
-    }
+  if (!"cohortStartYear" %in% colnames(data)) {
+    # results from before the year breakdown: every row is already an overall row
+    return(list(overall = data, byYear = NULL))
   }
 
-  # one series per database/cohort/concept, ordered by the total number of
-  # persons so the most common index events get the most visible colours
-  series <- data %>%
-    dplyr::group_by(
-      .data$databaseId,
-      .data$cohortId,
-      .data$cohortName,
-      .data$conceptId,
-      .data$conceptName
+  overall <- data %>% dplyr::filter(is.na(.data$cohortStartYear) | .data$cohortStartYear == -1)
+  byYear <- data %>% dplyr::filter(!is.na(.data$cohortStartYear) & .data$cohortStartYear != -1)
+
+  # Older exports that were migrated have only overall rows tagged -1; newer ones
+  # always provide both. Guard against a results set that somehow carries only
+  # year rows, where the overall figures would otherwise silently disappear.
+  if (!hasData(overall)) {
+    return(list(overall = data, byYear = NULL))
+  }
+
+  return(list(
+    overall = overall,
+    byYear = if (hasData(byYear)) byYear else NULL
+  ))
+}
+
+#' Detail panel for one index event code
+#' @description
+#' Renders the cohort-start-year breakdown for a single code: a small table of
+#' counts per year and a sparkline of the trend. Used as the row detail of the
+#' summary table, so that only the codes the user is interested in are shown
+#' year by year rather than every code at once.
+#' @param data one code's per-year rows (from the year-stratified breakdown)
+#' @param showAsPercent render persons as a percentage of cohort subjects
+#' @param valueLabel what the persons column represents, for the table header
+#' @return a shiny tag list
+#' @family CohortDiagnostics
+#' @noRd
+indexEventBreakdownYearDetail <- function(data,
+                                          showAsPercent = FALSE,
+                                          valueLabel = "Persons") {
+  if (!hasData(data)) {
+    return(shiny::tags$em("No cohort start year detail available."))
+  }
+
+  years <- data %>%
+    dplyr::filter(!is.na(.data$cohortStartYear)) %>%
+    dplyr::arrange(.data$cohortStartYear) %>%
+    dplyr::mutate(
+      persons = if (showAsPercent) .data$subjectPercent else .data$subjectCount
+    )
+
+  if (!hasData(years)) {
+    return(shiny::tags$em("No cohort start year detail available."))
+  }
+
+  # a single year has no trend to plot, so show only the table
+  sparkline <- NULL
+  if (dplyr::n_distinct(years$cohortStartYear) > 1) {
+    sparkline <- plotly::plot_ly(
+      data = years,
+      x = ~cohortStartYear,
+      y = ~persons,
+      type = "scatter",
+      mode = "lines+markers",
+      height = 160,
+      hovertemplate = paste0(
+        "Year %{x}<br>",
+        valueLabel, " %{y:,.0f}<extra></extra>"
+      )
     ) %>%
-    dplyr::summarise(
-      totalPersons = sum(.data$subjectCount, na.rm = TRUE),
-      .groups = "drop"
-    ) %>%
-    dplyr::arrange(
-      dplyr::desc(.data$totalPersons),
-      .data$cohortId,
-      .data$conceptName
-    ) %>%
-    dplyr::mutate(seriesIndex = dplyr::row_number())
-  # a fixed colour reference so a concept keeps its colour across databases
-  seriesKey <- paste(series$cohortId, series$conceptId, sep = "-")
-  seriesKeyOrder <- unique(seriesKey)
-  nColors <- min(length(seriesKeyOrder), 12)
-  colorPallet <- RColorBrewer::brewer.pal(max(c(3, nColors)), "Set3")
-  series$color <- colorPallet[
-    ((match(seriesKey, seriesKeyOrder) - 1) %% length(colorPallet)) + 1
-  ]
-  series$seriesLabel <- paste0(
-    series$conceptId, ": ", series$conceptName
-  )
-
-  years <- sort(unique(data$cohortStartYear))
-  databases <- unique(data$databaseId)
-  nDatabases <- length(databases)
-  subplots <- list()
-
-  for (db in databases) {
-    subplots[[length(subplots) + 1]] <-
-      plotly::plot_ly(height = 400)
-    subplots[[length(subplots)]] <- subplots[[length(subplots)]] %>%
       plotly::layout(
-        plot_bgcolor = "#e5ecf6",
-        xaxis = list(
-          title = "cohort start year",
-          tickmode = "array",
-          tickvals = years,
-          ticktext = as.character(years),
-          zerolinecolor = "#ffff",
-          zerolinewidth = 2,
-          gridcolor = "ffff"
-        ),
-        yaxis = list(
-          title = yAxisTitle,
-          zerolinecolor = "#ffff",
-          zerolinewidth = 2,
-          gridcolor = "ffff"
-        ),
+        margin = list(l = 40, r = 10, t = 10, b = 30),
+        xaxis = list(title = "", tickmode = "array",
+                     tickvals = years$cohortStartYear,
+                     ticktext = as.character(years$cohortStartYear)),
+        yaxis = list(title = valueLabel, rangemode = "tozero"),
         showlegend = FALSE
       )
+  }
 
-    dbSeries <- series %>%
-      dplyr::filter(.data$databaseId == db)
-    for (i in seq_len(nrow(dbSeries))) {
-      conceptData <- data %>%
-        dplyr::filter(
-          .data$databaseId == db,
-          .data$cohortId == dbSeries$cohortId[[i]],
-          .data$conceptId == dbSeries$conceptId[[i]]
-        ) %>%
-        dplyr::group_by(.data$cohortStartYear) %>%
-        dplyr::summarise(
-          value = sum(.data[[valueColumn]], na.rm = TRUE),
-          persons = sum(.data$subjectCount, na.rm = TRUE),
-          records = sum(.data$conceptCount, na.rm = TRUE),
-          .groups = "drop"
-        ) %>%
-        dplyr::arrange(.data$cohortStartYear)
-      if (!hasData(conceptData)) {
-        next
-      }
-
-      hoverText <- paste0(
-        dbSeries$seriesLabel[[i]],
-        "<br>Cohort = ", dbSeries$cohortName[[i]],
-        "<br>Year = ", conceptData$cohortStartYear,
-        "<br>Persons = ", scales::comma(conceptData$persons, accuracy = 1),
-        "<br>Records = ", scales::comma(conceptData$records, accuracy = 1),
-        "<br>Shown = ", formatValue(conceptData$value)
+  detailTable <- reactable::reactable(
+    data = years %>%
+      dplyr::select("cohortStartYear", "persons", "conceptCount"),
+    columns = list(
+      cohortStartYear = reactable::colDef(name = "Cohort start year", minWidth = 130),
+      persons = reactable::colDef(
+        name = valueLabel,
+        format = if (showAsPercent) {
+          reactable::colFormat(percent = TRUE, digits = 1)
+        } else {
+          reactable::colFormat(separator = TRUE, digits = 0)
+        }
+      ),
+      conceptCount = reactable::colDef(
+        name = "Records",
+        format = reactable::colFormat(separator = TRUE, digits = 0)
       )
+    ),
+    defaultPageSize = 10,
+    pagination = nrow(years) > 10,
+    compact = TRUE,
+    bordered = TRUE,
+    fullWidth = FALSE
+  )
 
-      subplots[[length(subplots)]] <- subplots[[length(subplots)]] %>%
-        plotly::add_markers(
-          x = conceptData$cohortStartYear,
-          y = conceptData$value,
-          name = dbSeries$seriesLabel[[i]],
-          text = hoverText,
-          hoverinfo = "text",
-          color = I(dbSeries$color[[i]]),
-          showlegend = FALSE
-        ) %>%
-        plotly::add_lines(
-          x = conceptData$cohortStartYear,
-          y = conceptData$value,
-          name = dbSeries$seriesLabel[[i]],
-          text = hoverText,
-          hoverinfo = "text",
-          color = I(dbSeries$color[[i]]),
-          showlegend = TRUE,
-          legendgroup = dbSeries$seriesLabel[[i]]
-        )
-    }
-  }
-
-  # Add titles for each subplot - mirrors plotTimeDistribution
-  # getIndexEventBreakdown() does not return databaseName, so fall back to the
-  # databaseId rather than indexing a column that may not exist
-  hasDatabaseName <- "databaseName" %in% colnames(data)
-  topAnnotations <- list()
-  for (i in seq_len(nDatabases)) {
-    databaseName <- if (hasDatabaseName) {
-      unique(data$databaseName[data$databaseId == databases[[i]]])
-    } else {
-      databases[[i]]
-    }
-    databaseName <- if (hasData(databaseName)) {
-      databaseName[[1]]
-    } else {
-      databases[[i]]
-    }
-    topAnnotations[[length(topAnnotations) + 1]] <- list(
-      text = addTextBreaks(text = databaseName, length = 25),
-      showarrow = FALSE,
-      x = (i - 1) / nDatabases + 1 / nDatabases * 0.5,
-      y = 1.0,
-      xref = "paper",
-      yref = "paper",
-      xanchor = "center",
-      yanchor = "bottom"
-    )
-  }
-
-  plt <- plotly::subplot(subplots,
-    nrows = 1,
-    shareY = FALSE,
-    shareX = TRUE
-  ) %>%
-    plotly::layout(annotations = topAnnotations, showlegend = TRUE)
-
-  return(plt)
+  return(shiny::tags$div(
+    style = "padding: 8px 12px; background: #f7f7f7;",
+    detailTable,
+    sparkline
+  ))
 }
 
 
@@ -450,54 +364,6 @@ indexEventBreakdownModule <- function(id,
       isTRUE(yearDimensionAvailable())
     })
 
-    # All years present in the results for the selected cohorts/databases, used
-    # to build the year select input. NA rows (pre year-dimension results) are
-    # dropped so nothing is offered when there is no year information.
-    availableYears <- shiny::reactive(x = {
-      if (!yearDimensionAvailableFlag()) {
-        return(NULL)
-      }
-      data <- indexEventBreakDownDataAll()
-      if (!hasData(data) ||
-        !"cohortStartYear" %in% colnames(data)) {
-        return(NULL)
-      }
-      years <- data$cohortStartYear %>%
-        unique() %>%
-        stats::na.omit() %>%
-        as.numeric() %>%
-        sort()
-      if (!hasData(years)) {
-        return(NULL)
-      }
-      return(years)
-    })
-
-    output$yearControls <- shiny::renderUI({
-      if (!yearDimensionAvailableFlag() || !hasData(availableYears())) {
-        return(NULL)
-      }
-      shiny::selectInput(
-        inputId = ns("indexEventBreakdownYear"),
-        label = "Cohort start year",
-        choices = c(
-          "All years" = "all",
-          stats::setNames(
-            as.character(availableYears()),
-            as.character(availableYears())
-          )
-        ),
-        selected = "all",
-        multiple = FALSE,
-        # selectize is initialised from the options present when the control is
-        # first rendered. This control is re-rendered once the years are known,
-        # and selectize does not pick up the new <option> elements, leaving the
-        # dropdown with only "All years". A plain select always reflects the
-        # server-side choices.
-        selectize = FALSE
-      )
-    })
-
     # Index event breakdown -----------
     indexEventBreakDownDataAll <- shiny::reactive(x = {
       if (length(targetCohortId()) > 0 &&
@@ -530,28 +396,9 @@ indexEventBreakdownModule <- function(id,
       }
     })
 
-    # Limit the breakdown to the selected cohort start year (when available)
-    indexEventBreakDownData <- shiny::reactive(x = {
-      data <- indexEventBreakDownDataAll()
-      if (!hasData(data)) {
-        return(NULL)
-      }
-      if (!yearDimensionAvailableFlag()) {
-        return(data)
-      }
-      selectedYear <- input$indexEventBreakdownYear
-      if (is.null(selectedYear) ||
-        length(selectedYear) == 0 ||
-        is.na(selectedYear[[1]]) ||
-        selectedYear[[1]] %in% c("", "all")) {
-        return(data)
-      }
-      return(data %>% dplyr::filter(.data$cohortStartYear %in% as.numeric(selectedYear[[1]])))
-    })
-
     indexEventBreakDownDataFilteredByRadioButton <-
       shiny::reactive(x = {
-        data <- indexEventBreakDownData()
+        data <- indexEventBreakDownDataAll()
         if (!is.null(data) && nrow(data) > 0) {
           if (input$indexEventBreakdownTableRadioButton == "All") {
             return(data)
@@ -564,23 +411,6 @@ indexEventBreakdownModule <- function(id,
           return(NULL)
         }
       })
-
-    # Same concept-type filtering as the table, but WITHOUT the cohort start
-    # year filter. The year plot exists to show the trend across years, so it
-    # must keep every year even when the table is restricted to one.
-    indexEventBreakDownDataForYearPlot <- shiny::reactive(x = {
-      data <- indexEventBreakDownDataAll()
-      if (is.null(data) || nrow(data) == 0) {
-        return(NULL)
-      }
-      if (input$indexEventBreakdownTableRadioButton == "All") {
-        return(data)
-      } else if (input$indexEventBreakdownTableRadioButton == "Standard concepts") {
-        return(data %>% dplyr::filter(.data$standardConcept == "S"))
-      } else {
-        return(data %>% dplyr::filter(is.na(.data$standardConcept)))
-      }
-    })
 
     output$breakdownTable <- reactable::renderReactable(expr = {
       shiny::validate(shiny::need(length(selectedDatabaseIds()) > 0, "No data sources chosen"))
@@ -599,10 +429,6 @@ indexEventBreakdownModule <- function(id,
         "No data available for selected combination."
       ))
 
-      # the year column is only kept when the results have a year dimension
-      showYear <- yearDimensionAvailableFlag() &&
-        "cohortStartYear" %in% colnames(data)
-
       distinctColumns <- c(
         "conceptId",
         "conceptName",
@@ -611,31 +437,46 @@ indexEventBreakdownModule <- function(id,
         "vocabularyId",
         "conceptCode",
         "conceptCount",
-        "subjectCount",
-        "subjectPercent",
-        "conceptPercent"
+        "subjectCount"
       )
-      if (showYear) {
-        distinctColumns <- c(distinctColumns, "cohortStartYear")
-      }
 
-      data <- data %>%
-        dplyr::arrange(.data$databaseId) %>%
-        dplyr::select(dplyr::all_of(distinctColumns)) %>%
-        dplyr::filter(.data$conceptId > 0) %>%
-        dplyr::distinct()
+      # Split the stored rows into the overall figures (one per code) and the
+      # per-year detail. The overall rows are used exactly as stored - they are
+      # NOT recovered by adding the year rows together, because subjectCount is
+      # distinct-within-a-period and would be double counted.
+      split <- splitIndexEventBreakdown(
+        data %>% dplyr::filter(.data$conceptId > 0) %>% dplyr::distinct()
+      )
+      data <- split$overall %>% dplyr::arrange(.data$databaseId)
+      perYearDetail <- split$byYear
 
+      # persons must be worked out before the column list narrows, because the
+      # percentage needs the cohort denominators
       if (showDataAsPercent) {
+        # formatDataCellValueInDisplayTable multiplies by 100 itself, so this
+        # must be a 0-1 fraction. The numerator is the stored overall subject
+        # count, which is a distinct count over the whole cohort.
         data <- data %>%
-          dplyr::rename(
-            "persons" = "subjectPercent"
+          dplyr::mutate(
+            persons = dplyr::if_else(
+              !is.na(.data$cohortSubjects) & .data$cohortSubjects > 0,
+              .data$subjectCount / .data$cohortSubjects,
+              NA_real_
+            )
           )
       } else {
         data <- data %>%
-          dplyr::rename(
-            "persons" = "subjectCount"
-          )
+          dplyr::rename("persons" = "subjectCount")
       }
+
+      # `persons` and `records` are created above, so keep them whatever the
+      # column list says (the raw counts they are derived from are dropped)
+      keepColumns <- unique(c(
+        intersect(distinctColumns, colnames(data)),
+        intersect(c("persons", "records"), colnames(data))
+      ))
+      data <- data %>%
+        dplyr::select(dplyr::all_of(keepColumns))
 
       data <- data %>%
         dplyr::rename(
@@ -647,11 +488,10 @@ indexEventBreakdownModule <- function(id,
           c("records", "persons")
         ))))
 
+      # one row per code when year-stratified, so cohortStartYear is no longer a
+      # key column - it lives in the expandable detail instead
       keyColumnFields <-
         c("conceptId", "conceptName", "conceptCode", "domainField", "vocabularyId")
-      if (showYear) {
-        keyColumnFields <- c(keyColumnFields, "cohortStartYear")
-      }
       if (input$indexEventBreakdownTableFilter == "Persons") {
         dataColumnFields <- c("persons")
         countLocation <- 1
@@ -672,6 +512,32 @@ indexEventBreakdownModule <- function(id,
           fields = input$indexEventBreakdownTableFilter
         )
 
+      # When year-stratified, each summary row expands into that code's
+      # per-year counts. The details function receives the displayed data frame
+      # and the row index, so the code is looked up by conceptId + databaseId,
+      # both of which survive the wide pivot as key columns.
+      details <- NULL
+      if (!is.null(perYearDetail)) {
+        detailRows <- perYearDetail
+        personLabel <- if (showDataAsPercent) "Persons (%)" else "Persons"
+        details <- function(index) {
+          row <- data[index, , drop = FALSE]
+          if (nrow(row) == 0) {
+            return(NULL)
+          }
+          rows <- detailRows %>%
+            dplyr::filter(
+              .data$conceptId == row$conceptId[[1]],
+              .data$databaseId == row[["databaseId"]][[1]]
+            )
+          indexEventBreakdownYearDetail(
+            data = rows,
+            showAsPercent = showDataAsPercent,
+            valueLabel = personLabel
+          )
+        }
+      }
+
       getDisplayTableGroupedByDatabaseId(
         data = data,
         databaseTable = databaseTable,
@@ -681,46 +547,22 @@ indexEventBreakdownModule <- function(id,
         dataColumns = dataColumnFields,
         showDataAsPercent = showDataAsPercent,
         excludedColumnFromPercentage = "records",
-        sort = TRUE
+        sort = TRUE,
+        details = details
       )
     })
 
-    # Plot of the breakdown by cohort start year - only when the results have
-    # the year dimension (older results keep the table-only view)
-    output$yearPlotArea <- shiny::renderUI({
+    # Hint shown under the table when the results carry a cohort start year, so
+    # it is obvious that a row expands into that code's year-by-year detail
+    output$yearDetailHint <- shiny::renderUI({
       if (!yearDimensionAvailableFlag()) {
         return(NULL)
       }
-      shiny::tagList(
-        shiny::tags$h4("Index events by cohort start year"),
-        shinycssloaders::withSpinner(plotly::plotlyOutput(
-          outputId = ns("yearPlot"),
-          width = "100%",
-          height = "450px"
-        ))
+      shiny::tags$p(
+        class = "text-muted",
+        style = "font-size: 90%; margin-top: 6px;",
+        "Select a row to see that code's count for each cohort start year."
       )
-    })
-
-    output$yearPlot <- plotly::renderPlotly(expr = {
-      shiny::validate(shiny::need(
-        yearDimensionAvailableFlag(),
-        "Results do not contain a cohort start year"
-      ))
-      data <- indexEventBreakDownDataForYearPlot()
-      shiny::validate(shiny::need(
-        hasData(data),
-        "There is no data for the selected combination."
-      ))
-      plot <- plotIndexEventBreakdownByYear(
-        data = data,
-        cohortTable = dataSource$cohortTable,
-        showAsPercent = isTRUE(input$showAsPercent)
-      )
-      shiny::validate(shiny::need(
-        !is.null(plot),
-        "There is no data to plot for the selected combination."
-      ))
-      return(plot)
     })
   }
 
