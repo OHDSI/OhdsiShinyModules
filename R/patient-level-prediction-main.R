@@ -494,9 +494,10 @@ patientLevelPredictionServer <- function(
           selected = 'View Models',
           multiple = F,
           options = shinyWidgets::pickerOptions(
+            container = "body",
             actionsBox = TRUE,
             liveSearch = TRUE,
-            dropupAuto = F,
+            dropupAuto = FALSE,
             size = 10,
             liveSearchStyle = "contains",
             liveSearchPlaceholder = "Type here to search",

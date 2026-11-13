@@ -101,7 +101,14 @@ estimationCmResultsServer <- function(
       })
         
       data <- shiny::reactive({
-        dplyr::bind_rows(cmData(), esData())
+        cmTemp <- cmData()
+        esTemp <- esData()
+        if(nrow(esTemp) == 0){
+          result <- cmTemp
+        } else{
+          result <- dplyr::bind_rows(cmTemp, esTemp)
+        }
+        result
       })
       
       resultTableOutputs <- resultTableServer(

@@ -471,6 +471,7 @@ patientLevelPredictionModelServer <- function(
                   selected = 1, 
                   width = '100%', 
                   options = shinyWidgets::pickerOptions(
+                    container = "body",
                     liveSearch = TRUE,
                     dropupAuto = FALSE
                   )
@@ -535,6 +536,7 @@ patientLevelPredictionModelServer <- function(
                   selected = 1, 
                   width = '100%', 
                   options = shinyWidgets::pickerOptions(
+                    container = "body",
                     liveSearch = TRUE,
                     dropupAuto = FALSE
                   )

@@ -216,9 +216,10 @@ estimationServer <- function(
               selected = targets[1],
               multiple = FALSE,
               options = shinyWidgets::pickerOptions(
+                container = "body",
                 actionsBox = TRUE,
                 liveSearch = TRUE,
-                dropupAuto = F,
+                dropupAuto = FALSE,
                 #size = 10,
                 liveSearchStyle = "contains",
                 liveSearchPlaceholder = "Type here to search",
@@ -277,9 +278,10 @@ estimationServer <- function(
               selected = outcomes()[1],
               multiple = FALSE,
               options = shinyWidgets::pickerOptions(
+                container = "body",
                 actionsBox = TRUE,
                 liveSearch = TRUE,
-                dropupAuto = F,
+                dropupAuto = FALSE,
                 size = 10,
                 liveSearchStyle = "contains",
                 liveSearchPlaceholder = "Type here to search",

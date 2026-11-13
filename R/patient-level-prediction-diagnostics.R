@@ -124,6 +124,7 @@ patientLevelPredictionDiagnosticsServer <- function(
                   selected = modelOptions(), 
                   width = '100%', 
                   options = shinyWidgets::pickerOptions(
+                    container = "body",
                     liveSearch = TRUE,
                     dropupAuto = FALSE
                   )

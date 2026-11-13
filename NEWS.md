@@ -1,7 +1,13 @@
+OhdsiShinyModules v3.6.1
+========================
+- account for target populations in cohort incidence viewer
+- fixed bug with cohort method data type mismatch in test
+
 OhdsiShinyModules v3.6.0
 ========================
 - updated characterization/about/data/cohort modules to give asthetic facelift
 - updated characterization module to handle new study pop that includes age, gender, study date, nesting id
+- index event breakdown viewer now supports the cohort start year breakdown added in CohortDiagnostics 4.0.0 (issue #1197): adds a cohort start year selector, a cohort start year column, and a plot of index events by cohort start year. Results without the year column continue to display as before
 
 OhdsiShinyModules v3.5.1
 ========================

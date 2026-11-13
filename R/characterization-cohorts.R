@@ -513,6 +513,7 @@ characterizationCohortComparisonServer <- function(
               selected = input$databaseName,
               multiple = FALSE,
               options = shinyWidgets::pickerOptions(
+                container = "body",
                 actionsBox = TRUE,
                 liveSearch = TRUE,
                 dropupAuto = FALSE,

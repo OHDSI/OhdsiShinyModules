@@ -6,7 +6,7 @@
 #' @param buttonIcon string, Font Awesome icon name (for shiny::icon). Use "" to hide the icon.
 #' @param hoverText string, button tooltip shown on hover.
 #' @param buttonClass string, CSS classes applied to the button element.
-#' @param buttonStyle string, inline CSS style applied to the button element.
+#' @param buttonStyle string, inline CSS style applied to the button element. Uses a compact pill style when NULL.
 #' @param buttonLabel string, button text shown to the user.
 #' 
 #' @family Utils
@@ -18,7 +18,7 @@ createActionButton <- function(
     buttonIcon = "play",
     hoverText = NULL,
     buttonClass = "btn btn-default btn-xs",
-    buttonStyle = "margin-right: 4px; margin-bottom: 2px; padding: 2px 8px; font-size: 11px; line-height: 1.2;",
+    buttonStyle = NULL,
     buttonLabel = NULL
 ) {
   if (is.null(actionType) || length(actionType) != 1 || !nzchar(actionType)) {
@@ -27,6 +27,13 @@ createActionButton <- function(
 
   if (is.null(hoverText)) {
     hoverText <- paste0("Run action: ", actionType)
+  }
+
+  if (is.null(buttonStyle)) {
+    buttonStyle <- paste0(
+      "margin-right: 4px; margin-bottom: 2px; ",
+      "padding: 2px 8px; font-size: 11px; line-height: 1.2;"
+    )
   }
 
   if (is.null(buttonLabel)) {

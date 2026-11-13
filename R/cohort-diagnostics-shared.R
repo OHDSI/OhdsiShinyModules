@@ -242,7 +242,8 @@ getDisplayTableGroupedByDatabaseId <- function(data,
                                                pageSize = 20,
                                                valueFill = 0,
                                                selection = NULL,
-                                               isTemporal = FALSE) {
+                                               isTemporal = FALSE,
+                                               details = NULL) {
   data <- prepDataForDisplay(
     data = data,
     keyColumns = keyColumns,
@@ -480,6 +481,9 @@ getDisplayTableGroupedByDatabaseId <- function(data,
       pageSizeOptions = c(10, 20, 50, 100, 1000),
       defaultPageSize = pageSize,
       selection = selection,
+      # when supplied, each row gains an expand control that renders this
+      # function's return value (row details); NULL keeps previous behaviour
+      details = details,
       onClick = "select",
       style = list(maxWidth = columnTotalMaxWidth, minWidth = columnTotalMinWidth),
       theme = reactable::reactableTheme(

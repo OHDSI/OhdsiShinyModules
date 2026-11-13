@@ -40,7 +40,7 @@ createInputSetting <- function(
       label = 'Input: ',
       choices = list(),
       multiple = F,
-      options = shinyWidgets::pickerOptions()
+      options = shinyWidgets::pickerOptions(dropupAuto = FALSE, container = "body")
     ),
     updateFunction = NULL,
     collapse = F,

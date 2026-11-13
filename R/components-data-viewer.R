@@ -213,6 +213,8 @@ resultTableServer <- function( # add column for selected columns as a reactive
           choicesOpt = list(style = rep_len("color: black;", 999)),
           multiple = TRUE,
           options = shinyWidgets::pickerOptions(
+            dropupAuto = FALSE,
+            container = "body",
             actionsBox = TRUE,
             liveSearch = TRUE,
             size = 10,
