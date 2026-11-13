@@ -1,3 +1,8 @@
+OhdsiShinyModules v3.6.1
+========================
+- account for target populations in cohort incidence viewer
+- fixed bug with cohort method data type mismatch in test
+
 OhdsiShinyModules v3.6.0
 ========================
 - updated characterization/about/data/cohort modules to give asthetic facelift
