@@ -142,6 +142,7 @@ index_event_breakdown,concept_id,bigint,Yes,Yes,No,Yes,No,No,No
 index_event_breakdown,concept_count,float,Yes,No,No,Yes,Yes,No,No
 index_event_breakdown,subject_count,float,Yes,No,No,Yes,Yes,No,No
 index_event_breakdown,cohort_id,bigint,Yes,Yes,No,Yes,No,No,No
+index_event_breakdown,cohort_start_year,int,Yes,Yes,No,Yes,No,No,No
 index_event_breakdown,database_id,varchar,Yes,Yes,No,Yes,No,No,No
 index_event_breakdown,domain_field,varchar,Yes,Yes,No,Yes,No,No,No
 index_event_breakdown,domain_table,varchar,Yes,Yes,No,Yes,No,No,No
