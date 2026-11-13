@@ -546,16 +546,25 @@ characterizationIncidenceServer <- function(
       data <- incidenceFullData() %>%
         dplyr::filter(.data$databaseId %in% databaseIds()[databaseNames() %in% input$databaseSelector])
      
-      # ageGroupName genderName startYear
-      if(!input$ageStratify){
+      # Filter stratification: if stratifying, exclude 'Any'; if not, include only 'Any'
+      if(input$ageStratify){
+        data <- data %>%
+          dplyr::filter(.data$ageGroupName != 'Any')
+      } else {
         data <- data %>%
           dplyr::filter(.data$ageGroupName == 'Any')
       }
-      if(!input$sexStratify){
+      if(input$sexStratify){
+        data <- data %>%
+          dplyr::filter(.data$genderName != 'Any')
+      } else {
         data <- data %>%
           dplyr::filter(.data$genderName == 'Any')
       }
-      if(!input$yearStratify){
+      if(input$yearStratify){
+        data <- data %>%
+          dplyr::filter(.data$startYear != 'Any')
+      } else {
         data <- data %>%
           dplyr::filter(.data$startYear == 'Any')
       }
@@ -571,6 +580,7 @@ characterizationIncidenceServer <- function(
         selectedCols = c("databaseName", 
                          "outcomeName", "tar",
                          "ageGroupName", "genderName", "startYear", 
+                         "populationId", "population",
                          "cleanWindow", "tar", 
                          "personsAtRisk","personDays","outcomes",
                          "incidenceProportionP100p", 
@@ -586,6 +596,11 @@ characterizationIncidenceServer <- function(
       output$plotFilter <- shiny::renderUI({
         
         tarChoices <- sort(unique(incidenceFullData()$tar))
+        populationData <- incidenceFullData() %>%
+          dplyr::select("populationId", "population") %>%
+          dplyr::distinct() %>%
+          dplyr::arrange(.data$populationId)
+        populationChoices <- stats::setNames(populationData$populationId, populationData$population)
         
         shiny::div(
           shinyWidgets::pickerInput(
@@ -629,6 +644,23 @@ characterizationIncidenceServer <- function(
             label = 'Time at risk: ',
             choices = tarChoices,
             selected = tarChoices[1],
+            multiple = FALSE,
+            options = shinyWidgets::pickerOptions(
+              liveSearch = TRUE,
+              size = 10,
+              dropupAuto = FALSE,
+              container = "body",
+              liveSearchStyle = "contains",
+              liveSearchPlaceholder = "Type here to search",
+              virtualScroll = 50
+            )
+          ),
+          
+          shinyWidgets::pickerInput(
+            inputId = session$ns('populationPlot'),
+            label = 'Population: ',
+            choices = populationChoices,
+            selected = populationChoices[1],
             multiple = FALSE,
             options = shinyWidgets::pickerOptions(
               liveSearch = TRUE,
@@ -743,6 +775,9 @@ characterizationIncidenceServer <- function(
           ) %>%
           dplyr::filter(
             .data$tar %in% input$tarPlot
+          ) %>%
+          dplyr::filter(
+            .data$populationId %in% input$populationPlot
           )
         
         if(nrow(plotData) > 0){
@@ -963,6 +998,28 @@ characterizationIncidenceColumnDefs <- function(elementId){
       header = withTooltip("Index Year",
                            "The index year when stratifying by year")
     ), 
+    populationId = reactable::colDef(
+      name = "Population ID",
+      header = withTooltip("Population ID",
+                           "Unique identifier for the population settings"),
+      filterable = TRUE,
+      filterInput = function(values, name) {
+        shiny::tags$select(
+          # Set to undefined to clear the filter
+          onchange = sprintf("Reactable.setFilter('%s', '%s', event.target.value || undefined)", elementId, name),
+          # "All" has an empty value to clear the filter, and is the default option
+          shiny::tags$option(value = "", "All"),
+          lapply(sort(unique(values)), shiny::tags$option),
+          "aria-label" = sprintf("Filter %s", name),
+          style = "width: 100%; height: 28px;"
+        )
+      }
+    ),
+    population = reactable::colDef(
+      name = "Population",
+      header = withTooltip("Population",
+                           "The population settings including age range, prior observation requirement, and study period")
+    ),
     cleanWindow = reactable::colDef(
       name = "Clean Window",
       header = withTooltip("Clean Window",
@@ -1047,6 +1104,7 @@ getCharacterizationIncidence <- function(
     ciTablePrefix,
     cgTablePrefix, 
     databaseTable, 
+    # characterizationTargetIds,
     targetIds, 
     outcomeIds
 ){
@@ -1062,9 +1120,48 @@ getCharacterizationIncidence <- function(
       ciTablePrefix = ciTablePrefix,
       cgTablePrefix = cgTablePrefix, 
       databaseTable = databaseTable, 
+      # characterizationTargetIds = characterizationTargetIds,
       targetIds = targetIds, 
       outcomeIds = outcomeIds
     )
+    
+    # Add population and populationId columns
+    populationColumns <- c(
+      'limitToFirstInNDays', 'minPriorObservation', 'nestingCohortId',
+      'minAge', 'maxAge', 'studyStart', 'studyEnd', 'genderConceptIds'
+    )
+    if (all(populationColumns %in% colnames(result))) {
+      result <- result %>%
+        dplyr::rowwise() %>%
+        dplyr::mutate(
+          population = trimws(as.character(OhdsiReportGenerator::formatTargetPopulation(
+            list(
+              limitToFirstInNDays = .data$limitToFirstInNDays,
+              minPriorObservation = .data$minPriorObservation,
+              nestingCohortId = .data$nestingCohortId,
+              minAge = .data$minAge,
+              maxAge = .data$maxAge,
+              studyStart = .data$studyStart,
+              studyEnd = .data$studyEnd,
+              genderConceptIds = .data$genderConceptIds
+            )
+          )))
+        ) %>%
+        dplyr::ungroup() %>%
+        dplyr::select(-dplyr::all_of(populationColumns)) %>%
+        dplyr::mutate(
+          populationId = dplyr::dense_rank(.data$population),
+          populationId = sprintf(paste0("Pop_%0", nchar(max(.data$populationId)), "d"), .data$populationId)
+        ) %>%
+        dplyr::relocate("populationId", .after = "databaseName") %>%
+        dplyr::relocate("population", .after = "populationId")
+    } else {
+      result <- result %>%
+        dplyr::mutate(
+          population = as.character(''),
+          populationId = as.character(NA)
+        )
+    }
     
     shiny::incProgress(4/4, detail = paste("Done"))
   })
