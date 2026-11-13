@@ -49,4 +49,6 @@ Suggests:
     RSQLite,
     testthat,
     withr
+Remotes:
+    ohdsi/OhdsiReportGenerator
 Config/roxygen2/version: 8.0.0
