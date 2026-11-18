@@ -168,19 +168,20 @@ getIndexEventBreakdown <- function(dataSource,
     ) %>%
       tidyr::tibble()
 
-  # Results exported before cohort_start_year was added to the results data
-  # model have no year dimension - mark those rows so the UI can degrade
+  # cohort_start_year arrives with migration 8. Results uploaded from an older
+  # CohortDiagnostics (3.6.x) do not have the column at all, and results from a
+  # schema that has not been migrated do not follow the -1 = overall convention.
+  # Either way the rows are plain overall rows, so add the column as NA and
+  # splitIndexEventBreakdown() will treat every row as overall. The -1 rows
+  # themselves must be kept - they are the overall figures.
   hasYearColumn <- hasIndexEventBreakdownColumn(
     data,
     columnName = "cohortStartYear"
   )
   if (!hasYearColumn) {
-    # no year dimension at all: treat every row as an overall row
     data <- data %>%
       dplyr::mutate(cohortStartYear = NA_integer_, .after = "cohortId")
   }
-  # Note: -1 rows are the OVERALL figures for each code and must be kept -
-  # splitIndexEventBreakdown() separates them from the per-year rows.
 
   if (hasData(cohortStartYears)) {
     data <- data %>%
@@ -346,12 +347,25 @@ indexEventBreakdownModule <- function(id,
 
     output$selectedCohort <- shiny::renderUI(selectedCohort())
 
-    # Does the loaded results data model have the cohort_start_year column?
-    # FALSE for results exported by CohortDiagnostics versions predating the
-    # year dimension - the year controls are then hidden and the table shows
-    # the unstratified breakdown as before
+    # Is the year dimension available in these results?
+    #
+    # cohort_start_year was added by migration 8, so the appropriate test is
+    # whether that migration has been applied - the same way cohort-overlap
+    # gates on migration 6. Results uploaded from a 3.6.x CohortDiagnostics
+    # predate the migration, and a schema that has not been migrated has
+    # neither the column nor the -1 overall rows.
+    #
+    # The migration record is authoritative only when the schema actually has a
+    # migrations table. If it does not, the schema was created incorrectly (the
+    # package warns about this at start-up) and the recorded migrations are
+    # unknowable, so fall back to checking for the column itself rather than
+    # hiding the report for data that is in fact fine.
     yearDimensionAvailable <- shiny::reactive(x = {
       if (length(targetCohortId()) == 0 || length(selectedDatabaseIds()) == 0) {
+        return(FALSE)
+      }
+      migrationRecorded <- hasData(dataSource$migrations)
+      if (migrationRecorded && !migrationPresent(dataSource$migrations, 8)) {
         return(FALSE)
       }
       return(hasIndexEventBreakdownColumnInResults(
