@@ -527,26 +527,37 @@ indexEventBreakdownModule <- function(id,
         )
 
       # When year-stratified, each summary row expands into that code's
-      # per-year counts. The details function receives the displayed data frame
-      # and the row index, so the code is looked up by conceptId + databaseId,
-      # both of which survive the wide pivot as key columns.
+      # per-year counts. The summary table is small (one row per code) but the
+      # per-year detail can be very large - thousands of codes times decades of
+      # years - so it is never sent to the browser. Instead it is split once
+      # here, keyed by database and code, and an expansion looks up its own
+      # slice.
+      #
+      # details() receives the displayed data frame and a row index into it,
+      # so the code is identified from that row rather than from any client
+      # side state. That keeps working if the table is later switched to
+      # server side pagination, where the index is not a position in the full
+      # data.
       details <- NULL
       if (!is.null(perYearDetail)) {
-        detailRows <- perYearDetail
+        detailByCode <- split(
+          perYearDetail,
+          paste(perYearDetail$databaseId, perYearDetail$conceptId, sep = "\r")
+        )
         personLabel <- if (showDataAsPercent) "Persons (%)" else "Persons"
         details <- function(index) {
           row <- data[index, , drop = FALSE]
           if (nrow(row) == 0) {
             return(NULL)
           }
-          rows <- detailRows %>%
-            dplyr::filter(
-              .data$conceptId == row$conceptId[[1]],
-              .data$databaseId == row[["databaseId"]][[1]]
-            )
+          key <- paste(row[["databaseId"]][[1]], row$conceptId[[1]], sep = "\r")
+          rows <- detailByCode[[key]]
+          if (is.null(rows)) {
+            return(NULL)
+          }
           indexEventBreakdownYearDetail(
             data = rows,
-            showAsPercent = showDataAsPercent,
+            showDataAsPercent = showDataAsPercent,
             valueLabel = personLabel
           )
         }
