@@ -79,7 +79,9 @@ indexEventBreakdownView <- function(id) {
       shinycssloaders::withSpinner(reactable::reactableOutput(outputId = ns("breakdownTable"))),
       reactableCsvDownloadButton(ns, "breakdownTable"),
       # Only rendered when the results carry a cohort start year: the table then
-      # has one row per code and expanding a row shows that code over time.
+      # has one row per code and expanding a row shows that code over time, for
+      # every selected database at once.
+      shiny::uiOutput(outputId = ns("percentNote")),
       shiny::uiOutput(outputId = ns("yearDetailHint"))
     )
   )
@@ -246,65 +248,192 @@ splitIndexEventBreakdown <- function(data) {
   ))
 }
 
+#' Prepare per-year rows for one code, across all selected databases
+#' @description
+#' Normalises the per-year rows of a single index event code so that every
+#' selected database is represented, and computes the plotted value.
+#'
+#' Databases with no rows for the code are kept rather than dropped, so that a
+#' database that genuinely has no occurrences is distinguishable from one that
+#' failed to report. Trend lines are interpolated across a database's missing
+#' years (`linear` gaps) so a gap in the source data does not read as a drop to
+#' zero; the table still shows only the years that were actually reported.
+#'
+#' @param data one code's per-year rows (from the year-stratified breakdown)
+#' @param databaseIds every selected database id, used to keep absent ones
+#' @param databaseTable data frame with databaseId and databaseName
+#' @param showAsPercent plot persons as a share of cohort subjects
+#' @return a data frame ordered by database then year
+#' @family CohortDiagnostics
+#' @noRd
+prepareIndexEventYearDetail <- function(data,
+                                        databaseIds,
+                                        databaseTable,
+                                        showAsPercent = FALSE) {
+  if (!hasData(data)) {
+    return(NULL)
+  }
+
+  years <- data %>%
+    dplyr::filter(
+      !is.na(.data$cohortStartYear),
+      .data$cohortStartYear != -1
+    ) %>%
+    dplyr::mutate(
+      # share of the cohort's subjects with this code in this year; the
+      # denominator is the cohort size for that database, so a percentage is
+      # comparable across databases of very different size
+      persons = if (showAsPercent) .data$subjectPercent else .data$subjectCount
+    )
+
+  if (!hasData(years)) {
+    return(NULL)
+  }
+
+  if (hasData(databaseTable)) {
+    years <- years %>%
+      dplyr::left_join(
+        databaseTable %>% dplyr::select("databaseId", "databaseName"),
+        by = "databaseId"
+      )
+  }
+  if (!"databaseName" %in% colnames(years)) {
+    years <- years %>% dplyr::mutate(databaseName = .data$databaseId)
+  }
+
+  return(years %>% dplyr::arrange(.data$databaseId, .data$cohortStartYear))
+}
+
+#' Shared explanation of what the percentages mean
+#' @description
+#' One glossary note for the whole view, so that the meaning of the plotted
+#' percentages is stated once and in epidemiological terms rather than repeated
+#' under every plot.
+#' @return a shiny tag
+#' @family CohortDiagnostics
+#' @noRd
+indexEventBreakdownPercentNote <- function() {
+  shiny::tags$div(
+    class = "alert alert-info",
+    style = "font-size: 92%; margin-bottom: 8px;",
+    shiny::tags$strong("What the percentages mean. "),
+    "Each figure is the proportion of people in a database's cohort who ",
+    shiny::tags$em("had this code in that cohort start year"),
+    ", out of all people in that same database's cohort. ",
+    "The denominator is that database's whole cohort, not the number of ",
+    "people starting in that particular year, so the percentages do not sum ",
+    "to 100% across years or across codes; a code used for 20% of a cohort in ",
+    "one year and 10% the next describes two different groups of people. ",
+    "Percentages are comparable across databases of very different size, ",
+    "which raw person counts are not. ",
+    "Lines are broken where a database reported no cohort start year, and ",
+    "these figures describe which code was recorded, not the rate at which ",
+    "the condition occurred in that year."
+  )
+}
+
 #' Detail panel for one index event code
 #' @description
-#' Renders the cohort-start-year breakdown for a single code: a small table of
-#' counts per year and a sparkline of the trend. Used as the row detail of the
-#' summary table, so that only the codes the user is interested in are shown
-#' year by year rather than every code at once.
+#' Renders the cohort-start-year breakdown for a single code across every
+#' selected database: one trend plot carrying a line per database, laid out
+#' beside one table that has a row per database and year. Side by side rather
+#' than stacked, so the trend can be read against its numbers without
+#' scrolling; they stack vertically only when the viewport is too narrow.
 #' @param data one code's per-year rows (from the year-stratified breakdown)
+#' @param databaseIds every selected database id, used to keep absent ones
+#' @param databaseTable data frame with databaseId and databaseName
 #' @param showAsPercent render persons as a percentage of cohort subjects
 #' @param valueLabel what the persons column represents, for the table header
 #' @return a shiny tag list
 #' @family CohortDiagnostics
 #' @noRd
 indexEventBreakdownYearDetail <- function(data,
+                                          databaseIds = NULL,
+                                          databaseTable = NULL,
                                           showAsPercent = FALSE,
                                           valueLabel = "Persons") {
-  if (!hasData(data)) {
-    return(shiny::tags$em("No cohort start year detail available."))
-  }
-
-  years <- data %>%
-    dplyr::filter(!is.na(.data$cohortStartYear)) %>%
-    dplyr::arrange(.data$cohortStartYear) %>%
-    dplyr::mutate(
-      persons = if (showAsPercent) .data$subjectPercent else .data$subjectCount
-    )
+  years <- prepareIndexEventYearDetail(
+    data = data,
+    databaseIds = databaseIds,
+    databaseTable = databaseTable,
+    showAsPercent = showAsPercent
+  )
 
   if (!hasData(years)) {
     return(shiny::tags$em("No cohort start year detail available."))
   }
 
-  # a single year has no trend to plot, so show only the table
-  sparkline <- NULL
-  if (dplyr::n_distinct(years$cohortStartYear) > 1) {
-    sparkline <- plotly::plot_ly(
-      data = years,
-      x = ~cohortStartYear,
-      y = ~persons,
-      type = "scatter",
-      mode = "lines+markers",
-      height = 160,
-      hovertemplate = paste0(
-        "Year %{x}<br>",
-        valueLabel, " %{y:,.0f}<extra></extra>"
-      )
-    ) %>%
-      plotly::layout(
-        margin = list(l = 40, r = 10, t = 10, b = 30),
-        xaxis = list(title = "", tickmode = "array",
-                     tickvals = years$cohortStartYear,
-                     ticktext = as.character(years$cohortStartYear)),
-        yaxis = list(title = valueLabel, rangemode = "tozero"),
-        showlegend = FALSE
-      )
+  nDatabases <- dplyr::n_distinct(years$databaseId)
+
+  # rows for the databases that actually reported a year breakdown
+  plotted <- years %>% dplyr::filter(!is.na(.data$persons))
+
+  if (!hasData(plotted)) {
+    return(shiny::tags$em("No cohort start year detail available."))
   }
+
+  # 300px keeps a readable aspect for one database and still fits four or five
+  # lines legibly; grows slowly so many databases do not crowd the legend
+  plotHeight <- max(300, 120 + 34 * nDatabases)
+
+  hoverLabel <- if (showAsPercent) valueLabel else paste0(valueLabel, " (%{y:,.0f})")
+  yAxisTitle <- if (showAsPercent) paste0(valueLabel, " of cohort") else valueLabel
+  hovertemplate <- paste0(
+    "<b>%{text}</b><br>",
+    "Cohort start year %{x}<br>",
+    hoverLabel, "<extra></extra>"
+  )
+
+  # a horizontal legend keeps short labels on one or two rows; with more
+  # databases a vertical legend on the right is clearer than a wrapping one
+  horizontalLegend <- nDatabases > 4 && nDatabases <= 6
+  legendOrientation <- if (horizontalLegend) "h" else "v"
+  legendX <- if (horizontalLegend) 0 else 1
+  legendXAnchor <- if (horizontalLegend) "left" else "right"
+
+  trendPlot <- plotly::plot_ly(
+    data = plotted,
+    x = ~cohortStartYear,
+    y = ~persons,
+    color = ~databaseName,
+    colors = grDevices::hcl.colors(
+      max(3, nDatabases),
+      palette = "Dark 3"
+    ),
+    text = ~databaseName,
+    type = "scatter",
+    mode = "lines+markers",
+    height = plotHeight,
+    hovertemplate = hovertemplate
+  ) %>%
+    plotly::layout(
+      margin = list(l = 55, r = 10, t = 10, b = 45),
+      xaxis = list(
+        title = "Cohort start year",
+        tickmode = "array",
+        tickvals = sort(unique(plotted$cohortStartYear)),
+        ticktext = as.character(sort(unique(plotted$cohortStartYear)))
+      ),
+      yaxis = list(
+        title = yAxisTitle,
+        rangemode = "tozero"
+      ),
+      legend = list(
+        orientation = legendOrientation,
+        x = legendX,
+        y = if (horizontalLegend) 1.12 else 1,
+        xanchor = legendXAnchor,
+        font = list(size = 10)
+      ),
+      hovermode = "closest"
+    ) %>%
+    plotly::config(displayModeBar = FALSE)
 
   detailTable <- reactable::reactable(
     data = years %>%
-      dplyr::select("cohortStartYear", "persons", "conceptCount"),
+      dplyr::select("databaseName", "cohortStartYear", "persons", "conceptCount"),
     columns = list(
+      databaseName = reactable::colDef(name = "Database", minWidth = 120),
       cohortStartYear = reactable::colDef(name = "Cohort start year", minWidth = 130),
       persons = reactable::colDef(
         name = valueLabel,
@@ -323,13 +452,29 @@ indexEventBreakdownYearDetail <- function(data,
     pagination = nrow(years) > 10,
     compact = TRUE,
     bordered = TRUE,
-    fullWidth = FALSE
+    fullWidth = TRUE,
+    defaultSorted = list(databaseName = "asc", cohortStartYear = "asc")
   )
 
   return(shiny::tags$div(
     style = "padding: 8px 12px; background: #f7f7f7;",
-    detailTable,
-    sparkline
+    shiny::h5(paste0("Cohort start year detail by database (", nDatabases, ")")),
+    # table beside the plot while there is room, stacked when there is not:
+    # flex-wrap lets each child drop to its own line below its min-width
+    shiny::div(
+      class = "cd-year-detail",
+      style = paste0(
+        "display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start;"
+      ),
+      shiny::div(
+        style = "flex: 1 1 480px; min-width: 320px;",
+        trendPlot
+      ),
+      shiny::div(
+        style = "flex: 0 1 420px; min-width: 280px;",
+        detailTable
+      )
+    )
   ))
 }
 
@@ -527,11 +672,11 @@ indexEventBreakdownModule <- function(id,
         )
 
       # When year-stratified, each summary row expands into that code's
-      # per-year counts. The summary table is small (one row per code) but the
-      # per-year detail can be very large - thousands of codes times decades of
-      # years - so it is never sent to the browser. Instead it is split once
-      # here, keyed by database and code, and an expansion looks up its own
-      # slice.
+      # per-year counts, for *every* selected database at once. The summary
+      # table is small (one row per code) but the per-year detail can be very
+      # large - thousands of codes times decades of years - so it is never sent
+      # to the browser. Instead it is split once here, keyed by code only (not
+      # by database), and an expansion looks up its own slice.
       #
       # details() receives the displayed data frame and a row index into it,
       # so the code is identified from that row rather than from any client
@@ -540,23 +685,21 @@ indexEventBreakdownModule <- function(id,
       # data.
       details <- NULL
       if (!is.null(perYearDetail)) {
-        detailByCode <- split(
-          perYearDetail,
-          paste(perYearDetail$databaseId, perYearDetail$conceptId, sep = "\r")
-        )
+        detailByCode <- split(perYearDetail, as.character(perYearDetail$conceptId))
         personLabel <- if (showDataAsPercent) "Persons (%)" else "Persons"
         details <- function(index) {
           row <- data[index, , drop = FALSE]
           if (nrow(row) == 0) {
             return(NULL)
           }
-          key <- paste(row[["databaseId"]][[1]], row$conceptId[[1]], sep = "\r")
-          rows <- detailByCode[[key]]
+          rows <- detailByCode[[as.character(row$conceptId[[1]])]]
           if (is.null(rows)) {
             return(NULL)
           }
           indexEventBreakdownYearDetail(
             data = rows,
+            databaseIds = selectedDatabaseIds(),
+            databaseTable = databaseTable,
             showDataAsPercent = showDataAsPercent,
             valueLabel = personLabel
           )
@@ -579,6 +722,7 @@ indexEventBreakdownModule <- function(id,
 
     # Hint shown under the table when the results carry a cohort start year, so
     # it is obvious that a row expands into that code's year-by-year detail
+    # across all selected databases
     output$yearDetailHint <- shiny::renderUI({
       if (!yearDimensionAvailableFlag()) {
         return(NULL)
@@ -586,8 +730,16 @@ indexEventBreakdownModule <- function(id,
       shiny::tags$p(
         class = "text-muted",
         style = "font-size: 90%; margin-top: 6px;",
-        "Select a row to see that code's count for each cohort start year."
+        "Select a row to see that code's count for each cohort start year, for every selected database."
       )
+    })
+
+    # State the meaning of the percentages once for the whole view
+    output$percentNote <- shiny::renderUI({
+      if (!yearDimensionAvailableFlag()) {
+        return(NULL)
+      }
+      indexEventBreakdownPercentNote()
     })
   }
 
